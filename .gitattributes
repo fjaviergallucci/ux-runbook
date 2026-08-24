@@ -1,0 +1,2 @@
+# Keep the kit byte-identical across platforms.
+* text=auto eol=lf
