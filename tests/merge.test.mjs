@@ -1,7 +1,7 @@
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
 import { dirname, join, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isDeepStrictEqual } from 'node:util';
@@ -75,7 +75,9 @@ const reversed = value => {
 };
 const pretty = value => `${JSON.stringify(value, null, 2)}\n`;
 const readText = (dir, name) => readFileSync(join(dir, name), 'utf8');
-const readMap = board => JSON.parse(readFileSync(mapOf(board), 'utf8'));
+// The map names its board and holds its letters: { board, letters }.
+const readWholeMap = board => JSON.parse(readFileSync(mapOf(board), 'utf8'));
+const readMap = board => readWholeMap(board).letters;
 const lettersOn = board => readdirSync(board).sort();
 // Everything in a folder, by name, byte for byte, sub-folders included; a link is recorded as where it points.
 const snapshot = dir => {
@@ -143,7 +145,8 @@ const writePreload = (dir, name, lines) => {
   return file;
 };
 // Faults put in by hand. REFUSE_PATH or REFUSE_NAME refuses writing or making that path, or that file name
-// wherever it is; PARTIAL_PATH writes one byte of that file and then fails; REFUSE_RENAME refuses every rename; WINDOWS_RENAME refuses a rename onto anything that
+// wherever it is; PARTIAL_PATH writes one byte of that file and then fails; DIE_BEFORE_MAP kills the merge as
+// it is about to write the map; REFUSE_RENAME refuses every rename; WINDOWS_RENAME refuses a rename onto anything that
 // exists, as Windows does; FILL_BEFORE_RENAME puts another merge's letter in the board just before the
 // rename; RENAME_DELAY_MS holds every rename back that long, so two merges overlap.
 const writeFaults = dir =>
@@ -157,6 +160,7 @@ const writeFaults = dir =>
     'fs.writeFileSync = (path, ...rest) => {',
     "  if (hit(path)) throw refused('EACCES', path);",
     "  if (String(path) === env.PARTIAL_PATH) { write(path, '{', ...rest.slice(1)); throw refused('ENOSPC', path); }",
+    "  if (env.DIE_BEFORE_MAP && basename(String(path)) === 'MAP.sealed.json') process.kill(process.pid, 'SIGKILL');",
     '  return write(path, ...rest);',
     '};',
     "fs.mkdirSync = (path, ...rest) => { if (hit(path)) throw refused('EACCES', path); return make(path, ...rest); };",
@@ -189,7 +193,8 @@ const invalidMessage = (src, faults) =>
 
 test('three proposals merge to A, B, C: the board holds the letters only, each without its first idea or who made it, in the format\'s key order', () => {
   const board = newBoard();
-  assert.deepEqual(mergeProposals(FIXTURES, board, { seed: 1 }), { letters: ['A', 'B', 'C'] });
+  // The letters, and the board folder as the system reads it.
+  assert.deepEqual(mergeProposals(FIXTURES, board, { seed: 1 }), { letters: ['A', 'B', 'C'], board });
   assert.deepEqual(lettersOn(board), ['A.json', 'B.json', 'C.json'], 'no map, no pick in the board folder');
   assert.deepEqual(readdirSync(dirname(board)).sort(), [MAP, 'board'], 'the map sits beside it');
   const texts = ['A', 'B', 'C'].map(letter => readText(board, `${letter}.json`));
@@ -263,7 +268,7 @@ test('the sealed map beside the board holds, per letter, the source file, its tr
   };
   const src = writeProposals(join(dir, 'the proposals'), sources);
   const board = join(dir, 'the board');
-  assert.deepEqual(mergeProposals(src, board, { seed: 3 }), { letters: ['A', 'B', 'C', 'D', 'E'] });
+  assert.deepEqual(mergeProposals(src, board, { seed: 3 }).letters, ['A', 'B', 'C', 'D', 'E']);
   const map = readMap(board);
   assert.deepEqual(Object.keys(map), ['A', 'B', 'C', 'D', 'E']);
   assert.deepEqual(Object.values(map).map(entry => entry.file).sort(), Object.keys(sources).sort(), 'every source exactly once');
@@ -272,7 +277,9 @@ test('the sealed map beside the board holds, per letter, the source file, its tr
     assert.deepEqual([entry.track, entry.engine], expected[entry.file], `${letter} is ${entry.file}`);
     assert.equal(readText(board, `${letter}.json`), pretty(letterOf(sources[entry.file])), `${letter} holds what ${entry.file} says`);
   }
-  assert.equal(readFileSync(mapOf(board), 'utf8'), pretty(map), 'pretty-printed, LF, one final newline');
+  // The map names the board it belongs to, by its folder's name, and then holds the letters.
+  assert.deepEqual(Object.keys(readWholeMap(board)), ['board', 'letters']);
+  assert.equal(readFileSync(mapOf(board), 'utf8'), pretty({ board: 'the board', letters: map }), 'pretty-printed, LF, one final newline');
 });
 
 // ---- the shuffle
@@ -297,7 +304,7 @@ test('with a seed the shuffle is repeatable, and at least one of three seeds is 
   });
   // The seed's bounds: a whole number from 0 to 2^32 - 1.
   for (const seed of [0, 4294967295]) {
-    assert.deepEqual(mergeProposals(FIXTURES, newBoard(), { seed }), { letters: ['A', 'B', 'C'] }, String(seed));
+    assert.deepEqual(mergeProposals(FIXTURES, newBoard(), { seed }).letters, ['A', 'B', 'C'], String(seed));
   }
   for (const seed of [-1, 1.5, 4294967296, '1', NaN]) {
     const board = newBoard();
@@ -346,9 +353,15 @@ test('the order the folder is listed in changes nothing: with a seed, the same b
   const listed = join(dir, 'listed', 'board');
   const backwards = join(dir, 'reversed', 'board');
   assert.equal(run(src, '--out', listed, '--seed', '5').status, 0);
-  const r = runWith({ preload: reverse }, src, '--out', backwards, '--seed', '5');
+  let r = runWith({ preload: reverse }, src, '--out', backwards, '--seed', '5');
   assert.equal(r.status, 0, r.stderr);
   assert.deepEqual(snapshot(dirname(backwards)), snapshot(dirname(listed)));
+  // The map opens however the board folder is listed: its letters are compared as a set.
+  writeFileSync(pickOf(backwards), 'Pick: A\n');
+  const opened = run('open', backwards);
+  r = runWith({ preload: reverse }, 'open', backwards);
+  assert.deepEqual([r.status, r.stdout, r.stderr], [0, opened.stdout, '']);
+  assert.equal(opened.stdout.split('\n').length, 4);
 });
 
 // ---- what the CLI prints
@@ -360,20 +373,24 @@ test('the CLI prints the count, the letters and the board folder: never a source
   let r = run(src, '--out', board, '--seed', '1');
   assert.equal(r.status, 0, r.stderr);
   assert.deepEqual([r.stdout, r.stderr], [merged(board, ['A', 'B', 'C']), '']);
-  for (const sign of [...SIGNS, ...STEMS, MAP, PICK, 'open']) assert.ok(!r.stdout.includes(sign), sign);
+  // The board's own path aside (a checkout's path may hold any word), the line says nothing more.
+  const said = r.stdout.replace(board, '<board>');
+  assert.equal(said, 'merged 3 proposals into <board>: A, B, C\n');
+  for (const sign of [...SIGNS, ...STEMS, MAP, PICK, 'open']) assert.ok(!said.includes(sign), sign);
   assert.deepEqual(lettersOn(board), ['A.json', 'B.json', 'C.json']);
   // The seed reaches the library: the same board as the library makes with it.
   const library = join(dir, 'library', 'board');
   mergeProposals(src, library, { seed: 1 });
   assert.deepEqual(snapshot(board), snapshot(library));
-  assert.deepEqual(readFileSync(mapOf(board)), readFileSync(mapOf(library)));
+  assert.deepEqual(readMap(board), readMap(library), 'the same letters; each map names its own board');
+  assert.deepEqual([readWholeMap(board).board, readWholeMap(library).board], ['the board', 'board']);
   // Without a seed, and written --out=…: the same words.
   const other = join(dir, 'other', 'the board');
   r = run(`--out=${other}`, src);
   assert.equal(r.status, 0, r.stderr);
   assert.deepEqual([r.stdout, r.stderr], [merged(other, ['A', 'B', 'C']), '']);
   // One proposal is one letter.
-  const one = writeProposals(join(dir, 'one'), { 'solo-zq.json': fixture('calendar.json') });
+  const one = writeProposals(join(dir, 'one', 'proposals'), { 'solo-zq.json': fixture('calendar.json') });
   r = run(one, '--out', join(dir, 'one', 'board'));
   assert.deepEqual([r.status, r.stdout, r.stderr], [0, merged(join(dir, 'one', 'board'), ['A']), '']);
 });
@@ -466,27 +483,36 @@ test('the CLI opens the map only after a real pick: before, exit 1 and nothing p
 
 test('a map that is not an author map is refused with a MergeError, never printed half-read', () => {
   const board = newBoard();
-  mkdirSync(dirname(board), { recursive: true });
+  mkdirSync(board, { recursive: true });
+  for (const letter of ['A', 'B']) writeFileSync(join(board, `${letter}.json`), '{}\n');
   writeFileSync(pickOf(board), 'Pick: none\n');
   const entry = { file: 'a.json', track: 'system', engine: null };
+  const whole = letters => ({ board: 'board', letters });
   const cases = [
-    [null, 'it must be an object of letters'],
-    [[entry], 'it must be an object of letters'],
-    ['A', 'it must be an object of letters'],
-    [{}, 'it holds no letter'],
-    [{ a: entry }, '"a" is not a letter'],
-    [{ AB: entry }, '"AB" is not a letter'],
-    [{ A: null }, 'the entry for A is not { file, track, engine }'],
-    [{ A: [entry] }, 'the entry for A is not { file, track, engine }'],
-    [{ A: 'a.json' }, 'the entry for A is not { file, track, engine }'],
-    [{ A: { track: null, engine: null } }, 'the entry for A is not { file, track, engine }'],
-    [{ A: { ...entry, file: '' } }, 'the entry for A is not { file, track, engine }'],
-    [{ A: { ...entry, file: 5 } }, 'the entry for A is not { file, track, engine }'],
-    [{ A: { file: 'a.json', engine: null } }, 'the entry for A is not { file, track, engine }'],
-    [{ A: { ...entry, track: 5 } }, 'the entry for A is not { file, track, engine }'],
-    [{ A: { file: 'a.json', track: null } }, 'the entry for A is not { file, track, engine }'],
-    [{ A: { ...entry, engine: ['e'] } }, 'the entry for A is not { file, track, engine }'],
-    [{ A: entry, B: { ...entry, file: undefined } }, 'the entry for B is not { file, track, engine }'],
+    [null, 'it must be an object holding "board" and "letters"'],
+    [[entry], 'it must be an object holding "board" and "letters"'],
+    ['A', 'it must be an object holding "board" and "letters"'],
+    [{ letters: { A: entry } }, '"board" must name the board folder'],
+    [{ board: '', letters: { A: entry } }, '"board" must name the board folder'],
+    [{ board: 5, letters: { A: entry } }, '"board" must name the board folder'],
+    [{ board: 'board' }, '"letters" must be an object of letters'],
+    [whole(null), '"letters" must be an object of letters'],
+    [whole([entry]), '"letters" must be an object of letters'],
+    [whole('A'), '"letters" must be an object of letters'],
+    [whole({}), 'it holds no letter'],
+    [whole({ a: entry }), '"a" is not a letter'],
+    [whole({ AB: entry }), '"AB" is not a letter'],
+    [whole({ A: null }), 'the entry for A is not { file, track, engine }'],
+    [whole({ A: [entry] }), 'the entry for A is not { file, track, engine }'],
+    [whole({ A: 'a.json' }), 'the entry for A is not { file, track, engine }'],
+    [whole({ A: { track: null, engine: null } }), 'the entry for A is not { file, track, engine }'],
+    [whole({ A: { ...entry, file: '' } }), 'the entry for A is not { file, track, engine }'],
+    [whole({ A: { ...entry, file: 5 } }), 'the entry for A is not { file, track, engine }'],
+    [whole({ A: { file: 'a.json', engine: null } }), 'the entry for A is not { file, track, engine }'],
+    [whole({ A: { ...entry, track: 5 } }), 'the entry for A is not { file, track, engine }'],
+    [whole({ A: { file: 'a.json', track: null } }), 'the entry for A is not { file, track, engine }'],
+    [whole({ A: { ...entry, engine: ['e'] } }), 'the entry for A is not { file, track, engine }'],
+    [whole({ A: entry, B: { ...entry, file: undefined } }), 'the entry for B is not { file, track, engine }'],
   ];
   for (const [map, what] of cases) {
     writeFileSync(mapOf(board), JSON.stringify(map));
@@ -495,8 +521,50 @@ test('a map that is not an author map is refused with a MergeError, never printe
     const r = run('open', board);
     assert.deepEqual([r.status, r.stdout, r.stderr], [1, '', `${message}\n`], JSON.stringify(map));
   }
-  writeFileSync(mapOf(board), JSON.stringify({ A: entry, B: { file: 'b.json', track: null, engine: 'e' } }));
+  writeFileSync(mapOf(board), JSON.stringify(whole({ A: entry, B: { file: 'b.json', track: null, engine: 'e' } })));
   assert.deepEqual(Object.keys(openMap(board)), ['A', 'B']);
+});
+
+test('the map opens only for the board it names, holding exactly its letters: an orphan board, a letter gone, a letter added are refused', () => {
+  const dir = fresh();
+  const faults = writeFaults(dir);
+  // A merge stopped dead between putting its board in place and writing its map: a whole board, no map.
+  const orphan = join(dir, 'run', 'one');
+  let r = runWith({ preload: faults, env: { DIE_BEFORE_MAP: '1' } }, FIXTURES, '--out', orphan, '--seed', '1');
+  assert.equal(r.signal, 'SIGKILL');
+  assert.deepEqual(lettersOn(orphan), ['A.json', 'B.json', 'C.json']);
+  assert.ok(!existsSync(mapOf(orphan)), 'no map');
+  // A sibling board is merged beside it and gets the map; a pick is written.
+  const sibling = join(dir, 'run', 'two');
+  r = run(FIXTURES, '--out', sibling, '--seed', '2');
+  assert.equal(r.status, 0, r.stderr);
+  writeFileSync(pickOf(sibling), 'Pick: A\n');
+  // The orphan is not the board the map names: refused, nothing printed.
+  const another = `cannot open ${mapOf(orphan)}: it is the map of the board "two", not of ${orphan}`;
+  assert.throws(() => openMap(orphan), e => e instanceof MergeError && !(e instanceof SealedError) && e.message === another);
+  r = run('open', orphan);
+  assert.deepEqual([r.status, r.stdout, r.stderr], [1, '', `${another}\n`]);
+  // The sibling opens.
+  r = run('open', sibling);
+  assert.equal(r.status, 0, r.stderr);
+  assert.deepEqual(Object.keys(openMap(sibling)), ['A', 'B', 'C']);
+  // A letter file gone, or one more: the board is not the board the map was written for.
+  const mismatch = (letters, mapped) => `cannot open ${mapOf(sibling)}: ${sibling} holds the letters ${letters}, and the map the letters ${mapped}`;
+  rmSync(join(sibling, 'B.json'));
+  assert.throws(() => openMap(sibling), e => e instanceof MergeError && e.message === mismatch('A, C', 'A, B, C'));
+  r = run('open', sibling);
+  assert.deepEqual([r.status, r.stdout, r.stderr], [1, '', `${mismatch('A, C', 'A, B, C')}\n`]);
+  writeFileSync(join(sibling, 'B.json'), '{}\n');
+  writeFileSync(join(sibling, 'D.json'), '{}\n');
+  assert.throws(() => openMap(sibling), e => e instanceof MergeError && e.message === mismatch('A, B, C, D', 'A, B, C'));
+  // Other files in the board folder (a drawn page, the kit's stylesheet) are not letters, and change nothing.
+  rmSync(join(sibling, 'D.json'));
+  writeFileSync(join(sibling, 'A.html'), '<!doctype html>\n');
+  writeFileSync(join(sibling, 'kit.css'), '\n');
+  assert.deepEqual(Object.keys(openMap(sibling)), ['A', 'B', 'C']);
+  // With no board folder at all, there are no letters.
+  rmSync(sibling, { recursive: true });
+  assert.throws(() => openMap(sibling), e => e instanceof MergeError && e.message === mismatch('(none)', 'A, B, C'));
 });
 
 // ---- the refusals
@@ -559,7 +627,7 @@ test('more than 26 proposals are refused; 26 merge to A to Z, every source once'
   const many = count => Object.fromEntries(Array.from({ length: count }, (_, i) => [`p${String(i + 1).padStart(2, '0')}.json`, fixture(FIXTURE_FILES[i % 3])]));
   const src26 = writeProposals(join(dir, 'twenty-six'), many(26));
   const board26 = join(dir, 'board 26', 'board');
-  assert.deepEqual(mergeProposals(src26, board26, { seed: 1 }), { letters: LETTERS });
+  assert.deepEqual(mergeProposals(src26, board26, { seed: 1 }).letters, LETTERS);
   assert.deepEqual(Object.values(readMap(board26)).map(entry => entry.file).sort(), Object.keys(many(26)).sort());
   const src27 = writeProposals(join(dir, 'twenty-seven'), many(27));
   const board27 = join(dir, 'board 27', 'board');
@@ -582,7 +650,7 @@ test('only .json files directly in the folder are read, whatever the case of .js
   writeProposals(join(src, 'nested'), { 'deep.json': fixture('calendar.json') });
   writeProposals(join(src, 'folder.json'), { 'inside.json': fixture('calendar.json') });
   const board = join(dir, 'the board');
-  assert.deepEqual(mergeProposals(src, board, { seed: 1 }), { letters: ['A', 'B', 'C', 'D'] });
+  assert.deepEqual(mergeProposals(src, board, { seed: 1 }).letters, ['A', 'B', 'C', 'D']);
   assert.deepEqual(Object.values(readMap(board)).map(entry => entry.file).sort(), ['Shouty.JSON', ...FIXTURE_FILES].sort());
 });
 
@@ -652,14 +720,9 @@ test('a board folder that holds anything is refused, naming what it holds; a fil
   const looksEmpty = join(dir, 'looks empty', 'board');
   mkdirSync(looksEmpty, { recursive: true });
   writeFileSync(join(looksEmpty, '.DS_Store'), '');
-  // The proposals folder inside the board.
-  const holding = join(dir, 'holding', 'board');
-  writeProposals(join(holding, 'proposals'), signed());
   const cases = [
     [src, letterLeft, 'D.json'],
     [src, looksEmpty, '.DS_Store'],
-    [src, src, 'ada-zq.json'],
-    [join(holding, 'proposals'), holding, 'proposals'],
   ];
   for (const [proposals, board, entry] of cases) {
     const before = snapshot(dirname(board));
@@ -676,8 +739,59 @@ test('a board folder that holds anything is refused, naming what it holds; a fil
   // An empty folder is a new board.
   const empty = join(dir, 'empty', 'board');
   mkdirSync(empty, { recursive: true });
-  assert.deepEqual(mergeProposals(src, empty, { seed: 1 }), { letters: ['A', 'B', 'C'] });
+  assert.deepEqual(mergeProposals(src, empty, { seed: 1 }).letters, ['A', 'B', 'C']);
   assert.deepEqual(lettersOn(empty), ['A.json', 'B.json', 'C.json']);
+});
+
+test('a board is never made inside another board: refused when any folder above it holds letter files, and nothing is written', () => {
+  const dir = fresh();
+  const outer = join(dir, 'run', 'board');
+  let r = run(FIXTURES, '--out', outer, '--seed', '1');
+  assert.equal(r.status, 0, r.stderr);
+  const before = snapshot(dir);
+  const inside = (board, folder) => `cannot merge into ${board}: ${folder} above it holds letter files, so it is a board; a board is never made inside another.`;
+  for (const board of [join(outer, 'again'), join(outer, 'deeper', 'again'), join(outer, 'deeper', 'still', 'again')]) {
+    assert.throws(() => mergeProposals(FIXTURES, board, { seed: 1 }), e => e instanceof MergeError && !(e instanceof SealedError) && e.message === inside(board, outer), board);
+    r = run(FIXTURES, '--out', board, '--seed', '2');
+    assert.deepEqual([r.status, r.stdout, r.stderr], [1, '', `${inside(board, outer)}\n`], board);
+    assert.deepEqual(snapshot(dir), before, `${board}: the outer board and its map, byte for byte, and nothing new`);
+  }
+  // A folder that holds files of other names is no board: a board may be made under it.
+  const notes = join(dir, 'notes');
+  writeProposals(notes, { 'a.json': '{}', 'AB.json': '{}', 'A.json.bak': '{}', 'A.JSON': '{}' });
+  r = run(FIXTURES, '--out', join(notes, 'board'));
+  assert.equal(r.status, 0, r.stderr);
+});
+
+test('a board is never the proposals folder, inside it, or around it; a folder beside it with a longer name is not inside it', () => {
+  const dir = fresh();
+  const src = writeProposals(join(dir, 'x', 'proposals'), signed());
+  const before = snapshot(dir);
+  const apart = 'A board is made apart from the proposals, never among them.';
+  const cases = [
+    [src, src, `cannot merge into ${src}: it is the proposals folder. ${apart}`],
+    [src, join(src, 'board'), `cannot merge into ${join(src, 'board')}: it lies inside the proposals folder ${src}. ${apart}`],
+    [src, join(src, 'deeper', 'board'), `cannot merge into ${join(src, 'deeper', 'board')}: it lies inside the proposals folder ${src}. ${apart}`],
+    // A name that only starts with ".." is a folder inside, not a step out.
+    [src, join(src, '..board'), `cannot merge into ${join(src, '..board')}: it lies inside the proposals folder ${src}. ${apart}`],
+    [src, join(dir, 'x'), `cannot merge into ${join(dir, 'x')}: it holds the proposals folder ${src}. ${apart}`],
+    [src, dir, `cannot merge into ${dir}: it holds the proposals folder ${src}. ${apart}`],
+  ];
+  for (const [proposals, board, message] of cases) {
+    assert.throws(() => mergeProposals(proposals, board, { seed: 1 }), e => e instanceof MergeError && !(e instanceof SealedError) && e.message === message, board);
+    const r = run(proposals, '--out', board);
+    assert.deepEqual([r.status, r.stdout, r.stderr], [1, '', `${message}\n`], board);
+    for (const name of [...STEMS, ...Object.keys(SIGNATURES)]) assert.ok(!r.stderr.includes(name), `${board}: no source named`);
+    assert.deepEqual(snapshot(dir), before, `${board}: nothing is written`);
+  }
+  // The same, reached through ".." from inside: one path, compared part by part.
+  const roundabout = `${src}${sep}..${sep}proposals${sep}board`;
+  assert.throws(() => mergeProposals(src, roundabout, { seed: 1 }), e => e.message.startsWith(`cannot merge into ${join(src, 'board')}: it lies inside the proposals folder`));
+  // Beside it, a folder whose name starts the same is not inside it: the board is made.
+  const sibling = join(dir, 'x', 'proposals-2');
+  assert.deepEqual(mergeProposals(src, sibling, { seed: 1 }).letters, ['A', 'B', 'C']);
+  assert.deepEqual(lettersOn(sibling), ['A.json', 'B.json', 'C.json']);
+  assert.ok(existsSync(join(dir, 'x', MAP)));
 });
 
 // ---- one board, one path, written whole
@@ -826,6 +940,13 @@ test('a board that cannot be written whole is not written at all: no letter, no 
   let r = runWith({ preload: faults, env: { REFUSE_NAME: 'B.json' } }, FIXTURES, '--out', board, '--seed', '1');
   assert.deepEqual([r.status, r.stdout, r.stderr], [1, '', `cannot write ${board}: no permission\n`]);
   assert.deepEqual(readdirSync(join(dir, 'empty above')), [], 'no board, no stray folder, and the folder above is still there');
+  // The folders above the board can be made only part of the way: what was made is taken away.
+  board = join(dir, 'new', 'deeper', 'n'.repeat(300), 'board');
+  r = runWith({ preload: faults }, FIXTURES, '--out', board);
+  assert.equal(r.status, 1);
+  assert.equal(r.stdout, '');
+  assert.ok(r.stderr.startsWith(`cannot write ${board}: ENAMETOOLONG`), r.stderr);
+  assert.ok(!existsSync(join(dir, 'new')), 'no stray folder');
   // The board's folder cannot be made.
   board = join(dir, 'unmade', 'board');
   r = runWith({ preload: faults, env: { REFUSE_PATH: dirname(board) } }, FIXTURES, '--out', board);
@@ -872,6 +993,27 @@ test('the board goes in place by one rename: an empty folder is used where a ren
   }
 });
 
+test('the board folder gets the mode a plain folder gets under the umask, not the private mode of a temporary folder', t => {
+  if (process.platform === 'win32') return t.skip('Windows reports no folder modes');
+  const dir = fresh();
+  mkdirSync(dir);
+  // Only a file system that keeps modes can tell them apart.
+  const probe = join(dir, 'probe');
+  mkdirSync(probe, { mode: 0o700 });
+  if ((statSync(probe).mode & 0o777) !== 0o700) return t.skip('this file system keeps no folder modes');
+  const old = process.umask(0o022);
+  try {
+    const board = join(dir, 'out', 'board');
+    mergeProposals(FIXTURES, board, { seed: 1 });
+    const plain = join(dir, 'plain');
+    mkdirSync(plain);
+    assert.equal(statSync(board).mode & 0o777, statSync(plain).mode & 0o777);
+    assert.equal(statSync(board).mode & 0o777, 0o755);
+  } finally {
+    process.umask(old);
+  }
+});
+
 // ---- the shared reader
 
 test('a proposal file is read as UTF-8 JSON, one byte-order mark dropped; what cannot be read is refused naming the path', t => {
@@ -902,7 +1044,7 @@ test('a proposal file is read as UTF-8 JSON, one byte-order mark dropped; what c
   // The merge reads through it: a marked file merges, its letter carries no mark; a broken one refuses.
   const board = newBoard();
   const marked = writeProposals(join(dir, 'marked'), { 'marked.json': `\uFEFF${json}` });
-  assert.deepEqual(mergeProposals(marked, board, { seed: 1 }), { letters: ['A'] });
+  assert.deepEqual(mergeProposals(marked, board, { seed: 1 }).letters, ['A']);
   assert.equal(readFileSync(join(board, 'A.json'), 'utf8'), pretty(letterOf(fixture('calendar.json'))));
   for (const [name, text] of [['broken.json', '{ "name": "half a proposal",'], ['twice.json', `\uFEFF\uFEFF${json}`]]) {
     const src = writeProposals(join(dir, `with ${name}`), { 'calendar.json': json, [name]: text });
@@ -974,7 +1116,7 @@ test('the CLI --help prints the usage, naming both forms, every flag, where the 
     assert.equal(r.status, 0, args.join(' '));
     assert.equal(r.stderr, '');
     assert.match(r.stdout, /^Usage: node scripts\/merge\.mjs <proposals dir> --out <board dir> \[--seed <n>\]\n {7}node scripts\/merge\.mjs open <board dir>\n/);
-    const words = ['--out', '--seed', MAP, PICK, 'beside the board folder', 'the letters and nothing else', 'whole or not at all', 'at most 26', 'empty or absent', 'one folder holds one board', 'delete it and its map on purpose', '"Pick: <letter>"', '"Pick: none"', '--flag=value', '0 success', '1 a refusal', '2 bad usage'];
+    const words = ['--out', '--seed', MAP, PICK, 'beside the board folder', 'the letters and nothing else', 'whole or not at all', 'at most 26', 'empty or absent', 'one folder holds one board', 'delete it and its map on purpose', '"Pick: <letter>"', '"Pick: none"', 'naming the board it belongs to', 'never made inside another', 'a map that names another board', '--flag=value', '0 success', '1 a refusal', '2 bad usage'];
     for (const word of words) assert.ok(r.stdout.includes(word), word);
   }
 });

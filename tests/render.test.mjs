@@ -686,7 +686,7 @@ test('a letter copy written by the merge draws, and its page is its source\'s pa
   const board = join(dir, 'the board');
   mergeProposals(proposals, board, { seed: 1 });
   // The map sits beside the board folder, which holds the letters only.
-  const map = JSON.parse(readFileSync(join(dir, 'MAP.sealed.json'), 'utf8'));
+  const map = JSON.parse(readFileSync(join(dir, 'MAP.sealed.json'), 'utf8')).letters;
   assert.deepEqual(readdirSync(board).sort(), Object.keys(map).map(letter => `${letter}.json`));
   assert.equal(Object.keys(map).length, ALL.length);
   for (const [letter, { file }] of Object.entries(map)) {
