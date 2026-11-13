@@ -140,22 +140,22 @@ test('package runs on node 20 with one dependency', () => {
   const p = read('package.json');
   assert.equal(p.type, 'module');
   assert.deepEqual(Object.keys(p.dependencies), ['playwright-core']);
-  assert.equal(p.scripts.test, 'node --test tests/');
+  assert.equal(p.scripts.test, 'node --test tests/*.test.mjs');
 });
 ```
 
-- [ ] **Step 5: Run it.** `node --test tests/` → FAIL (files missing).
+- [ ] **Step 5: Run it.** `node --test tests/*.test.mjs` → FAIL (files missing).
 - [ ] **Step 6: Write the four files.** `plugin.json`: `name` `ux`, `version` `2.0.0-dev`, `license`
   `MIT`, `author.name` from `git config user.name` (no email), `description`: "An interface design
   pipeline for UX and UI: staged, with makers, judges and audiences chosen per design, ending in a handoff
   another session can build from." `marketplace.json`: `name` `ux-runbook`, the same owner name, one
   plugin `{name: "ux", source: "./", version, description}`. `package.json`: `private: true`,
-  `type: "module"`, `engines.node: ">=20"`, `scripts.test`, `dependencies: {"playwright-core": "^1.48.0"}`.
+  `type: "module"`, `engines.node: ">=20"`, `scripts.test: "node --test tests/*.test.mjs"`, `dependencies: {"playwright-core": "^1.48.0"}`.
   `.gitignore`: `node_modules/`, `evals/results/`, `tests/.tmp/`.
 - [ ] **Step 7: Install.** `NODE_OPTIONS=--dns-result-order=ipv4first npm install`. Expected: exits 0,
   `node_modules/playwright-core` exists.
 - [ ] **Step 8: Run the test.** `npm test` → PASS (3 tests).
-- [ ] **Step 9: Validate the manifests.** `claude plugin validate .` → exit 0.
+- [ ] **Step 9: Validate the manifests.** `claude plugin validate . --strict` → exit 0.
 - [ ] **Step 10: Commit.** `git add -A && git commit -m "chore: start version 2 on a clean tree with the plugin skeleton"`.
 
 ### Task 1: The flat frontmatter library
