@@ -8,7 +8,7 @@
 // letter give the same bytes.
 // As a command: see USAGE. Exit codes: 0 success · 1 an invalid proposal, an unreadable input or an
 // unwritable output · 2 bad usage.
-import { mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readdirSync, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { validate } from './lib/walkthrough.mjs';
@@ -152,11 +152,14 @@ const drawNote = (holder, pad) => (Object.hasOwn(holder, 'note') ? html`${pad}<p
 const USAGE = `Usage: node scripts/render.mjs <proposal.json> --kit <kit dir> --out <file.html> [--letter A]
 
 Draws one Structure proposal, written in the walkthrough format, as one HTML document in the shared kit,
-and copies <kit dir>/kit.css beside it. The page shows the option's letter, never who made the proposal.
+and copies every stylesheet directly in <kit dir> (each .css file, kit.css among them) beside it, so a
+kit.css that imports its token file keeps it. The page shows the option's letter, never who made the
+proposal.
 
-  --kit <kit dir>     the kit to draw in: a folder holding kit.css (the grey kit is kit/grey)
-  --out <file.html>   the page to write, under any name but kit.css; its folder is made when it
-                      does not exist
+  --kit <kit dir>     the kit to draw in: a folder holding kit.css, and any stylesheet it imports
+                      (the grey kit is kit/grey)
+  --out <file.html>   the page to write: not named like one of the kit's stylesheets, and
+                      not the proposal itself; its folder is made when it does not exist
   --letter <A to Z>   the option's letter on the board; A when not given
 
 A flag may also be written --flag=value.
@@ -165,10 +168,22 @@ Exit codes: 0 success · 1 an invalid proposal, an unreadable input or an unwrit
 `;
 const FLAGS = ['kit', 'out', 'letter'];
 const HELP = ['--help', '-h'];
+// One leading byte-order mark is dropped by the decoder itself; bytes that are not UTF-8 are refused.
+const UTF8 = new TextDecoder('utf-8', { fatal: true });
+// What a person can do something about, for the failures that are common; any other keeps its own words.
+const REASONS = {
+  ENOENT: 'not found',
+  EISDIR: 'it is a folder, not a file',
+  ENOTDIR: 'part of the path is a file, not a folder',
+  EACCES: 'no permission',
+  EPERM: 'no permission',
+};
 
 class UsageError extends Error {}
 // A failure the command expects and explains in one message: exit 1, without a stack.
 class Failure extends Error {}
+
+const reason = e => (Object.hasOwn(REASONS, e.code) ? REASONS[e.code] : e.message);
 
 function readArgs(argv) {
   const positional = [];
@@ -186,14 +201,13 @@ function readArgs(argv) {
     if (Object.hasOwn(flags, name)) throw new UsageError(`--${name} is given twice`);
     const value = eq === -1 ? argv[++i] : arg.slice(eq + 1);
     if (value === undefined || value === '') throw new UsageError(`--${name} needs a value`);
+    // A flag never takes the next flag as its value.
+    if (value.startsWith('--') || HELP.includes(value)) throw new UsageError(`--${name} needs a value; "${value}" is a flag`);
     flags[name] = value;
   }
   if (positional.length !== 1) throw new UsageError(`render takes one <proposal.json>, got ${positional.length}`);
   for (const name of ['kit', 'out']) {
     if (!Object.hasOwn(flags, name)) throw new UsageError(`--${name} is missing`);
-  }
-  if (basename(flags.out).toLowerCase() === 'kit.css') {
-    throw new UsageError("--out cannot be named kit.css: the kit's stylesheet is copied there, beside the page");
   }
   const letter = flags.letter ?? 'A';
   if (!LETTER.test(letter)) throw new UsageError(`--letter must be one capital letter, A to Z; it is "${letter}"`);
@@ -204,7 +218,7 @@ function readInput(file) {
   try {
     return readFileSync(file);
   } catch (e) {
-    throw new Failure(`cannot read ${file}: ${e.code}`);
+    throw new Failure(`cannot read ${file}: ${reason(e)}`);
   }
 }
 
@@ -212,32 +226,65 @@ function writeOutput(file, data) {
   try {
     writeFileSync(file, data);
   } catch (e) {
-    throw new Failure(`cannot write ${file}: ${e.code}`);
+    throw new Failure(`cannot write ${file}: ${reason(e)}`);
   }
+}
+
+// One file under two paths, whichever way each is written: the same device and the same file on it.
+function sameFile(a, b) {
+  try {
+    const [x, y] = [statSync(a, { bigint: true }), statSync(b, { bigint: true })];
+    return x.dev === y.dev && x.ino === y.ino;
+  } catch {
+    return false;
+  }
+}
+
+// The kit's stylesheets: every .css file directly in its folder, by name; kit.css must be one of them.
+function stylesheets(kit) {
+  let names;
+  try {
+    names = readdirSync(kit);
+  } catch (e) {
+    throw new Failure(`cannot read ${kit}: ${reason(e)}`);
+  }
+  const sheets = names.filter(name => name.endsWith('.css') && statSync(join(kit, name)).isFile()).sort();
+  if (!sheets.includes('kit.css')) throw new Failure(`cannot read ${join(kit, 'kit.css')}: ${REASONS.ENOENT}`);
+  return sheets;
 }
 
 // Everything is read and checked before anything is written.
 function draw({ path, kit, out, letter }) {
+  if (sameFile(out, path)) throw new UsageError('--out is the proposal itself: drawing would overwrite it');
+  const sheets = stylesheets(kit);
+  // Each stylesheet lands beside the page under its own name, on a file system that may ignore case.
+  const clash = sheets.find(name => name.toLowerCase() === basename(out).toLowerCase());
+  if (clash) throw new UsageError(`--out cannot be named ${basename(out)}: the kit's stylesheet ${clash} is copied there, beside the page`);
+  let text;
+  try {
+    text = UTF8.decode(readInput(path));
+  } catch (e) {
+    throw e instanceof Failure ? e : new Failure(`cannot read ${path}: it is not UTF-8`);
+  }
   let proposal;
   try {
-    // One leading byte-order mark, as some editors write, is not part of the JSON.
-    proposal = JSON.parse(readInput(path).toString('utf8').replace(/^\uFEFF/, ''));
+    proposal = JSON.parse(text);
   } catch (e) {
-    throw e instanceof SyntaxError ? new Failure(`cannot read ${path}: it is not JSON (${e.message})`) : e;
+    throw new Failure(`cannot read ${path}: it is not JSON (${e.message})`);
   }
   const errors = validate(proposal);
   if (errors.length) throw new Failure(`cannot draw ${path}: it is not a valid proposal\n${errors.join('\n')}`);
-  const css = readInput(join(kit, 'kit.css'));
+  const css = sheets.map(name => [name, readInput(join(kit, name))]);
   const page = renderProposal(proposal, { letter });
   const folder = dirname(out);
   try {
     mkdirSync(folder, { recursive: true });
   } catch (e) {
-    throw new Failure(`cannot write ${folder}: ${e.code}`);
+    throw new Failure(`cannot write ${folder}: ${reason(e)}`);
   }
   writeOutput(out, page);
-  writeOutput(join(folder, 'kit.css'), css);
-  process.stdout.write(`drew option ${letter} to ${out}, with kit.css beside it\n`);
+  for (const [name, data] of css) writeOutput(join(folder, name), data);
+  process.stdout.write(`drew option ${letter} to ${out}, with ${sheets.join(', ')} beside it\n`);
 }
 
 function main(argv) {

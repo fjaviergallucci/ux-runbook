@@ -62,19 +62,26 @@ export function validate(proposal) {
       if (isObject(screen) && !kinds.has(screen.id)) kinds.set(screen.id, screen.container);
     }
     const seen = new Map();
-    proposal.screens.forEach((screen, i) => checkScreen(screen, `screens[${i}]`, { kinds, seen, fail }));
+    const titles = new Map();
+    proposal.screens.forEach((screen, i) => checkScreen(screen, `screens[${i}]`, { kinds, seen, titles, fail }));
   }
   return errors;
 }
 
-function checkScreen(screen, at, { kinds, seen, fail }) {
+function checkScreen(screen, at, { kinds, seen, titles, fail }) {
   if (!isObject(screen)) return fail(at, 'must be an object');
   unknownKeys(screen, KEYS.screen, at, fail);
   if (need(screen, 'id', isKebab, KEBAB_TEXT, at, fail)) {
     if (seen.has(screen.id)) fail(at, `id "${screen.id}" is already ${seen.get(screen.id)}`);
     else seen.set(screen.id, at);
   }
-  need(screen, 'title', isText, TEXT, at, fail);
+  if (need(screen, 'title', isText, TEXT, at, fail)) {
+    // The board names the screen a dialog opens over by its title, so no two entries share one; spaces a
+    // page collapses tell no two titles apart.
+    const title = screen.title.trim().replace(/\s+/g, ' ');
+    if (titles.has(title)) fail(at, `title ${show(screen.title)} is already the title of ${titles.get(title)}`);
+    else titles.set(title, at);
+  }
   if (need(screen, 'container', v => SCREEN_CONTAINERS.includes(v), '"screen" or "dialog"', at, fail)) {
     checkOver(screen, at, kinds, fail);
   }

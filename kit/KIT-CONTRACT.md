@@ -43,7 +43,7 @@ Each class, and what it must convey to someone looking at the drawing:
 
 ## The document
 
-The drawing script writes one HTML document for a proposal, with the stylesheet beside it:
+The drawing script writes one HTML document for a proposal, with the kit's stylesheets beside it:
 
 - it opens with `<!doctype html>`, so that the browser draws it in standards mode;
 - its head declares `<meta charset="utf-8">` and
@@ -53,10 +53,24 @@ The drawing script writes one HTML document for a proposal, with the stylesheet 
   Frames normally sit directly in `body`, after whatever the script puts before them, but no selector
   of the kit depends on a frame's parent.
 
+A kit may hold more than one stylesheet. `kit.css` is the one the document links, and it may import the
+others by relative name (`@import "tokens.css";`, say, for the project's token file); the drawing script
+copies every stylesheet found directly in the kit's folder beside the document, so they all travel
+together.
+
+Before the frames, the drawing script writes the page's own header: which option this is, and what the
+founder judges it by. It is a `<header>` holding an `<h1>` (`Option `, the letter, `: ` and the
+proposal's name), then a `<dl>` whose `<dt>` and `<dd>` pairs give the proposal's bet, what it is
+deliberately bad at, what is absent on purpose (a `<ul>` with one `<li>` per line, inside its `<dd>`)
+and how it meets its hardest state. None of it carries a class, and no kit styles it: a kit styles
+`header`, `ul` and `li` by name only where the markup below puts them, inside a frame, so the page's
+header shows in the browser's defaults, the same for every proposal.
+
 ## The markup
 
 The drawing script writes exactly this markup, and a kit styles exactly this markup. Every string in it
-is the proposal's own words.
+is the proposal's own words but one: `opens over `, which the board writes before a title in a dialog's
+`ux-over`.
 
 A frame is drawn for each screen, in the walkthrough's order. Inside a screen, a dialog or a container,
 the items are drawn in the order the walkthrough lists them: each role item as one part that holds the
@@ -115,6 +129,8 @@ inside the dialog's frame: it has its own frame.
 - `data-ux="`the item's id`"` goes on the part of an item that has an `id`: the element that carries its
   role class. A container has no id, so it never carries `data-ux`.
 - A frame carries its screen's id as `data-screen`.
+- An item's id is unique within its screen only, so the same `data-ux` may appear in two frames of one
+  document: a part is found by its frame's `data-screen` and its own `data-ux` together.
 - Both attributes are for the scripts and checks that find a part. No kit styles by them.
 
 ### What the stylesheet styles by name

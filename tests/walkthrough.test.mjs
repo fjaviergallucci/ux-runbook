@@ -189,6 +189,29 @@ test('screen ids are unique, and an item id names one part of its screen', () =>
   assert.deepEqual(validate(changed(p => { p.screens[1].items[0].id = 'free-count'; })), [], 'the same id on two screens');
 });
 
+// The board names the screen a dialog opens over by its title, so two screen entries never share one.
+test('no two screen entries share a title: the later is refused, naming the earlier', () => {
+  refuses(changed(p => { p.screens[1].title = 'Today, at 9:40'; }), 'screens[1]', /title "Today, at 9:40" is already the title of screens\[0\]$/);
+  refuses(
+    changed(p => { p.screens.push({ id: 'booked', title: 'Putting a walk-in in Room 2', container: 'screen', items: [line] }); }),
+    'screens[2]',
+    /title "Putting a walk-in in Room 2" is already the title of screens\[1\]$/,
+  );
+  // A third entry with the title names the first, as the second does.
+  const thrice = changed(p => {
+    p.screens[1].title = 'Today, at 9:40';
+    p.screens.push({ id: 'later', title: 'Today, at 9:40', container: 'screen', items: [line] });
+  });
+  assert.deepEqual(validate(thrice), [
+    'screens[1]: title "Today, at 9:40" is already the title of screens[0]',
+    'screens[2]: title "Today, at 9:40" is already the title of screens[0]',
+  ]);
+  // Spaces the page collapses tell no two titles apart; letter case does.
+  refuses(changed(p => { p.screens[1].title = ' Today,\n  at 9:40 '; }), 'screens[1]', /is already the title of screens\[0\]$/);
+  assert.deepEqual(validate(changed(p => { p.screens[1].title = 'today, at 9:40'; })), [], 'another case is another title');
+  assert.deepEqual(validate(changed(p => { p.screens[1].title = 'Today, at 9:41'; })), []);
+});
+
 test('a dialog names the screen it opens over, and only a dialog does', () => {
   refuses(changed(p => { delete p.screens[1].over; }), 'screens[1]', /a dialog names the screen it opens over in "over"/);
   refuses(changed(p => { p.screens[0].over = 'book'; }), 'screens[0]', /only a dialog opens over a screen/);
