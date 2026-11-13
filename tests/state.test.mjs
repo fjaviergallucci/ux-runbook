@@ -3,11 +3,11 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parse, serialize } from '../scripts/lib/frontmatter.mjs';
 import {
-  STAGES, ARTEFACT, SIZES, FOUNDATIONS, KINDS, StateError,
-  routeFor, init, begin, awaitFounder, stamp, reopen, resize, validate, next, status,
+  STAGES, ARTEFACT, SIZES, FOUNDATIONS, KINDS, MODES, StateError,
+  routeFor, init, begin, awaitFounder, stamp, reopen, setRoute, resize, validate, next, status, slug,
 } from '../scripts/lib/state.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -21,17 +21,19 @@ const WORDS = 'sí, continúa';
 const META = { design: 'front desk', kind: 'working-surface', foundation: 'new-surface', size: 'surface', date: DAY };
 let made = 0;
 const fresh = () => join(root, `p${++made}`);
-const refused = (fn, pattern) => assert.throws(fn, e => e instanceof StateError && pattern.test(e.message));
+const refusal = (e, pattern) => e instanceof StateError && e.name === 'StateError' && pattern.test(e.message);
+const refused = (fn, pattern) => assert.throws(fn, e => refusal(e, pattern));
 // A refused stamp lists one problem per line, after its first line.
-const refusedOnce = (fn, pattern) =>
-  assert.throws(fn, e => e instanceof StateError && pattern.test(e.message) && e.message.split('\n').length === 2);
+const refusedOnce = (fn, pattern) => assert.throws(fn, e => refusal(e, pattern) && e.message.split('\n').length === 2);
+const defined = data => Object.fromEntries(Object.entries(data).filter(([, value]) => value !== undefined));
+const files = dir => readdirSync(dir).flatMap(f => (statSync(join(dir, f)).isDirectory() ? files(join(dir, f)) : [join(dir, f)]));
+// The nearest earlier stage the route runs, as the library must find it.
+const predecessorOf = (state, stage) => STAGES.slice(0, STAGES.indexOf(stage)).reverse().find(s => state.route[s] !== 'skipped');
 
 // A stage output's body: one section to carry and, unless `carry` is null, a carry list as its last section.
 const text = (title, carry = ['- source:README.md']) =>
   `# ${title}\n\n## The one job\n\nFind what is free now.\n\n## Reviewed by the founder\n\nYes.\n` +
   (carry ? `\n## Carry\n\n${carry.join('\n')}\n` : '');
-
-const defined = data => Object.fromEntries(Object.entries(data).filter(([, value]) => value !== undefined));
 
 // A temp package, initialised, with helpers that write stage outputs with given headers and bodies.
 function pkg(meta = {}) {
@@ -47,11 +49,16 @@ function pkg(meta = {}) {
       change(state);
       writeFileSync(join(dir, 'state.json'), JSON.stringify(state, null, 2));
     },
+    page: () => readFileSync(join(dir, 'STATE.md'), 'utf8'),
     read: stage => parse(readFileSync(file(stage), 'utf8')),
-    // A draft header at the stage's current version, merged with `header`; an undefined value drops the key.
+    // A draft at the stage's current version, built from the stage before it on the route, merged with
+    // `header`; an undefined value drops the key.
     write(stage, header = {}, body = text(stage)) {
+      const state = p.state();
+      const before = predecessorOf(state, stage);
+      const inputs = before ? [`${before}@${state.stages[before].version}`] : [];
       mkdirSync(dirname(file(stage)), { recursive: true });
-      writeFileSync(file(stage), serialize(defined({ stage, version: p.state().stages[stage].version, status: 'draft', 'built-from': [], ...header }), body));
+      writeFileSync(file(stage), serialize(defined({ stage, version: state.stages[stage].version, status: 'draft', 'built-from': inputs, ...header }), body));
     },
     // Rewrites an artefact's header fields, leaving its body as it is.
     setHeader(stage, header) {
@@ -61,15 +68,14 @@ function pkg(meta = {}) {
     edit(stage, change) {
       writeFileSync(file(stage), change(readFileSync(file(stage), 'utf8')));
     },
-    // Writes and stamps each stage, each built from the stage before it when that one is approved.
+    // Writes and stamps each stage in turn.
     approve(...stages) {
       for (const stage of stages) {
-        const before = p.state().stages[STAGES[STAGES.indexOf(stage) - 1]];
-        const inputs = before?.status === 'approved' ? [`${STAGES[STAGES.indexOf(stage) - 1]}@${before.version}`] : [];
-        p.write(stage, { 'built-from': inputs });
+        p.write(stage);
         stamp(dir, stage, { words: WORDS, date: DAY });
       }
     },
+    problems: () => validate(dir).problems,
     codes: () => validate(dir).problems.map(q => `${q.stage}:${q.code}`),
   };
   return p;
@@ -97,7 +103,7 @@ test("routeFor('surface'), 'flow' and 'system': every stage full", () => {
   }
 });
 
-test('the constants name the stages, their outputs, the sizes, the foundations and the kit kinds', () => {
+test('the constants name the stages, their outputs, the sizes, the foundations, the kit kinds and the modes', () => {
   assert.deepEqual(STAGES, ['frame', 'context', 'intent', 'cast', 'structure', 'detail', 'look', 'handoff', 'acceptance']);
   assert.deepEqual(ARTEFACT, {
     frame: '00-frame.md', context: '01-context.md', intent: '02-intent.md', cast: '03-cast.md',
@@ -107,6 +113,7 @@ test('the constants name the stages, their outputs, the sizes, the foundations a
   assert.deepEqual(SIZES, ['correction', 'adjustment', 'surface', 'flow', 'system']);
   assert.deepEqual(FOUNDATIONS, ['no-system', 'new-surface', 'redesign', 'small-change']);
   assert.deepEqual(KINDS, ['working-surface', 'first-run', 'form', 'message', 'public-page']);
+  assert.deepEqual(MODES, ['full', 'short', 'skipped']);
 });
 
 test('an unknown size is refused by routeFor, init and resize', () => {
@@ -122,14 +129,15 @@ test('init writes state.json and STATE.md; skipped stages are skipped, with a re
   assert.ok(existsSync(join(p.dir, 'STATE.md')));
   const state = p.state();
   assert.deepEqual(
-    { design: state.design, kind: state.kind, foundation: state.foundation, size: state.size, question: state.question },
-    { design: 'front desk', kind: 'working-surface', foundation: 'new-surface', size: 'correction', question: null },
+    [state.design, state.kind, state.foundation, state.size, state.started, state.question, state.questionStage],
+    ['front desk', 'working-surface', 'new-surface', 'correction', DAY, null, null],
   );
   assert.deepEqual(state.route, routeFor('correction'));
   for (const stage of STAGES) {
     const skipped = routeFor('correction')[stage] === 'skipped';
-    assert.deepEqual(state.stages[stage], { status: skipped ? 'skipped' : 'not-started', version: 1, approved: null, words: null, hash: null });
-    assert.equal(Boolean(state.reasons[stage]), skipped, stage);
+    const status = skipped ? 'skipped' : 'not-started';
+    assert.deepEqual(state.stages[stage], { status, version: 1, approved: null, words: null, hash: null, builtFrom: null, since: null });
+    assert.equal(state.reasons[stage], skipped ? 'the correction route skips it' : undefined, stage);
   }
   refused(() => init(p.dir, META), /already/);
 });
@@ -137,6 +145,7 @@ test('init writes state.json and STATE.md; skipped stages are skipped, with a re
 test('init accepts any kebab-case kind and refuses one that is not', () => {
   assert.equal(pkg({ kind: 'radiology-shell' }).state().kind, 'radiology-shell');
   refused(() => init(fresh(), { ...META, kind: 'Radiology Shell' }), /kebab/);
+  refused(() => init(fresh(), { ...META, kind: undefined }), /kebab/);
 });
 
 test('init refuses an unknown foundation and a blank design', () => {
@@ -144,31 +153,186 @@ test('init refuses an unknown foundation and a blank design', () => {
   refused(() => init(fresh(), { ...META, design: ' \n ' }), /design/);
 });
 
-test('init, begin, await, stamp and reopen refuse a date that is not a real day written YYYY-MM-DD', () => {
+test('init on a path that is a file is refused, naming the path', () => {
+  const file = join(root, 'a-file');
+  writeFileSync(file, 'not a folder');
+  refused(() => init(file, META), /cannot create the folder .*a-file: E[A-Z]+/);
+});
+
+test('every verb that takes a date refuses one that is not a real day written YYYY-MM-DD', () => {
   refused(() => init(fresh(), { ...META, date: '13/11/2026' }), /YYYY-MM-DD/);
   const p = pkg();
   p.write('frame');
   refused(() => begin(p.dir, 'frame', { date: '2026-11-31' }), /YYYY-MM-DD/);
   refused(() => awaitFounder(p.dir, 'frame', { question: 'Is the job right?', date: 'today' }), /YYYY-MM-DD/);
   refused(() => stamp(p.dir, 'frame', { words: WORDS, date: '2026-02-30' }), /YYYY-MM-DD/);
+  refused(() => stamp(p.dir, 'frame', { words: WORDS, date: '2026-13-01' }), /YYYY-MM-DD/);
+  refused(() => setRoute(p.dir, 'cast', 'short', { reason: 'r', date: '2026-00-10' }), /YYYY-MM-DD/);
   stamp(p.dir, 'frame', { words: WORDS, date: DAY });
   refused(() => reopen(p.dir, 'frame', { reason: 'the job changed', date: undefined }), /YYYY-MM-DD/);
 });
 
+// ---- begin and await: a stage in work, a stage awaiting the founder, the one open question
+
+test('begin sets a stage in work since the day given; STATE.md shows it; its output need not exist yet', () => {
+  const p = pkg();
+  begin(p.dir, 'frame', { date: DAY });
+  const { status: state, since } = p.state().stages.frame;
+  assert.deepEqual([state, since], ['in-work', DAY]);
+  assert.ok(!existsSync(p.file('frame')));
+  assert.match(p.page(), /^\| frame \| full \| in-work \| 1 \| 2026-11-13 \| — \| `00-frame\.md` \| — \|$/m);
+  assert.equal(next(p.dir), 'frame');
+  assert.deepEqual(validate(p.dir), { ok: true, problems: [] });
+});
+
+test('begin takes a stage that is stale, awaiting or in work, and leaves its output alone', () => {
+  const p = pkg();
+  p.approve('frame', 'context', 'intent');
+  reopen(p.dir, 'context', { reason: 'r', date: DAY });
+  assert.equal(p.state().stages.intent.status, 'stale');
+  const written = readFileSync(p.file('intent'), 'utf8');
+  begin(p.dir, 'intent', { date: DAY });
+  assert.equal(p.state().stages.intent.status, 'in-work');
+  assert.equal(readFileSync(p.file('intent'), 'utf8'), written);
+  awaitFounder(p.dir, 'intent', { question: 'Is this still the one job?', date: DAY });
+  begin(p.dir, 'intent', { date: '2026-11-14' });
+  assert.deepEqual([p.state().stages.intent.status, p.state().stages.intent.since], ['in-work', '2026-11-14']);
+  begin(p.dir, 'intent', { date: '2026-11-15' });
+  assert.deepEqual([p.state().stages.intent.status, p.state().stages.intent.since], ['in-work', '2026-11-15']);
+});
+
+test('begin refuses an unknown stage, a stage the route skips and a stage already approved', () => {
+  const p = pkg({ size: 'adjustment' });
+  refused(() => begin(p.dir, 'structure', { date: DAY }), /structure is skipped on this route; route it full or short/);
+  p.approve('frame');
+  refused(() => begin(p.dir, 'frame', { date: DAY }), /frame is already approved at version 1; reopen/);
+  refused(() => begin(p.dir, 'review', { date: DAY }), /unknown stage "review"/);
+  assert.equal(p.state().stages.structure.status, 'skipped');
+});
+
+test('await sets the header and state.json to awaiting and stores the question with its stage and day', () => {
+  const p = pkg();
+  p.write('frame');
+  awaitFounder(p.dir, 'frame', { question: 'Is the job right?', date: DAY });
+  const { data, body } = p.read('frame');
+  assert.deepEqual(data, { stage: 'frame', version: 1, status: 'awaiting', approved: '', words: '', 'built-from': [] });
+  assert.equal(body, text('frame'));
+  const state = p.state();
+  assert.deepEqual([state.stages.frame.status, state.stages.frame.since], ['awaiting', DAY]);
+  assert.deepEqual([state.question, state.questionStage], ['Is the job right?', 'frame']);
+  assert.match(p.page(), /^\| frame \| full \| awaiting \| 1 \| 2026-11-13 \| — \|/m);
+  assert.equal(next(p.dir), 'frame');
+  assert.deepEqual(validate(p.dir), { ok: true, problems: [] });
+});
+
+test('await stores a multi-line question on one line', () => {
+  const p = pkg();
+  p.write('frame');
+  awaitFounder(p.dir, 'frame', { question: 'Which desk,\r\n\r\n  which day?', date: DAY });
+  assert.equal(p.state().question, 'Which desk, which day?');
+});
+
+test('await refuses an empty question, an unknown, skipped or approved stage, a missing output and a bad header', () => {
+  const p = pkg({ size: 'adjustment' });
+  p.write('frame');
+  refused(() => awaitFounder(p.dir, 'review', { question: 'Is the job right?', date: DAY }), /unknown stage "review"/);
+  refused(() => awaitFounder(p.dir, 'frame', { question: ' \n ', date: DAY }), /without the one question/);
+  refused(() => awaitFounder(p.dir, 'frame', { date: DAY }), /without the one question/);
+  p.write('structure');
+  refused(() => awaitFounder(p.dir, 'structure', { question: 'Which layout?', date: DAY }), /skipped on this route/);
+  p.approve('frame');
+  refused(() => awaitFounder(p.dir, 'frame', { question: 'Is the job right?', date: DAY }), /already approved at version 1/);
+  refused(() => awaitFounder(p.dir, 'context', { question: 'Which angle?', date: DAY }), /01-context\.md does not exist/);
+  p.write('context', { stage: 'intent' });
+  refused(() => awaitFounder(p.dir, 'context', { question: 'Which angle?', date: DAY }), /says stage "intent"/);
+  writeFileSync(p.file('context'), '---\nstage: context\n');
+  refused(() => awaitFounder(p.dir, 'context', { question: 'Which angle?', date: DAY }), /never closed/);
+  const state = p.state();
+  assert.deepEqual([state.stages.context.status, state.question, state.questionStage], ['not-started', null, null]);
+});
+
+test('a stale stage begun and then awaited loses the approval it had, in its header and its state', () => {
+  const p = pkg();
+  p.approve('frame', 'context', 'intent');
+  const { hash } = p.state().stages.intent;
+  reopen(p.dir, 'context', { reason: 'r', date: DAY });
+  begin(p.dir, 'intent', { date: DAY });
+  awaitFounder(p.dir, 'intent', { question: 'Is this still the one job?', date: DAY });
+  const entry = p.state().stages.intent;
+  assert.deepEqual([entry.status, entry.approved, entry.words, entry.hash], ['awaiting', null, null, hash]);
+  const { data } = p.read('intent');
+  assert.deepEqual([data.status, data.approved, data.words], ['awaiting', '', '']);
+});
+
+test('STATE.md shows the open question and the stage it belongs to', () => {
+  const p = pkg();
+  p.approve('frame');
+  p.write('context');
+  awaitFounder(p.dir, 'context', { question: 'Which angle | which day?', date: DAY });
+  assert.match(p.page(), /## Open question\n\ncontext: Which angle \| which day\?\n/);
+  assert.match(p.page(), /^\| context \| full \| awaiting \| 1 \| 2026-11-13 \| — \| `01-context\.md` \|/m);
+  assert.equal(status(p.dir), p.page());
+});
+
+test("stamp closes the open question of its own stage and leaves another stage's", () => {
+  const p = pkg();
+  p.write('frame');
+  p.write('context');
+  awaitFounder(p.dir, 'context', { question: 'Which angle?', date: DAY });
+  stamp(p.dir, 'frame', { words: WORDS, date: DAY });
+  assert.deepEqual([p.state().question, p.state().questionStage], ['Which angle?', 'context']);
+  stamp(p.dir, 'context', { words: WORDS, date: DAY });
+  assert.deepEqual([p.state().question, p.state().questionStage], [null, null]);
+  assert.match(p.page(), /## Open question\n\nNone\./);
+});
+
+test('reopen closes the open question only when it belongs to the reopened stage or one it marks stale', () => {
+  const p = pkg();
+  p.approve('frame', 'context', 'intent');
+  p.write('cast');
+  awaitFounder(p.dir, 'cast', { question: 'Which seats?', date: DAY });
+  assert.deepEqual(reopen(p.dir, 'context', { reason: 'r', date: DAY }).stale, ['intent']);
+  assert.deepEqual([p.state().question, p.state().questionStage], ['Which seats?', 'cast'], 'cast was never stamped');
+
+  const q = pkg();
+  q.approve('frame', 'context', 'intent');
+  reopen(q.dir, 'context', { reason: 'r', date: DAY });
+  q.approve('context');
+  begin(q.dir, 'intent', { date: DAY });
+  awaitFounder(q.dir, 'intent', { question: 'Still the one job?', date: DAY });
+  assert.deepEqual(reopen(q.dir, 'context', { reason: 'r', date: DAY }).stale, ['intent']);
+  assert.deepEqual([q.state().question, q.state().questionStage], [null, null]);
+
+  // No verb leaves a question on an approved stage, so the state is written by hand here.
+  const r = pkg();
+  r.approve('frame');
+  r.setState(state => Object.assign(state, { question: 'Still the right job?', questionStage: 'frame' }));
+  reopen(r.dir, 'frame', { reason: 'r', date: DAY });
+  assert.deepEqual([r.state().question, r.state().questionStage], [null, null]);
+});
+
 // ---- stamp
 
-test('stamp approves a draft: the header records the date and the words; the state gets a 64-character hash', () => {
+test('stamp approves a draft: the header records the date and the words; the state records what was stamped', () => {
   const p = pkg();
   p.write('frame');
   assert.deepEqual(stamp(p.dir, 'frame', { words: WORDS, date: DAY }), { version: 1 });
   const { data, body } = p.read('frame');
   assert.deepEqual(data, { stage: 'frame', version: 1, status: 'approved', approved: DAY, words: WORDS, 'built-from': [] });
   assert.equal(body, text('frame'));
-  const entry = p.state().stages.frame;
-  assert.equal(entry.status, 'approved');
-  assert.equal(entry.approved, DAY);
-  assert.equal(entry.words, WORDS);
-  assert.match(entry.hash, /^[0-9a-f]{64}$/);
+  const { hash, ...rest } = p.state().stages.frame;
+  assert.deepEqual(rest, { status: 'approved', version: 1, approved: DAY, words: WORDS, builtFrom: [], since: null });
+  assert.match(hash, /^[0-9a-f]{64}$/);
+  p.approve('context');
+  assert.deepEqual(p.state().stages.context.builtFrom, ['frame@1']);
+});
+
+test('stamp keeps header keys it does not know, after its own', () => {
+  const p = pkg();
+  p.write('frame', { owner: 'maker.one', stage: 'frame' });
+  stamp(p.dir, 'frame', { words: WORDS, date: DAY });
+  assert.deepEqual(Object.keys(p.read('frame').data), ['stage', 'version', 'status', 'approved', 'words', 'built-from', 'owner']);
+  assert.equal(p.read('frame').data.owner, 'maker.one');
 });
 
 test('stamp refuses empty words', () => {
@@ -200,9 +364,14 @@ test('stamp without "## Carry" throws for frame to look, and not for handoff and
   const p = pkg();
   for (const stage of STAGES) {
     p.write(stage, {}, text(stage, null));
-    if (stage === 'handoff' || stage === 'acceptance') stamp(p.dir, stage, { words: WORDS, date: DAY });
-    else refusedOnce(() => stamp(p.dir, stage, { words: WORDS, date: DAY }), /has no "## Carry" section/);
+    if (stage === 'handoff' || stage === 'acceptance') {
+      stamp(p.dir, stage, { words: WORDS, date: DAY });
+    } else {
+      refusedOnce(() => stamp(p.dir, stage, { words: WORDS, date: DAY }), /has no "## Carry" section/);
+      p.approve(stage);
+    }
   }
+  assert.equal(next(p.dir), null);
 });
 
 test('stamp of intent built from context@1 while context is at version 2 throws as stale', () => {
@@ -217,15 +386,32 @@ test('stamp of intent built from context@1 while context is at version 2 throws 
 test('stamp refuses an input that is not approved', () => {
   const p = pkg();
   p.write('frame');
-  p.write('context', { 'built-from': ['frame@1'] });
-  refused(() => stamp(p.dir, 'context', { words: WORDS, date: DAY }), /frame is not-started, not approved/);
+  p.write('context');
+  refusedOnce(() => stamp(p.dir, 'context', { words: WORDS, date: DAY }), /frame is not-started, not approved/);
+});
+
+test('stamp refuses an output not built from the stage before it on the route; a skipped stage is passed over', () => {
+  const p = pkg();
+  p.approve('frame', 'context');
+  p.write('intent', { 'built-from': ['frame@1'] });
+  refusedOnce(() => stamp(p.dir, 'intent', { words: WORDS, date: DAY }),
+    /it must be built from context, the stage before it on the route: add context@1 to built-from/);
+  const q = pkg({ size: 'adjustment' });
+  q.approve('frame', 'context', 'intent', 'cast');
+  q.write('detail', { 'built-from': ['cast@1'] });
+  stamp(q.dir, 'detail', { words: WORDS, date: DAY });
+  const r = pkg();
+  r.approve('frame');
+  setRoute(r.dir, 'context', 'skipped', { reason: 'nothing to read', date: DAY });
+  r.write('intent', { 'built-from': ['frame@1'] });
+  stamp(r.dir, 'intent', { words: WORDS, date: DAY });
 });
 
 test('stamp refuses an unknown stage, a stage the route skips, an approved stage and a missing output', () => {
   const p = pkg({ size: 'correction' });
   refused(() => stamp(p.dir, 'review', { words: WORDS, date: DAY }), /unknown stage "review"/);
   p.write('context');
-  refused(() => stamp(p.dir, 'context', { words: WORDS, date: DAY }), /skipped/);
+  refused(() => stamp(p.dir, 'context', { words: WORDS, date: DAY }), /skipped on this route/);
   p.approve('frame');
   refused(() => stamp(p.dir, 'frame', { words: WORDS, date: DAY }), /already approved at version 1; reopen/);
   refused(() => stamp(p.dir, 'detail', { words: WORDS, date: DAY }), /05-detail\/DETAIL\.md does not exist/);
@@ -239,6 +425,8 @@ const badHeaders = [
   ['built-from that is not a list', { 'built-from': 'frame@1' }, /no built-from list/],
   ['a malformed input', { 'built-from': ['frame'] }, /built-from entry "frame"/],
   ['an input from a later stage', { 'built-from': ['intent@1'] }, /built-from entry "intent@1"/],
+  ['an input naming an unknown stage', { 'built-from': ['frame@1', 'review@1'] }, /built-from entry "review@1"/],
+  ['an input naming the stage itself', { 'built-from': ['frame@1', 'context@1'] }, /built-from entry "context@1"/],
 ];
 
 test('stamp refuses a header that does not match its stage and its state', () => {
@@ -254,13 +442,13 @@ test('stamp refuses a header that does not match its stage and its state', () =>
   refused(() => stamp(p.dir, 'frame', { words: WORDS, date: DAY }), /never closed/);
 });
 
-test('stamp accepts carry entries that resolve: an earlier section, its own section, punctuation, accents in either normal form', () => {
+test('stamp accepts carry entries that resolve: sections of outputs it is built from, punctuation, accents in either normal form', () => {
   const p = pkg();
-  p.write('frame', {}, `# Frame\n\n## The founder's own words\n\nx\n\n## Qué puede mostrar, hoy\n\ny\n\n## Carry\n\n- frame@1#the-founder-s-own-words\n`);
+  p.write('frame', {}, `# Frame\n\n## The founder's own words\n\nx\n\n## Qué puede mostrar, hoy\n\ny\n\n## Carry\n\n- source:README.md\n`);
   stamp(p.dir, 'frame', { words: WORDS, date: DAY });
-  p.write('context', { 'built-from': ['frame@1'] }, text('context', [
+  p.write('context', {}, text('context', [
     '- frame@1#the-founder-s-own-words', '- frame@1#qué-puede-mostrar-hoy', `- frame@1#${'qué-puede-mostrar-hoy'.normalize('NFD')}`,
-    '- context@1#the-one-job', '- source: docs/brief.md',
+    '- source: docs/brief.md',
   ]));
   stamp(p.dir, 'context', { words: WORDS, date: DAY });
   assert.deepEqual(validate(p.dir), { ok: true, problems: [] });
@@ -268,22 +456,51 @@ test('stamp accepts carry entries that resolve: an earlier section, its own sect
 
 test('stamp refuses a carry list that is not the last section, a line that is not an entry, and an entry that does not resolve', () => {
   const cases = [
-    [['- frame@1#the-one-job', '', '## Notes'], /must be the last section, but "## Notes" follows it/],
-    [['the frame, all of it'], /"the frame, all of it" is not a carry entry/],
+    [['- context@1#the-one-job', '', '## Notes'], /must be the last section, but "## Notes" follows it/],
+    [['the context, all of it'], /"the context, all of it" is not a carry entry/],
     [['- source:'], /"- source:" is not a carry entry/],
-    [['- frame@1#no-such-heading'], /00-frame\.md has no heading whose slug is "no-such-heading"/],
-    [['- intent@1#the-one-job'], /names intent, which is not this stage or an earlier one/],
-    [['- review@1#the-one-job'], /names review, which is not this stage or an earlier one/],
-    [['- context@2#no-such-heading'], /this is version 1/],
     [['- context@1#no-such-heading'], /01-context\.md has no heading whose slug is "no-such-heading"/],
-    [['- frame@2#no-such-heading'], /stale/],
+    [['- cast@1#the-one-job'], /names cast, which is not an earlier stage/],
+    [['- review@1#the-one-job'], /names review, which is not an earlier stage/],
+    [['- intent@1#the-one-job'], /names intent, which is not an earlier stage/],
+    [['- frame@1#no-such-heading'], /names frame, which intent is not built from; add it to built-from/],
+    [['- context@2#no-such-heading'], /stale/],
   ];
   for (const [carry, pattern] of cases) {
     const p = pkg();
-    p.approve('frame');
-    p.write('context', { 'built-from': ['frame@1'] }, text('context', carry));
-    refusedOnce(() => stamp(p.dir, 'context', { words: WORDS, date: DAY }), pattern);
+    p.approve('frame', 'context');
+    p.write('intent', {}, text('intent', carry));
+    refusedOnce(() => stamp(p.dir, 'intent', { words: WORDS, date: DAY }), pattern);
   }
+});
+
+test('a stale stage re-confirmed with the same body keeps its version; redone with another body it gets the next one', () => {
+  const p = pkg();
+  p.approve('frame', 'context', 'intent', 'cast');
+  reopen(p.dir, 'context', { reason: 'r', date: DAY });
+  p.approve('context');
+  p.setHeader('intent', { 'built-from': ['context@2'] });
+  assert.deepEqual(stamp(p.dir, 'intent', { words: WORDS, date: DAY }), { version: 1 });
+
+  const q = pkg();
+  q.approve('frame', 'context', 'intent', 'cast');
+  reopen(q.dir, 'context', { reason: 'r', date: DAY });
+  q.approve('context');
+  q.write('intent', {}, text('intent').replace('Find what is free now.', 'Find what is free tonight.'));
+  assert.deepEqual(stamp(q.dir, 'intent', { words: WORDS, date: DAY }), { version: 2 });
+  assert.deepEqual([q.read('intent').data.version, q.state().stages.intent.version], [2, 2]);
+  refused(() => stamp(q.dir, 'cast', { words: WORDS, date: DAY }), /intent@1, but intent is at version 2: a stale input/);
+});
+
+test('a stage that went stale, then was begun and awaited, gets the next version when its body changed', () => {
+  const p = pkg();
+  p.approve('frame', 'context', 'intent');
+  reopen(p.dir, 'context', { reason: 'r', date: DAY });
+  p.approve('context');
+  begin(p.dir, 'intent', { date: DAY });
+  p.write('intent', {}, text('intent').replace('Find what is free now.', 'Find what is free tonight.'));
+  awaitFounder(p.dir, 'intent', { question: 'Is this the one job?', date: DAY });
+  assert.deepEqual(stamp(p.dir, 'intent', { words: WORDS, date: DAY }), { version: 2 });
 });
 
 // ---- reopen
@@ -293,7 +510,7 @@ test('reopen(context) after frame, context and intent are approved: context at v
   p.approve('frame', 'context', 'intent');
   assert.deepEqual(reopen(p.dir, 'context', { reason: 'the angles were thin', date: DAY }), { version: 2, stale: ['intent'] });
   const { stages, reasons } = p.state();
-  assert.deepEqual(stages.context, { status: 'in-work', version: 2, approved: null, words: null, hash: null });
+  assert.deepEqual(stages.context, { status: 'in-work', version: 2, approved: null, words: null, hash: null, builtFrom: null, since: null });
   assert.equal(stages.intent.status, 'stale');
   assert.equal(stages.frame.status, 'approved');
   assert.match(reasons.context, /reopened on 2026-11-13: the angles were thin/);
@@ -301,30 +518,137 @@ test('reopen(context) after frame, context and intent are approved: context at v
   assert.equal(next(p.dir), 'context');
 });
 
-test('reopen marks stale every later output built from one it marks stale, and leaves the rest', () => {
+test('reopen marks stale every later stage stamped as built from it, or from one it marks stale', () => {
   const p = pkg();
   p.approve('frame', 'context', 'intent', 'cast');
-  p.write('structure', { 'built-from': ['frame@1'] });
-  stamp(p.dir, 'structure', { words: WORDS, date: DAY });
-  p.write('detail', { 'built-from': ['context@1'] });
+  begin(p.dir, 'structure', { date: DAY });
   assert.deepEqual(reopen(p.dir, 'context', { reason: 'r', date: DAY }).stale, ['intent', 'cast']);
-  assert.equal(p.state().stages.structure.status, 'approved', 'built from frame only');
-  assert.equal(p.state().stages.detail.status, 'not-started', 'a draft of a stage not started is not marked');
+  assert.equal(p.state().stages.structure.status, 'in-work', 'never stamped: nothing on record');
   assert.deepEqual(reopen(p.dir, 'intent', { reason: 'r', date: DAY }), { version: 2, stale: ['cast'] });
 });
 
-test('reopen refuses a blank reason and a stage that is not approved or stale', () => {
-  const p = pkg({ size: 'adjustment' });
-  p.approve('frame');
-  refused(() => reopen(p.dir, 'frame', { reason: ' ', date: DAY }), /reason/);
-  refused(() => reopen(p.dir, 'context', { reason: 'r', date: DAY }), /context is not-started: only an approved or stale stage/);
-  refused(() => reopen(p.dir, 'structure', { reason: 'r', date: DAY }), /structure is skipped: only an approved or stale stage/);
-  refused(() => reopen(p.dir, 'nowhere', { reason: 'r', date: DAY }), /unknown stage "nowhere"/);
+test('reopen leaves a later stage that was not stamped as built from it', () => {
+  const p = pkg();
+  p.approve('frame', 'context');
+  setRoute(p.dir, 'intent', 'skipped', { reason: 'the job is known', date: DAY });
+  p.approve('cast');
+  setRoute(p.dir, 'intent', 'full', { reason: 'the job is not known after all', date: DAY });
+  p.approve('intent');
+  assert.deepEqual(p.state().stages.cast.builtFrom, ['context@1']);
+  assert.deepEqual(reopen(p.dir, 'intent', { reason: 'r', date: DAY }).stale, []);
+  assert.equal(p.state().stages.cast.status, 'approved');
 });
 
-// ---- resize
+test('reopen does not mark a stage that is skipped or not started, whatever it was stamped as built from', () => {
+  const p = pkg();
+  p.approve('frame', 'context', 'intent');
+  reopen(p.dir, 'context', { reason: 'r', date: DAY });
+  setRoute(p.dir, 'intent', 'skipped', { reason: 'r', date: DAY });
+  p.approve('context');
+  reopen(p.dir, 'context', { reason: 'r', date: DAY });
+  assert.equal(p.state().stages.intent.status, 'skipped');
+  setRoute(p.dir, 'intent', 'full', { reason: 'r', date: DAY });
+  p.approve('context');
+  reopen(p.dir, 'context', { reason: 'r', date: DAY });
+  assert.equal(p.state().stages.intent.status, 'not-started');
+});
 
-test('resize: the size only moves up; adjustment to flow un-skips structure', () => {
+test("a hand edit to an approved stage's built-from is reported, and reopen still marks the stage stale", () => {
+  const p = pkg();
+  p.approve('frame', 'context', 'intent', 'cast', 'structure');
+  p.setHeader('intent', { 'built-from': [] });
+  assert.deepEqual(p.codes(), ['intent:changed-since-approval']);
+  unlinkSync(p.file('cast'));
+  writeFileSync(p.file('structure'), '---\nstage: structure\n');
+  assert.deepEqual(reopen(p.dir, 'context', { reason: 'r', date: DAY }).stale, ['intent', 'cast', 'structure']);
+});
+
+test('reopen refuses a blank reason, an unknown stage, a stage not approved or stale, and a missing or unreadable output', () => {
+  const p = pkg({ size: 'adjustment' });
+  p.approve('frame', 'context');
+  refused(() => reopen(p.dir, 'frame', { reason: ' ', date: DAY }), /reason/);
+  refused(() => reopen(p.dir, 'intent', { reason: 'r', date: DAY }), /intent is not-started: only an approved or stale stage/);
+  refused(() => reopen(p.dir, 'structure', { reason: 'r', date: DAY }), /structure is skipped: only an approved or stale stage/);
+  refused(() => reopen(p.dir, 'nowhere', { reason: 'r', date: DAY }), /unknown stage "nowhere"/);
+  unlinkSync(p.file('context'));
+  refused(() => reopen(p.dir, 'context', { reason: 'r', date: DAY }), /01-context\.md does not exist/);
+  writeFileSync(p.file('frame'), '---\nstage: frame\n');
+  refused(() => reopen(p.dir, 'frame', { reason: 'r', date: DAY }), /never closed/);
+  assert.deepEqual([p.state().stages.frame.status, p.state().stages.context.status], ['approved', 'approved']);
+});
+
+// ---- route (§ 4.0)
+
+test('route skips a stage not started, in work or stale; the reason is kept and shown; its question goes', () => {
+  const p = pkg();
+  setRoute(p.dir, 'cast', 'skipped', { reason: 'one judge, no cast', date: DAY });
+  const state = p.state();
+  assert.deepEqual([state.route.cast, state.stages.cast.status, state.reasons.cast],
+    ['skipped', 'skipped', 'one judge, no cast (set skipped on 2026-11-13)']);
+  assert.match(p.page(), /^\| cast \| skipped \| skipped \| — \| — \| — \| `03-cast\.md` \| one judge, no cast \(set skipped on 2026-11-13\) \|$/m);
+  assert.deepEqual(validate(p.dir), { ok: true, problems: [] });
+  p.setState(s => { delete s.reasons.cast; });
+  assert.deepEqual(p.codes(), ['cast:skip-without-reason']);
+
+  const q = pkg();
+  q.write('frame');
+  awaitFounder(q.dir, 'frame', { question: 'Is the job right?', date: DAY });
+  begin(q.dir, 'frame', { date: DAY });
+  setRoute(q.dir, 'frame', 'skipped', { reason: 'r', date: DAY });
+  assert.deepEqual([q.state().stages.frame.status, q.state().question, q.state().questionStage], ['skipped', null, null]);
+
+  const r = pkg();
+  r.approve('frame', 'context', 'intent');
+  reopen(r.dir, 'context', { reason: 'r', date: DAY });
+  setRoute(r.dir, 'intent', 'skipped', { reason: 'r', date: DAY });
+  assert.equal(r.state().stages.intent.status, 'skipped');
+});
+
+test('route: a skipped stage routed short or full is not started, and becomes the stage before the next', () => {
+  const p = pkg({ size: 'adjustment' });
+  setRoute(p.dir, 'structure', 'short', { reason: 'the structure changes', date: DAY });
+  const state = p.state();
+  assert.deepEqual([state.route.structure, state.stages.structure.status], ['short', 'not-started']);
+  assert.equal(state.reasons.structure, 'the structure changes (set short on 2026-11-13)');
+  p.approve('frame', 'context', 'intent', 'cast');
+  p.write('detail', { 'built-from': ['cast@1'] });
+  refused(() => stamp(p.dir, 'detail', { words: WORDS, date: DAY }), /must be built from structure/);
+});
+
+test('route: an approved stage moved between short and full turns stale; other stages keep their status', () => {
+  const p = pkg({ size: 'adjustment' });
+  p.approve('frame', 'context');
+  setRoute(p.dir, 'context', 'full', { reason: 'the context is wider', date: DAY });
+  assert.deepEqual([p.state().route.context, p.state().stages.context.status], ['full', 'stale']);
+  setRoute(p.dir, 'frame', 'full', { reason: 'still full', date: DAY });
+  assert.equal(p.state().stages.frame.status, 'approved', 'the same mode is no change');
+  begin(p.dir, 'intent', { date: DAY });
+  setRoute(p.dir, 'intent', 'full', { reason: 'r', date: DAY });
+  setRoute(p.dir, 'cast', 'full', { reason: 'r', date: DAY });
+  assert.deepEqual([p.state().stages.intent.status, p.state().stages.cast.status], ['in-work', 'not-started']);
+  // No verb leaves a question on an approved stage, so the state is written by hand here.
+  p.setState(state => Object.assign(state, { question: 'Still the job?', questionStage: 'frame' }));
+  setRoute(p.dir, 'frame', 'short', { reason: 'a smaller frame', date: DAY });
+  assert.deepEqual([p.state().stages.frame.status, p.state().question], ['stale', null]);
+});
+
+test('route refuses an unknown mode, a blank reason, an unknown stage, and skipping a stage approved or awaiting', () => {
+  const p = pkg();
+  refused(() => setRoute(p.dir, 'frame', 'long', { reason: 'r', date: DAY }), /unknown route "long"/);
+  refused(() => setRoute(p.dir, 'frame', 'short', { reason: ' ', date: DAY }), /routing frame short needs a reason/);
+  refused(() => setRoute(p.dir, 'review', 'short', { reason: 'r', date: DAY }), /unknown stage "review"/);
+  p.approve('frame');
+  refused(() => setRoute(p.dir, 'frame', 'skipped', { reason: 'r', date: DAY }), /frame is approved: reopen it before skipping it/);
+  p.write('context');
+  awaitFounder(p.dir, 'context', { question: 'Which angle?', date: DAY });
+  refused(() => setRoute(p.dir, 'context', 'skipped', { reason: 'r', date: DAY }), /context is awaiting the founder/);
+  const state = p.state();
+  assert.deepEqual([state.stages.frame.status, state.stages.context.status, state.route.context], ['approved', 'awaiting', 'full']);
+});
+
+// ---- resize (§ 5)
+
+test('resize: the size only moves up; adjustment to flow un-skips structure and leaves a stage whose mode holds', () => {
   refused(() => resize(pkg().dir, 'adjustment'), /only moves up/);
   const p = pkg({ size: 'adjustment' });
   p.approve('frame');
@@ -334,8 +658,53 @@ test('resize: the size only moves up; adjustment to flow un-skips structure', ()
   assert.deepEqual(state.route, routeFor('flow'));
   assert.equal(state.stages.structure.status, 'not-started');
   assert.equal(state.reasons.structure, undefined);
-  assert.equal(state.stages.frame.status, 'approved', 'a stage already run is left as it is');
+  assert.equal(state.stages.frame.status, 'approved', 'full before and after');
   assert.equal(next(p.dir), 'context');
+});
+
+test('resize: an approved stage whose mode changes turns stale; a stage that stays skipped gets the new reason', () => {
+  const p = pkg({ size: 'correction' });
+  p.approve('frame', 'detail');
+  resize(p.dir, 'adjustment');
+  const state = p.state();
+  assert.deepEqual(state.route, routeFor('adjustment'));
+  assert.deepEqual([state.stages.frame.status, state.reasons.frame], ['stale', 'resized from correction to adjustment']);
+  assert.equal(state.stages.detail.status, 'approved', 'short before and after');
+  assert.deepEqual([state.stages.context.status, state.reasons.context], ['not-started', undefined]);
+  assert.deepEqual([state.stages.structure.status, state.reasons.structure], ['skipped', 'the adjustment route skips it']);
+  assert.deepEqual(p.codes(), ['frame:stale-input', 'detail:stale-input']);
+});
+
+test('resize: a stage in work or awaiting keeps its status when its mode changes; its question stays', () => {
+  const p = pkg({ size: 'correction' });
+  p.approve('frame', 'detail');
+  begin(p.dir, 'handoff', { date: DAY });
+  p.write('acceptance');
+  awaitFounder(p.dir, 'acceptance', { question: 'Does it pass?', date: DAY });
+  resize(p.dir, 'surface');
+  const { stages, question } = p.state();
+  assert.deepEqual([stages.frame.status, stages.detail.status, stages.handoff.status, stages.acceptance.status],
+    ['stale', 'stale', 'in-work', 'awaiting']);
+  assert.equal(question, 'Does it pass?');
+});
+
+test('resize closes the open question of a stage it marks stale', () => {
+  const p = pkg({ size: 'correction' });
+  p.approve('frame');
+  // No verb leaves a question on an approved stage, so the state is written by hand here.
+  p.setState(state => Object.assign(state, { question: 'Still the job?', questionStage: 'frame' }));
+  resize(p.dir, 'adjustment');
+  assert.deepEqual([p.state().question, p.state().questionStage], [null, null]);
+});
+
+test('resize to the same size changes nothing, and a resize never skips a stage the route runs', () => {
+  const p = pkg({ size: 'correction' });
+  setRoute(p.dir, 'frame', 'full', { reason: 'a full frame', date: DAY });
+  setRoute(p.dir, 'structure', 'full', { reason: 'the structure changes', date: DAY });
+  resize(p.dir, 'correction');
+  assert.equal(p.state().route.frame, 'full');
+  resize(p.dir, 'adjustment');
+  assert.deepEqual([p.state().route.structure, p.state().stages.structure.status], ['full', 'not-started']);
 });
 
 // ---- validate
@@ -350,7 +719,7 @@ test('validate on a clean package: ok, no problems', () => {
 test('validate: a carry entry naming context@1#no-such-heading is carry-unresolved', () => {
   const p = pkg();
   p.approve('frame', 'context');
-  p.write('intent', { 'built-from': ['context@1'] }, text('intent', ['- context@1#the-one-job']));
+  p.write('intent', {}, text('intent', ['- context@1#the-one-job']));
   stamp(p.dir, 'intent', { words: WORDS, date: DAY });
   p.edit('intent', s => s.replace('#the-one-job', '#no-such-heading'));
   assert.ok(p.codes().includes('intent:carry-unresolved'), p.codes().join(' '));
@@ -363,14 +732,30 @@ test("validate: an approved artefact's body changed on disk is changed-since-app
   assert.deepEqual(p.codes(), ['frame:changed-since-approval']);
 });
 
+test('validate: a header whose words, approval date, version or built-from differ from what was stamped is changed-since-approval', () => {
+  const edits = [
+    ['words', { words: 'no' }],
+    ['approved', { approved: '2026-11-14' }],
+    ['version', { version: 7 }],
+    ['built-from', { 'built-from': ['frame@1', 'context@1'] }],
+  ];
+  for (const [field, header] of edits) {
+    const p = pkg();
+    p.approve('frame', 'context', 'intent');
+    p.setHeader('intent', header);
+    const changed = p.problems().filter(q => q.code === 'changed-since-approval');
+    assert.deepEqual(changed.map(q => q.stage), ['intent'], field);
+    assert.match(changed[0].message, new RegExp(`the header's ${field} changed after intent was stamped`), field);
+  }
+});
+
 test('validate: artefacts and state written with CRLF give the same result as with LF', () => {
   const p = pkg();
   p.approve('frame', 'context');
-  p.write('intent', { 'built-from': ['context@1'] }, text('intent', ['- context@1#the-one-job', '- intent@1#reviewed-by-the-founder']));
+  p.write('intent', { 'built-from': ['frame@1', 'context@1'] }, text('intent', ['- context@1#the-one-job', '- frame@1#reviewed-by-the-founder']));
   stamp(p.dir, 'intent', { words: WORDS, date: DAY });
   const lf = validate(p.dir);
   assert.deepEqual(lf, { ok: true, problems: [] });
-  const files = dir => readdirSync(dir).flatMap(f => (statSync(join(dir, f)).isDirectory() ? files(join(dir, f)) : [join(dir, f)]));
   for (const file of files(p.dir)) writeFileSync(file, readFileSync(file, 'utf8').replace(/\n/g, '\r\n'));
   assert.deepEqual(validate(p.dir), lf);
 });
@@ -378,10 +763,12 @@ test('validate: artefacts and state written with CRLF give the same result as wi
 test('validate: a carry entry naming an earlier output that cannot be read is carry-unresolved', () => {
   const p = pkg();
   p.approve('frame');
-  p.write('context', { 'built-from': ['frame@1'] }, text('context', ['- frame@1#the-one-job']));
+  p.write('context', {}, text('context', ['- frame@1#the-one-job']));
   stamp(p.dir, 'context', { words: WORDS, date: DAY });
   unlinkSync(p.file('frame'));
   assert.deepEqual(p.codes(), ['frame:missing-artefact', 'context:carry-unresolved']);
+  writeFileSync(p.file('frame'), '---\nstage: frame\n');
+  assert.deepEqual(p.codes(), ['frame:bad-header', 'context:carry-unresolved']);
 });
 
 test('validate accepts a source: carry entry without resolving it', () => {
@@ -391,14 +778,19 @@ test('validate accepts a source: carry entry without resolving it', () => {
   assert.deepEqual(validate(p.dir), { ok: true, problems: [] });
 });
 
-test('validate: a stage in work, awaiting, approved or stale without its output is missing-artefact', () => {
+test('validate: a stage awaiting, approved or stale without its output is missing-artefact; a stage in work is not', () => {
   const p = pkg();
-  p.approve('frame');
-  unlinkSync(p.file('frame'));
-  assert.deepEqual(p.codes(), ['frame:missing-artefact']);
+  p.approve('frame', 'context', 'intent');
+  p.write('cast');
+  awaitFounder(p.dir, 'cast', { question: 'Which seats?', date: DAY });
+  reopen(p.dir, 'context', { reason: 'r', date: DAY });
+  const { stages } = p.state();
+  assert.deepEqual(['frame', 'context', 'intent', 'cast'].map(s => stages[s].status), ['approved', 'in-work', 'stale', 'awaiting']);
+  for (const stage of ['frame', 'context', 'intent', 'cast']) unlinkSync(p.file(stage));
+  assert.deepEqual(p.codes(), ['frame:missing-artefact', 'intent:missing-artefact', 'cast:missing-artefact']);
 });
 
-test('validate: a header that does not match its stage and state is bad-header', () => {
+test('validate: a header that does not match its stage and state is bad-header, reported once', () => {
   const approvedOnly = [
     ['a draft header on an approved stage', { status: 'draft' }],
     ['no approval date', { approved: '' }],
@@ -407,7 +799,7 @@ test('validate: a header that does not match its stage and state is bad-header',
     const p = pkg();
     p.approve('frame', 'context');
     p.setHeader('context', header);
-    assert.ok(p.codes().includes('context:bad-header'), `${name}: ${p.codes().join(' ')}`);
+    assert.deepEqual(p.codes().filter(code => code === 'context:bad-header'), ['context:bad-header'], `${name}: ${p.codes().join(' ')}`);
   }
   const p = pkg();
   p.approve('frame', 'context');
@@ -415,7 +807,25 @@ test('validate: a header that does not match its stage and state is bad-header',
   assert.ok(p.codes().includes('frame:bad-header'));
   reopen(p.dir, 'context', { reason: 'r', date: DAY });
   p.setHeader('context', { status: 'approved' });
-  assert.ok(p.codes().includes('context:bad-header'), 'approved by hand without a stamp');
+  const problem = p.problems().find(q => q.stage === 'context');
+  assert.deepEqual([problem.code, problem.message], ['bad-header', 'the header says approved while the state says in-work']);
+});
+
+test('validate: a stage in work whose built-from names itself is bad-header and nothing else', () => {
+  const p = pkg();
+  p.approve('frame', 'context');
+  reopen(p.dir, 'context', { reason: 'r', date: DAY });
+  p.setHeader('context', { 'built-from': ['frame@1', 'context@2'] });
+  assert.deepEqual(p.codes(), ['context:bad-header']);
+});
+
+test('validate: a stage not started whose header says approved is bad-header', () => {
+  const p = pkg();
+  p.write('frame', { status: 'approved' });
+  assert.deepEqual(p.problems(), [{ stage: 'frame', code: 'bad-header', message: 'the header says approved while the state says not-started' }]);
+  p.write('frame');
+  writeFileSync(p.file('context'), '---\nstage: context\n');
+  assert.deepEqual(validate(p.dir), { ok: true, problems: [] }, 'a stage not started is otherwise not looked at');
 });
 
 test('validate: a stale stage, and an input at another version, are stale-input', () => {
@@ -426,7 +836,7 @@ test('validate: a stale stage, and an input at another version, are stale-input'
   const q = pkg();
   q.approve('frame', 'context');
   q.setHeader('context', { 'built-from': ['frame@2'] });
-  assert.deepEqual(q.codes(), ['context:stale-input']);
+  assert.deepEqual(q.codes(), ['context:stale-input', 'context:changed-since-approval']);
 });
 
 test('validate: a skipped stage with no reason is skip-without-reason', () => {
@@ -440,7 +850,9 @@ test('validate: an approved stage whose header or state has no words is approved
   p.approve('frame', 'context');
   p.setHeader('frame', { words: '' });
   p.setState(state => { state.stages.context.words = ''; });
-  assert.deepEqual(p.codes(), ['frame:approved-without-words', 'context:approved-without-words']);
+  assert.deepEqual(p.codes(), [
+    'frame:approved-without-words', 'frame:changed-since-approval', 'context:approved-without-words', 'context:changed-since-approval',
+  ]);
 });
 
 // ---- next, the state file, STATE.md
@@ -456,16 +868,54 @@ test('next: intent once frame and context are approved; null once every routed s
   assert.equal(next(q.dir), null);
 });
 
-test('every function refuses a folder that is not a package, and a state.json that is damaged', () => {
+test('every verb refuses a folder that is not a package, and a state.json that is not valid JSON', () => {
   const dir = fresh();
   mkdirSync(dir);
-  for (const fn of [() => validate(dir), () => next(dir), () => status(dir), () => resize(dir, 'flow')]) refused(fn, /no state\.json; run init/);
+  const verbs = [
+    () => validate(dir), () => next(dir), () => status(dir), () => resize(dir, 'flow'),
+    () => begin(dir, 'frame', { date: DAY }), () => setRoute(dir, 'frame', 'short', { reason: 'r', date: DAY }),
+  ];
+  for (const fn of verbs) refused(fn, /no state\.json; run init/);
   const p = pkg();
   writeFileSync(join(p.dir, 'state.json'), '{ "size": ');
   refused(() => validate(p.dir), /not valid JSON/);
+});
+
+test('a damaged state.json is refused, saying what is damaged', () => {
+  const damages = [
+    [() => null, /it is not an object/],
+    [state => { state.size = 'huge'; }, /unknown size "huge"/],
+    [state => { state.route = 'full'; }, /route is not an object/],
+    [state => { state.reasons = []; }, /reasons is not an object/],
+    [state => { state.stages = null; }, /stages is not an object/],
+    [state => { state.route.cast = 'long'; }, /the route of cast is "long"/],
+    [state => { delete state.stages.look; }, /stage look is missing/],
+    [state => { state.stages.cast.status = 'done'; }, /stage cast has status "done"/],
+    [state => { state.stages.cast.version = 1.5; }, /stage cast has version 1\.5/],
+    [state => { state.stages.cast.version = 0; }, /stage cast has version 0/],
+  ];
+  for (const [damage, pattern] of damages) {
+    const p = pkg();
+    const state = p.state();
+    const replaced = damage(state);
+    writeFileSync(join(p.dir, 'state.json'), JSON.stringify(replaced === undefined ? state : replaced));
+    refused(() => next(p.dir), new RegExp(`damaged \\(${pattern.source}\\)`));
+  }
+});
+
+test('a file-system failure on the package is a StateError naming the path, and leaves no temporary file', () => {
+  const p = pkg();
+  rmSync(join(p.dir, 'state.json'));
+  mkdirSync(join(p.dir, 'state.json'));
+  refused(() => next(p.dir), /cannot read .*state\.json: EISDIR/);
   const q = pkg();
-  q.setState(state => { delete state.stages.look; });
-  refused(() => next(q.dir), /damaged/);
+  mkdirSync(q.file('frame'));
+  refused(() => stamp(q.dir, 'frame', { words: WORDS, date: DAY }), /cannot read .*00-frame\.md: EISDIR/);
+  const r = pkg();
+  rmSync(join(r.dir, 'STATE.md'));
+  mkdirSync(join(r.dir, 'STATE.md'));
+  refused(() => begin(r.dir, 'frame', { date: DAY }), /cannot write .*STATE\.md: E[A-Z]+/);
+  assert.deepEqual(readdirSync(r.dir).filter(f => f.endsWith('.tmp')), []);
 });
 
 test('state.json with a byte-order mark is read', () => {
@@ -477,140 +927,59 @@ test('state.json with a byte-order mark is read', () => {
 test('STATE.md shows the design, kind, foundation, size, a row per stage and the open question, from state.json', () => {
   const p = pkg({ size: 'adjustment' });
   p.approve('frame');
-  const page = () => readFileSync(join(p.dir, 'STATE.md'), 'utf8');
-  for (const word of ['front desk', 'working-surface', 'new-surface', 'adjustment']) assert.ok(page().includes(word), word);
-  for (const stage of STAGES) assert.ok(page().includes(`| \`${ARTEFACT[stage]}\` |`), stage);
-  assert.match(page(), /^\| frame \| full \| approved \| 1 \| 2026-11-13 \| `00-frame\.md` \|/m);
-  assert.match(page(), /^\| structure \| skipped \| skipped \|/m);
-  assert.match(page(), /## Open question\n\nNone\./);
+  for (const word of ['front desk', 'working-surface', 'new-surface', 'adjustment']) assert.ok(p.page().includes(word), word);
+  for (const stage of STAGES) assert.ok(p.page().includes(`| \`${ARTEFACT[stage]}\` |`), stage);
+  assert.match(p.page(), /^\| frame \| full \| approved \| 1 \| — \| 2026-11-13 \| `00-frame\.md` \| — \|$/m);
+  assert.match(p.page(), /^\| context \| short \| not-started \| — \| — \| — \| `01-context\.md` \| — \|$/m);
+  assert.match(p.page(), /^\| structure \| skipped \| skipped \| — \| — \| — \| `04-structure\/CHOSEN\.md` \| the adjustment route skips it \|$/m);
+  assert.match(p.page(), /## Open question\n\nNone\./);
   reopen(p.dir, 'frame', { reason: 'thin | wrong', date: DAY });
-  assert.match(page(), /^\| frame \| full \| in-work \| 2 \| — \|.*reopened on 2026-11-13: thin \\\| wrong \|$/m);
-  assert.equal(status(p.dir), page());
-  assert.ok(!page().includes('\r'));
+  assert.match(p.page(), /^\| frame \| full \| in-work \| 2 \| — \| — \| `00-frame\.md` \| reopened on 2026-11-13: thin \\\| wrong \|$/m);
+  assert.equal(status(p.dir), p.page());
+  assert.ok(!p.page().includes('\r'));
+  assert.deepEqual(files(p.dir).filter(f => f.endsWith('.tmp')), []);
 });
 
-// ---- begin and await: a stage in work, a stage awaiting the founder, the one open question
-
-test('begin sets a stage in work and STATE.md shows it; its output need not exist yet', () => {
+test('STATE.md points at the cast: its status and version, or why the route skips it', () => {
   const p = pkg();
-  begin(p.dir, 'frame', { date: DAY });
-  assert.equal(p.state().stages.frame.status, 'in-work');
-  assert.ok(!existsSync(p.file('frame')));
-  assert.match(readFileSync(join(p.dir, 'STATE.md'), 'utf8'), /^\| frame \| full \| in-work \| 1 \| — \| `00-frame\.md` \|/m);
-  assert.equal(next(p.dir), 'frame');
+  assert.match(p.page(), /^- Cast: not chosen yet$/m);
+  p.approve('frame', 'context', 'intent');
+  begin(p.dir, 'cast', { date: DAY });
+  assert.match(p.page(), /^- Cast: `03-cast\.md` — in-work, version 1$/m);
+  p.approve('cast');
+  assert.match(p.page(), /^- Cast: `03-cast\.md` — approved, version 1$/m);
+  const q = pkg({ size: 'correction' });
+  assert.match(q.page(), /^- Cast: skipped by the route — the correction route skips it$/m);
+  q.setState(state => { delete state.reasons.cast; });
+  begin(q.dir, 'frame', { date: DAY });
+  assert.match(q.page(), /^- Cast: skipped by the route — no reason given$/m);
 });
 
-test('begin takes a stage that is awaiting, in work or stale, and leaves its output alone', () => {
+test('STATE.md shows since only while a stage is in work or awaiting; stamp and reopen clear it', () => {
   const p = pkg();
-  p.approve('frame', 'context');
-  p.write('intent', { 'built-from': ['context@1'] });
-  awaitFounder(p.dir, 'intent', { question: 'Is this the one job?', date: DAY });
-  const written = readFileSync(p.file('intent'), 'utf8');
-  begin(p.dir, 'intent', { date: DAY });
-  assert.equal(p.state().stages.intent.status, 'in-work');
-  assert.equal(readFileSync(p.file('intent'), 'utf8'), written);
-  begin(p.dir, 'intent', { date: DAY });
+  p.approve('frame', 'context', 'intent');
   reopen(p.dir, 'context', { reason: 'r', date: DAY });
-  assert.equal(p.state().stages.intent.status, 'stale');
-  begin(p.dir, 'intent', { date: DAY });
-  assert.equal(p.state().stages.intent.status, 'in-work');
-});
-
-test('begin refuses a stage the route skips and a stage already approved', () => {
-  const p = pkg({ size: 'adjustment' });
-  refused(() => begin(p.dir, 'structure', { date: DAY }), /structure is skipped by the adjustment route; resize/);
-  p.approve('frame');
-  refused(() => begin(p.dir, 'frame', { date: DAY }), /frame is already approved at version 1; reopen/);
-  refused(() => begin(p.dir, 'review', { date: DAY }), /unknown stage "review"/);
-  assert.equal(p.state().stages.structure.status, 'skipped');
-});
-
-test('await sets the header and state.json to awaiting and stores the question with its stage', () => {
-  const p = pkg();
-  p.write('frame');
-  awaitFounder(p.dir, 'frame', { question: 'Is the job right?', date: DAY });
-  const { data, body } = p.read('frame');
-  assert.equal(data.status, 'awaiting');
-  assert.equal(body, text('frame'));
-  const state = p.state();
-  assert.equal(state.stages.frame.status, 'awaiting');
-  assert.deepEqual([state.question, state.questionStage], ['Is the job right?', 'frame']);
-  assert.equal(next(p.dir), 'frame');
-  assert.deepEqual(validate(p.dir), { ok: true, problems: [] });
-});
-
-test('await stores a multi-line question on one line', () => {
-  const p = pkg();
-  p.write('frame');
-  awaitFounder(p.dir, 'frame', { question: 'Which desk,\r\n\r\n  which day?', date: DAY });
-  assert.equal(p.state().question, 'Which desk, which day?');
-});
-
-test('await refuses an empty question, an unknown, skipped or approved stage, a missing output and a bad header', () => {
-  const p = pkg({ size: 'adjustment' });
-  p.write('frame');
-  refused(() => awaitFounder(p.dir, 'review', { question: 'Is the job right?', date: DAY }), /unknown stage "review"/);
-  refused(() => awaitFounder(p.dir, 'frame', { question: ' \n ', date: DAY }), /without the one question/);
-  refused(() => awaitFounder(p.dir, 'frame', { date: DAY }), /without the one question/);
-  p.write('structure');
-  refused(() => awaitFounder(p.dir, 'structure', { question: 'Which layout?', date: DAY }), /skipped by the adjustment route/);
-  p.approve('frame');
-  refused(() => awaitFounder(p.dir, 'frame', { question: 'Is the job right?', date: DAY }), /already approved at version 1/);
-  refused(() => awaitFounder(p.dir, 'context', { question: 'Which angle?', date: DAY }), /01-context\.md does not exist/);
-  p.write('context', { stage: 'intent' });
-  refused(() => awaitFounder(p.dir, 'context', { question: 'Which angle?', date: DAY }), /says stage "intent"/);
-  writeFileSync(p.file('context'), '---\nstage: context\n');
-  refused(() => awaitFounder(p.dir, 'context', { question: 'Which angle?', date: DAY }), /never closed/);
-  const state = p.state();
-  assert.deepEqual([state.stages.context.status, state.question, state.questionStage], ['not-started', null, null]);
-});
-
-test('STATE.md shows the open question and the stage it belongs to', () => {
-  const p = pkg();
-  p.approve('frame');
-  p.write('context', { 'built-from': ['frame@1'] });
-  awaitFounder(p.dir, 'context', { question: 'Which angle | which day?', date: DAY });
-  const page = readFileSync(join(p.dir, 'STATE.md'), 'utf8');
-  assert.match(page, /## Open question\n\ncontext: Which angle \| which day\?\n/);
-  assert.match(page, /^\| context \| full \| awaiting \| 1 \| — \| `01-context\.md` \|/m);
-  assert.equal(status(p.dir), page);
-});
-
-test("stamp clears the open question of its own stage and leaves another stage's", () => {
-  const p = pkg();
-  p.write('frame');
-  awaitFounder(p.dir, 'frame', { question: 'Is the job right?', date: DAY });
-  stamp(p.dir, 'frame', { words: WORDS, date: DAY });
-  assert.deepEqual([p.state().question, p.state().questionStage], [null, null]);
-  assert.match(readFileSync(join(p.dir, 'STATE.md'), 'utf8'), /## Open question\n\nNone\./);
-  p.write('context', { 'built-from': ['frame@1'] });
-  awaitFounder(p.dir, 'context', { question: 'Which angle?', date: DAY });
-  p.write('structure', { 'built-from': ['frame@1'] });
-  stamp(p.dir, 'structure', { words: WORDS, date: DAY });
-  assert.deepEqual([p.state().question, p.state().questionStage], ['Which angle?', 'context']);
-});
-
-test('reopen clears the open question only when it belongs to the reopened stage or one it marks stale', () => {
-  const p = pkg();
-  p.approve('frame', 'context');
-  p.write('intent', { 'built-from': ['frame@1'] });
-  awaitFounder(p.dir, 'intent', { question: 'Which job?', date: DAY });
-  assert.deepEqual(reopen(p.dir, 'context', { reason: 'r', date: DAY }).stale, []);
-  assert.deepEqual([p.state().question, p.state().questionStage], ['Which job?', 'intent'], 'intent is not built from context');
-
+  begin(p.dir, 'intent', { date: '2026-11-14' });
+  assert.match(p.page(), /^\| intent \| full \| in-work \| 1 \| 2026-11-14 \|/m);
+  awaitFounder(p.dir, 'intent', { question: 'Still the one job?', date: '2026-11-15' });
+  assert.match(p.page(), /^\| intent \| full \| awaiting \| 1 \| 2026-11-15 \|/m);
+  p.approve('context');
+  reopen(p.dir, 'context', { reason: 'r', date: DAY });
+  assert.equal(p.state().stages.intent.since, '2026-11-15');
+  assert.match(p.page(), /^\| intent \| full \| stale \| 1 \| — \|/m);
+  reopen(p.dir, 'intent', { reason: 'r', date: DAY });
+  assert.equal(p.state().stages.intent.since, null);
   const q = pkg();
-  q.approve('frame', 'context');
-  q.write('intent', { 'built-from': ['context@1'] });
-  awaitFounder(q.dir, 'intent', { question: 'Which job?', date: DAY });
-  assert.deepEqual(reopen(q.dir, 'context', { reason: 'r', date: DAY }).stale, ['intent']);
-  assert.deepEqual([q.state().question, q.state().questionStage], [null, null]);
+  begin(q.dir, 'frame', { date: DAY });
+  q.approve('frame');
+  assert.equal(q.state().stages.frame.since, null);
+});
 
-  // No verb leaves a question on an approved stage, so the state is written by hand here.
-  const r = pkg();
-  r.approve('frame');
-  r.setState(state => Object.assign(state, { question: 'Still the right job?', questionStage: 'frame' }));
-  reopen(r.dir, 'frame', { reason: 'r', date: DAY });
-  assert.deepEqual([r.state().question, r.state().questionStage], [null, null]);
+test('slug: lower-cased, every run of characters that are not letters or digits made one -, trimmed of -', () => {
+  assert.equal(slug("The founder's own words"), 'the-founder-s-own-words');
+  assert.equal(slug('  ¿Qué puede mostrar, hoy?  '), 'qué-puede-mostrar-hoy');
+  assert.equal(slug('Qué'.normalize('NFD')), 'qué');
+  assert.equal(slug('Step 2 — the Look'), 'step-2-the-look');
 });
 
 // ---- the command line
@@ -622,7 +991,7 @@ const today = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.g
 test('the CLI runs a package: init, stamp, next, status, validate, reopen, resize, each exiting 0', () => {
   const dir = fresh();
   let r = run('init', dir, '--design', 'front desk', '--kind', 'working-surface', '--foundation', 'new-surface', '--size', 'adjustment', '--date', DAY);
-  assert.equal(r.status, 0, r.stderr);
+  assert.deepEqual([r.status, r.stdout], [0, `initialised ${dir}: working-surface, new-surface, adjustment; next: frame\n`]);
   writeFileSync(join(dir, ARTEFACT.frame), serialize({ stage: 'frame', version: 1, status: 'draft', 'built-from': [] }, text('frame')));
   r = run('stamp', dir, 'frame', '--words', 'sí,\ncontinúa');
   assert.equal(r.status, 0, r.stderr);
@@ -637,21 +1006,20 @@ test('the CLI runs a package: init, stamp, next, status, validate, reopen, resiz
   r = run('validate', dir);
   assert.deepEqual([r.status, r.stdout], [0, 'ok\n']);
   r = run('reopen', dir, 'frame', '--reason=the job changed', '--date', DAY);
-  assert.equal(r.status, 0, r.stderr);
-  assert.match(r.stdout, /version 2/);
+  assert.deepEqual([r.status, r.stdout], [0, 'reopened frame at version 2; stale: none\n']);
   r = run('resize', dir, '--size', 'flow');
-  assert.equal(r.status, 0, r.stderr);
+  assert.deepEqual([r.status, r.stdout], [0, `resized ${dir} to flow\n`]);
   assert.equal(JSON.parse(readFileSync(join(dir, 'state.json'), 'utf8')).size, 'flow');
 });
 
 test('the CLI begin and await: 0 on success, 1 on a refusal, 2 on missing arguments', () => {
   const p = pkg({ size: 'adjustment' });
   let r = run('begin', p.dir, 'frame');
-  assert.equal(r.status, 0, r.stderr);
-  assert.equal(p.state().stages.frame.status, 'in-work');
+  assert.deepEqual([r.status, r.stdout], [0, 'frame is in work\n']);
+  assert.deepEqual([p.state().stages.frame.status, p.state().stages.frame.since], ['in-work', today()]);
   p.write('frame');
   r = run('await', p.dir, 'frame', '--question', 'Is the job\nright?', '--date', DAY);
-  assert.equal(r.status, 0, r.stderr);
+  assert.deepEqual([r.status, r.stdout], [0, 'frame awaits the founder\n']);
   assert.deepEqual([p.state().stages.frame.status, p.state().question], ['awaiting', 'Is the job right?']);
   r = run('begin', p.dir, 'structure');
   assert.equal(r.status, 1);
@@ -666,13 +1034,39 @@ test('the CLI begin and await: 0 on success, 1 on a refusal, 2 on missing argume
   }
 });
 
+test('the CLI route: 0 on success, 1 on a refusal, 2 on missing arguments', () => {
+  const p = pkg({ size: 'adjustment' });
+  let r = run('route', p.dir, 'structure', 'short', '--reason', 'the structure changes', '--date', DAY);
+  assert.deepEqual([r.status, r.stdout], [0, 'structure is routed short\n']);
+  assert.equal(p.state().route.structure, 'short');
+  r = run('route', p.dir, 'structure', 'long', '--reason', 'r');
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /unknown route "long"/);
+  for (const [args, pattern] of [
+    [['route', p.dir, 'structure', '--reason', 'r'], /route takes <package> <stage> <mode>, got 2/],
+    [['route', p.dir, 'structure', 'short'], /route needs --reason/],
+  ]) {
+    r = run(...args);
+    assert.equal(r.status, 2, args.join(' '));
+    assert.match(r.stderr, pattern);
+  }
+});
+
+test('the CLI slug prints the slug of a heading', () => {
+  let r = run('slug', "The founder's own words");
+  assert.deepEqual([r.status, r.stdout], [0, 'the-founder-s-own-words\n']);
+  r = run('slug');
+  assert.equal(r.status, 2);
+  assert.match(r.stderr, /slug takes <heading text>, got 0/);
+});
+
 test('the CLI prints none when every routed stage is approved', () => {
   const p = pkg({ size: 'correction' });
   p.approve('frame', 'detail', 'handoff', 'acceptance');
   assert.deepEqual([run('next', p.dir).status, run('next', p.dir).stdout], [0, 'none\n']);
 });
 
-test('the CLI exits 1 on a refusal and on a problem found', () => {
+test('the CLI exits 1 on a refusal and on a problem found, printing the message without a stack', () => {
   const p = pkg();
   p.approve('frame');
   let r = run('stamp', p.dir, 'frame', '--words', 'again');
@@ -681,10 +1075,30 @@ test('the CLI exits 1 on a refusal and on a problem found', () => {
   p.edit('frame', s => s.replace('Find what is free now.', 'Find what is booked.'));
   r = run('validate', p.dir);
   assert.equal(r.status, 1);
-  assert.match(r.stdout, /^frame: changed-since-approval: /m);
+  assert.match(r.stdout, /^frame: changed-since-approval: [^\n]+\n$/);
   r = run('init', fresh(), '--design', 'd', '--kind', 'Radiology Shell', '--foundation', 'new-surface', '--size', 'surface');
   assert.equal(r.status, 1);
   assert.match(r.stderr, /kebab/);
+  const file = join(root, 'cli-file');
+  writeFileSync(file, 'not a folder');
+  r = run('init', file, '--design', 'd', '--kind', 'form', '--foundation', 'new-surface', '--size', 'surface');
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /^cannot create the folder .*cli-file: E[A-Z]+\n$/);
+});
+
+test('the CLI prints an unexpected error with its stack and exits 1', () => {
+  const p = pkg();
+  const preload = join(root, 'explode.mjs');
+  writeFileSync(preload, [
+    "import fs from 'node:fs';",
+    "import { syncBuiltinESMExports } from 'node:module';",
+    'const read = fs.readFileSync;',
+    "fs.readFileSync = (file, ...rest) => { if (String(file).endsWith('state.json')) throw new Error('an unexpected failure'); return read(file, ...rest); };",
+    'syncBuiltinESMExports();',
+  ].join('\n'));
+  const r = spawnSync(process.execPath, ['--import', pathToFileURL(preload).href, cli, 'next', p.dir], { encoding: 'utf8' });
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /Error: an unexpected failure\n\s+at /);
 });
 
 test('the CLI exits 2 on bad usage', () => {
@@ -715,8 +1129,10 @@ test('the CLI --help names every verb and flag, says line breaks in --words beco
   for (const args of [['--help'], ['stamp', '--help'], ['-h']]) {
     const r = run(...args);
     assert.equal(r.status, 0);
-    for (const word of ['init', 'begin', 'await', 'stamp', 'reopen', 'resize', 'validate', 'next', 'status',
-      '--design', '--kind', '--foundation', '--size', '--words', '--question', '--reason', '--date']) assert.ok(r.stdout.includes(word), word);
+    for (const word of ['init', 'begin', 'await', 'stamp', 'reopen', 'route', 'resize', 'validate', 'next', 'status', 'slug',
+      '<full|short|skipped>', '--design', '--kind', '--foundation', '--size', '--words', '--question', '--reason', '--date']) {
+      assert.ok(r.stdout.includes(word), word);
+    }
     assert.match(r.stdout, /--words, --question.*: each line break in them becomes a single space/);
   }
 });

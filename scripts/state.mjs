@@ -2,27 +2,35 @@
 // The command line over scripts/lib/state.mjs: it parses the arguments, calls the library, prints and sets
 // the exit code (0 success, 1 a refusal or a problem found, 2 bad usage). All the logic is in the library.
 import {
-  STAGES, SIZES, FOUNDATIONS, KINDS, StateError, init, begin, awaitFounder, stamp, reopen, resize, validate, next, status,
+  STAGES, SIZES, FOUNDATIONS, KINDS, MODES, StateError,
+  init, begin, awaitFounder, stamp, reopen, setRoute, resize, validate, next, status, slug,
 } from './lib/state.mjs';
 
-const USAGE = `Usage: node scripts/state.mjs <verb> <package> [stage] [flags]
+const USAGE = `Usage: node scripts/state.mjs <verb> <package> [stage] [mode] [flags]
 
 The state of a design package. state.json is the record; STATE.md is generated from it on every write
 and is never edited by hand.
 
   init <package> --design <name> --kind <kind> --foundation <foundation> --size <size> [--date <day>]
   begin <package> <stage> [--date <day>]
-      mark the stage in work; its output need not exist yet
+      mark the stage in work since the day; its output need not exist yet
   await <package> <stage> --question "<the one question>" [--date <day>]
       mark the stage's output as awaiting the founder, with the one open question
   stamp <package> <stage> --words "<the founder's words>" [--date <day>]
-      approve the stage's output in the words the founder approved it with; closes its open question
+      approve the stage's output in the words the founder approved it with; closes its open question.
+      The output must be built from the stage before it on the route, and its carry list may only
+      name stages it is built from. A stale stage redone with a different body gets a new version.
   reopen <package> <stage> --reason "<why>" [--date <day>]
-      give an approved or stale stage a new version; later outputs built from the old one turn stale
-  resize <package> --size <size>      the size only moves up
+      give an approved or stale stage a new version; later stages stamped as built from it turn stale
+  route <package> <stage> <${MODES.join('|')}> --reason "<why>" [--date <day>]
+      route one stage full, short or skipped, with the reason; an approved stage whose mode changes
+      turns stale, and an approved or awaiting stage cannot be skipped
+  resize <package> --size <size>
+      the size only moves up; an approved stage whose mode changes turns stale
   validate <package>                  prints ok, or one line per problem: <stage>: <code>: <message>
   next <package>                      prints the first stage on the route not approved, or none
   status <package>                    prints STATE.md as generated from state.json
+  slug "<heading text>"               prints the slug a carry entry uses for that heading
 
 Stages:      ${STAGES.join(', ')}
 Sizes:       ${SIZES.join(', ')}
@@ -35,16 +43,20 @@ Kinds:       ${KINDS.join(', ')}, or any kebab-case kind the project adds
 Exit codes: 0 success · 1 a refusal or a problem found · 2 bad usage.
 `;
 
+const PACKAGE = ['<package>'];
+const STAGE = ['<package>', '<stage>'];
 const VERBS = {
-  init: { stage: false, required: ['design', 'kind', 'foundation', 'size'], optional: ['date'] },
-  begin: { stage: true, required: [], optional: ['date'] },
-  await: { stage: true, required: ['question'], optional: ['date'] },
-  stamp: { stage: true, required: ['words'], optional: ['date'] },
-  reopen: { stage: true, required: ['reason'], optional: ['date'] },
-  resize: { stage: false, required: ['size'], optional: [] },
-  validate: { stage: false, required: [], optional: [] },
-  next: { stage: false, required: [], optional: [] },
-  status: { stage: false, required: [], optional: [] },
+  init: { args: PACKAGE, required: ['design', 'kind', 'foundation', 'size'], optional: ['date'] },
+  begin: { args: STAGE, required: [], optional: ['date'] },
+  await: { args: STAGE, required: ['question'], optional: ['date'] },
+  stamp: { args: STAGE, required: ['words'], optional: ['date'] },
+  reopen: { args: STAGE, required: ['reason'], optional: ['date'] },
+  route: { args: [...STAGE, '<mode>'], required: ['reason'], optional: ['date'] },
+  resize: { args: PACKAGE, required: ['size'], optional: [] },
+  validate: { args: PACKAGE, required: [], optional: [] },
+  next: { args: PACKAGE, required: [], optional: [] },
+  status: { args: PACKAGE, required: [], optional: [] },
+  slug: { args: ['<heading text>'], required: [], optional: [] },
 };
 const FLAGS = ['design', 'kind', 'foundation', 'size', 'words', 'question', 'reason', 'date'];
 const HELP = ['--help', '-h'];
@@ -74,11 +86,10 @@ function read(argv) {
     if (value === undefined) throw new UsageError(`--${name} needs a value`);
     flags[name] = value;
   }
-  const wanted = spec.stage ? ['<package>', '<stage>'] : ['<package>'];
-  if (positional.length !== wanted.length) throw new UsageError(`${verb} takes ${wanted.join(' ')}, got ${positional.length} argument(s)`);
+  if (positional.length !== spec.args.length) throw new UsageError(`${verb} takes ${spec.args.join(' ')}, got ${positional.length} argument(s)`);
   const missing = spec.required.filter(name => !Object.hasOwn(flags, name));
   if (missing.length) throw new UsageError(`${verb} needs ${missing.map(name => `--${name}`).join(', ')}`);
-  return { verb, pkg: positional[0], stage: positional[1], flags };
+  return { verb, positional, flags };
 }
 
 function today() {
@@ -87,7 +98,8 @@ function today() {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 }
 
-function run({ verb, pkg, stage, flags }) {
+function run({ verb, positional, flags }) {
+  const [pkg, stage, mode] = positional;
   const date = flags.date ?? today();
   switch (verb) {
     case 'init': {
@@ -114,6 +126,10 @@ function run({ verb, pkg, stage, flags }) {
       console.log(`reopened ${stage} at version ${version}; stale: ${stale.join(', ') || 'none'}`);
       break;
     }
+    case 'route':
+      setRoute(pkg, stage, mode, { reason: flags.reason, date });
+      console.log(`${stage} is routed ${mode}`);
+      break;
     case 'resize':
       resize(pkg, flags.size);
       console.log(`resized ${pkg} to ${flags.size}`);
@@ -131,6 +147,8 @@ function run({ verb, pkg, stage, flags }) {
     case 'status':
       process.stdout.write(status(pkg));
       break;
+    case 'slug':
+      console.log(slug(positional[0]));
   }
 }
 
