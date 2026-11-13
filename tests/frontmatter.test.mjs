@@ -143,6 +143,8 @@ test('a digits-only value with a leading zero or beyond the safe range is refuse
 
 test('an unquoted list item holding a bracket is refused, naming the line; a quoted one may', () => {
   refused(() => parse('---\nstage: intent\ntitle: [a] and [b]\n---\n'), /line 3/, /bracket/);
+  refused(() => parse('---\ntags: [a[b, c]\n---\n'), /line 2/, /bracket/);
+  refused(() => parse('---\ntags: [a]b, c]\n---\n'), /line 2/, /bracket/);
   assert.deepEqual(parse('---\ntags: ["[a]", b]\n---\n').data, { tags: ['[a]', 'b'] });
 });
 

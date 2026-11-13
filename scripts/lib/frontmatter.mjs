@@ -1,7 +1,7 @@
 // Flat frontmatter: the header of stage outputs, pool cards and a project's profile.
 // Its limits: one `key: value` per line between two `---` lines, keys ^[a-z][a-z0-9-]*$; a value is a
 // string, a whole number or an inline list `[a, b]` of strings; nothing nested; no escapes (quotes only
-// wrap a value, so a list item cannot hold a `"`).
+// wrap a value, so a list item cannot hold a `"`); an unquoted list item cannot hold `[` or `]` (quote it).
 
 export class FrontmatterError extends Error {
   constructor(message) {
