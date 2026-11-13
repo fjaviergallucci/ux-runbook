@@ -291,6 +291,56 @@ test('an unknown key is refused at every level; the provenance keys are allowed 
   refuses(changed(p => { p.screens[0].track = 'system'; }), 'screens[0]', /unknown key "track"/);
 });
 
+// The sealed form: a letter copy, as the merge writes it. These six stay in the source file.
+const SOURCE_ONLY = ['firstIdea', 'author', 'engine', 'track', 'model', 'source'];
+const letterCopy = () => {
+  const { firstIdea, ...copy } = minimal();
+  return copy;
+};
+const stays = key => `proposal: "${key}" stays in the source file; a letter copy does not carry it`;
+
+test('the sealed form: a letter copy validates; the source form still requires firstIdea', () => {
+  assert.deepEqual(validate(letterCopy(), { sealed: true }), []);
+  for (const name of FIXTURES) {
+    const { firstIdea, track, ...copy } = fixture(name);
+    assert.deepEqual(validate(copy, { sealed: true }), [], name);
+  }
+  // The source form is the default, and what { sealed: false } asks for.
+  for (const options of [undefined, {}, { sealed: false }]) {
+    assert.deepEqual(validate(letterCopy(), options), ['proposal: "firstIdea" is missing'], JSON.stringify(options));
+    assert.deepEqual(validate(minimal(), options), [], JSON.stringify(options));
+  }
+  const provenance = { author: 'describer-2', engine: 'claude', track: 'system', model: 'opus', source: 'proposals/b.json' };
+  assert.deepEqual(validate(changed(p => Object.assign(p, provenance))), [], 'a source may say who made it');
+});
+
+test('the sealed form refuses each of firstIdea, author, engine, track, model and source: one error each, naming it', () => {
+  for (const key of SOURCE_ONLY) {
+    for (const value of ['a line of text', 5, '']) {
+      assert.deepEqual(validate({ ...letterCopy(), [key]: value }, { sealed: true }), [stays(key)], `${key}: ${JSON.stringify(value)}`);
+    }
+  }
+  // Several at once: one error each, in the order of the proposal, among its other keys' errors.
+  const many = { source: 's', name: 'Free rooms first', layout: 'two columns', firstIdea: 'f', model: 'm', ...letterCopy(), author: 'a', track: 'fresh', engine: 'e' };
+  assert.deepEqual(validate(many, { sealed: true }), [stays('source'), 'proposal: unknown key "layout"', stays('firstIdea'), stays('model'), stays('author'), stays('track'), stays('engine')]);
+});
+
+test('the sealed form checks everything else as the source form does', () => {
+  const bad = changed(p => {
+    delete p.bet;
+    p.layout = 'two columns';
+    p.screens[0].items[0].role = 'card';
+    p.screens[1].over = 'agenda';
+  });
+  const { firstIdea, ...badCopy } = bad;
+  assert.equal(validate(bad).length, 4);
+  assert.deepEqual(validate(badCopy, { sealed: true }), validate(bad));
+  assert.deepEqual(validate(null, { sealed: true }), ['proposal: must be an object']);
+  refuses(changed(p => { p.screens[0].track = 'system'; }), 'screens[0]', /unknown key "track"/);
+  const { firstIdea: _, ...nested } = changed(p => { p.screens[0].author = 'a'; });
+  assert.deepEqual(validate(nested, { sealed: true }), ['screens[0]: unknown key "author"']);
+});
+
 test('every error is reported at once, in the order of the proposal', () => {
   const p = changed(p => {
     delete p.bet;

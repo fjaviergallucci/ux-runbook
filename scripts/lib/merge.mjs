@@ -1,18 +1,19 @@
 // The blind merge (design § 12): several makers each wrote one Structure proposal. Before anyone judges
-// them, the merge shuffles them into letters, writes each as <letter>.json without anything that says who
-// or what made it (author, engine, track, model, source), and seals the map from letter to source in
-// MAP.sealed.json. Judges and the founder read by letter; the map opens only once the founder's pick is
-// written in PICK.md beside it.
+// them, the merge shuffles them into letters and writes each as <letter>.json, a letter copy carrying no
+// maker's fingerprint: none of who or what made it (author, engine, track, model, source), not the maker's
+// firstIdea, and the keys in the format's own order with the format's own spacing, never the maker's. It
+// seals the map from letter to source in MAP.sealed.json. Judges and the founder read by letter; the map
+// opens only once the founder's pick is written in PICK.md beside it.
 //
 // The blind holds only if a board is made once: a board people may have read is never shuffled again, and
-// a board is made in a new or an empty folder, so nothing beside the letters (an earlier board, a pick,
-// the makers' files) can be read with them. Nothing here prints; the command (scripts/merge.mjs) prints no
-// source.
+// a board is made in a folder that is empty or absent, so nothing beside the letters (an earlier board, a
+// pick, the makers' files) can be read with them. Nothing here prints; the command (scripts/merge.mjs)
+// prints no source.
 import { randomInt } from 'node:crypto';
 import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { readProposalFile, reason } from './proposal-file.mjs';
-import { PROVENANCE, validate } from './walkthrough.mjs';
+import { ORDER, validate } from './walkthrough.mjs';
 
 export const MAP = 'MAP.sealed.json';
 export const PICK = 'PICK.md';
@@ -27,8 +28,10 @@ export class MergeError extends Error {}
 export class SealedError extends MergeError {}
 
 // mergeProposals(srcDir, outDir, { seed }) → { letters }. Everything is checked before anything is
-// written: the board folder, every proposal file and every proposal. Throws a MergeError (a SealedError
-// for a sealed board), a ProposalFileError for a file that cannot be read, a TypeError for a bad seed.
+// written: the board folder, every proposal file, every proposal (in the source form) and every letter copy
+// (in the sealed form). Throws a MergeError (a SealedError for a sealed board), a ProposalFileError for a
+// file that cannot be read, a TypeError for a bad seed, and an Error for a letter copy that is not sealed,
+// which is a bug in this file.
 export function mergeProposals(srcDir, outDir, { seed } = {}) {
   const draw = drawing(seed);
   checkBoard(outDir);
@@ -41,6 +44,13 @@ export function mergeProposals(srcDir, outDir, { seed } = {}) {
   }
   const order = shuffle(proposals, draw);
   const letters = order.map((_, i) => LETTERS[i]);
+  const texts = order.map(({ proposal }) => pretty(letterCopy(proposal)));
+  // Each letter is checked as it will be written, in the sealed form; one that fails is a bug, and nothing
+  // is written.
+  texts.forEach((text, i) => {
+    const errors = validate(JSON.parse(text), { sealed: true });
+    if (errors.length) throw new Error(`the letter copy ${letters[i]} is not in the sealed form, a bug in the merge; nothing is written\n${errors.join('\n')}`);
+  });
   const map = {};
   order.forEach(({ file, proposal }, i) => {
     map[letters[i]] = { file, track: textOrNull(proposal.track), engine: textOrNull(proposal.engine) };
@@ -52,7 +62,7 @@ export function mergeProposals(srcDir, outDir, { seed } = {}) {
   }
   // In letter order, so neither the order of the files on disk nor their times follow the sources; the map
   // last, so a board that could not be written whole is never sealed.
-  order.forEach(({ proposal }, i) => write(join(outDir, `${letters[i]}.json`), pretty(blind(proposal))));
+  letters.forEach((letter, i) => write(join(outDir, `${letter}.json`), texts[i]));
   write(join(outDir, MAP), pretty(map));
   return { letters };
 }
@@ -73,7 +83,7 @@ export function openMap(outDir) {
   return readProposalFile(join(outDir, MAP));
 }
 
-// A board is made once, in a folder that does not exist yet or is empty.
+// A board is made once, in a folder that is empty or absent.
 function checkBoard(outDir) {
   let names;
   try {
@@ -90,7 +100,7 @@ function checkBoard(outDir) {
   }
   if (names.length > 0) {
     throw new MergeError(
-      `cannot merge into ${outDir}: the folder is not empty. A board is merged into a new or an empty folder, ` +
+      `cannot merge into ${outDir}: the folder is not empty. A board folder must be empty or absent, ` +
         'so that nothing but its letters and its sealed map is read beside them.',
     );
   }
@@ -156,8 +166,23 @@ function shuffle(items, draw) {
   return out;
 }
 
-// The proposal as its maker wrote it, in its own key order, without who made it.
-const blind = proposal => Object.fromEntries(Object.entries(proposal).filter(([key]) => !PROVENANCE.includes(key)));
+// A letter copy: what the proposal says, in the format's own key order (walkthrough ORDER), holding only
+// what is judged. firstIdea and who made it stay in the source; a key that is absent stays absent.
+const letterCopy = proposal => inOrder(proposal, ORDER.letter);
+// The keys whose values are lists of objects, and the order each entry is written in.
+const NESTED = new Map([
+  ['screens', () => ORDER.screen],
+  ['items', item => (Object.hasOwn(item, 'role') ? ORDER.role : ORDER.container)],
+]);
+function inOrder(object, keys) {
+  const copy = {};
+  for (const key of keys) {
+    if (!Object.hasOwn(object, key)) continue;
+    const order = NESTED.get(key);
+    copy[key] = order ? object[key].map(entry => inOrder(entry, order(entry))) : object[key];
+  }
+  return copy;
+}
 const textOrNull = value => (typeof value === 'string' ? value : null);
 const pretty = value => `${JSON.stringify(value, null, 2)}\n`;
 

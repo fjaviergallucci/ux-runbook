@@ -11,13 +11,24 @@ export const CONTAINERS = Object.freeze(['region', 'group', 'expansion']);
 const SCREEN_CONTAINERS = ['screen', 'dialog'];
 const TEXT_FIELDS = ['name', 'bet', 'cost', 'hardest', 'firstIdea'];
 // Who made a proposal, and how; allowed on the proposal only, and stripped by the blind merge.
-export const PROVENANCE = Object.freeze(['author', 'engine', 'track', 'model', 'source']);
+const PROVENANCE = ['author', 'engine', 'track', 'model', 'source'];
 const KEYS = {
   proposal: [...TEXT_FIELDS, 'absent', 'screens', ...PROVENANCE],
   screen: ['id', 'title', 'container', 'over', 'note', 'items'],
   role: ['role', 'text', 'id', 'note', 'primary', 'options'],
   container: ['container', 'label', 'open', 'items'],
 };
+// What only the source file carries: the maker's own record of what it set aside, and who made it. A
+// letter copy (the sealed form, written by lib/merge.mjs) carries none of it.
+const SOURCE_ONLY = ['firstIdea', ...PROVENANCE];
+// The format's own key order. A letter copy is written in it, never in its maker's, so no maker's habit of
+// order reaches a judge; a key that is absent stays absent. The top level holds only what is judged.
+export const ORDER = Object.freeze({
+  letter: Object.freeze(['name', 'bet', 'cost', 'absent', 'hardest', 'screens']),
+  screen: Object.freeze([...KEYS.screen]),
+  role: Object.freeze([...KEYS.role]),
+  container: Object.freeze([...KEYS.container]),
+});
 const KEBAB = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
 
 const isObject = v => v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -40,9 +51,12 @@ const OPTIONS = new Map([
 ]);
 const KEBAB_TEXT = 'kebab-case (lower-case words joined by single hyphens)';
 
-// validate(proposal) → every error, in the order of the proposal; [] when it is valid.
+// validate(proposal, { sealed }) → every error, in the order of the proposal; [] when it is valid.
 // Each error starts with the path of the object at fault: `screens[1].items[0]: unknown role "card"`.
-export function validate(proposal) {
+// Two forms. The source form (the default) is what a maker writes: firstIdea is required, and who made it
+// may be said. The sealed form ({ sealed: true }) is a letter copy: firstIdea and the five keys of who made
+// it must be absent, each one present an error naming it; everything else is checked the same.
+export function validate(proposal, { sealed = false } = {}) {
   const errors = [];
   const fail = (path, message) => {
     errors.push(`${path}: ${message}`);
@@ -50,8 +64,14 @@ export function validate(proposal) {
   if (!isObject(proposal)) return ['proposal: must be an object'];
 
   const at = 'proposal';
-  unknownKeys(proposal, KEYS.proposal, at, fail);
-  for (const key of TEXT_FIELDS) need(proposal, key, isText, TEXT, at, fail);
+  // One pass over the keys, so these errors keep the order of the proposal too.
+  for (const key of Object.keys(proposal)) {
+    if (sealed && SOURCE_ONLY.includes(key)) fail(at, `"${key}" stays in the source file; a letter copy does not carry it`);
+    else if (!KEYS.proposal.includes(key)) fail(at, `unknown key ${show(key)}`);
+  }
+  for (const key of TEXT_FIELDS) {
+    if (!(sealed && key === 'firstIdea')) need(proposal, key, isText, TEXT, at, fail);
+  }
   if (need(proposal, 'absent', isList, LINES, at, fail)) {
     proposal.absent.forEach((line, i) => isText(line) || fail(`absent[${i}]`, `must be ${TEXT}`));
   }

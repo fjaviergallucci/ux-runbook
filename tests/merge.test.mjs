@@ -4,6 +4,7 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { isDeepStrictEqual } from 'node:util';
 import { validate } from '../scripts/lib/walkthrough.mjs';
 import { MergeError, SealedError, mergeProposals, openMap } from '../scripts/lib/merge.mjs';
 import { ProposalFileError, readProposalFile } from '../scripts/lib/proposal-file.mjs';
@@ -13,8 +14,18 @@ const cli = join(here, '..', 'scripts', 'merge.mjs');
 const FIXTURES = join(here, 'fixtures', 'proposals');
 // The three fixtures, in the order of their names.
 const FIXTURE_FILES = ['calendar.json', 'free-first.json', 'unified-list.json'];
-// Who made a proposal, and how: never in a letter copy. Written out here, not taken from the scripts.
-const PROVENANCE = ['author', 'engine', 'track', 'model', 'source'];
+// The maker's own first idea, and who made the proposal and how: never in a letter copy. Written out here,
+// not taken from the scripts.
+const SOURCE_ONLY = ['firstIdea', 'author', 'engine', 'track', 'model', 'source'];
+// The format's own key order, in which every letter copy is written, as the ruling states it.
+const FORMAT = {
+  letter: ['name', 'bet', 'cost', 'absent', 'hardest', 'screens'],
+  screen: ['id', 'title', 'container', 'over', 'note', 'items'],
+  role: ['role', 'text', 'id', 'note', 'primary', 'options'],
+  container: ['container', 'label', 'open', 'items'],
+};
+// The render fixture: every role and container, a dialog, notes, options, labels, provenance.
+const EVERY = join(here, 'fixtures', 'render', 'every-part.json');
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 const MAP = 'MAP.sealed.json';
 const PICK = 'PICK.md';
@@ -26,7 +37,38 @@ let made = 0;
 // A fresh folder for one run, in a path with a space.
 const fresh = () => join(root, `run ${++made}`);
 const fixture = file => JSON.parse(readFileSync(join(FIXTURES, file), 'utf8'));
-const strip = proposal => Object.fromEntries(Object.entries(proposal).filter(([key]) => !PROVENANCE.includes(key)));
+// The keys of an object that are in `keys`, in that order.
+const inFormat = (object, keys) => keys.filter(key => Object.hasOwn(object, key));
+const formatOf = item => (Object.hasOwn(item, 'role') ? FORMAT.role : FORMAT.container);
+// What a letter copy holds: the proposal without SOURCE_ONLY, every object in the format's key order.
+const letterOf = proposal => {
+  const put = (object, keys) =>
+    Object.fromEntries(
+      inFormat(object, keys).map(key => {
+        if (key === 'screens') return [key, object.screens.map(screen => put(screen, FORMAT.screen))];
+        if (key === 'items') return [key, object.items.map(item => put(item, formatOf(item)))];
+        return [key, object[key]];
+      }),
+    );
+  return put(proposal, FORMAT.letter);
+};
+// The same without the order: what the proposal says, minus SOURCE_ONLY (deepEqual ignores key order).
+const without = proposal => Object.fromEntries(Object.entries(proposal).filter(([key]) => !SOURCE_ONLY.includes(key)));
+// Every object of a letter holds its keys in the format's order, and no key beyond it.
+function assertFormatOrder(letter, at) {
+  const walk = (object, keys, path) => {
+    assert.deepEqual(Object.keys(object), inFormat(object, keys), `${at} ${path}`);
+    if (Object.hasOwn(object, 'screens')) object.screens.forEach((screen, i) => walk(screen, FORMAT.screen, `screens[${i}]`));
+    if (Object.hasOwn(object, 'items')) object.items.forEach((item, i) => walk(item, formatOf(item), `${path}.items[${i}]`));
+  };
+  walk(letter, FORMAT.letter, 'proposal');
+}
+// Every object's keys in reverse, all the way down; lists keep their order.
+const reversed = value => {
+  if (Array.isArray(value)) return value.map(reversed);
+  if (value !== null && typeof value === 'object') return Object.fromEntries(Object.entries(value).reverse().map(([key, v]) => [key, reversed(v)]));
+  return value;
+};
 const pretty = value => `${JSON.stringify(value, null, 2)}\n`;
 const readText = (dir, name) => readFileSync(join(dir, name), 'utf8');
 const readMap = board => JSON.parse(readText(board, MAP));
@@ -87,7 +129,7 @@ const sealedBoard = board =>
   `cannot merge into ${board}: the board is sealed (it holds ${MAP}), and its letters may already have been read. ` +
   `Merging again would shuffle them anew; to rebuild the board, delete ${board} on purpose first.`;
 const notEmpty = board =>
-  `cannot merge into ${board}: the folder is not empty. A board is merged into a new or an empty folder, ` +
+  `cannot merge into ${board}: the folder is not empty. A board folder must be empty or absent, ` +
   'so that nothing but its letters and its sealed map is read beside them.';
 const stillSealed = (board, problem) => `the author map is sealed until the founder's pick is written in ${join(board, PICK)}; that file ${problem}`;
 const invalidMessage = (src, faults) =>
@@ -96,35 +138,62 @@ const invalidMessage = (src, faults) =>
 
 // ---- the letters
 
-test('three proposals merge to A, B, C: each letter is one proposal as written, minus who made it, pretty-printed with LF and a final newline', () => {
+test('three proposals merge to A, B, C: each letter is one proposal, without its first idea or who made it, in the format\'s key order, pretty-printed with LF and a final newline', () => {
   const board = join(fresh(), 'the board');
   assert.deepEqual(mergeProposals(FIXTURES, board, { seed: 1 }), { letters: ['A', 'B', 'C'] });
   assert.deepEqual(readdirSync(board).sort(), ['A.json', 'B.json', 'C.json', MAP]);
   const texts = ['A', 'B', 'C'].map(letter => readText(board, `${letter}.json`));
-  assert.deepEqual([...texts].sort(), FIXTURE_FILES.map(file => pretty(strip(fixture(file)))).sort(), 'one letter per proposal, byte for byte');
+  assert.deepEqual([...texts].sort(), FIXTURE_FILES.map(file => pretty(letterOf(fixture(file)))).sort(), 'one letter per proposal, byte for byte');
   for (const text of texts) {
     assert.ok(!text.includes('\r'), 'LF only');
     assert.ok(text.endsWith('}\n'), 'one final newline');
-    assert.deepEqual(validate(JSON.parse(text)), [], 'a letter copy is still a valid proposal');
+    assert.deepEqual(validate(JSON.parse(text), { sealed: true }), [], 'a letter copy is a valid proposal in the sealed form');
+    assert.ok(FIXTURE_FILES.some(file => isDeepStrictEqual(JSON.parse(text), without(fixture(file)))), 'nothing but SOURCE_ONLY is taken out');
+    assertFormatOrder(JSON.parse(text), 'letter');
   }
 });
 
-test('the letter copies carry none of author, engine, track, model, source — not the key, not its value — and keep the proposal\'s own key order', () => {
+test('the letter copies carry none of firstIdea, author, engine, track, model, source — not the key, not its value — and every key is in the format\'s order', () => {
   const dir = fresh();
   const sources = signed();
   const src = writeProposals(join(dir, 'the proposals'), sources);
   const board = join(dir, 'the board');
   mergeProposals(src, board, { seed: 2 });
   const texts = ['A', 'B', 'C'].map(letter => readText(board, `${letter}.json`));
-  assert.deepEqual([...texts].sort(), Object.values(sources).map(p => pretty(strip(p))).sort());
+  assert.deepEqual([...texts].sort(), Object.values(sources).map(p => pretty(letterOf(p))).sort());
   for (const text of texts) {
     const copy = JSON.parse(text);
-    for (const key of PROVENANCE) assert.ok(!Object.hasOwn(copy, key), `no key ${key}`);
+    for (const key of SOURCE_ONLY) assert.ok(!Object.hasOwn(copy, key), `no key ${key}`);
     for (const sign of [...SIGNS, ...STEMS]) assert.ok(!text.includes(sign), `no ${sign}`);
+    for (const { firstIdea } of Object.values(sources)) assert.ok(!text.includes(firstIdea), 'no first idea');
+    // The third source was written screens first and name last: its letter is in the format's order.
+    assert.deepEqual(Object.keys(copy), FORMAT.letter);
+    assertFormatOrder(copy, 'letter');
   }
-  const orders = texts.map(text => Object.keys(JSON.parse(text)).join());
-  assert.ok(orders.includes('screens,firstIdea,hardest,absent,cost,bet,name'), 'the order the maker wrote, not a canonical one');
-  assert.ok(orders.includes('name,bet,cost,absent,hardest,firstIdea,screens'));
+});
+
+test('the same proposal written with its keys in different orders, spacing and signatures gives byte-identical letters', () => {
+  const dir = fresh();
+  const every = JSON.parse(readFileSync(EVERY, 'utf8'));
+  const backwards = reversed(every);
+  // The reversal reaches every level: the proposal, a screen, an item, a container.
+  assert.notDeepEqual(Object.keys(backwards), Object.keys(every));
+  assert.notDeepEqual(Object.keys(backwards.screens[0]), Object.keys(every.screens[0]));
+  assert.notDeepEqual(Object.keys(backwards.screens[0].items[0]), Object.keys(every.screens[0].items[0]));
+  const container = every.screens[0].items.findIndex(item => Object.hasOwn(item, 'container'));
+  assert.notDeepEqual(Object.keys(backwards.screens[0].items[container]), Object.keys(every.screens[0].items[container]));
+  const resigned = { ...backwards, firstIdea: 'zq-another-first-idea', author: 'zq-author-other', engine: 'zq-engine-other', track: 'fresh', model: 'zq-model-other', source: 'zq-source-other' };
+  const src = writeProposals(join(dir, 'the proposals'), {
+    'one.json': every,
+    'two.json': JSON.stringify(backwards, null, '\t'),
+    'three.json': `\uFEFF${JSON.stringify(resigned, null, 4).replace(/\n/g, '\r\n')}\r\n`,
+  });
+  const board = join(dir, 'the board');
+  mergeProposals(src, board, { seed: 1 });
+  const texts = ['A', 'B', 'C'].map(letter => readText(board, `${letter}.json`));
+  assert.equal(texts[1], texts[0], 'B is A, byte for byte');
+  assert.equal(texts[2], texts[0], 'C is A, byte for byte');
+  assert.equal(texts[0], pretty(letterOf(every)));
 });
 
 test('the sealed map holds, per letter, the source file, its track and its engine — every source exactly once — and nothing else', () => {
@@ -151,7 +220,7 @@ test('the sealed map holds, per letter, the source file, its track and its engin
   for (const [letter, entry] of Object.entries(map)) {
     assert.deepEqual(Object.keys(entry), ['file', 'track', 'engine'], letter);
     assert.deepEqual([entry.track, entry.engine], expected[entry.file], `${letter} is ${entry.file}`);
-    assert.equal(readText(board, `${letter}.json`), pretty(strip(sources[entry.file])), `${letter} holds what ${entry.file} says`);
+    assert.equal(readText(board, `${letter}.json`), pretty(letterOf(sources[entry.file])), `${letter} holds what ${entry.file} says`);
   }
   assert.equal(readText(board, MAP), pretty(map), 'pretty-printed, LF, one final newline');
 });
@@ -213,7 +282,7 @@ test('without a seed the shuffle draws from crypto.randomInt, and with one it ne
   assert.equal(r.status, 0, r.stderr);
   const map = readMap(real);
   assert.deepEqual(Object.values(map).map(entry => entry.file).sort(), FIXTURE_FILES);
-  for (const [letter, entry] of Object.entries(map)) assert.equal(readText(real, `${letter}.json`), pretty(strip(fixture(entry.file))), letter);
+  for (const [letter, entry] of Object.entries(map)) assert.equal(readText(real, `${letter}.json`), pretty(letterOf(fixture(entry.file))), letter);
 });
 
 test('the order the folder is listed in changes nothing: with a seed, the same board whichever way it is listed', () => {
@@ -334,6 +403,34 @@ test('one invalid proposal refuses the whole merge before any letter is written,
   r = run(src, '--out', board);
   assert.deepEqual([r.status, r.stdout, r.stderr], [1, '', `${invalidMessage(src, [['b.json', validate(bad)], ['d.json', validate(worse)]])}\n`]);
   assert.deepEqual(readdirSync(board), [], 'no letter is written');
+  // A source is checked in the source form, so it must carry its firstIdea: a letter copy dropped among the
+  // proposals is refused, and its track is no fault there.
+  const { firstIdea, ...copyLike } = fixture('calendar.json');
+  const among = writeProposals(join(dir, 'a copy among them'), { 'a.json': fixture('free-first.json'), 'b.json': copyLike });
+  const missing = invalidMessage(among, [['b.json', ['proposal: "firstIdea" is missing']]]);
+  assert.throws(() => mergeProposals(among, join(dir, 'board 2'), { seed: 1 }), e => e instanceof MergeError && e.message === missing);
+  assert.ok(!existsSync(join(dir, 'board 2')), 'no board is made');
+});
+
+test('a letter copy is checked in the sealed form as it will be written; one that fails is a bug, and nothing is written', () => {
+  const dir = fresh();
+  // A fault put in by hand where nothing else would see it: a first idea slips into one letter's text as it
+  // is serialized. Under seed 1 that letter is B (calendar), so A would be written first if the letters were
+  // checked one by one as they are written.
+  const slip = writePreload(dir, 'slip.cjs', [
+    'const stringify = JSON.stringify;',
+    "const slips = value => value && value.screens && value.name === 'The day as a grid';",
+    "JSON.stringify = (value, replacer, space) => stringify(slips(value) && space === 2 ? { firstIdea: 'zq-slipped', ...value } : value, replacer, space);",
+  ]);
+  const board = join(dir, 'the board');
+  const r = runWith({ preload: slip }, FIXTURES, '--out', board, '--seed', '1');
+  assert.equal(r.status, 1);
+  assert.equal(r.stdout, '');
+  assert.match(
+    r.stderr,
+    /\nError: the letter copy B is not in the sealed form, a bug in the merge; nothing is written\nproposal: "firstIdea" stays in the source file; a letter copy does not carry it\n\s+at /,
+  );
+  assert.ok(!existsSync(board), 'nothing is written');
 });
 
 test('more than 26 proposals are refused; 26 merge to A to Z, every source once', () => {
@@ -459,7 +556,7 @@ test('a board that cannot be written is refused with the path and the reason, an
   r = runWith({ preload: refuse, env: { REFUSE_PATH: join(board, 'B.json') } }, FIXTURES, '--out', board, '--seed', '1');
   assert.deepEqual([r.status, r.stdout, r.stderr], [1, '', `cannot write ${join(board, 'B.json')}: no permission\n`]);
   assert.deepEqual(readdirSync(board), ['A.json']);
-  assert.equal(readText(board, 'A.json'), pretty(strip(fixture('unified-list.json'))));
+  assert.equal(readText(board, 'A.json'), pretty(letterOf(fixture('unified-list.json'))));
 });
 
 // ---- the shared reader
@@ -493,7 +590,7 @@ test('a proposal file is read as UTF-8 JSON, one byte-order mark dropped; what c
   const board = join(dir, 'board');
   const marked = writeProposals(join(dir, 'marked'), { 'marked.json': `﻿${json}` });
   assert.deepEqual(mergeProposals(marked, board, { seed: 1 }), { letters: ['A'] });
-  assert.equal(readFileSync(join(board, 'A.json'), 'utf8'), pretty(strip(fixture('calendar.json'))));
+  assert.equal(readFileSync(join(board, 'A.json'), 'utf8'), pretty(letterOf(fixture('calendar.json'))));
   for (const [name, text] of [['broken.json', '{ "name": "half a proposal",'], ['twice.json', `﻿﻿${json}`]]) {
     const src = writeProposals(join(dir, `with ${name}`), { 'calendar.json': json, [name]: text });
     const out = join(dir, `board for ${name}`);
@@ -563,7 +660,7 @@ test('the CLI --help prints the usage, naming both forms, every flag and the exi
     assert.equal(r.status, 0, args.join(' '));
     assert.equal(r.stderr, '');
     assert.match(r.stdout, /^Usage: node scripts\/merge\.mjs <proposals dir> --out <board dir> \[--seed <n>\]\n {7}node scripts\/merge\.mjs open <board dir>\n/);
-    for (const word of ['--out', '--seed', MAP, PICK, 'at most 26', 'new or empty', 'delete it on purpose', '--flag=value', '0 success', '1 a refusal', '2 bad usage']) {
+    for (const word of ['--out', '--seed', MAP, PICK, 'at most 26', 'empty or absent', 'delete it on purpose', '--flag=value', '0 success', '1 a refusal', '2 bad usage']) {
       assert.ok(r.stdout.includes(word), word);
     }
   }

@@ -3,6 +3,8 @@
 // HTML document in the shared kit, in exactly the markup kit/KIT-CONTRACT.md states. One script draws
 // every proposal, so none looks better made than another: the page depends only on what the proposal
 // says. Who made it (author, engine, track, model, source) and the maker's first idea are never drawn.
+// It draws either form of a proposal (lib/walkthrough.mjs): a source file, or a letter copy from the merge;
+// the two draw the same page under the same letter.
 //
 // As a module: renderProposal(proposal, { letter }) → the page, as a string. Pure; the same proposal and
 // letter give the same bytes.
@@ -55,6 +57,10 @@ const CONTAINER_ELEMENTS = { region: 'section', group: 'div', expansion: 'detail
 const INDENT = '  ';
 const LETTER = /^[A-Z]$/;
 
+// A proposal is checked in the form it is written in: one carrying firstIdea is a source, one without it is
+// a letter copy, which must carry nothing of who made it either. Object() lets anything be asked, null too.
+const check = proposal => validate(proposal, { sealed: !Object.hasOwn(Object(proposal), 'firstIdea') });
+
 // ---- the drawing
 
 // renderProposal(proposal, { letter }) → a whole HTML document that links kit.css from beside it.
@@ -63,7 +69,7 @@ export function renderProposal(proposal, { letter } = {}) {
   if (typeof letter !== 'string' || !LETTER.test(letter)) {
     throw new TypeError(`the letter must be one capital letter, A to Z; it is ${JSON.stringify(letter)}`);
   }
-  const errors = validate(proposal);
+  const errors = check(proposal);
   if (errors.length) throw new TypeError(`not a valid proposal:\n${errors.join('\n')}`);
   const titles = new Map(proposal.screens.map(screen => [screen.id, screen.title]));
   return html`<!doctype html>
@@ -251,7 +257,7 @@ function draw({ path, kit, out, letter }) {
   const clash = sheets.find(name => name.toLowerCase() === basename(out).toLowerCase());
   if (clash) throw new UsageError(`--out cannot be named ${basename(out)}: the kit's stylesheet ${clash} is copied there, beside the page`);
   const proposal = readProposalFile(path);
-  const errors = validate(proposal);
+  const errors = check(proposal);
   if (errors.length) throw new Failure(`cannot draw ${path}: it is not a valid proposal\n${errors.join('\n')}`);
   const css = sheets.map(name => [name, readInput(join(kit, name))]);
   const page = renderProposal(proposal, { letter });

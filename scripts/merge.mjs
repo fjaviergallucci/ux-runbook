@@ -13,10 +13,11 @@ const USAGE = `Usage: node scripts/merge.mjs <proposals dir> --out <board dir> [
        node scripts/merge.mjs open <board dir>
 
 merge shuffles the proposals in <proposals dir> (each .json file directly in it, at most 26; sub-folders
-are not read) into letters A, B, C ... and writes each to <board dir>/<letter>.json without author,
-engine, track, model or source. It writes the map from letter to source to <board dir>/${MAP}
-and never prints it. Every proposal must be valid, or nothing is written.
-<board dir> must be new or empty. A sealed board is never merged again: delete it on purpose to rebuild it.
+are not read) into letters A, B, C ... and writes each to <board dir>/<letter>.json as a letter copy:
+without firstIdea, author, engine, track, model or source, its keys in the format's own order. It writes
+the map from letter to source to <board dir>/${MAP} and never prints it. Every proposal must
+be valid, or nothing is written.
+<board dir> must be empty or absent. A sealed board is never merged again: delete it on purpose to rebuild it.
 
   --out <board dir>   the board to write; its folder is made when it does not exist
   --seed <n>          a whole number from 0 to ${MAX_SEED}: the same seed and proposals give the

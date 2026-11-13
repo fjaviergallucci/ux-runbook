@@ -1,11 +1,12 @@
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { existsSync, linkSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { copyFileSync, existsSync, linkSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ROLES, CONTAINERS, validate } from '../scripts/lib/walkthrough.mjs';
 import { renderProposal } from '../scripts/render.mjs';
+import { mergeProposals } from '../scripts/lib/merge.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const cli = join(here, '..', 'scripts', 'render.mjs');
@@ -671,5 +672,38 @@ test('the CLI --help prints the usage, naming every flag and the exit codes, and
     for (const word of ['--kit', '--out', '--letter', 'kit.css', 'every stylesheet', 'not named like one of the kit\'s stylesheets', 'not the proposal itself', 'A when not given', '--flag=value', '0 success', '1 an invalid proposal', '2 bad usage']) {
       assert.ok(r.stdout.includes(word), word);
     }
+  }
+});
+
+// ---- a letter copy
+
+test('a letter copy written by the merge draws, and its page is its source\'s page, byte for byte, under the same letter', () => {
+  const dir = fresh();
+  const proposals = join(dir, 'the proposals');
+  mkdirSync(proposals, { recursive: true });
+  for (const name of ALL) copyFileSync(fixturePath(name), join(proposals, basename(name)));
+  const board = join(dir, 'the board');
+  mergeProposals(proposals, board, { seed: 1 });
+  const map = JSON.parse(readFileSync(join(board, 'MAP.sealed.json'), 'utf8'));
+  assert.equal(Object.keys(map).length, ALL.length);
+  for (const [letter, { file }] of Object.entries(map)) {
+    const copyFile = join(board, `${letter}.json`);
+    const copy = JSON.parse(readFileSync(copyFile, 'utf8'));
+    assert.ok(!Object.hasOwn(copy, 'firstIdea'), `${letter}: a letter copy, without firstIdea`);
+    const page = renderProposal(JSON.parse(readFileSync(join(proposals, file), 'utf8')), { letter });
+    assert.equal(renderProposal(copy, { letter }), page, `${letter} (${file}): the same page`);
+    // By the command too, from the letter's file.
+    const out = join(dir, 'pages', `${letter}.html`);
+    const r = run(copyFile, '--kit', greyKit, '--out', out, '--letter', letter);
+    assert.equal(r.status, 0, r.stderr);
+    assert.equal(readFileSync(out, 'utf8'), page, `${letter}: the same page by the command`);
+  }
+  // Without firstIdea a proposal is read in the sealed form: it may not say who made it.
+  const signed = { ...JSON.parse(readFileSync(join(board, 'A.json'), 'utf8')), engine: 'claude' };
+  const stays = 'not a valid proposal:\nproposal: "engine" stays in the source file; a letter copy does not carry it';
+  assert.throws(() => renderProposal(signed, { letter: 'A' }), e => e instanceof TypeError && e.message === stays);
+  // Anything that is not an object is still refused as one, whichever form is asked of it.
+  for (const value of [null, undefined, 'a proposal', 7, []]) {
+    assert.throws(() => renderProposal(value, { letter: 'A' }), e => e instanceof TypeError && e.message === 'not a valid proposal:\nproposal: must be an object', String(value));
   }
 });
