@@ -39,6 +39,18 @@ Each class, and what it must convey to someone looking at the drawing:
 - `ux-nav`: the places she can move between.
 - `ux-note`: a designer's note, said about the interface and never part of it.
 
+## The document
+
+The drawing script writes one HTML document for a proposal, with the stylesheet beside it:
+
+- it opens with `<!doctype html>`, so that the browser draws it in standards mode;
+- its head declares `<meta charset="utf-8">` and
+  `<meta name="viewport" content="width=device-width, initial-scale=1">`;
+- its head links the stylesheet from beside the document: `<link rel="stylesheet" href="kit.css">`;
+- each screen is drawn as a frame, `<section class="ux-frame" data-screen="`the screen's id`">`.
+  Frames normally sit directly in `body`, after whatever the script puts before them, but no selector
+  of the kit depends on a frame's parent.
+
 ## The markup
 
 The drawing script writes exactly this markup, and a kit styles exactly this markup. Every string in it
@@ -50,7 +62,7 @@ item's text as its own text, each container as one element holding its own items
 
 | Class | Element | Where it sits, and what it holds |
 |---|---|---|
-| `ux-frame` | `<section data-screen="…">` | One per screen, a child of `body`. `data-screen` is the screen's `id`. It holds two children: its caption `<header>`, then the screen's `ux-screen` or `ux-dialog`. |
+| `ux-frame` | `<section data-screen="…">` | One per screen, normally a child of `body`. `data-screen` is the screen's `id`. It holds two children: its caption `<header>`, then the screen's `ux-screen` or `ux-dialog`. |
 | `ux-screen` | `<div>` | The frame's second and last child, when the screen's container is `screen`. Holds the screen's items. |
 | `ux-dialog` | `<div>` | The frame's second and last child, in place of `ux-screen`, when the screen's container is `dialog`. Holds the dialog's items. |
 | `ux-region` | `<section>` | Among the items of a screen, a dialog or a container. If it has a label, its first child is a `<header>` holding the label; then its items. |
@@ -58,15 +70,15 @@ item's text as its own text, each container as one element holding its own items
 | `ux-expansion` | `<details>` | Placed as a region. It has the `open` attribute when its `open` is true. Its first child is always a `<summary>` holding its label; then its items. |
 | `ux-heading` | `<h3>` | A role part: holds the item's text. |
 | `ux-text` | `<p>` | A role part. |
-| `ux-choice` | `<div>` | A role part: its text is the question, its options the answers. |
+| `ux-choice` | `<div>` | A role part: its text is the question, and its options, two or more, are the answers. |
 | `ux-input` | `<p>` | A role part: its text is the field's label. The stylesheet draws the empty field below it; no `<input>` is written. |
 | `ux-action` | `<button type="button">` | A role part. |
 | `ux-action.is-primary` | `<button type="button">` | An action whose `primary` is true carries both classes: `class="ux-action is-primary"`. |
-| `ux-list` | `<div>` | A role part: its text is a caption above the rows, and its options are the rows. |
+| `ux-list` | `<div>` | A role part: its text is a caption above the rows, and its options, one or more, are the rows. |
 | `ux-status` | `<p>` | A role part. |
 | `ux-media` | `<div>` | A role part: its text says what the picture shows. Nothing is loaded. |
 | `ux-link` | `<a href="#">` | A role part. |
-| `ux-nav` | `<nav>` | A role part: its text is a caption, its options are the places. |
+| `ux-nav` | `<nav>` | A role part: its text is a caption, and its options, one or more, are the places. |
 | `ux-note` | `<p>` | A note on an item is the next sibling of that item's part. A note on a screen sits in the frame's caption `<header>`, after the `<h2>`. Holds the note's text. |
 
 ### Captions and labels
@@ -80,10 +92,10 @@ item's text as its own text, each container as one element holding its own items
 
 ### Options
 
-- An item's options are a `<ul>`, the last child of its part, with one `<li>` per option, in order, each
+- Only a choice, a list and a nav have options, and each always has them: a choice at least two, a list
+  and a nav at least one. The format refuses options on any other role.
+- The options are a `<ul>`, the last child of the part, with one `<li>` per option, in order, each
   holding text only. The item's own text comes first, before the `<ul>`.
-- A part whose element is `<p>`, `<h3>`, `<button>` or `<a>` is written as a `<div>` when its item has
-  options, keeping its class, because those elements cannot hold a list.
 
 ### A dialog over its screen
 
@@ -106,7 +118,7 @@ Besides the classes, the stylesheet styles only these elements by name, each whe
 - `body`;
 - `header` and `h2`, a frame's caption, and `header` again as a region's or a group's label;
 - `summary`, an expansion's label;
-- `ul` and `li`, an item's options.
+- `ul` and `li`, the options of a choice, a list or a nav.
 
 Everything else is styled by class.
 

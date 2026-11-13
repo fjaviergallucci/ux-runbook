@@ -31,10 +31,10 @@
             },
             {
               "container": "group",
-              "label": "Sala Jardín",
+              "label": "Sala Jardín 🌿",
               "items": [
                 { "role": "text", "text": "Free until 11:15" },
-                { "role": "action", "id": "book-sala-jardin", "text": "Book Sala Jardín" }
+                { "role": "action", "id": "book-sala-jardin", "text": "Book Sala Jardín 🌿" }
               ]
             }
           ]

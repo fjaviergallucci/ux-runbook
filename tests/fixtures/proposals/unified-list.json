@@ -27,7 +27,7 @@
             "Room 1 — occupied: Dan with Maria K., until 10:00",
             "Room 2 — free until 10:30",
             "Room 3 — being cleaned, ready at 9:50",
-            "Sala Jardín — free until 11:15",
+            "Sala Jardín 🌿 — free until 11:15",
             "Gym — out of service today"
           ],
           "note": "A long room name is cut before its status is; the status is never shortened."
@@ -45,7 +45,7 @@
         {
           "role": "choice",
           "text": "Which room?",
-          "options": ["Room 2 — free until 10:30", "Sala Jardín — free until 11:15"],
+          "options": ["Room 2 — free until 10:30", "Sala Jardín 🌿 — free until 11:15"],
           "note": "Only free rooms are offered, and the first one is already chosen."
         },
         { "role": "input", "text": "Patient name" },

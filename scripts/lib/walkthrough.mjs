@@ -32,6 +32,12 @@ const show = v => {
 
 const TEXT = 'a line of text';
 const LINES = 'a list of at least one line of text';
+// The roles that carry options, each needing them: a choice is between two things at least.
+const OPTIONS = new Map([
+  ['choice', { least: 2, what: 'a list of at least two lines of text' }],
+  ['list', { least: 1, what: LINES }],
+  ['nav', { least: 1, what: LINES }],
+]);
 const KEBAB_TEXT = 'kebab-case (lower-case words joined by single hyphens)';
 
 // validate(proposal) → every error, in the order of the proposal; [] when it is valid.
@@ -73,7 +79,8 @@ function checkScreen(screen, at, { kinds, seen, fail }) {
     checkOver(screen, at, kinds, fail);
   }
   maybe(screen, 'note', isText, TEXT, at, fail);
-  checkItems(screen, at, { ids: new Map(), fail });
+  // `ids` and `primary` belong to this one screen or dialog: its item ids, and its primary action.
+  checkItems(screen, at, { ids: new Map(), primary: null, fail });
 }
 
 // A dialog opens over a screen of this proposal, named in `over`; a screen opens over nothing.
@@ -85,10 +92,10 @@ function checkOver(screen, at, kinds, fail) {
   }
   if (!has) return fail(at, 'a dialog names the screen it opens over in "over"');
   if (!kinds.has(screen.over)) return fail(at, `"over" names ${show(screen.over)}, which is no screen in this proposal`);
-  if (kinds.get(screen.over) !== 'screen') fail(at, `"over" names ${show(screen.over)}, which is a dialog, not a screen`);
+  // A target whose own container is refused is reported there, once; only a real dialog is named here.
+  if (kinds.get(screen.over) === 'dialog') fail(at, `"over" names ${show(screen.over)}, which is a dialog, not a screen`);
 }
 
-// `ids` holds the item ids of one screen: an id names one part of that screen.
 function checkItems(holder, at, context) {
   if (!need(holder, 'items', isList, 'a list of at least one item', at, context.fail)) return;
   holder.items.forEach((item, i) => checkItem(item, `${at}.items[${i}]`, context));
@@ -105,20 +112,29 @@ function checkItem(item, at, context) {
   else checkContainer(item, at, context);
 }
 
-function checkRole(item, at, { ids, fail }) {
+function checkRole(item, at, context) {
+  const { ids, fail } = context;
   unknownKeys(item, KEYS.role, at, fail);
-  if (!ROLES.includes(item.role)) fail(at, `unknown role ${show(item.role)}`);
+  const known = ROLES.includes(item.role);
+  if (!known) fail(at, `unknown role ${show(item.role)}`);
   need(item, 'text', isText, TEXT, at, fail);
   if (maybe(item, 'id', isKebab, KEBAB_TEXT, at, fail)) {
     if (ids.has(item.id)) fail(at, `id "${item.id}" is already ${ids.get(item.id)} on this screen`);
     else ids.set(item.id, at);
   }
   maybe(item, 'note', isText, TEXT, at, fail);
+  // An unknown role is one fault: the keys that depend on the role are not read again against it.
+  if (!known) return;
   if (Object.hasOwn(item, 'primary')) {
     if (item.role !== 'action') fail(at, `"primary" belongs to an action, not to a ${show(item.role)}`);
     else if (!isBoolean(item.primary)) fail(at, '"primary" must be true or false');
+    else if (item.primary && context.primary) fail(at, `a second primary action on this screen; the first is ${context.primary}`);
+    else if (item.primary) context.primary = at;
   }
-  if (maybe(item, 'options', isList, LINES, at, fail)) {
+  const options = OPTIONS.get(item.role);
+  if (!options) {
+    if (Object.hasOwn(item, 'options')) fail(at, `"options" belong to a choice, a list or a nav, not to a ${show(item.role)}`);
+  } else if (need(item, 'options', v => Array.isArray(v) && v.length >= options.least, options.what, at, fail)) {
     item.options.forEach((option, i) => isText(option) || fail(`${at}.options[${i}]`, `must be ${TEXT}`));
   }
 }
@@ -126,10 +142,12 @@ function checkRole(item, at, { ids, fail }) {
 function checkContainer(item, at, context) {
   const { fail } = context;
   unknownKeys(item, KEYS.container, at, fail);
-  if (!CONTAINERS.includes(item.container)) fail(at, `unknown container ${show(item.container)}`);
+  const known = CONTAINERS.includes(item.container);
+  if (!known) fail(at, `unknown container ${show(item.container)}`);
   // An expansion shows its label before it opens, so it always has one; a region or a group may have none.
   (item.container === 'expansion' ? need : maybe)(item, 'label', isText, TEXT, at, fail);
-  if (Object.hasOwn(item, 'open')) {
+  // As with a role, an unknown container is one fault: "open" is not read again against it.
+  if (known && Object.hasOwn(item, 'open')) {
     if (item.container !== 'expansion') fail(at, `"open" belongs to an expansion, not to a ${show(item.container)}`);
     else if (!isBoolean(item.open)) fail(at, '"open" must be true or false');
   }

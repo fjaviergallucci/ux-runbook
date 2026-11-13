@@ -56,7 +56,9 @@ test('each fixture validates: two screens, the system track, and real words', ()
     assert.equal(p.screens.length, 2, name);
     assert.equal(p.track, 'system', name);
   }
-  assert.ok(FIXTURES.some(name => /[^\x00-\x7f]/.test(read(`tests/fixtures/proposals/${name}.json`))), 'one fixture holds non-ASCII text');
+  const texts = FIXTURES.map(name => read(`tests/fixtures/proposals/${name}.json`));
+  assert.ok(texts.some(text => /[\u00c0-\u024f]/.test(text)), 'one fixture holds an accented letter');
+  assert.ok(texts.some(text => /\p{Extended_Pictographic}/u.test(text)), 'one fixture holds an emoji');
 });
 
 test('an item with an unknown role gives one error naming its path', () => {
@@ -71,6 +73,15 @@ test('a screen whose container is "sheet" is refused', () => {
 
 test('a dialog whose "over" names no screen is refused', () => {
   refuses(changed(p => { p.screens[1].over = 'agenda'; }), 'screens[1]', /"over" names "agenda", which is no screen/);
+});
+
+test('a dialog over a screen whose container is refused adds nothing: one error, at that screen', () => {
+  refuses(changed(p => { p.screens[0].container = 'sheet'; }), 'screens[0]', /"container" must be "screen" or "dialog"; it is "sheet"/);
+  refuses(changed(p => { delete p.screens[0].container; }), 'screens[0]', /"container" is missing/);
+});
+
+test('a dialog may be written before the screen it opens over', () => {
+  assert.deepEqual(validate(changed(p => p.screens.reverse())), []);
 });
 
 test('a proposal with no bet is refused', () => {
@@ -201,6 +212,23 @@ test('open belongs to an expansion, and is true or false', () => {
   assert.deepEqual(validate(changed(p => { p.screens[0].items.push({ container: 'expansion', label: 'Later today', open: false, items: [line] }); })), []);
 });
 
+test('a mistyped role or container is reported once, not again by the keys that depend on it', () => {
+  refuses(changed(p => { p.screens[0].items[1].role = 'acton'; }), 'screens[0].items[1]', /: unknown role "acton"$/);
+  refuses(changed(p => { p.screens[0].items.push({ role: 'chioce', text: 'How long?', options: ['15 min', '30 min'] }); }), 'screens[0].items[2]', /: unknown role "chioce"$/);
+  refuses(changed(p => { p.screens[0].items.push({ container: 'expanson', label: 'Later today', open: true, items: [line] }); }), 'screens[0].items[2]', /: unknown container "expanson"$/);
+});
+
+test('a screen has at most one primary action; a dialog is a screen of its own', () => {
+  refuses(
+    changed(p => { p.screens[0].items.push(group([{ role: 'action', text: 'Book Sala Jardín', primary: true }])); }),
+    'screens[0].items[2].items[0]',
+    /a second primary action on this screen; the first is screens\[0\]\.items\[1\]/,
+  );
+  assert.deepEqual(validate(changed(p => { p.screens[1].items.push({ role: 'action', text: 'Book', primary: true }); })), [], 'one on the screen and one on its dialog');
+  assert.deepEqual(validate(changed(p => { p.screens[0].items.push({ role: 'action', text: 'Cancel', primary: false }); })), [], 'primary: false is not a second primary');
+  assert.deepEqual(validate(changed(p => { p.screens[0].items.unshift({ role: 'action', text: 'Cancel', primary: false }); })), [], 'nor a first one');
+});
+
 test('an expansion carries a label; a region or a group may go without one', () => {
   const expansion = { container: 'expansion', items: [line] };
   refuses(changed(p => { p.screens[0].items.push(expansion); }), 'screens[0].items[2]', /"label" is missing/);
@@ -210,12 +238,24 @@ test('an expansion carries a label; a region or a group may go without one', () 
   }
 });
 
-test('options are a list of at least one line of text', () => {
-  for (const bad of ['15 min, 30 min', [], {}]) {
-    refuses(changed(p => { p.screens[1].items[0].options = bad; }), 'screens[1].items[0]', /"options" must be a list of at least one line of text/);
+test('options belong to a choice, a list or a nav, and those three need them', () => {
+  const withItem = item => changed(p => { p.screens[1].items.push(item); });
+  for (const role of ['heading', 'text', 'input', 'action', 'status', 'media', 'link']) {
+    refuses(withItem({ role, text: 'Room 2', options: ['Free until 10:30'] }), 'screens[1].items[1]', new RegExp(`"options" belong to a choice, a list or a nav, not to a "${role}"`));
   }
-  refuses(changed(p => { p.screens[1].items[0].options = ['15 min', ' ']; }), 'screens[1].items[0].options[1]', /must be a line of text/);
-  refuses(changed(p => { p.screens[1].items[0].options = [15]; }), 'screens[1].items[0].options[0]', /must be a line of text/);
+  for (const role of ['choice', 'list', 'nav']) {
+    refuses(withItem({ role, text: 'Rooms' }), 'screens[1].items[1]', /"options" is missing/);
+  }
+  for (const bad of ['15 min, 30 min', ['30 min'], [], {}]) {
+    refuses(withItem({ role: 'choice', text: 'How long?', options: bad }), 'screens[1].items[1]', /"options" must be a list of at least two lines of text/);
+  }
+  for (const role of ['list', 'nav']) {
+    refuses(withItem({ role, text: 'Rooms', options: [] }), 'screens[1].items[1]', /"options" must be a list of at least one line of text/);
+    assert.deepEqual(validate(withItem({ role, text: 'Rooms', options: ['Room 2'] })), [], role);
+  }
+  assert.deepEqual(validate(withItem({ role: 'choice', text: 'How long?', options: ['15 min', '30 min'] })), []);
+  refuses(withItem({ role: 'choice', text: 'How long?', options: ['15 min', ' '] }), 'screens[1].items[1].options[1]', /must be a line of text/);
+  refuses(withItem({ role: 'list', text: 'Rooms', options: [15] }), 'screens[1].items[1].options[0]', /must be a line of text/);
 });
 
 test('an unknown key is refused at every level; the provenance keys are allowed on the proposal only', () => {
@@ -281,8 +321,11 @@ test('the contract names every class, kit.css styles each, and parts.html shows 
   assert.match(parts, /<[a-z][^>]*\sdata-ux="[a-z][a-z0-9-]*"[^>]*>/, 'a part in parts.html carries a stable id');
 });
 
-// The contract's markup table, one row per class: | `ux-heading` | `<h3>` | ... |
-const rows = contract => [...contract.matchAll(/^\| `([\w.-]+)` \| `<([a-z][a-z0-9]*)\b[^`]*>` \|/gm)].map(([, name, element]) => ({ name, element }));
+// The contract's markup table, one row per class: | `ux-heading` | `<h3>` | where it sits, what it holds |
+const rows = contract =>
+  [...contract.matchAll(/^\| `([\w.-]+)` \| `<([a-z][a-z0-9]*)\b[^`]*>` \| (.*) \|$/gm)].map(([, name, element, holds]) => ({ name, element, holds }));
+// The parts that carry options, and the fewest each shows.
+const OPTIONED = { 'ux-choice': 2, 'ux-list': 1, 'ux-nav': 1 };
 // Every element of a page that carries a class: its tag, its classes and the rest of its attributes.
 const classed = page =>
   [...page.matchAll(/<([a-z][a-z0-9]*)\b([^>]*)>/g)].flatMap(([, tag, attrs]) => {
@@ -302,8 +345,15 @@ test('every class the contract names is in kit.css and parts.html, and parts.htm
 
   const table = rows(contract);
   assert.deepEqual(table.map(r => r.name).sort(), [...CLASSES, 'ux-action.is-primary'].sort(), 'the contract gives each class one row');
-  for (const { name, element } of table) {
+  for (const { name, element, holds } of table) {
     for (const { tag } of carrying(parts, name)) assert.equal(tag, element, `parts.html draws ${name} on <${element}>`);
+    assert.equal(/\boptions\b/.test(holds), name in OPTIONED, `the contract's row for ${name} speaks of options only if it has them`);
+  }
+  const optionLists = [...parts.matchAll(/<[a-z]+ class="(ux-[a-z]+)"[^>]*>[^<]*<ul>((?:\s*<li>[^<]+<\/li>)+)\s*<\/ul>/g)];
+  assert.equal((parts.match(/<ul\b/g) ?? []).length, optionLists.length, 'every list in parts.html is the options of a part');
+  for (const [, name, items] of optionLists) assert.ok(items.match(/<li>/g).length >= (OPTIONED[name] ?? Infinity), `${name} shows its options`);
+  for (const name of Object.keys(OPTIONED)) {
+    assert.equal(optionLists.filter(([, n]) => n === name).length, carrying(parts, name).length, `every ${name} in parts.html shows its options`);
   }
   const frames = carrying(parts, 'ux-frame');
   assert.ok(frames.every(e => /\sdata-screen="[a-z][a-z0-9-]*"/.test(e.attrs)), 'every frame names its screen in data-screen');
@@ -313,6 +363,22 @@ test('every class the contract names is in kit.css and parts.html, and parts.htm
   const preludes = [...css.matchAll(/([^{}]+)\{/g)].map(([, prelude]) => prelude.trim()).filter(prelude => !prelude.startsWith('@'));
   const byName = new Set(preludes.flatMap(prelude => [...prelude.matchAll(/(?:^|[\s>+~,(])([a-z][a-z0-9]*)(?![\w-])/g)].map(([, tag]) => tag)));
   assert.deepEqual([...byName].sort(), ['body', 'h2', 'header', 'li', 'summary', 'ul'], 'kit.css styles by class, and by name only the elements the contract places');
+  for (const prelude of preludes.filter(prelude => /(?:^|[\s>+~,(])(?:ul|li)(?![\w-])/.test(prelude))) {
+    const named = [...prelude.matchAll(/\.(ux-[a-z]+)/g)].map(([, name]) => name);
+    assert.ok(named.length > 0 && named.every(name => name in OPTIONED), `${prelude}: options are styled on a choice, a list or a nav only`);
+  }
+  for (const selector of preludes.flatMap(prelude => prelude.split(/,(?![^(]*\))/)).map(selector => selector.trim())) {
+    if (selector.includes('.ux-frame')) assert.ok(selector.startsWith('.ux-frame'), `${selector}: no selector depends on a frame's parent`);
+  }
+});
+
+test('the document shell: the contract states it and parts.html follows it', () => {
+  const { parts, contract } = kit();
+  for (const line of ['<!doctype html>', '<meta charset="utf-8">', '<meta name="viewport" content="width=device-width, initial-scale=1">', '<link rel="stylesheet" href="kit.css">']) {
+    assert.ok(contract.includes(`\`${line}\``), `the contract states ${line}`);
+    assert.ok(parts.includes(line), `parts.html has ${line}`);
+  }
+  assert.ok(parts.startsWith('<!doctype html>'), 'parts.html opens with its doctype');
 });
 
 test('the grey kit: greys, one font stack, one mid-grey kept for the primary action, light and dark sets, no motion, nothing loaded', () => {
@@ -321,6 +387,18 @@ test('the grey kit: greys, one font stack, one mid-grey kept for the primary act
     assert.ok(isHex(hex) && hex.slice(1, 3) === hex.slice(3, 5) && hex.slice(3, 5) === hex.slice(5, 7), `${hex} is a grey written as #rrggbb`);
   }
   assert.doesNotMatch(css, /\b(rgba?|hsla?|hwb|lab|lch|oklab|oklch|color|color-mix)\(/i, 'colours are written as hex');
+  // Every colour a rule uses is a grey of the kit: a token whose every value is a grey, a grey hex, or a keyword.
+  const values = new Map();
+  for (const [, name, value] of css.matchAll(/(--ux-[\w-]+)\s*:\s*([^;]+);/g)) values.set(name, [...(values.get(name) ?? []), value.trim()]);
+  const grey = v => isHex(v) && v.slice(1, 3) === v.slice(3, 5) && v.slice(3, 5) === v.slice(5, 7);
+  const token = v => /^var\(--ux-[\w-]+\)$/.test(v) && (values.get(v.slice(4, -1)) ?? []).length > 0 && values.get(v.slice(4, -1)).every(grey);
+  const kitColour = v => grey(v) || token(v) || ['transparent', 'inherit', 'currentColor'].includes(v);
+  const notAColour = /^(0|-?\d*\.?\d+(px|rem|em|%)|none|solid|dashed|dotted|double|underline)$/;
+  const coloured = /^(color|background|background-color|border|border-(top|right|bottom|left)|border(-(top|right|bottom|left))?-color|outline|outline-color|box-shadow|text-decoration|text-decoration-color|fill|stroke|caret-color|accent-color|column-rule)$/;
+  for (const [, property, value] of css.matchAll(/(?:^|[;{\s])([a-z][a-z-]*)\s*:\s*([^;{}]+);/g)) {
+    if (!coloured.test(property)) continue;
+    for (const part of value.trim().split(/\s+/)) assert.ok(kitColour(part) || notAColour.test(part), `${property}: ${value.trim()} — ${part} is not a grey of the kit`);
+  }
 
   assert.equal((css.match(/font-family\s*:/g) ?? []).length, 1, 'one font stack');
   for (const [, value] of css.matchAll(/[\s;{]font\s*:\s*([^;}]+)/g)) assert.equal(value.trim(), 'inherit');
@@ -340,6 +418,8 @@ test('the grey kit: greys, one font stack, one mid-grey kept for the primary act
   }
 
   assert.doesNotMatch(css, /\b(transition|animation)[\w-]*\s*:|@keyframes|scroll-behavior/, 'no motion');
+  const note = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].find(([, selector]) => selector.trim() === '.ux-note');
+  assert.match(note?.[2] ?? '', /(?:^|[\s;])margin:\s*0;/, 'a note keeps no browser margin, so a caption with a note sits like one without');
   assert.doesNotMatch(css, /@import|url\(/, 'kit.css loads nothing');
   assert.deepEqual([...parts.matchAll(/<link\b[^>]*>/g)].map(([tag]) => tag), ['<link rel="stylesheet" href="kit.css">'], 'parts.html links kit.css only');
   assert.doesNotMatch(parts, /<script|<style|\sstyle="|\ssrc=/, 'parts.html is drawn by kit.css alone');

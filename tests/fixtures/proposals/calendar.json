@@ -58,11 +58,11 @@
             },
             {
               "container": "group",
-              "label": "Sala Jardín",
+              "label": "Sala Jardín 🌿",
               "items": [
                 {
                   "role": "list",
-                  "text": "Sala Jardín today",
+                  "text": "Sala Jardín 🌿 today",
                   "options": ["8:00–11:15 free", "11:15–12:00 Tomás with Ruth B."]
                 }
               ]
@@ -89,7 +89,7 @@
           "items": [
             {
               "container": "group",
-              "label": "Sala Jardín",
+              "label": "Sala Jardín 🌿",
               "items": [
                 {
                   "container": "expansion",
@@ -98,7 +98,7 @@
                   "items": [
                     { "role": "input", "text": "Patient name" },
                     { "role": "choice", "text": "Until", "options": ["10:10", "10:40", "11:15"] },
-                    { "role": "action", "text": "Book Sala Jardín", "primary": true },
+                    { "role": "action", "text": "Book Sala Jardín 🌿", "primary": true },
                     { "role": "link", "text": "Close" }
                   ]
                 }
