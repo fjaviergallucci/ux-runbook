@@ -197,8 +197,17 @@ test('primary belongs to an action, and is true or false', () => {
 
 test('open belongs to an expansion, and is true or false', () => {
   refuses(changed(p => { p.screens[0].items.push(group([line], { open: true })); }), 'screens[0].items[2]', /"open" belongs to an expansion, not to a "group"/);
-  refuses(changed(p => { p.screens[0].items.push({ container: 'expansion', open: 'yes', items: [line] }); }), 'screens[0].items[2]', /"open" must be true or false/);
-  assert.deepEqual(validate(changed(p => { p.screens[0].items.push({ container: 'expansion', open: false, items: [line] }); })), []);
+  refuses(changed(p => { p.screens[0].items.push({ container: 'expansion', label: 'Later today', open: 'yes', items: [line] }); }), 'screens[0].items[2]', /"open" must be true or false/);
+  assert.deepEqual(validate(changed(p => { p.screens[0].items.push({ container: 'expansion', label: 'Later today', open: false, items: [line] }); })), []);
+});
+
+test('an expansion carries a label; a region or a group may go without one', () => {
+  const expansion = { container: 'expansion', items: [line] };
+  refuses(changed(p => { p.screens[0].items.push(expansion); }), 'screens[0].items[2]', /"label" is missing/);
+  refuses(changed(p => { p.screens[0].items.push({ ...expansion, label: ' ' }); }), 'screens[0].items[2]', /"label" must be a line of text/);
+  for (const container of ['region', 'group']) {
+    assert.deepEqual(validate(changed(p => { p.screens[0].items.push({ container, items: [line] }); })), [], container);
+  }
 });
 
 test('options are a list of at least one line of text', () => {
@@ -257,7 +266,8 @@ const isHex = value => /^#[0-9a-f]{6}$/i.test(value);
 test('the contract names every class, kit.css styles each, and parts.html shows each, labelled, adding none', () => {
   const { css, parts, contract } = kit();
   const all = [...CLASSES, 'ux-action.is-primary'];
-  for (const name of all) assert.ok(contract.includes(`\`${name}\``), `KIT-CONTRACT.md names ${name}`);
+  const conveys = [...contract.matchAll(/^- `([\w.-]+)`: \S/gm)].map(([, name]) => name);
+  assert.deepEqual(conveys.sort(), [...all].sort(), 'KIT-CONTRACT.md gives each class one line on what it must convey');
   for (const name of CLASSES) assert.match(css, new RegExp(`\\.${name}(?![\\w-])`), `kit.css styles ${name}`);
   assert.match(css, /\.ux-action\.is-primary(?![\w-])/);
   const cssClasses = new Set([...css.matchAll(/\.([a-z][\w-]*)/gi)].map(([, name]) => name));
@@ -269,6 +279,40 @@ test('the contract names every class, kit.css styles each, and parts.html shows 
   const visible = parts.replace(/<[^>]*>/g, ' ');
   for (const name of all) assert.match(visible, new RegExp(`(^|[^\\w.-])${name.replace('.', '\\.')}(?![\\w.-])`), `parts.html labels ${name}`);
   assert.match(parts, /<[a-z][^>]*\sdata-ux="[a-z][a-z0-9-]*"[^>]*>/, 'a part in parts.html carries a stable id');
+});
+
+// The contract's markup table, one row per class: | `ux-heading` | `<h3>` | ... |
+const rows = contract => [...contract.matchAll(/^\| `([\w.-]+)` \| `<([a-z][a-z0-9]*)\b[^`]*>` \|/gm)].map(([, name, element]) => ({ name, element }));
+// Every element of a page that carries a class: its tag, its classes and the rest of its attributes.
+const classed = page =>
+  [...page.matchAll(/<([a-z][a-z0-9]*)\b([^>]*)>/g)].flatMap(([, tag, attrs]) => {
+    const found = /\sclass="([^"]*)"/.exec(attrs);
+    return found ? [{ tag, classes: found[1].split(/\s+/), attrs }] : [];
+  });
+// The elements carrying a contract class; `ux-action.is-primary` means both classes on one element.
+const carrying = (page, name) => classed(page).filter(e => name.split('.').every(c => e.classes.includes(c)));
+
+test('every class the contract names is in kit.css and parts.html, and parts.html follows the markup the contract states', () => {
+  const { css, parts, contract } = kit();
+  const named = new Set([...contract.matchAll(/\bux-[a-z]+(?:\.is-primary)?/g)].map(([name]) => name));
+  for (const name of named) {
+    assert.match(css, new RegExp(`\\.${name.replace('.', '\\.')}(?![\\w-])`), `kit.css styles ${name}`);
+    assert.ok(carrying(parts, name).length > 0, `parts.html uses ${name}`);
+  }
+
+  const table = rows(contract);
+  assert.deepEqual(table.map(r => r.name).sort(), [...CLASSES, 'ux-action.is-primary'].sort(), 'the contract gives each class one row');
+  for (const { name, element } of table) {
+    for (const { tag } of carrying(parts, name)) assert.equal(tag, element, `parts.html draws ${name} on <${element}>`);
+  }
+  const frames = carrying(parts, 'ux-frame');
+  assert.ok(frames.every(e => /\sdata-screen="[a-z][a-z0-9-]*"/.test(e.attrs)), 'every frame names its screen in data-screen');
+  assert.equal(parts.match(/<section class="ux-frame"[^>]*>\s*<header>/g).length, frames.length, 'a frame opens with its caption header');
+  assert.equal(parts.match(/<details class="ux-expansion"[^>]*>\s*<summary>[^<\s][^<]*<\/summary>/g).length, carrying(parts, 'ux-expansion').length, 'an expansion opens with its labelled summary');
+
+  const preludes = [...css.matchAll(/([^{}]+)\{/g)].map(([, prelude]) => prelude.trim()).filter(prelude => !prelude.startsWith('@'));
+  const byName = new Set(preludes.flatMap(prelude => [...prelude.matchAll(/(?:^|[\s>+~,(])([a-z][a-z0-9]*)(?![\w-])/g)].map(([, tag]) => tag)));
+  assert.deepEqual([...byName].sort(), ['body', 'h2', 'header', 'li', 'summary', 'ul'], 'kit.css styles by class, and by name only the elements the contract places');
 });
 
 test('the grey kit: greys, one font stack, one mid-grey kept for the primary action, light and dark sets, no motion, nothing loaded', () => {

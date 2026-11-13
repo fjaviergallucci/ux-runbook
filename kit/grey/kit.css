@@ -3,7 +3,7 @@
    a dark set, no motion. Every part is styled once and the same wherever it appears, so nothing here can
    make one structure look better made than another.
    The class names are a contract (../KIT-CONTRACT.md): a project kit restyles them and adds none.
-   parts.html shows the markup each part is drawn on. */
+   KIT-CONTRACT.md states the markup each part is drawn on; parts.html shows it. */
 
 :root {
   color-scheme: light dark;

@@ -127,7 +127,8 @@ function checkContainer(item, at, context) {
   const { fail } = context;
   unknownKeys(item, KEYS.container, at, fail);
   if (!CONTAINERS.includes(item.container)) fail(at, `unknown container ${show(item.container)}`);
-  maybe(item, 'label', isText, TEXT, at, fail);
+  // An expansion shows its label before it opens, so it always has one; a region or a group may have none.
+  (item.container === 'expansion' ? need : maybe)(item, 'label', isText, TEXT, at, fail);
   if (Object.hasOwn(item, 'open')) {
     if (item.container !== 'expansion') fail(at, `"open" belongs to an expansion, not to a ${show(item.container)}`);
     else if (!isBoolean(item.open)) fail(at, '"open" must be true or false');
