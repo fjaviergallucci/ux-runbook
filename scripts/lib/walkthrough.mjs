@@ -12,22 +12,24 @@ const SCREEN_CONTAINERS = ['screen', 'dialog'];
 const TEXT_FIELDS = ['name', 'bet', 'cost', 'hardest', 'firstIdea'];
 // Who made a proposal, and how; allowed on the proposal only, and stripped by the blind merge.
 const PROVENANCE = ['author', 'engine', 'track', 'model', 'source'];
-const KEYS = {
-  proposal: [...TEXT_FIELDS, 'absent', 'screens', ...PROVENANCE],
-  screen: ['id', 'title', 'container', 'over', 'note', 'items'],
-  role: ['role', 'text', 'id', 'note', 'primary', 'options'],
-  container: ['container', 'label', 'open', 'items'],
-};
+// Every key the format knows, at each level, in the format's own order.
+export const KEYS = Object.freeze({
+  proposal: Object.freeze(['name', 'bet', 'cost', 'absent', 'hardest', 'firstIdea', 'screens', ...PROVENANCE]),
+  screen: Object.freeze(['id', 'title', 'container', 'over', 'note', 'items']),
+  role: Object.freeze(['role', 'text', 'id', 'note', 'primary', 'options']),
+  container: Object.freeze(['container', 'label', 'open', 'items']),
+});
 // What only the source file carries: the maker's own record of what it set aside, and who made it. A
 // letter copy (the sealed form, written by lib/merge.mjs) carries none of it.
-const SOURCE_ONLY = ['firstIdea', ...PROVENANCE];
-// The format's own key order. A letter copy is written in it, never in its maker's, so no maker's habit of
-// order reaches a judge; a key that is absent stays absent. The top level holds only what is judged.
+export const SOURCE_ONLY = Object.freeze(['firstIdea', ...PROVENANCE]);
+// The order a letter copy is written in, never its maker's, so no maker's habit of order reaches a judge; a
+// key that is absent stays absent. It is the format's own order, less what stays in the source, so a key
+// added to the format reaches the letters too.
 export const ORDER = Object.freeze({
-  letter: Object.freeze(['name', 'bet', 'cost', 'absent', 'hardest', 'screens']),
-  screen: Object.freeze([...KEYS.screen]),
-  role: Object.freeze([...KEYS.role]),
-  container: Object.freeze([...KEYS.container]),
+  letter: Object.freeze(KEYS.proposal.filter(key => !SOURCE_ONLY.includes(key))),
+  screen: KEYS.screen,
+  role: KEYS.role,
+  container: KEYS.container,
 });
 const KEBAB = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
 

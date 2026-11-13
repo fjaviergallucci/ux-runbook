@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
-import { ROLES, CONTAINERS, validate } from '../scripts/lib/walkthrough.mjs';
+import { CONTAINERS, KEYS, ORDER, ROLES, SOURCE_ONLY as STRIPPED, validate } from '../scripts/lib/walkthrough.mjs';
 
 const read = p => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
 const FIXTURES = ['unified-list', 'free-first', 'calendar'];
@@ -339,6 +339,19 @@ test('the sealed form checks everything else as the source form does', () => {
   refuses(changed(p => { p.screens[0].track = 'system'; }), 'screens[0]', /unknown key "track"/);
   const { firstIdea: _, ...nested } = changed(p => { p.screens[0].author = 'a'; });
   assert.deepEqual(validate(nested, { sealed: true }), ['screens[0]: unknown key "author"']);
+});
+
+test('the letter order is the proposal\'s keys minus the six that stay in the source; a screen and an item keep every key', () => {
+  assert.deepEqual([...STRIPPED].sort(), [...SOURCE_ONLY].sort());
+  assert.deepEqual([...ORDER.letter].sort(), KEYS.proposal.filter(key => !SOURCE_ONLY.includes(key)).sort());
+  assert.deepEqual([...ORDER.screen].sort(), [...KEYS.screen].sort());
+  assert.deepEqual([...ORDER.role].sort(), [...KEYS.role].sort());
+  assert.deepEqual([...ORDER.container].sort(), [...KEYS.container].sort());
+  // And the order itself, as ruled.
+  assert.deepEqual(ORDER.letter, ['name', 'bet', 'cost', 'absent', 'hardest', 'screens']);
+  assert.deepEqual(ORDER.screen, ['id', 'title', 'container', 'over', 'note', 'items']);
+  assert.deepEqual(ORDER.role, ['role', 'text', 'id', 'note', 'primary', 'options']);
+  assert.deepEqual(ORDER.container, ['container', 'label', 'open', 'items']);
 });
 
 test('every error is reported at once, in the order of the proposal', () => {

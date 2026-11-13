@@ -404,10 +404,11 @@ test('no product name appears in the render script or its fixture', () => {
 
 // ---- the command line
 
-const run = (...args) => spawnSync(process.execPath, [cli, ...args], { encoding: 'utf8' });
+// Run from the test's own folder, so that a path the command should never take lands nowhere else.
+const run = (...args) => spawnSync(process.execPath, [cli, ...args], { encoding: 'utf8', cwd: root });
 // The command run from another folder, with a module required before it (a CommonJS file, so that this
 // needs nothing newer than the Node 20 the package names).
-const runWith = ({ cwd, preload, env }, ...args) =>
+const runWith = ({ cwd = root, preload, env }, ...args) =>
   spawnSync(process.execPath, [...(preload ? ['--require', preload] : []), cli, ...args], { encoding: 'utf8', cwd, env: { ...process.env, ...env } });
 let made = 0;
 const fresh = () => join(root, `run ${++made}`);
@@ -684,7 +685,9 @@ test('a letter copy written by the merge draws, and its page is its source\'s pa
   for (const name of ALL) copyFileSync(fixturePath(name), join(proposals, basename(name)));
   const board = join(dir, 'the board');
   mergeProposals(proposals, board, { seed: 1 });
-  const map = JSON.parse(readFileSync(join(board, 'MAP.sealed.json'), 'utf8'));
+  // The map sits beside the board folder, which holds the letters only.
+  const map = JSON.parse(readFileSync(join(dir, 'MAP.sealed.json'), 'utf8'));
+  assert.deepEqual(readdirSync(board).sort(), Object.keys(map).map(letter => `${letter}.json`));
   assert.equal(Object.keys(map).length, ALL.length);
   for (const [letter, { file }] of Object.entries(map)) {
     const copyFile = join(board, `${letter}.json`);
@@ -698,12 +701,27 @@ test('a letter copy written by the merge draws, and its page is its source\'s pa
     assert.equal(r.status, 0, r.stderr);
     assert.equal(readFileSync(out, 'utf8'), page, `${letter}: the same page by the command`);
   }
-  // Without firstIdea a proposal is read in the sealed form: it may not say who made it.
-  const signed = { ...JSON.parse(readFileSync(join(board, 'A.json'), 'utf8')), engine: 'claude' };
-  const stays = 'not a valid proposal:\nproposal: "engine" stays in the source file; a letter copy does not carry it';
-  assert.throws(() => renderProposal(signed, { letter: 'A' }), e => e instanceof TypeError && e.message === stays);
   // Anything that is not an object is still refused as one, whichever form is asked of it.
   for (const value of [null, undefined, 'a proposal', 7, []]) {
     assert.throws(() => renderProposal(value, { letter: 'A' }), e => e instanceof TypeError && e.message === 'not a valid proposal:\nproposal: must be an object', String(value));
   }
+});
+
+test('a proposal is read as a letter copy only when it carries none of the six keys of a source; with any of them, as a source', () => {
+  const dir = fresh();
+  const copy = JSON.parse(readFileSync(fixturePath(EVERY), 'utf8'));
+  for (const key of ['firstIdea', ...PROVENANCE]) delete copy[key];
+  const page = renderProposal(load(EVERY), { letter: 'B' });
+  assert.equal(renderProposal(copy, { letter: 'B' }), page, 'none of the six: a letter copy, the same page');
+  const missing = 'not a valid proposal:\nproposal: "firstIdea" is missing';
+  for (const key of PROVENANCE) {
+    // A source that forgot its firstIdea is told so, not that its other keys do not belong.
+    assert.throws(() => renderProposal({ ...copy, [key]: 'x' }, { letter: 'B' }), e => e instanceof TypeError && e.message === missing, key);
+  }
+  assert.equal(renderProposal({ ...copy, firstIdea: 'Another idea, set aside.' }, { letter: 'B' }), page, 'firstIdea alone: a source, the same page');
+  // The command reads the same way.
+  const { firstIdea, ...forgot } = load(EVERY);
+  const input = writeProposal(dir, forgot);
+  const r = run(input, '--kit', greyKit, '--out', join(dir, 'board', 'A.html'));
+  assert.deepEqual([r.status, r.stdout, r.stderr], [1, '', `cannot draw ${input}: it is not a valid proposal\nproposal: "firstIdea" is missing\n`]);
 });

@@ -10,11 +10,11 @@
 // letter give the same bytes.
 // As a command: see USAGE. Exit codes: 0 success · 1 an invalid proposal, an unreadable input or an
 // unwritable output · 2 bad usage.
-import { mkdirSync, readdirSync, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { UsageError, isMain, parseArgs } from './lib/cli.mjs';
 import { ProposalFileError, REASONS, readProposalFile, reason } from './lib/proposal-file.mjs';
-import { validate } from './lib/walkthrough.mjs';
+import { SOURCE_ONLY, validate } from './lib/walkthrough.mjs';
 
 // ---- markup
 
@@ -57,9 +57,10 @@ const CONTAINER_ELEMENTS = { region: 'section', group: 'div', expansion: 'detail
 const INDENT = '  ';
 const LETTER = /^[A-Z]$/;
 
-// A proposal is checked in the form it is written in: one carrying firstIdea is a source, one without it is
-// a letter copy, which must carry nothing of who made it either. Object() lets anything be asked, null too.
-const check = proposal => validate(proposal, { sealed: !Object.hasOwn(Object(proposal), 'firstIdea') });
+// A proposal is checked in the form it is written in: one carrying any of the six keys only a source has
+// (firstIdea, author, engine, track, model, source) is a source, and must carry its firstIdea; one carrying
+// none of them is a letter copy. Object() lets anything be asked, null too.
+const check = proposal => validate(proposal, { sealed: !SOURCE_ONLY.some(key => Object.hasOwn(Object(proposal), key)) });
 
 // ---- the drawing
 
@@ -173,34 +174,14 @@ A flag may also be written --flag=value.
 
 Exit codes: 0 success · 1 an invalid proposal, an unreadable input or an unwritable output · 2 bad usage.
 `;
-const FLAGS = ['kit', 'out', 'letter'];
-const HELP = ['--help', '-h'];
-
-class UsageError extends Error {}
 // A failure the command expects and explains in one message: exit 1, without a stack. A proposal file
 // that cannot be read is one too (lib/proposal-file.mjs).
 class Failure extends Error {}
 
 function readArgs(argv) {
-  const positional = [];
-  const flags = {};
-  for (let i = 0; i < argv.length; i++) {
-    const arg = argv[i];
-    if (HELP.includes(arg)) return { help: true };
-    if (!arg.startsWith('--')) {
-      positional.push(arg);
-      continue;
-    }
-    const eq = arg.indexOf('=');
-    const name = arg.slice(2, eq === -1 ? undefined : eq);
-    if (!FLAGS.includes(name)) throw new UsageError(`unknown flag --${name}`);
-    if (Object.hasOwn(flags, name)) throw new UsageError(`--${name} is given twice`);
-    const value = eq === -1 ? argv[++i] : arg.slice(eq + 1);
-    if (value === undefined || value === '') throw new UsageError(`--${name} needs a value`);
-    // A flag never takes the next flag as its value.
-    if (value.startsWith('--') || HELP.includes(value)) throw new UsageError(`--${name} needs a value; "${value}" is a flag`);
-    flags[name] = value;
-  }
+  const args = parseArgs(argv, { flags: ['kit', 'out', 'letter'] });
+  if (args.help) return args;
+  const { positional, flags } = args;
   if (positional.length !== 1) throw new UsageError(`render takes one <proposal.json>, got ${positional.length}`);
   for (const name of ['kit', 'out']) {
     if (!Object.hasOwn(flags, name)) throw new UsageError(`--${name} is missing`);
@@ -291,11 +272,4 @@ function main(argv) {
 }
 
 // The command runs only when this file is the one node was given, never when it is imported.
-const realpath = file => {
-  try {
-    return realpathSync(file);
-  } catch {
-    return null;
-  }
-};
-if (process.argv[1] && realpath(process.argv[1]) === fileURLToPath(import.meta.url)) main(process.argv.slice(2));
+if (isMain(import.meta.url)) main(process.argv.slice(2));

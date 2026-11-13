@@ -1,46 +1,80 @@
 // The blind merge (design § 12): several makers each wrote one Structure proposal. Before anyone judges
 // them, the merge shuffles them into letters and writes each as <letter>.json, a letter copy carrying no
 // maker's fingerprint: none of who or what made it (author, engine, track, model, source), not the maker's
-// firstIdea, and the keys in the format's own order with the format's own spacing, never the maker's. It
-// seals the map from letter to source in MAP.sealed.json. Judges and the founder read by letter; the map
-// opens only once the founder's pick is written in PICK.md beside it.
+// firstIdea, and the keys in the format's own order with the format's own spacing, never the maker's.
 //
-// The blind holds only if a board is made once: a board people may have read is never shuffled again, and
-// a board is made in a folder that is empty or absent, so nothing beside the letters (an earlier board, a
-// pick, the makers' files) can be read with them. Nothing here prints; the command (scripts/merge.mjs)
-// prints no source.
+// The board folder holds the letters and nothing else. The map from letter to source (MAP.sealed.json) and
+// the founder's pick (PICK.md) sit beside it, in its parent: one folder holds one board. The map opens only
+// on a pick line, "Pick: <letter>" or "Pick: none".
+//
+// The blind holds only if a board is made once, whole, at one place. Each path is read the way the system
+// reads it, once, and every check and every write uses that one path, so no second way of writing it
+// reaches the same board unseen. The letters are written into a new folder beside the board and renamed
+// into place, which fails onto a folder that holds anything; the map is created, never written over. A
+// failed merge leaves nothing behind. Nothing here prints; the command (scripts/merge.mjs) prints no source.
 import { randomInt } from 'node:crypto';
-import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, renameSync, rmdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { basename, dirname, isAbsolute, join, parse, sep } from 'node:path';
 import { readProposalFile, reason } from './proposal-file.mjs';
 import { ORDER, validate } from './walkthrough.mjs';
 
+// The author map and the founder's pick: file names in the board folder's parent, beside the board.
 export const MAP = 'MAP.sealed.json';
 export const PICK = 'PICK.md';
 export const MAX_SEED = 0xffffffff;
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 // A proposal is a .json file, whatever the case of its extension: one saved as .JSON is not lost.
 const PROPOSAL_FILE = /\.json$/i;
+// The founder's pick, on a line of its own with nothing else but white space: one capital letter, or none.
+const PICK_LINE = /^\s*Pick:\s*([A-Z]|none)\s*$/;
+const SEPARATORS = sep === '\\' ? /[\\/]+/ : /\/+/;
 
 // A refusal the merge explains in one message.
 export class MergeError extends Error {}
-// The seal holds: the map is not opened before the pick, and a sealed board is not merged again.
+// The seal holds: the map is not opened before a real pick, and a sealed board is not merged again.
 export class SealedError extends MergeError {}
 
-// mergeProposals(srcDir, outDir, { seed }) → { letters }. Everything is checked before anything is
-// written: the board folder, every proposal file, every proposal (in the source form) and every letter copy
-// (in the sealed form). Throws a MergeError (a SealedError for a sealed board), a ProposalFileError for a
-// file that cannot be read, a TypeError for a bad seed, and an Error for a letter copy that is not sealed,
-// which is a bug in this file.
+// onDisk(path) → the absolute path the system would read or make: every link in the part that exists is
+// followed, and ".." after it leads where the system says, not where the text of the path says; the part
+// that does not exist yet is added as written, as making it would.
+export function onDisk(path) {
+  const absolute = isAbsolute(path) ? path : `${process.cwd()}${sep}${path}`;
+  const { root } = parse(absolute);
+  let at = root;
+  for (const part of absolute.slice(root.length).split(SEPARATORS)) {
+    if (part === '' || part === '.') continue;
+    if (part === '..') {
+      at = dirname(at);
+      continue;
+    }
+    const next = join(at, part);
+    try {
+      at = realpathSync(next);
+    } catch {
+      at = next;
+    }
+  }
+  return at;
+}
+
+// mergeProposals(srcDir, outDir, { seed }) → { letters }. Before anything is written beside the board:
+// what sits beside it, every proposal file, every proposal (in the source form) and every letter copy (in
+// the sealed form). Whether the board folder is empty or absent is answered by the rename that puts the
+// board in place, the one check no other merge can slip between. Throws a MergeError (a SealedError for a sealed board),
+// a ProposalFileError for a file that cannot be read, a TypeError for a bad seed, and an Error for a letter
+// copy that is not sealed, which is a bug in this file.
 export function mergeProposals(srcDir, outDir, { seed } = {}) {
   const draw = drawing(seed);
-  checkBoard(outDir);
-  const files = proposalFiles(srcDir);
-  const proposals = files.map(file => ({ file, proposal: readProposalFile(join(srcDir, file)) }));
+  const board = onDisk(outDir);
+  const src = onDisk(srcDir);
+  const { map: mapFile, pick: pickFile } = beside(board);
+  checkBoard(board, mapFile, pickFile);
+  const files = proposalFiles(src);
+  const proposals = files.map(file => ({ file, proposal: readProposalFile(join(src, file)) }));
   const faults = proposals.map(({ file, proposal }) => [file, validate(proposal)]).filter(([, errors]) => errors.length);
   if (faults.length) {
-    const lines = faults.map(([file, errors]) => `${join(srcDir, file)}: it is not a valid proposal\n${errors.join('\n')}`);
-    throw new MergeError(`cannot merge ${srcDir}: not every proposal is valid, so no letter is written\n${lines.join('\n')}`);
+    const lines = faults.map(([file, errors]) => `${join(src, file)}: it is not a valid proposal\n${errors.join('\n')}`);
+    throw new MergeError(`cannot merge ${src}: not every proposal is valid, so no letter is written\n${lines.join('\n')}`);
   }
   const order = shuffle(proposals, draw);
   const letters = order.map((_, i) => LETTERS[i]);
@@ -55,55 +89,159 @@ export function mergeProposals(srcDir, outDir, { seed } = {}) {
   order.forEach(({ file, proposal }, i) => {
     map[letters[i]] = { file, track: textOrNull(proposal.track), engine: textOrNull(proposal.engine) };
   });
-  try {
-    mkdirSync(outDir, { recursive: true });
-  } catch (e) {
-    throw new MergeError(`cannot write ${outDir}: ${reason(e)}`);
-  }
-  // In letter order, so neither the order of the files on disk nor their times follow the sources; the map
-  // last, so a board that could not be written whole is never sealed.
-  letters.forEach((letter, i) => write(join(outDir, `${letter}.json`), texts[i]));
-  write(join(outDir, MAP), pretty(map));
+  const made = writeBoard(board, letters, texts);
+  seal(board, mapFile, pretty(map), made);
   return { letters };
 }
 
-// openMap(outDir) → { <letter>: { file, track, engine } }, once <outDir>/PICK.md holds the founder's pick.
-// Throws a SealedError before then; a ProposalFileError when the map itself cannot be read.
+// openMap(outDir) → { <letter>: { file, track, engine } }, once the pick beside the board names a letter on
+// it, or none. Throws a SealedError before then; a MergeError for a map that is not an author map; a
+// ProposalFileError when the map cannot be read.
 export function openMap(outDir) {
-  const pick = join(outDir, PICK);
-  const sealed = problem => new SealedError(`the author map is sealed until the founder's pick is written in ${pick}; that file ${problem}`);
+  const board = onDisk(outDir);
+  const { map: mapFile, pick: pickFile } = beside(board);
+  const sealed = problem =>
+    new SealedError(`the author map is sealed until the founder's pick is written in ${pickFile} as a line "Pick: <letter>" naming a letter on the board, or "Pick: none"; ${problem}`);
   let words;
   try {
-    words = readFileSync(pick, 'utf8');
+    words = readFileSync(pickFile, 'utf8');
   } catch (e) {
-    throw sealed(`cannot be read (${reason(e)})`);
+    throw sealed(`that file cannot be read (${reason(e)})`);
   }
-  if (words.trim() === '') throw sealed('is empty');
-  // The map is read the way a proposal is: UTF-8 JSON, with the same worded refusals.
-  return readProposalFile(join(outDir, MAP));
+  const picks = [...new Set(words.split('\n').flatMap(line => PICK_LINE.exec(line)?.slice(1) ?? []))];
+  if (picks.length === 0) throw sealed('that file holds no such line');
+  if (picks.length > 1) throw sealed(`that file names more than one pick (${picks.join(', ')})`);
+  const map = authorMap(readProposalFile(mapFile), mapFile);
+  const [pick] = picks;
+  if (pick !== 'none' && !Object.hasOwn(map, pick)) throw sealed(`"Pick: ${pick}" names no letter on this board (${Object.keys(map).join(', ')})`);
+  return map;
 }
 
-// A board is made once, in a folder that is empty or absent.
-function checkBoard(outDir) {
-  let names;
+const beside = board => ({ map: join(dirname(board), MAP), pick: join(dirname(board), PICK) });
+
+// A board is made once: no map beside it (that is a sealed board), and no pick left from another board.
+// The board folder itself must be empty or absent; writeBoard's rename refuses it otherwise.
+function checkBoard(board, mapFile, pickFile) {
+  if (exists(mapFile)) throw sealedBoard(board, mapFile);
+  if (exists(pickFile)) throw new MergeError(`cannot merge into ${board}: ${pickFile} already exists, a pick made on another board; delete it on purpose first.`);
+}
+
+const sealedBoard = (board, mapFile) =>
+  new SealedError(
+    `cannot merge into ${board}: the board beside ${mapFile} is sealed, and its letters may already have been read. ` +
+      'One folder holds one board; merging again would shuffle the letters anew. To rebuild it, delete the map and the board on purpose first.',
+  );
+// Names one thing the folder holds, so a folder that only looks empty is no mystery.
+const notEmpty = (board, names) =>
+  new MergeError(
+    `cannot merge into ${board}: the folder is not empty (it holds ${JSON.stringify([...names].sort()[0])}). ` +
+      'A board folder must be empty or absent, so that nothing but its letters is read in it.',
+  );
+
+// The board is written whole or not at all: its letters go into a new folder beside it, which is renamed
+// into place. A rename fails onto a folder that holds anything, so no board is ever written over; when it
+// fails, nothing is left behind: no letter, no new folder, none of the folders made above the board.
+// → the first folder made above the board, if any.
+function writeBoard(board, letters, texts) {
+  const parent = dirname(board);
+  let made;
+  let staging;
+  let emptied = false;
   try {
-    names = readdirSync(outDir);
+    made = mkdirSync(parent, { recursive: true });
+    staging = mkdtempSync(join(parent, `.${basename(board)}.merging-`));
+    // In letter order, so neither the order of the files on disk nor their times follow the sources.
+    letters.forEach((letter, i) => writeFileSync(join(staging, `${letter}.json`), texts[i]));
+    // An empty board folder is taken away first: some systems (Windows) rename onto no folder at all. One
+    // that holds anything stays, and the rename refuses it.
+    emptied = removeIfEmpty(board);
+    renameSync(staging, board);
+    return made;
   } catch (e) {
-    if (e.code === 'ENOENT') return;
-    throw new MergeError(`cannot write ${outDir}: ${reason(e)}`);
+    if (staging) rmSync(staging, { recursive: true, force: true });
+    if (emptied) remake(board);
+    const found = entries(board);
+    unmake(made, parent);
+    if (found.length) throw notEmpty(board, found);
+    throw new MergeError(`cannot write ${board}: ${reason(e)}`);
   }
-  if (names.includes(MAP)) {
-    throw new SealedError(
-      `cannot merge into ${outDir}: the board is sealed (it holds ${MAP}), and its letters may already have been read. ` +
-        `Merging again would shuffle them anew; to rebuild the board, delete ${outDir} on purpose first.`,
-    );
+}
+
+// The map is created, never written over. When it cannot be, the board is taken back with whatever was
+// made for it, and only a map this merge created is removed.
+function seal(board, mapFile, text, made) {
+  try {
+    writeFileSync(mapFile, text, { flag: 'wx' });
+  } catch (e) {
+    rmSync(board, { recursive: true, force: true });
+    if (e.code !== 'EEXIST') rmSync(mapFile, { force: true });
+    unmake(made, dirname(board));
+    throw e.code === 'EEXIST' ? sealedBoard(board, mapFile) : new MergeError(`cannot write ${mapFile}: ${reason(e)}`);
   }
-  if (names.length > 0) {
-    throw new MergeError(
-      `cannot merge into ${outDir}: the folder is not empty. A board folder must be empty or absent, ` +
-        'so that nothing but its letters and its sealed map is read beside them.',
-    );
+}
+
+function removeIfEmpty(folder) {
+  try {
+    rmdirSync(folder);
+    return true;
+  } catch {
+    return false;
   }
+}
+
+function remake(folder) {
+  try {
+    mkdirSync(folder);
+  } catch {
+    // Another merge's board is there now; it is not this merge's to touch.
+  }
+}
+
+// Takes away the folders this merge made above the board, from the nearest up to the first it made, while
+// they are empty; never one above it.
+function unmake(made, parent) {
+  if (!made) return;
+  for (let folder = parent; folder.startsWith(made); folder = dirname(folder)) {
+    try {
+      rmdirSync(folder);
+    } catch {
+      return;
+    }
+  }
+}
+
+const exists = path => {
+  try {
+    lstatSync(path);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const entries = folder => {
+  try {
+    return readdirSync(folder);
+  } catch {
+    return [];
+  }
+};
+
+// A map is an object of letters, each { file, track, engine }: a file name, and text or null for the others.
+const isRecord = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+const isTextOrNull = value => value === null || typeof value === 'string';
+function authorMap(map, mapFile) {
+  const refuse = what => new MergeError(`cannot open ${mapFile}: it is not an author map; ${what}`);
+  if (!isRecord(map)) throw refuse('it must be an object of letters');
+  const letters = Object.keys(map);
+  if (letters.length === 0) throw refuse('it holds no letter');
+  for (const letter of letters) {
+    if (!/^[A-Z]$/.test(letter)) throw refuse(`${JSON.stringify(letter)} is not a letter`);
+    const entry = map[letter];
+    const whole = isRecord(entry) && typeof entry.file === 'string' && entry.file !== '' && isTextOrNull(entry.track) && isTextOrNull(entry.engine);
+    if (!whole) throw refuse(`the entry for ${letter} is not { file, track, engine }`);
+  }
+  return map;
 }
 
 // The proposal files directly in the folder, by name: the same order on every system, whatever order the
@@ -185,11 +323,3 @@ function inOrder(object, keys) {
 }
 const textOrNull = value => (typeof value === 'string' ? value : null);
 const pretty = value => `${JSON.stringify(value, null, 2)}\n`;
-
-function write(path, text) {
-  try {
-    writeFileSync(path, text);
-  } catch (e) {
-    throw new MergeError(`cannot write ${path}: ${reason(e)}`);
-  }
-}
