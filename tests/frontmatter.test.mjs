@@ -79,11 +79,16 @@ test('a quoted list item may hold a comma', () => {
 test('strings that need quoting come back as themselves', () => {
   const data = {
     colon: 'a: b', hash: 'x # y', bracket: '[not a list', comma: '1,2', digits: '42', empty: '',
-    padded: ' padded ', quote: '"quoted',
+    padded: ' padded ', quote: '"quoted', wrapped: '"x"', listlike: '[]',
   };
   const back = parse(serialize(data, '')).data;
   assert.deepEqual(back, data);
   assert.equal(typeof back.digits, 'string');
+  assert.deepEqual(parse(serialize({ tags: [''] }, '')).data, { tags: [''] });
+});
+
+test('serialize quotes a string holding a colon, a hash, a bracket or a comma', () => {
+  assert.equal(serialize({ a: 'x: y', b: 'x # y', c: '[x', d: '1,2' }, ''), '---\na: "x: y"\nb: "x # y"\nc: "[x"\nd: "1,2"\n---\n');
 });
 
 test('serialize writes LF and always writes both fences', () => {
@@ -91,8 +96,10 @@ test('serialize writes LF and always writes both fences', () => {
   assert.deepEqual(parse(serialize({}, '---\nrule\n')), { data: {}, body: '---\nrule\n' });
 });
 
-test('serialize refuses a value containing a newline, naming the key', () => {
-  refused(() => serialize({ words: 'yes\nand no' }, ''), /"words"/, /one line/);
+test('serialize refuses a value containing a line break, naming the key', () => {
+  for (const words of ['yes\nand no', 'yes\rand no', 'yes\u2028and no', 'yes\u2029and no']) {
+    refused(() => serialize({ words }, ''), /"words"/, /one line/);
+  }
 });
 
 test('serialize refuses what flat frontmatter cannot hold, naming the key', () => {
@@ -105,4 +112,34 @@ test('serialize refuses what flat frontmatter cannot hold, naming the key', () =
 
 test('serialize refuses a list item holding a double quote, naming the key', () => {
   refused(() => serialize({ carry: ['say "hi"'] }, ''), /"carry"/, /double quote/);
+});
+
+test('a blank value over a whitespace-only line is the empty string', () => {
+  assert.deepEqual(parse('---\napproved:\n   \nstage: intent\n---\n').data, { approved: '', stage: 'intent' });
+});
+
+test('a list with a double quote that is never closed is refused, naming the line', () => {
+  refused(() => parse('---\nstage: intent\ntags: ["a, b]\n---\n'), /line 3/, /never closed/);
+});
+
+test('a list item with a double quote that does not wrap it is refused, naming the line', () => {
+  refused(() => parse('---\ntags: [a"b", c]\n---\n'), /line 2/, /a"b"/);
+  refused(() => parse('---\ntags: ["a" "b"]\n---\n'), /line 2/);
+});
+
+test('a list with an empty item is refused, naming the line; [] and [""] stay valid', () => {
+  refused(() => parse('---\ntags: [a, b,]\n---\n'), /line 2/, /empty item/);
+  refused(() => parse('---\ntags: [a,,b]\n---\n'), /line 2/, /empty item/);
+  assert.deepEqual(parse('---\ntags: []\n---\n').data, { tags: [] });
+  assert.deepEqual(parse('---\ntags: [""]\n---\n').data, { tags: [''] });
+});
+
+test('a number that would not read back as itself is refused, naming the line', () => {
+  refused(() => parse('---\nid: 007\n---\n'), /line 2/, /"id"/, /quote/);
+  refused(() => parse('---\nstage: intent\nid: 12345678901234567890\n---\n'), /line 3/, /quote/);
+  assert.deepEqual(parse('---\nid: "007"\n---\n').data, { id: '007' });
+});
+
+test('a fence may carry trailing whitespace', () => {
+  assert.deepEqual(parse('--- \nstage: intent\n---\t\nBody\n'), { data: { stage: 'intent' }, body: 'Body\n' });
 });

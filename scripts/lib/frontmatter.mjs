@@ -11,21 +11,23 @@ export class FrontmatterError extends Error {
 }
 
 const FENCE = '---';
-const KEY = /^[a-z][a-z0-9-]*$/;
-const ENTRY = /^([a-z][a-z0-9-]*):(.*)$/;
+const KEY_GRAMMAR = '[a-z][a-z0-9-]*';
+const KEY = new RegExp(`^${KEY_GRAMMAR}$`);
+const ENTRY = new RegExp(`^(${KEY_GRAMMAR}):(.*)$`);
 const DIGITS = /^\d+$/;
 const INDENTED = /^[ \t]/;
 
 const toLf = text => text.replace(/\r\n/g, '\n');
+const isFence = line => line.trimEnd() === FENCE;
 const isQuoted = s => s.length >= 2 && s.startsWith('"') && s.endsWith('"');
 const unquote = s => (isQuoted(s) ? s.slice(1, -1) : s);
 
 export function parse(text) {
   const lf = toLf(text.replace(/^\uFEFF/, ''));
   const lines = lf.split('\n');
-  if (lines[0] !== FENCE) return { data: {}, body: lf };
+  if (!isFence(lines[0])) return { data: {}, body: lf };
 
-  const close = lines.indexOf(FENCE, 1);
+  const close = lines.findIndex((line, i) => i > 0 && isFence(line));
   if (close === -1) throw new FrontmatterError('line 1: the frontmatter opened here is never closed by a "---" line');
 
   const data = {};
@@ -38,24 +40,29 @@ export function parse(text) {
     }
     const [, key, raw] = match;
     const value = raw.trim();
-    if (value === '' && INDENTED.test(lines[i + 1])) {
+    const next = lines[i + 1];
+    if (value === '' && INDENTED.test(next) && next.trim() !== '') {
       throw new FrontmatterError(`${at}: "${key}" has a nested value below it; frontmatter is flat, so write the value on this line (lists inline as [a, b])`);
     }
     if (Object.hasOwn(data, key)) throw new FrontmatterError(`${at}: "${key}" appears twice`);
-    data[key] = readValue(value);
+    data[key] = readValue(value, at, key);
   }
   return { data, body: lines.slice(close + 1).join('\n') };
 }
 
-function readValue(value) {
-  if (value.startsWith('[') && value.endsWith(']')) return readList(value.slice(1, -1));
+function readValue(value, at, key) {
+  if (value.startsWith('[') && value.endsWith(']')) return readList(value.slice(1, -1), at);
   if (isQuoted(value)) return unquote(value);
-  if (DIGITS.test(value)) return Number(value);
-  return value;
+  if (!DIGITS.test(value)) return value;
+  const number = Number(value);
+  if (!Number.isSafeInteger(number) || String(number) !== value) {
+    throw new FrontmatterError(`${at}: "${key}" would not read back as ${value} (a leading zero or too many digits); quote it to keep it as text: ${key}: "${value}"`);
+  }
+  return number;
 }
 
 // Splits on commas outside double quotes, so a quoted item may hold a comma.
-function readList(inner) {
+function readList(inner, at) {
   if (inner.trim() === '') return [];
   const items = [];
   let item = '';
@@ -69,13 +76,24 @@ function readList(inner) {
       item += ch;
     }
   }
+  if (quoted) throw new FrontmatterError(`${at}: a double quote in the list is never closed`);
   items.push(item);
-  return items.map(s => unquote(s.trim()));
+  return items.map(raw => readItem(raw.trim(), at));
+}
+
+// A quote may only wrap a whole item, and an item is never empty unless written as "".
+function readItem(item, at) {
+  const text = unquote(item);
+  if (text.includes('"')) {
+    throw new FrontmatterError(`${at}: list item ${item} has a double quote that does not wrap the whole item; the format has no escapes`);
+  }
+  if (item === '') throw new FrontmatterError(`${at}: the list has an empty item; remove the extra comma, or write "" for an empty string`);
+  return text;
 }
 
 export function serialize(data, body = '') {
   const lines = Object.entries(data).map(([key, value]) => {
-    if (!KEY.test(key)) throw new FrontmatterError(`key "${key}" must match ^[a-z][a-z0-9-]*$`);
+    if (!KEY.test(key)) throw new FrontmatterError(`key "${key}" must match ${KEY.source}`);
     return `${key}: ${writeValue(key, value)}`;
   });
   return [FENCE, ...lines, FENCE, ''].join('\n') + toLf(body);
@@ -98,7 +116,7 @@ function writeItem(key, item) {
 
 function writeString(key, s) {
   if (typeof s !== 'string') throw new FrontmatterError(`"${key}": a value is a string, a whole number or a list of strings`);
-  if (/[\r\n]/.test(s)) throw new FrontmatterError(`"${key}": a value must fit on one line`);
+  if (/[\r\n\u2028\u2029]/.test(s)) throw new FrontmatterError(`"${key}": a value must fit on one line`);
   return needsQuotes(s) ? `"${s}"` : s;
 }
 
