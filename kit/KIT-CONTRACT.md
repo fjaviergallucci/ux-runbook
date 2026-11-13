@@ -22,6 +22,8 @@ Each class, and what it must convey to someone looking at the drawing:
 - `ux-frame`: one screen of the walkthrough on the board, captioned with its title and kept apart from the next.
 - `ux-screen`: the screen itself, the whole surface she is looking at.
 - `ux-dialog`: a dialog, plainly in front of the screen it opens over.
+- `ux-over`: on a dialog's frame, the screen the dialog opens over, named by that screen's title: the
+  board says it, not the maker.
 - `ux-region`: a major area of a screen, set apart from the areas around it.
 - `ux-group`: parts that belong together, held as one cluster.
 - `ux-expansion`: something that opens in place: its label, which it always has, always shows; what it
@@ -65,6 +67,7 @@ item's text as its own text, each container as one element holding its own items
 | `ux-frame` | `<section data-screen="…">` | One per screen, normally a child of `body`. `data-screen` is the screen's `id`. It holds two children: its caption `<header>`, then the screen's `ux-screen` or `ux-dialog`. |
 | `ux-screen` | `<div>` | The frame's second and last child, when the screen's container is `screen`. Holds the screen's items. |
 | `ux-dialog` | `<div>` | The frame's second and last child, in place of `ux-screen`, when the screen's container is `dialog`. Holds the dialog's items. |
+| `ux-over` | `<p>` | Only in the caption `<header>` of a dialog's frame, right after the `<h2>` and before the dialog's note. Holds `opens over ` followed by the title of the screen named in `over`. |
 | `ux-region` | `<section>` | Among the items of a screen, a dialog or a container. If it has a label, its first child is a `<header>` holding the label; then its items. |
 | `ux-group` | `<div>` | Placed and labelled as a region. |
 | `ux-expansion` | `<details>` | Placed as a region. It has the `open` attribute when its `open` is true. Its first child is always a `<summary>` holding its label; then its items. |
@@ -79,12 +82,14 @@ item's text as its own text, each container as one element holding its own items
 | `ux-media` | `<div>` | A role part: its text says what the picture shows. Nothing is loaded. |
 | `ux-link` | `<a href="#">` | A role part. |
 | `ux-nav` | `<nav>` | A role part: its text is a caption, and its options, one or more, are the places. |
-| `ux-note` | `<p>` | A note on an item is the next sibling of that item's part. A note on a screen sits in the frame's caption `<header>`, after the `<h2>`. Holds the note's text. |
+| `ux-note` | `<p>` | A note on an item is the next sibling of that item's part. A note on a screen sits last in the frame's caption `<header>`, after the `<h2>` (and after a dialog's `ux-over`). Holds the note's text. |
 
 ### Captions and labels
 
 - **A frame's caption** is the frame's first child: `<header><h2>`the screen's title`</h2></header>`.
-  The screen's note, if any, follows the `<h2>` inside that `<header>` as a `<p class="ux-note">`.
+  A dialog's caption then says which screen it opens over, by that screen's title:
+  `<p class="ux-over">opens over `the title`</p>`. The screen's note, if any, comes last inside that
+  `<header>`, as a `<p class="ux-note">`.
 - **A region's or a group's label** is its first child, `<header>`the label`</header>`, holding text
   only. A region or a group without a label has no `<header>`.
 - **An expansion's label** is its first child, `<summary>`the label`</summary>`. Every expansion has
@@ -101,7 +106,8 @@ item's text as its own text, each container as one element holding its own items
 
 A dialog has a frame of its own, like a screen, and its `ux-dialog` takes the place of the `ux-screen`.
 The stylesheet paints the frame below its caption as a backdrop (`.ux-frame:has(> .ux-dialog)`), which
-stands for the screen named in `over`, and centres the dialog on it. That screen is not drawn again
+stands for the screen named in `over`, and centres the dialog on it. The caption names that screen by
+its title, in `ux-over` (above). That screen is not drawn again
 inside the dialog's frame: it has its own frame.
 
 ### Stable ids

@@ -283,7 +283,7 @@ test('every error is reported at once, in the order of the proposal', () => {
 
 // The grey kit. Its class names are a contract a project kit restyles; these tests pin what the brief asks of it.
 
-const CLASSES = ['ux-frame', 'ux-screen', 'ux-dialog', ...CONTAINERS.map(c => `ux-${c}`), ...ROLES.map(r => `ux-${r}`), 'ux-note'];
+const CLASSES = ['ux-frame', 'ux-screen', 'ux-dialog', 'ux-over', ...CONTAINERS.map(c => `ux-${c}`), ...ROLES.map(r => `ux-${r}`), 'ux-note'];
 const kit = () => ({
   css: read('kit/grey/kit.css').replace(/\/\*[\s\S]*?\*\//g, ''),
   parts: read('kit/grey/parts.html'),

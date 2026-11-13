@@ -74,6 +74,12 @@ body {
   margin-top: 0.25rem;
 }
 
+/* A dialog's caption names the screen it opens over: the board's words, plain and muted. */
+.ux-over {
+  margin: 0;
+  color: var(--ux-muted);
+}
+
 /* A screen fills its frame; a dialog sits on a backdrop that stands for the screen it opens over. */
 .ux-screen,
 .ux-dialog {

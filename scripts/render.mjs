@@ -9,7 +9,7 @@
 // As a command: see USAGE. Exit codes: 0 success · 1 an invalid proposal, an unreadable input or an
 // unwritable output · 2 bad usage.
 import { mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { validate } from './lib/walkthrough.mjs';
 
@@ -64,6 +64,7 @@ export function renderProposal(proposal, { letter } = {}) {
   }
   const errors = validate(proposal);
   if (errors.length) throw new TypeError(`not a valid proposal:\n${errors.join('\n')}`);
+  const titles = new Map(proposal.screens.map(screen => [screen.id, screen.title]));
   return html`<!doctype html>
 <html>
 <head>
@@ -74,7 +75,7 @@ export function renderProposal(proposal, { letter } = {}) {
 </head>
 <body>
 
-${drawHeader(proposal, letter)}${proposal.screens.map(screen => drawFrame(screen))}
+${drawHeader(proposal, letter)}${proposal.screens.map(screen => drawFrame(screen, titles))}
 </body>
 </html>
 `.text;
@@ -102,15 +103,16 @@ ${proposal.absent.map(line => html`        <li>${line}</li>\n`)}      </ul>
 `;
 }
 
-// One frame per screen: its caption (the title, then the screen's note), then the screen or the dialog.
-// The kit paints a dialog's frame as the backdrop that stands for the screen it opens over, which has a
-// frame of its own and is not drawn again here.
-function drawFrame(screen) {
+// One frame per screen: its caption (the title; for a dialog, the title of the screen it opens over; then
+// the screen's note), then the screen or the dialog. The kit paints a dialog's frame as the backdrop that
+// stands for the screen it opens over, which has a frame of its own and is not drawn again here.
+function drawFrame(screen, titles) {
+  const over = Object.hasOwn(screen, 'over') ? html`    <p class="ux-over">opens over ${titles.get(screen.over)}</p>\n` : '';
   return html`
 <section class="ux-frame" data-screen="${screen.id}">
   <header>
     <h2>${screen.title}</h2>
-${drawNote(screen, INDENT + INDENT)}  </header>
+${over}${drawNote(screen, INDENT + INDENT)}  </header>
   <div class="ux-${screen.container}">
 ${drawItems(screen.items, INDENT + INDENT)}  </div>
 </section>
@@ -153,7 +155,8 @@ Draws one Structure proposal, written in the walkthrough format, as one HTML doc
 and copies <kit dir>/kit.css beside it. The page shows the option's letter, never who made the proposal.
 
   --kit <kit dir>     the kit to draw in: a folder holding kit.css (the grey kit is kit/grey)
-  --out <file.html>   the page to write; its folder is made when it does not exist
+  --out <file.html>   the page to write, under any name but kit.css; its folder is made when it
+                      does not exist
   --letter <A to Z>   the option's letter on the board; A when not given
 
 A flag may also be written --flag=value.
@@ -189,6 +192,9 @@ function readArgs(argv) {
   for (const name of ['kit', 'out']) {
     if (!Object.hasOwn(flags, name)) throw new UsageError(`--${name} is missing`);
   }
+  if (basename(flags.out).toLowerCase() === 'kit.css') {
+    throw new UsageError("--out cannot be named kit.css: the kit's stylesheet is copied there, beside the page");
+  }
   const letter = flags.letter ?? 'A';
   if (!LETTER.test(letter)) throw new UsageError(`--letter must be one capital letter, A to Z; it is "${letter}"`);
   return { path: positional[0], kit: flags.kit, out: flags.out, letter };
@@ -198,7 +204,7 @@ function readInput(file) {
   try {
     return readFileSync(file);
   } catch (e) {
-    throw new Failure(`cannot read ${file}: ${e.code ?? e.message}`);
+    throw new Failure(`cannot read ${file}: ${e.code}`);
   }
 }
 
@@ -206,7 +212,7 @@ function writeOutput(file, data) {
   try {
     writeFileSync(file, data);
   } catch (e) {
-    throw new Failure(`cannot write ${file}: ${e.code ?? e.message}`);
+    throw new Failure(`cannot write ${file}: ${e.code}`);
   }
 }
 
@@ -214,7 +220,8 @@ function writeOutput(file, data) {
 function draw({ path, kit, out, letter }) {
   let proposal;
   try {
-    proposal = JSON.parse(readInput(path).toString('utf8'));
+    // One leading byte-order mark, as some editors write, is not part of the JSON.
+    proposal = JSON.parse(readInput(path).toString('utf8').replace(/^\uFEFF/, ''));
   } catch (e) {
     throw e instanceof SyntaxError ? new Failure(`cannot read ${path}: it is not JSON (${e.message})`) : e;
   }
@@ -226,7 +233,7 @@ function draw({ path, kit, out, letter }) {
   try {
     mkdirSync(folder, { recursive: true });
   } catch (e) {
-    throw new Failure(`cannot write ${folder}: ${e.code ?? e.message}`);
+    throw new Failure(`cannot write ${folder}: ${e.code}`);
   }
   writeOutput(out, page);
   writeOutput(join(folder, 'kit.css'), css);

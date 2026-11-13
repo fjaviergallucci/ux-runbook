@@ -235,6 +235,7 @@ test('a dialog is drawn in a frame of its own, as ux-dialog in place of ux-scree
   assert.equal(frameOf(page, 'book'), `<section class="ux-frame" data-screen="book">
   <header>
     <h2>Booking Room 2</h2>
+    <p class="ux-over">opens over Today, at 9:40</p>
   </header>
   <div class="ux-dialog">
     <h3 class="ux-heading">Book Room 2</h3>
@@ -260,6 +261,44 @@ test('a dialog is drawn in a frame of its own, as ux-dialog in place of ux-scree
   assert.equal(count(page, '<h2>Today, at 9:40</h2>'), 1);
 });
 
+test("a dialog's caption names the screen it opens over by that screen's title, after its own title; a screen's names none", () => {
+  for (const name of ALL) {
+    const p = load(name);
+    const page = renderProposal(p, { letter: 'A' });
+    const titles = new Map(p.screens.map(s => [s.id, s.title]));
+    for (const screen of p.screens) {
+      const frame = frameOf(page, screen.id);
+      if (screen.container === 'dialog') {
+        assert.ok(frame.includes(`    <h2>${screen.title}</h2>\n    <p class="ux-over">opens over ${titles.get(screen.over)}</p>\n`), `${name}: ${screen.id}`);
+      } else {
+        assert.ok(!frame.includes('ux-over'), `${name}: ${screen.id} opens over nothing`);
+      }
+    }
+    assert.equal(count(page, 'class="ux-over"'), p.screens.filter(s => s.container === 'dialog').length, name);
+  }
+  // A dialog written before its screen still names it; the line comes before the dialog's own note.
+  const p = load(EVERY);
+  p.screens.reverse();
+  p.screens[0].note = 'Opens on Book Room 2.';
+  assert.deepEqual(validate(p), []);
+  assert.ok(frameOf(renderProposal(p, { letter: 'A' }), 'book').startsWith(`<section class="ux-frame" data-screen="book">
+  <header>
+    <h2>Booking Room 2</h2>
+    <p class="ux-over">opens over Today, at 9:40</p>
+    <p class="ux-note">Opens on Book Room 2.</p>
+  </header>
+  <div class="ux-dialog">
+`));
+});
+
+test('a dialog over a screen whose title holds markup names that title escaped', () => {
+  const p = load(EVERY);
+  p.screens[0].title = 'Today <b>at 9:40</b> & "after"';
+  const page = renderProposal(p, { letter: 'A' });
+  assert.ok(frameOf(page, 'book').includes('<p class="ux-over">opens over Today &lt;b&gt;at 9:40&lt;/b&gt; &amp; &quot;after&quot;</p>'));
+  assert.doesNotMatch(page, /<b>/);
+});
+
 test('an item whose text is <script>alert(1)</script> is shown escaped, and no <script tag is in the page', () => {
   const page = renderProposal(load(EVERY), { letter: 'B' });
   assert.ok(page.includes('<p class="ux-text">&lt;script&gt;alert(1)&lt;/script&gt;</p>'));
@@ -279,10 +318,13 @@ test('every string of the proposal goes through one escape, in the header, the c
   const p = hostile(load(EVERY));
   assert.deepEqual(validate(p), []);
   const page = renderProposal(p, { letter: 'B' });
-  const firstIdea = Number(p.firstIdea.match(/"(\d+)"/)[1]);
+  const numberOf = text => Number(text.match(/"(\d+)"/)[1]);
+  // The first idea is never drawn; the title of the screen the dialog opens over is drawn twice.
+  const firstIdea = numberOf(p.firstIdea);
+  const over = numberOf(p.screens.find(s => s.id === p.screens[1].over).title);
   for (let n = 1; n <= made; n++) {
     const escaped = `&lt;b title=&quot;x&quot;&gt;&#39;Tom &amp; Jerry&#39; &quot;${n}&quot;&lt;/b&gt;`;
-    assert.equal(count(page, escaped), n === firstIdea ? 0 : 1, `string ${n}`);
+    assert.equal(count(page, escaped), n === firstIdea ? 0 : n === over ? 2 : 1, `string ${n}`);
   }
   assert.ok(made > 40, `${made} strings`);
   assert.doesNotMatch(page, /<b[\s>]|Tom & Jerry|'Tom|"\d+"/);
@@ -356,6 +398,24 @@ test('the CLI draws a proposal, copies kit.css beside it, works in paths with sp
   assert.equal(r.status, 0, r.stderr);
   assert.equal(readFileSync(lettered, 'utf8'), renderProposal(load(EVERY), { letter: 'A' }));
   assert.deepEqual(readFileSync(join(dir, 'the board', 'kit.css')), readFileSync(join(greyKit, 'kit.css')));
+});
+
+test('the CLI reads a proposal file that starts with a byte-order mark, and strips only that one', () => {
+  const dir = fresh();
+  const json = JSON.stringify(load(EVERY), null, 2);
+  const marked = writeProposal(join(dir, 'marked'), `\uFEFF${json}`);
+  assert.deepEqual([...readFileSync(marked).subarray(0, 3)], [0xef, 0xbb, 0xbf], 'the file starts with the UTF-8 byte-order mark');
+  const out = join(dir, 'board', 'B.html');
+  let r = run(marked, '--kit', greyKit, '--out', out, '--letter', 'B');
+  assert.equal(r.status, 0, r.stderr);
+  assert.deepEqual(readFileSync(out), Buffer.from(renderProposal(load(EVERY), { letter: 'B' }), 'utf8'));
+  // A second mark, or a mark anywhere but first, is not a byte-order mark: the file is not JSON.
+  for (const [folder, text] of [['twice', `\uFEFF\uFEFF${json}`], ['inside', `{\uFEFF${json.slice(1)}`]]) {
+    const file = writeProposal(join(dir, folder), text);
+    r = run(file, '--kit', greyKit, '--out', join(dir, folder, 'A.html'));
+    assert.equal(r.status, 1, folder);
+    assert.match(r.stderr, /: it is not JSON \(/, folder);
+  }
 });
 
 test('the CLI exits 1 on an invalid proposal, naming the path and printing every error on a line of its own, and writes nothing', () => {
@@ -435,6 +495,10 @@ test('the CLI exits 2 on bad usage, printing the usage, and writes nothing', () 
     [[input, '--kit', greyKit, '--kit', greyKit, '--out', out], /--kit is given twice/],
     [[input, '--kit', greyKit, '--out', out, '--letter', 'b'], /--letter must be one capital letter, A to Z; it is "b"/],
     [[input, '--kit', greyKit, '--out', out, '--letter', 'AB'], /--letter must be one capital letter, A to Z; it is "AB"/],
+    // The kit is copied beside the page as kit.css, so a page of that name would be overwritten; in any case,
+    // since a file system may not tell Kit.CSS from kit.css.
+    [[input, '--kit', greyKit, '--out', join(dir, 'board', 'kit.css')], /--out cannot be named kit\.css: the kit's stylesheet is copied there, beside the page/],
+    [[input, '--kit', greyKit, `--out=${join(dir, 'board', 'Kit.CSS')}`], /--out cannot be named kit\.css/],
   ];
   for (const [args, pattern] of usages) {
     const r = run(...args);
@@ -452,7 +516,7 @@ test('the CLI --help prints the usage, naming every flag and the exit codes, and
     assert.equal(r.status, 0, args.join(' '));
     assert.equal(r.stderr, '');
     assert.match(r.stdout, /^Usage: node scripts\/render\.mjs <proposal\.json> --kit <kit dir> --out <file\.html> \[--letter A\]\n/);
-    for (const word of ['--kit', '--out', '--letter', 'kit.css', 'A when not given', '--flag=value', '0 success', '1 an invalid proposal', '2 bad usage']) {
+    for (const word of ['--kit', '--out', '--letter', 'kit.css', 'any name but kit.css', 'A when not given', '--flag=value', '0 success', '1 an invalid proposal', '2 bad usage']) {
       assert.ok(r.stdout.includes(word), word);
     }
   }
