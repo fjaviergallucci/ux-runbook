@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 // The command line over scripts/lib/state.mjs: it parses the arguments, calls the library, prints and sets
 // the exit code (0 success, 1 a refusal or a problem found, 2 bad usage). All the logic is in the library.
-import { STAGES, SIZES, FOUNDATIONS, KINDS, StateError, init, stamp, reopen, resize, validate, next, status } from './lib/state.mjs';
+import {
+  STAGES, SIZES, FOUNDATIONS, KINDS, StateError, init, begin, awaitFounder, stamp, reopen, resize, validate, next, status,
+} from './lib/state.mjs';
 
 const USAGE = `Usage: node scripts/state.mjs <verb> <package> [stage] [flags]
 
@@ -9,8 +11,12 @@ The state of a design package. state.json is the record; STATE.md is generated f
 and is never edited by hand.
 
   init <package> --design <name> --kind <kind> --foundation <foundation> --size <size> [--date <day>]
+  begin <package> <stage> [--date <day>]
+      mark the stage in work; its output need not exist yet
+  await <package> <stage> --question "<the one question>" [--date <day>]
+      mark the stage's output as awaiting the founder, with the one open question
   stamp <package> <stage> --words "<the founder's words>" [--date <day>]
-      approve the stage's output in the words the founder approved it with
+      approve the stage's output in the words the founder approved it with; closes its open question
   reopen <package> <stage> --reason "<why>" [--date <day>]
       give an approved or stale stage a new version; later outputs built from the old one turn stale
   resize <package> --size <size>      the size only moves up
@@ -23,7 +29,7 @@ Sizes:       ${SIZES.join(', ')}
 Foundations: ${FOUNDATIONS.join(', ')}
 Kinds:       ${KINDS.join(', ')}, or any kebab-case kind the project adds
 
---words, --reason and --design are kept on one line: each line break in them becomes a single space.
+--words, --question, --reason and --design are kept on one line: each line break in them becomes a single space.
 --date is a day written YYYY-MM-DD and defaults to today. A flag may also be written --flag=value.
 
 Exit codes: 0 success · 1 a refusal or a problem found · 2 bad usage.
@@ -31,6 +37,8 @@ Exit codes: 0 success · 1 a refusal or a problem found · 2 bad usage.
 
 const VERBS = {
   init: { stage: false, required: ['design', 'kind', 'foundation', 'size'], optional: ['date'] },
+  begin: { stage: true, required: [], optional: ['date'] },
+  await: { stage: true, required: ['question'], optional: ['date'] },
   stamp: { stage: true, required: ['words'], optional: ['date'] },
   reopen: { stage: true, required: ['reason'], optional: ['date'] },
   resize: { stage: false, required: ['size'], optional: [] },
@@ -38,7 +46,7 @@ const VERBS = {
   next: { stage: false, required: [], optional: [] },
   status: { stage: false, required: [], optional: [] },
 };
-const FLAGS = ['design', 'kind', 'foundation', 'size', 'words', 'reason', 'date'];
+const FLAGS = ['design', 'kind', 'foundation', 'size', 'words', 'question', 'reason', 'date'];
 const HELP = ['--help', '-h'];
 
 class UsageError extends Error {}
@@ -88,6 +96,14 @@ function run({ verb, pkg, stage, flags }) {
       console.log(`initialised ${pkg}: ${kind}, ${foundation}, ${size}; next: ${next(pkg)}`);
       break;
     }
+    case 'begin':
+      begin(pkg, stage, { date });
+      console.log(`${stage} is in work`);
+      break;
+    case 'await':
+      awaitFounder(pkg, stage, { question: flags.question, date });
+      console.log(`${stage} awaits the founder`);
+      break;
     case 'stamp': {
       const { version } = stamp(pkg, stage, { words: flags.words, date });
       console.log(`stamped ${stage} approved at version ${version} on ${date}`);

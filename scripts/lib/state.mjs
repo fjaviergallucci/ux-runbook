@@ -83,7 +83,34 @@ export function init(pkgDir, { design, kind, foundation, size, date } = {}) {
     if (skipped) reasons[stage] = `skipped by the ${size} route`;
   }
   mkdirSync(pkgDir, { recursive: true });
-  save(pkgDir, { design: name, kind, foundation, size, started: date, route, reasons, stages, question: null });
+  save(pkgDir, { design: name, kind, foundation, size, started: date, route, reasons, stages, question: null, questionStage: null });
+}
+
+// The stage is in work. Its output may not exist yet, and is not touched.
+export function begin(pkgDir, stage, { date } = {}) {
+  const state = load(pkgDir);
+  requireStage(stage);
+  requireDate(date);
+  requireOpen(state, stage);
+  state.stages[stage].status = 'in-work';
+  save(pkgDir, state);
+}
+
+// The stage's output goes to the founder with the one open question (`await` is a reserved word).
+export function awaitFounder(pkgDir, stage, { question, date } = {}) {
+  const state = load(pkgDir);
+  requireStage(stage);
+  const asked = oneLine(question);
+  if (!asked) throw new StateError(`${stage} cannot await the founder without the one question to put to him`);
+  requireDate(date);
+  requireOpen(state, stage);
+  const { data, body } = mustRead(pkgDir, stage);
+  const problems = headerProblems(stage, data, state.stages[stage].version);
+  if (problems.length) throw new StateError(`${stage} cannot await the founder:\n${problems.map(p => `- ${p}`).join('\n')}`);
+  writeArtefact(pkgDir, stage, { ...data, status: 'awaiting' }, body);
+  state.stages[stage].status = 'awaiting';
+  Object.assign(state, { question: asked, questionStage: stage });
+  save(pkgDir, state);
 }
 
 export function stamp(pkgDir, stage, { words, date } = {}) {
@@ -92,9 +119,8 @@ export function stamp(pkgDir, stage, { words, date } = {}) {
   const said = oneLine(words);
   if (!said) throw new StateError(`${stage} cannot be stamped without the founder's words: give the words in which he approved it`);
   requireDate(date);
+  requireOpen(state, stage);
   const entry = state.stages[stage];
-  if (entry.status === 'skipped') throw new StateError(`${stage} is skipped by the ${state.size} route; resize to run it`);
-  if (entry.status === 'approved') throw new StateError(`${stage} is already approved at version ${entry.version}; reopen it to change it`);
   const { data, body } = mustRead(pkgDir, stage);
   const problems = [
     ...headerProblems(stage, data, entry.version),
@@ -104,6 +130,7 @@ export function stamp(pkgDir, stage, { words, date } = {}) {
   if (problems.length) throw new StateError(`${stage} cannot be stamped:\n${problems.map(p => `- ${p}`).join('\n')}`);
   writeArtefact(pkgDir, stage, { ...data, status: 'approved', approved: date, words: said }, body);
   state.stages[stage] = { status: 'approved', version: entry.version, approved: date, words: said, hash: hashOf(body) };
+  closeQuestion(state, [stage]);
   save(pkgDir, state);
   return { version: entry.version };
 }
@@ -134,6 +161,7 @@ export function reopen(pkgDir, stage, { reason, date } = {}) {
     state.stages[later].status = 'stale';
     stale.push(later);
   }
+  closeQuestion(state, [stage, ...stale]);
   save(pkgDir, state);
   return { version, stale };
 }
@@ -310,7 +338,7 @@ function load(pkgDir) {
   if (!existsSync(file)) throw new StateError(`${pkgDir} is not a package: it has no ${STATE_FILE}; run init first`);
   let state;
   try {
-    state = JSON.parse(readFileSync(file, 'utf8').replace(/^﻿/, ''));
+    state = JSON.parse(readFileSync(file, 'utf8').replace(/^\uFEFF/, ''));
   } catch {
     throw new StateError(`${file} is not valid JSON; this script writes it, so restore it from version control`);
   }
@@ -363,6 +391,12 @@ function inputsOf(stage, data) {
   return inputs.map(reference).filter(ref => ref && at(ref.stage) < at(stage));
 }
 
+function question(state) {
+  const asked = oneLine(state.question);
+  if (!asked) return 'None.';
+  return state.questionStage ? `${state.questionStage}: ${asked}` : asked;
+}
+
 function page(state) {
   const cell = value => (value === null || value === undefined || value === '' ? '—' : oneLine(String(value)).replace(/\|/g, '\\|'));
   const rows = STAGES.map(stage => {
@@ -387,15 +421,27 @@ function page(state) {
     '',
     '## Open question',
     '',
-    oneLine(state.question) || 'None.',
+    question(state),
     '',
   ].join('\n');
+}
+
+// The open question is closed when the stage it was put for is approved, reopened or marked stale.
+function closeQuestion(state, stages) {
+  if (stages.includes(state.questionStage)) Object.assign(state, { question: null, questionStage: null });
 }
 
 // ---- arguments
 
 function requireStage(stage) {
   if (!STAGES.includes(stage)) throw new StateError(`unknown stage "${stage}"; the stages are ${STAGES.join(', ')}`);
+}
+
+// A stage the route skips cannot be worked on until a resize runs it; an approved one until it is reopened.
+function requireOpen(state, stage) {
+  const entry = state.stages[stage];
+  if (entry.status === 'skipped') throw new StateError(`${stage} is skipped by the ${state.size} route; resize to run it`);
+  if (entry.status === 'approved') throw new StateError(`${stage} is already approved at version ${entry.version}; reopen it to change it`);
 }
 
 function requireSize(size) {
