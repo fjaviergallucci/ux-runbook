@@ -570,6 +570,18 @@ test('a stamp that raises a version marks stale what was built on the old one, d
   assert.equal(next(p.dir), 'context');
 });
 
+test("a stamp that raises a version closes the open question of a stage its cascade marks stale", () => {
+  const p = pkg();
+  p.approve('frame', 'context', 'intent');
+  setRoute(p.dir, 'frame', 'short', { reason: 'a smaller frame', date: DAY });
+  setRoute(p.dir, 'intent', 'short', { reason: 'a shorter intent', date: DAY });
+  awaitFounder(p.dir, 'intent', { question: 'Is this still the one job?', date: DAY });
+  p.write('frame', {}, text('frame').replace('Find what is free now.', 'Find what is free tonight.'));
+  stamp(p.dir, 'frame', { words: WORDS, date: DAY });
+  const state = p.state();
+  assert.deepEqual([state.stages.intent.status, state.question, state.questionStage], ['stale', null, null]);
+});
+
 test('a stale stage re-stamped unchanged keeps its version, and what was built on it stays approved', () => {
   const p = pkg();
   p.approve('frame', 'context', 'intent');
@@ -681,18 +693,80 @@ test('route adding a stage marks the next stage on the route stale; next returns
   assert.equal(p.state().stages.acceptance.status, 'not-started', 'the last stage has nothing after it');
 });
 
-test('route skipped clears the approval record, not the file; routed again, the stage is a clean not-started entry', () => {
+test('route skipped clears the approval record but keeps its hash, not the file; routed again, the stage is not started', () => {
   const p = pkg();
   p.approve('frame', 'context', 'intent');
   const written = readFileSync(p.file('intent'), 'utf8');
+  const { hash } = p.state().stages.intent;
   setRoute(p.dir, 'intent', 'short', { reason: 'a shorter intent', date: DAY });
   setRoute(p.dir, 'intent', 'skipped', { reason: 'no intent this time', date: DAY });
-  const blank = { version: 1, approved: null, words: null, hash: null, builtFrom: null, since: null };
+  const blank = { version: 1, approved: null, words: null, hash, builtFrom: null, since: null };
   assert.deepEqual(p.state().stages.intent, { status: 'skipped', ...blank });
   assert.equal(readFileSync(p.file('intent'), 'utf8'), written);
   setRoute(p.dir, 'intent', 'full', { reason: 'an intent after all', date: DAY });
   assert.deepEqual(p.state().stages.intent, { status: 'not-started', ...blank });
   assert.match(p.page(), /^\| intent \| full \| not-started \| — \| — \| — \|/m);
+});
+
+test('route skipped keeps the version a stage is at', () => {
+  const p = pkg();
+  p.approve('frame', 'context');
+  reopen(p.dir, 'context', { reason: 'r', date: DAY });
+  setRoute(p.dir, 'context', 'skipped', { reason: 'no context this time', date: DAY });
+  assert.deepEqual([p.state().stages.context.status, p.state().stages.context.version], ['skipped', 2]);
+  setRoute(p.dir, 'context', 'full', { reason: 'a context after all', date: DAY });
+  assert.deepEqual([p.state().stages.context.status, p.state().stages.context.version], ['not-started', 2]);
+});
+
+// Surface; all nine approved, cast built from intent@1 and context@1; context made stale, skipped and put back.
+function skippedAndPutBack() {
+  const p = pkg();
+  p.approve('frame', 'context', 'intent');
+  p.write('cast', { 'built-from': ['intent@1', 'context@1'] });
+  stamp(p.dir, 'cast', { words: WORDS, date: DAY });
+  p.approve('structure', 'detail', 'look', 'handoff', 'acceptance');
+  setRoute(p.dir, 'context', 'short', { reason: 'a narrower context', date: DAY });
+  setRoute(p.dir, 'context', 'skipped', { reason: 'no context this time', date: DAY });
+  setRoute(p.dir, 'context', 'full', { reason: 'a context after all', date: DAY });
+  const { stages } = p.state();
+  assert.deepEqual(STAGES.slice(2).map(s => stages[s].status), ['stale', ...STAGES.slice(3).map(() => 'approved')], 'only intent is stale');
+  return p;
+}
+
+test('a stage skipped and put back, stamped with a new body, gets the next version and marks what was built on it', () => {
+  const p = skippedAndPutBack();
+  p.write('context', {}, text('context').replace('Find what is free now.', 'Find what is free tonight.'));
+  assert.deepEqual(stamp(p.dir, 'context', { words: WORDS, date: DAY }), { version: 2 });
+  const { stages, reasons } = p.state();
+  for (const stage of STAGES.slice(2)) {
+    assert.deepEqual([stages[stage].status, reasons[stage]], ['stale', 'context went to version 2 on 2026-11-13'], stage);
+  }
+  assert.equal(next(p.dir), 'intent');
+});
+
+test('a stage skipped and put back, stamped with the same body, keeps its version and marks nothing beyond intent', () => {
+  const p = skippedAndPutBack();
+  p.write('context');
+  assert.deepEqual(stamp(p.dir, 'context', { words: WORDS, date: DAY }), { version: 1 });
+  const { stages } = p.state();
+  assert.deepEqual(STAGES.slice(2).map(s => stages[s].status), ['stale', ...STAGES.slice(3).map(() => 'approved')]);
+});
+
+test('a stage skipped by hand and put back by a resize, stamped with a new body, gets the next version', () => {
+  const p = pkg({ size: 'correction' });
+  setRoute(p.dir, 'context', 'short', { reason: 'a short context', date: DAY });
+  p.approve('frame', 'context', 'detail', 'handoff');
+  assert.deepEqual(p.state().stages.detail.builtFrom, ['context@1']);
+  setRoute(p.dir, 'context', 'full', { reason: 'a full context', date: DAY });
+  setRoute(p.dir, 'context', 'skipped', { reason: 'no context this time', date: DAY });
+  resize(p.dir, 'adjustment');
+  assert.equal(p.state().stages.context.status, 'not-started');
+  stamp(p.dir, 'frame', { words: WORDS, date: DAY });
+  p.write('context', {}, text('context').replace('Find what is free now.', 'Find what is free tonight.'));
+  assert.deepEqual(stamp(p.dir, 'context', { words: WORDS, date: DAY }), { version: 2 });
+  const { stages, reasons } = p.state();
+  assert.deepEqual([stages.detail.status, reasons.detail], ['stale', 'context went to version 2 on 2026-11-13']);
+  assert.deepEqual([stages.handoff.status, reasons.handoff], ['stale', 'context went to version 2 on 2026-11-13']);
 });
 
 test('route: an approved stage moved between short and full turns stale; other stages keep their status', () => {

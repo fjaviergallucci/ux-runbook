@@ -144,7 +144,8 @@ export function stamp(pkgDir, stage, { words, date } = {}) {
     ...staleInputs(state, stage, data),
     ...carryProblems(body, carryContext(pkgDir, state, stage, data)).map(p => p.message),
   ]);
-  // Approved once, gone stale since, and redone with a different body: that is a new version (§ 6).
+  // Approved once and not reopened since (gone stale, or skipped and put back on the route), and stamped
+  // with a different body: that is a new version (§ 6). The hash is the memory of the last approval.
   const hash = hashOf(body);
   const version = entry.hash && entry.hash !== hash ? entry.version + 1 : entry.version;
   writeArtefact(pkgDir, stage, { ...data, version, status: 'approved', approved: date, words: said }, body);
@@ -191,7 +192,8 @@ export function setRoute(pkgDir, stage, mode, { reason, date } = {}) {
     if (stage === 'frame') throw new StateError('frame cannot be skipped: it is the stage that decides the route');
     if (entry.status === 'approved') throw new StateError(`${stage} is approved: reopen it before skipping it`);
     if (entry.status === 'awaiting') throw new StateError(`${stage} is awaiting the founder: stamp it or begin it again before skipping it`);
-    Object.assign(state.stages, { [stage]: entryOf('skipped', entry.version) });
+    // The approval no longer stands; its hash and version stay, so a later stamp can tell what changed.
+    Object.assign(entry, { status: 'skipped', approved: null, words: null, builtFrom: null, since: null });
   } else if (added) {
     entry.status = 'not-started';
   } else if (entry.status === 'approved' && mode !== state.route[stage]) {
@@ -199,8 +201,8 @@ export function setRoute(pkgDir, stage, mode, { reason, date } = {}) {
   }
   state.route[stage] = mode;
   state.reasons[stage] = `${why} (set ${mode} on ${date})`;
-  const stale = added ? builtWithout(state, stage) : [];
-  closeQuestion(state, ['stale', 'skipped'].includes(state.stages[stage].status) ? [stage, ...stale] : stale);
+  if (added) builtWithout(state, stage);
+  closeQuestion(state, ['stale', 'skipped'].includes(entry.status) ? [stage] : []);
   save(pkgDir, state);
 }
 
@@ -238,7 +240,7 @@ export function resize(pkgDir, size) {
     state.route[stage] = mode;
   }
   state.size = size;
-  for (const stage of added) stale.push(...builtWithout(state, stage));
+  for (const stage of added) builtWithout(state, stage);
   closeQuestion(state, stale);
   save(pkgDir, state);
 }
@@ -334,12 +336,12 @@ function cascade(state, stage, reason) {
 }
 
 // A stage added to the route: the next stage the route runs after it was built without it, and turns stale.
+// Only an approved stage is marked, and an approved stage holds no open question.
 function builtWithout(state, added) {
   const after = STAGES.slice(at(added) + 1).find(later => state.route[later] !== 'skipped');
-  if (!after || state.stages[after].status !== 'approved') return [];
+  if (!after || state.stages[after].status !== 'approved') return;
   state.stages[after].status = 'stale';
   state.reasons[after] = `${added} was added to the route before it`;
-  return [after];
 }
 
 // ---- checks shared by the verbs and validate
