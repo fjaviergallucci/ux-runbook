@@ -11,19 +11,19 @@
       "letter": "A",
       "title": "One list, every room",
       "line": "Every room in one fixed order, each row saying whether it is free and until when, the way the wall chart does.",
-      "images": ["shots/A-1280-light.png", "shots/A-390-light.png"]
+      "images": ["shots/A-390-light.png", "shots/A-1280-light.png"]
     },
     {
       "letter": "B",
       "title": "Free rooms first",
       "line": "Free rooms in a region of their own at the top, each with its own Book action; the busy rooms below.",
-      "images": ["shots/B-1280-light.png", "shots/B-390-light.png"]
+      "images": ["shots/B-390-light.png", "shots/B-1280-light.png"]
     },
     {
       "letter": "C",
       "title": "The day as a grid",
       "line": "Every room against the hours of the day, with a line at now; what frees up next is on the same line.",
-      "images": ["shots/C-1280-light.png", "shots/C-390-light.png"]
+      "images": ["shots/C-390-light.png", "shots/C-1280-light.png"]
     }
   ],
   "gallery": {

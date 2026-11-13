@@ -5,9 +5,11 @@
 // sentence of reason, and, last, one question. One artefact per review, one question: data asking two
 // questions does not build.
 // The page is one self-contained file: its styles inline, a light and a dark set, no script, nothing
-// fetched but the pictures, which it references by the relative paths the data gives, as written. Each
-// picture is shown whole, never cropped, and no wider than it is: the options are stacked, so a phone-width
-// picture keeps its own width wherever the page holds it, and each picture links to its file.
+// fetched but the pictures, which it references by the relative paths the data gives, as written. The
+// options sit in one row that scrolls sideways on its own, the page never: each shows its first picture
+// (by convention its phone-width one) whole, never cropped, at its own size up to its column's width, and
+// lists its other pictures as links by file name. The gallery is a second such row. The question is the
+// last thing on the page and stays pinned to the bottom of the screen, so it is in view wherever he scrolls.
 //
 // As a module: validateDecision(data) → every error, [] when valid · renderDecision(data) → the page, as a
 // string; pure, the same data gives the same bytes.
@@ -257,9 +259,11 @@ h2 { margin: 2.25rem 0 0.75rem; font-size: 1.125rem; }
 h3 { margin: 0 0 0.5rem; font-size: 1.0625rem; line-height: 1.35; }
 p { margin: 0 0 0.5rem; }
 .options h2 { margin-top: 0; }
-/* The options and the gallery's items are stacked, one under the other, each as wide as the page: a picture
-   is then shown whole at the page's width, or at its own when that is less, and never cropped. */
-.option, .item { margin: 0 0 1rem; padding: 1rem; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+/* The options in one row, and the gallery's items in another: a row wider than the page scrolls sideways
+   on its own, the page never. A column holds a phone-width picture at its own width; on a phone a column
+   takes the whole width. */
+.row { display: flex; align-items: flex-start; gap: 1rem; overflow-x: auto; padding-bottom: 0.5rem; }
+.option, .item { flex: 0 0 auto; width: min(27rem, 100%); padding: 1rem; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
 .letter {
   display: inline-block;
   min-width: 1.75em;
@@ -269,9 +273,9 @@ p { margin: 0 0 0.5rem; }
   border-radius: 4px;
   text-align: center;
 }
-/* Pictures side by side while they fit, each at its own width; one wider than the page shrinks to it. */
-.pictures { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 1rem; margin-top: 0.75rem; }
-.pictures img {
+/* The one picture drawn: whole, at its own size up to its column's width. */
+.picture { display: block; margin-top: 0.75rem; }
+.picture img {
   display: block;
   max-width: 100%;
   height: auto;
@@ -279,12 +283,23 @@ p { margin: 0 0 0.5rem; }
   border: 1px solid var(--line);
   border-radius: 4px;
 }
+.more { margin: 0.5rem 0 0; padding: 0; list-style: none; font-size: 0.875rem; }
+.more li { margin: 0.25rem 0 0; }
 .seats ul, .findings ul { margin: 0; padding: 0; list-style: none; }
 .seats li, .findings li { padding: 0.6rem 0; border-top: 1px solid var(--line); }
 .seats li:last-child, .findings li:last-child { border-bottom: 1px solid var(--line); }
 .on { display: inline-block; margin: 0 0.35em; padding: 0 0.4em; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; font-size: 0.875rem; }
 .pick { font-weight: 600; }
-.question { margin-top: 2.5rem; padding: 1.25rem; background: var(--surface); border: 2px solid var(--strong); border-radius: 6px; }
+/* The question: the last thing on the page, pinned to the bottom of the screen on a solid ground. */
+.question {
+  position: sticky;
+  bottom: 0;
+  margin-top: 2.5rem;
+  padding: 1.25rem;
+  background: var(--surface);
+  border: 2px solid var(--strong);
+  border-radius: 6px;
+}
 .question h2 { margin: 0 0 0.5rem; color: var(--muted); font-size: 0.875rem; }
 .question p { margin: 0; font-size: 1.375rem; font-weight: 600; line-height: 1.35; }
 `;
@@ -309,7 +324,9 @@ ${new Markup(STYLE)}</style>
 <h1 class="identity">${identity.design} · ${identity.kind} · ${identity.size} · stage ${identity.stage} of ${identity.of}</h1>
 <section class="options">
 <h2>The options</h2>
-${data.options.map(option => drawShown(html`<span class="letter">${option.letter}</span> ${option.title}`, option, `Option ${option.letter}`, 'option'))}</section>
+<div class="row">
+${data.options.map(option => drawShown(html`<span class="letter">${option.letter}</span> ${option.title}`, option, `Option ${option.letter}`, 'option'))}</div>
+</section>
 ${drawGallery(data.gallery)}${drawSeats(data.seats)}${drawFindings(data.findings ?? [])}<section class="recommendation">
 <h2>The recommendation</h2>
 <p class="pick">Option ${recommended.letter}: ${recommended.title}</p>
@@ -324,21 +341,31 @@ ${drawGallery(data.gallery)}${drawSeats(data.seats)}${drawFindings(data.findings
 `.text;
 }
 
-// An option or a gallery item: its heading, its line, and its pictures, each a link to itself at full size.
+// An option or a gallery item: its heading, its line, its first picture whole as a link to its file, and
+// a link to each other picture, named by its file.
 function drawShown(heading, holder, label, kind) {
   const line = Object.hasOwn(holder, 'line') ? html`<p>${holder.line}</p>\n` : '';
-  const images = holder.images ?? [];
-  const pictures = images.length
-    ? html`<div class="pictures">\n${images.map((image, i) => html`<a href="${image}"><img src="${image}" alt="${label}, picture ${i + 1} of ${images.length}"></a>\n`)}</div>\n`
-    : '';
-  return html`<article class="${kind}">\n<h3>${heading}</h3>\n${line}${pictures}</article>\n`;
+  const [first, ...others] = holder.images ?? [];
+  const picture = first === undefined ? '' : html`<a class="picture" href="${first}"><img src="${first}" alt="${label}, picture 1 of ${others.length + 1}"></a>\n`;
+  const more = others.length ? html`<ul class="more">\n${others.map(image => html`<li><a href="${image}">${fileName(image)}</a></li>\n`)}</ul>\n` : '';
+  return html`<article class="${kind}">\n<h3>${heading}</h3>\n${line}${picture}${more}</article>\n`;
+}
+
+// A picture's file name, without its folder and its extension: "shots/A-1280-light.png" is A-1280-light.
+// A name that is all extension (".plain") is kept whole, and a path with no name is shown as written.
+function fileName(path) {
+  const name = path.split(/[\\/]/).pop();
+  const dot = name.lastIndexOf('.');
+  return (dot > 0 ? name.slice(0, dot) : name) || path;
 }
 
 function drawGallery(gallery) {
   if (!gallery) return '';
   return html`<section class="gallery">
 <h2>${gallery.title}</h2>
-${gallery.items.map((item, i) => drawShown(item.title, item, `Gallery item ${i + 1}`, 'item'))}</section>
+<div class="row">
+${gallery.items.map((item, i) => drawShown(item.title, item, `Gallery item ${i + 1}`, 'item'))}</div>
+</section>
 `;
 }
 

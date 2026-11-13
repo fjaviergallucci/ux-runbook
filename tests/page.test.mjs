@@ -54,6 +54,8 @@ test('the sample decision.json is valid: the room-booking surface "today", three
   assert.deepEqual(data.options.map(o => o.letter), ['A', 'B', 'C']);
   assert.equal(data.gallery.items.length, 1);
   assert.equal(count(data.question, '?'), 1);
+  // By convention an option's first picture is its phone-width one: it is the one drawn.
+  for (const option of data.options) assert.match(option.images[0], /-390-light\.png$/, option.letter);
   const text = readFileSync(samplePath, 'utf8');
   assert.ok(!text.includes('\r'), 'LF line endings');
   assert.doesNotMatch(text, /\bVerbato\b/i);
@@ -66,6 +68,7 @@ test('the approve sample is valid: one option, two seat lines, two open findings
   assert.deepEqual([data.options.length, data.seats.length, data.findings.length], [1, 2, 2]);
   assert.equal(data.recommendation.option, 'A');
   assert.match(data.recommendation.reason, /^Approve/);
+  assert.match(data.options[0].images[0], /-390-light\.png$/, 'the phone picture first');
   assert.equal(data.identity.design, 'today');
   const text = readFileSync(approvePath, 'utf8');
   assert.ok(!text.includes('\r'), 'LF line endings');
@@ -316,14 +319,22 @@ test('the page is one self-contained file: inline styles with a light and a dark
   assert.doesNotMatch(page, /\bon[a-z]+=/i, 'no event handler');
   // A picture is shown whole: nothing in the styles crops, clips, fixes a size or hides what overflows.
   assert.doesNotMatch(style, /max-height|object-fit|object-position|clip|aspect-ratio|overflow\s*:\s*(hidden|clip)/);
-  const picture = style.match(/\.pictures img \{\n([\s\S]*?)\n\}/)[1];
+  const picture = style.match(/\.picture img \{\n([\s\S]*?)\n\}/)[1];
   assert.match(picture, /max-width: 100%;/);
   assert.match(picture, /height: auto;/);
   assert.doesNotMatch(picture, /(^|\s)(width|height|min-width|min-height)\s*:(?!\s*auto;)/m, 'no size of its own but the cap');
-  // Every picture is inside a link to its own file.
+  // One picture drawn for each option and each gallery item, each inside a link to its own file.
   const pictures = [...page.matchAll(/<img src="([^"]*)"/g)].map(([, src]) => src);
-  assert.equal(pictures.length, 7);
-  for (const src of pictures) assert.equal(count(page, `<a href="${src}"><img src="${src}" `), 1, src);
+  assert.deepEqual(pictures, [...data.options, ...data.gallery.items].map(shown => shown.images[0]));
+  for (const src of pictures) assert.equal(count(page, `<a class="picture" href="${src}"><img src="${src}" `), 1, src);
+  // The options' row scrolls sideways on its own; nothing else declares an overflow, so the page never does.
+  assert.match(style.match(/\.row \{[^}]*\}/)[0], /overflow-x: auto;/);
+  assert.equal(style.match(/\boverflow(-[xy])?\s*:/g).length, 1, 'one overflow declared: the row\'s');
+  // The question is pinned to the bottom of the screen, on a solid background of the page's own colours.
+  const question = style.match(/\.question \{[^}]*\}/)[0];
+  assert.match(question, /position: sticky;/);
+  assert.match(question, /bottom: 0;/);
+  assert.match(question, /background: var\(--(page|surface)\);/);
   // Every reference the page makes is to a picture the data names, by the path as written.
   const named = new Set([...data.options, ...data.gallery.items].flatMap(o => o.images));
   const refs = [...page.matchAll(/\b(?:src|href)="([^"]*)"/g)].map(([, ref]) => ref);
@@ -338,25 +349,57 @@ test('the body starts with the identity line: design · kind · size · stage n 
   assert.match(page, /<title>Decision: today, stage 5 of 9<\/title>/);
 });
 
-test('each option shows its letter, its title, its line and each of its images, in the order of the data', () => {
+test('each option shows its letter, title and line, its first picture whole and a link to each other picture, in the order of the data', () => {
   const data = sample();
   const page = renderDecision(data);
   const options = sectionOf(page, 'options');
+  assert.ok(options.startsWith('<section class="options">\n<h2>The options</h2>\n<div class="row">\n'), options.slice(0, 80));
   let last = -1;
   for (const option of data.options) {
-    const at = options.indexOf(`<article class="option">\n<h3><span class="letter">${option.letter}</span> ${option.title}</h3>\n<p>${option.line}</p>\n`);
-    assert.ok(at > last, option.letter);
+    const [first, second] = option.images;
+    const article = `<article class="option">
+<h3><span class="letter">${option.letter}</span> ${option.title}</h3>
+<p>${option.line}</p>
+<a class="picture" href="${first}"><img src="${first}" alt="Option ${option.letter}, picture 1 of 2"></a>
+<ul class="more">
+<li><a href="${second}">${second.slice(6, -4)}</a></li>
+</ul>
+</article>
+`;
+    const at = options.indexOf(article);
+    assert.ok(at > last, `${option.letter}: ${article}`);
     last = at;
-    option.images.forEach((image, i) => {
-      assert.ok(options.includes(`<a href="${image}"><img src="${image}" alt="Option ${option.letter}, picture ${i + 1} of ${option.images.length}"></a>`), image);
-    });
   }
-  // An option with no line, or no image, draws only what it has.
-  const bare = renderDecision(changed(d => { delete d.options[0].line; d.options[1].images = []; }));
-  assert.ok(sectionOf(bare, 'options').includes('<h3><span class="letter">A</span> One list, every room</h3>\n<div class="pictures">\n'));
-  assert.ok(sectionOf(bare, 'options').includes(`<p>${sample().options[1].line}</p>\n</article>`));
+  // An option with no line, or no picture, draws only what it has; one with a single picture lists none.
+  const bare = sectionOf(renderDecision(changed(d => {
+    delete d.options[0].line;
+    d.options[1].images = [];
+    d.options[2].images = ['shots/C-390-light.png'];
+  })), 'options');
+  assert.ok(bare.includes('<h3><span class="letter">A</span> One list, every room</h3>\n<a class="picture" href="shots/A-390-light.png">'));
+  assert.ok(bare.includes(`<p>${sample().options[1].line}</p>\n</article>`));
+  assert.ok(bare.includes('<a class="picture" href="shots/C-390-light.png"><img src="shots/C-390-light.png" alt="Option C, picture 1 of 1"></a>\n</article>'));
 });
 
+test('an option or a gallery item with three pictures draws exactly one, and links to the other two by their file names', () => {
+  const three = ['shots/A-390-light.png', 'shots/A-1280-light.png', 'shots/more/A-1280-dark.final.webp'];
+  const data = changed(d => {
+    d.options[0].images = three;
+    d.gallery.items[0].images = ['fresh/today-1.png', 'fresh\\today-2.png', '../fresh/.plain'];
+  });
+  const page = renderDecision(data);
+  const article = page.match(/<article class="option">\n<h3><span class="letter">A<\/span>[\s\S]*?<\/article>\n/)[0];
+  assert.equal(count(article, '<img '), 1);
+  assert.ok(article.includes('<a class="picture" href="shots/A-390-light.png"><img src="shots/A-390-light.png" alt="Option A, picture 1 of 3"></a>'));
+  assert.ok(article.includes('<ul class="more">\n<li><a href="shots/A-1280-light.png">A-1280-light</a></li>\n<li><a href="shots/more/A-1280-dark.final.webp">A-1280-dark.final</a></li>\n</ul>\n'));
+  assert.equal(count(article, '<a '), 3);
+  const item = sectionOf(page, 'gallery');
+  assert.equal(count(item, '<img '), 1);
+  assert.ok(item.includes('<a class="picture" href="fresh/today-1.png"><img src="fresh/today-1.png" alt="Gallery item 1, picture 1 of 3"></a>'));
+  assert.ok(item.includes('<li><a href="fresh\\today-2.png">today-2</a></li>\n<li><a href="../fresh/.plain">.plain</a></li>'));
+  // Every picture the data names is still on the page, once as an address of its own.
+  for (const image of [...three, ...data.gallery.items[0].images]) assert.equal(count(page, `href="${image}"`), 1, image);
+});
 test('the order: the options, the gallery under its own title, the seats, the recommendation, and the question last', () => {
   const data = sample();
   const page = renderDecision(data);
@@ -364,7 +407,8 @@ test('the order: the options, the gallery under its own title, the seats, the re
   const at = ['identity', 'options', 'gallery', 'seats', 'recommendation', 'question'].map(name => body.indexOf(`class="${name}"`));
   assert.deepEqual([...at].sort((a, b) => a - b), at, `in order: ${at}`);
   assert.ok(at.every(i => i >= 0));
-  assert.ok(sectionOf(page, 'gallery').startsWith(`<section class="gallery">\n<h2>${data.gallery.title}</h2>\n`));
+  // The gallery is a second row of its own, under its own title.
+  assert.ok(sectionOf(page, 'gallery').startsWith(`<section class="gallery">\n<h2>${data.gallery.title}</h2>\n<div class="row">\n<article class="item">`));
   assert.ok(sectionOf(page, 'gallery').includes(`<img src="fresh/today-1.png" alt="Gallery item 1, picture 1 of 1">`));
   // The question is the last thing on the page.
   assert.ok(body.endsWith(`<section class="question">\n<h2>The question</h2>\n<p>${data.question}</p>\n</section>\n`), body.slice(-200));
@@ -434,10 +478,11 @@ test('every string of the data goes through the one escape: identity, options, g
   assert.deepEqual(validateDecision(data), []);
   const page = renderDecision(data);
   const numberOf = text => Number(text.match(/"(\d+)"/)[1]);
-  // The design is in the title too; the recommended option's title is in the recommendation too; a path is
-  // in its link and its image.
+  // The design is in the title too; the recommended option's title is in the recommendation too; a first
+  // picture's path is in its link and its image; any other path is in its link alone (its name, after the
+  // last /, is a piece of it).
   const twice = new Set([data.identity.design, data.options.find(o => o.letter === data.recommendation.option).title].map(numberOf));
-  const paths = new Set([...data.options, ...data.gallery.items].flatMap(o => o.images).map(numberOf));
+  const paths = new Set([...data.options, ...data.gallery.items].map(o => numberOf(o.images[0])));
   for (let n = 1; n <= made; n++) {
     const escaped = `&lt;b title=&quot;x&quot;&gt;&#39;Tom &amp; Jerry&#39; &quot;${n}&quot;&lt;/b&gt;`;
     assert.equal(count(page, escaped), twice.has(n) || paths.has(n) ? 2 : 1, `string ${n}`);
@@ -460,9 +505,9 @@ test('text that is not plain ASCII, or is markup, is shown as text and kept inta
 });
 
 test('a picture is referenced by its path as given: never copied, never rewritten', () => {
-  const page = renderDecision(changed(d => (d.options[0].images = ['shots/A & B 1280.png', '../fresh/Reunión.png'])));
-  assert.ok(page.includes('<a href="shots/A &amp; B 1280.png"><img src="shots/A &amp; B 1280.png" alt="Option A, picture 1 of 2"></a>'));
-  assert.ok(page.includes('<a href="../fresh/Reunión.png"><img src="../fresh/Reunión.png" alt="Option A, picture 2 of 2"></a>'));
+  const page = renderDecision(changed(d => (d.options[0].images = ['shots/A & B 390.png', '../fresh/Reunión <1>.png'])));
+  assert.ok(page.includes('<a class="picture" href="shots/A &amp; B 390.png"><img src="shots/A &amp; B 390.png" alt="Option A, picture 1 of 2"></a>'));
+  assert.ok(page.includes('<li><a href="../fresh/Reunión &lt;1&gt;.png">Reunión &lt;1&gt;</a></li>'));
 });
 
 test('renderDecision refuses invalid data with every error', () => {
@@ -558,7 +603,7 @@ const greyPng = (width, height) => {
   return Buffer.concat([signature, pngChunk('IHDR', header), pngChunk('IDAT', deflateSync(Buffer.concat(Array(height).fill(row)))), pngChunk('IEND', Buffer.alloc(0))]);
 };
 
-test('in Chrome, at 1280 and 390, every picture is whole and a link to itself; a phone picture keeps its own width wherever the page holds it', async () => {
+test('in Chrome: the options in one row that scrolls on its own, one whole picture each, and the question in view wherever he scrolls', async () => {
   const dir = fresh();
   const data = sample();
   // Each wide picture 1280 by 1600, each phone picture (and the gallery's) 390 by 2400.
@@ -574,25 +619,50 @@ test('in Chrome, at 1280 and 390, every picture is whole and a link to itself; a
       const context = await browser.newContext({ viewport: { width, height: 900 }, deviceScaleFactor: 1, reducedMotion: 'reduce' });
       const page = await context.newPage();
       await page.goto(pathToFileURL(file).href);
-      const seen = await page.evaluate(() => ({
-        overflow: document.documentElement.scrollWidth > innerWidth,
-        pictures: [...document.images].map(img => ({
-          src: img.getAttribute('src'),
-          loaded: img.complete && img.naturalWidth > 0,
-          link: img.parentElement.tagName === 'A' && img.parentElement.getAttribute('href') === img.getAttribute('src'),
-          fit: getComputedStyle(img).objectFit,
-          natural: [img.naturalWidth, img.naturalHeight],
-          shown: [img.clientWidth, img.clientHeight],
-        })),
-      }));
-      assert.equal(seen.overflow, false, `${width}: the page is no wider than the screen`);
-      assert.equal(seen.pictures.length, 7);
+      const seen = await page.evaluate(() => {
+        const box = element => element.getBoundingClientRect();
+        const row = document.querySelector('.options .row');
+        const question = document.querySelector('.question');
+        const inView = () => box(question).top >= 0 && box(question).bottom <= innerHeight + 0.5;
+        const seen = {
+          overflow: document.documentElement.scrollWidth > innerWidth,
+          last: document.body.lastElementChild === question,
+          scrolls: getComputedStyle(row).overflowX === 'auto' && row.scrollWidth > row.clientWidth,
+          options: [...row.children].map(option => ({ left: box(option).left, right: box(option).right, pictures: option.querySelectorAll('img').length })),
+          pictures: [...document.images].map(img => ({
+            src: img.getAttribute('src'),
+            loaded: img.complete && img.naturalWidth > 0,
+            link: img.parentElement.tagName === 'A' && img.parentElement.getAttribute('href') === img.getAttribute('src'),
+            fit: getComputedStyle(img).objectFit,
+            natural: [img.naturalWidth, img.naturalHeight],
+            shown: [img.clientWidth, img.clientHeight],
+          })),
+          inView: [inView()],
+        };
+        for (const at of [0.5, 1]) {
+          scrollTo(0, document.documentElement.scrollHeight * at);
+          seen.inView.push(inView());
+        }
+        return seen;
+      });
+      assert.equal(seen.overflow, false, `${width}: the page itself never scrolls sideways`);
+      assert.equal(seen.last, true, `${width}: the question is the last element of the body`);
+      assert.deepEqual(seen.inView, [true, true, true], `${width}: the question is in view at the top, the middle and the end`);
+      assert.equal(seen.scrolls, true, `${width}: the row of options scrolls sideways on its own`);
+      assert.deepEqual(seen.options.map(option => option.pictures), [1, 1, 1], `${width}: one picture an option`);
+      if (width === 1280) {
+        const whole = seen.options.filter(option => option.left >= 0 && option.right <= width);
+        assert.ok(whole.length >= 2, `${width}: two options side by side in the first screen: ${JSON.stringify(seen.options)}`);
+      } else {
+        assert.ok(seen.options[0].right - seen.options[0].left >= 0.85 * width, `${width}: one option takes close to the whole width`);
+      }
+      assert.equal(seen.pictures.length, 4);
       for (const { src, loaded, link, fit, natural, shown } of seen.pictures) {
         const at = `${width}: ${src}, shown ${shown.join('x')} of ${natural.join('x')}`;
         assert.ok(loaded && link && fit === 'fill', at);
         assert.ok(Math.abs(shown[1] - (shown[0] * natural[1]) / natural[0]) <= 1, `${at}: whole, never cropped`);
         assert.ok(shown[0] <= natural[0], `${at}: never blown up`);
-        if (width === 1280) assert.ok(natural[0] === 390 ? shown[0] === 390 : shown[0] >= 1100, `${at}: readable`);
+        if (width === 1280) assert.equal(shown[0], 390, `${at}: a phone picture at its own width`);
         else assert.ok(shown[0] >= 300, `${at}: as wide as the phone allows`);
       }
       await context.close();
@@ -676,7 +746,7 @@ test('the CLI refuses a picture that is not a file beside the page, naming the f
   // An option's picture and the gallery's are missing: the option's is named, the first in the page.
   placePictures(stage, sample(), ['shots/B-390-light.png', 'fresh/today-1.png']);
   let r = run(input, '--out', out);
-  assert.deepEqual([r.status, r.stdout, r.stderr], [1, '', missing('options[1].images[1]', 'shots/B-390-light.png')]);
+  assert.deepEqual([r.status, r.stdout, r.stderr], [1, '', missing('options[1].images[0]', 'shots/B-390-light.png')]);
   assert.ok(!existsSync(out), 'nothing is written');
   // The gallery's alone.
   writeFileSync(join(stage, 'shots', 'B-390-light.png'), 'a picture');
@@ -698,7 +768,7 @@ test('the CLI refuses a picture that is not a file beside the page, naming the f
   // its folder is not made.
   const elsewhere = join(dir, 'elsewhere');
   r = run(input, '--out', join(elsewhere, 'decision.html'));
-  assert.deepEqual([r.status, r.stderr], [1, missing('options[0].images[0]', 'shots/A-1280-light.png', elsewhere)]);
+  assert.deepEqual([r.status, r.stderr], [1, missing('options[0].images[0]', 'shots/A-390-light.png', elsewhere)]);
   assert.ok(!existsSync(elsewhere), 'nothing is made');
 });
 
@@ -710,7 +780,7 @@ test('the CLI finds a picture in a folder whose name holds a space', () => {
   const out = join(dir, 'the stage', 'decision.html');
   const r = run(input, '--out', out);
   assert.equal(r.status, 0, r.stderr);
-  assert.ok(readFileSync(out, 'utf8').includes('<a href="two words/A 1280.png"><img src="two words/A 1280.png" alt="Option A, picture 1 of 2"></a>'));
+  assert.ok(readFileSync(out, 'utf8').includes('<a class="picture" href="two words/A 1280.png"><img src="two words/A 1280.png" alt="Option A, picture 1 of 2"></a>'));
 });
 
 test('the CLI exits 2 for bad usage, with the usage, and writes nothing', () => {
