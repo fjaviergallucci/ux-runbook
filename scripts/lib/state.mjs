@@ -48,6 +48,10 @@ const hashOf = body => createHash('sha256').update(body, 'utf8').digest('hex');
 const isObject = value => typeof value === 'object' && value !== null && !Array.isArray(value);
 const cell = value => (value === null || value === undefined || value === '' ? '—' : oneLine(String(value)).replace(/\|/g, '\\|'));
 const skippedBy = size => `the ${size} route skips it`;
+// The larger of two modes (full > short > skipped, the order of MODES): a resize never lowers a mode.
+const larger = (a, b) => MODES[Math.min(MODES.indexOf(a), MODES.indexOf(b))];
+// The built-from list a stage was stamped with; nothing for a stage never stamped.
+const recordedInputs = entry => (Array.isArray(entry.builtFrom) ? entry.builtFrom : []).map(reference).filter(Boolean);
 // A stage's entry in state.json with no approval on record.
 const entryOf = (status, version) => ({ status, version, approved: null, words: null, hash: null, builtFrom: null, since: null });
 
@@ -92,13 +96,16 @@ export function init(pkgDir, { design, kind, foundation, size, date } = {}) {
   save(pkgDir, { design: name, kind, foundation, size, started: date, route, reasons, stages, question: null, questionStage: null });
 }
 
-// The stage is in work since `date`. Its output may not exist yet, and is not touched.
+// The stage is in work since `date`. Its output may not exist yet; when it does, its header goes back to
+// draft. An approval it had before it went stale no longer stands; the hash and inputs stay, for stamp.
 export function begin(pkgDir, stage, { date } = {}) {
   const state = load(pkgDir);
   requireStage(stage);
   requireDate(date);
   requireOpen(state, stage);
-  Object.assign(state.stages[stage], { status: 'in-work', since: date });
+  const art = readArtefact(pkgDir, stage);
+  if (art && !art.error) writeArtefact(pkgDir, stage, { ...art.data, status: 'draft', approved: '', words: '' }, art.body);
+  Object.assign(state.stages[stage], { status: 'in-work', approved: null, words: null, since: date });
   save(pkgDir, state);
 }
 
@@ -142,13 +149,13 @@ export function stamp(pkgDir, stage, { words, date } = {}) {
   const version = entry.hash && entry.hash !== hash ? entry.version + 1 : entry.version;
   writeArtefact(pkgDir, stage, { ...data, version, status: 'approved', approved: date, words: said }, body);
   state.stages[stage] = { ...entryOf('approved', version), approved: date, words: said, hash, builtFrom: data['built-from'] };
-  closeQuestion(state, [stage]);
+  const stale = version > entry.version ? cascade(state, stage, `${stage} went to version ${version} on ${date}`) : [];
+  closeQuestion(state, [stage, ...stale]);
   save(pkgDir, state);
   return { version };
 }
 
-// The stage gets a new version, in work. Every later stage stamped as built from it, or from a stage this
-// marks stale, is marked stale (§ 6): read from what was stamped, never from the files as they are now.
+// The stage gets a new version, in work, and everything built on the old one turns stale (§ 6).
 export function reopen(pkgDir, stage, { reason, date } = {}) {
   const state = load(pkgDir);
   requireStage(stage);
@@ -164,15 +171,7 @@ export function reopen(pkgDir, stage, { reason, date } = {}) {
   writeArtefact(pkgDir, stage, { ...data, version, status: 'draft', approved: '', words: '' }, body);
   state.stages[stage] = entryOf('in-work', version);
   state.reasons[stage] = `reopened on ${date}: ${why}`;
-  const stale = [];
-  for (const later of STAGES.slice(at(stage) + 1)) {
-    const { status, builtFrom } = state.stages[later];
-    if (['not-started', 'skipped'].includes(status)) continue;
-    const recorded = Array.isArray(builtFrom) ? builtFrom : [];
-    if (!recorded.some(item => [stage, ...stale].includes(reference(item)?.stage))) continue;
-    state.stages[later].status = 'stale';
-    stale.push(later);
-  }
+  const stale = cascade(state, stage, `${stage} went to version ${version} on ${date}`);
   closeQuestion(state, [stage, ...stale]);
   save(pkgDir, state);
   return { version, stale };
@@ -187,23 +186,27 @@ export function setRoute(pkgDir, stage, mode, { reason, date } = {}) {
   if (!why) throw new StateError(`routing ${stage} ${mode} needs a reason`);
   requireDate(date);
   const entry = state.stages[stage];
+  const added = mode !== 'skipped' && entry.status === 'skipped';
   if (mode === 'skipped') {
+    if (stage === 'frame') throw new StateError('frame cannot be skipped: it is the stage that decides the route');
     if (entry.status === 'approved') throw new StateError(`${stage} is approved: reopen it before skipping it`);
     if (entry.status === 'awaiting') throw new StateError(`${stage} is awaiting the founder: stamp it or begin it again before skipping it`);
-    entry.status = 'skipped';
-  } else if (entry.status === 'skipped') {
+    Object.assign(state.stages, { [stage]: entryOf('skipped', entry.version) });
+  } else if (added) {
     entry.status = 'not-started';
   } else if (entry.status === 'approved' && mode !== state.route[stage]) {
     entry.status = 'stale';
   }
   state.route[stage] = mode;
   state.reasons[stage] = `${why} (set ${mode} on ${date})`;
-  closeQuestion(state, ['stale', 'skipped'].includes(entry.status) ? [stage] : []);
+  const stale = added ? builtWithout(state, stage) : [];
+  closeQuestion(state, ['stale', 'skipped'].includes(state.stages[stage].status) ? [stage, ...stale] : stale);
   save(pkgDir, state);
 }
 
-// The size only moves up (§ 5), and a resize only adds work: a stage the route runs keeps running.
-// An approved stage whose mode changes re-enters at the larger size, stale.
+// The size only moves up (§ 5), and a resize never lowers a stage's mode: each stage takes the larger of
+// its mode and the new size's. A stage whose mode changes is noted as resized, and if it was approved it
+// re-enters at the larger size, stale. A stage that stays skipped keeps a reason given by hand.
 export function resize(pkgDir, size) {
   const state = load(pkgDir);
   requireSize(size);
@@ -214,22 +217,28 @@ export function resize(pkgDir, size) {
   if (size === from) return;
   const sized = routeFor(size);
   const stale = [];
+  const added = [];
   for (const stage of STAGES) {
     const entry = state.stages[stage];
-    const mode = sized[stage] === 'skipped' && state.route[stage] !== 'skipped' ? state.route[stage] : sized[stage];
+    const was = state.route[stage];
+    const mode = larger(sized[stage], was);
     if (mode === 'skipped') {
-      state.reasons[stage] = skippedBy(size);
+      if (state.reasons[stage] === skippedBy(from)) state.reasons[stage] = skippedBy(size);
     } else if (entry.status === 'skipped') {
       entry.status = 'not-started';
       delete state.reasons[stage];
-    } else if (entry.status === 'approved' && mode !== state.route[stage]) {
-      entry.status = 'stale';
+      added.push(stage);
+    } else if (mode !== was) {
       state.reasons[stage] = `resized from ${from} to ${size}`;
-      stale.push(stage);
+      if (entry.status === 'approved') {
+        entry.status = 'stale';
+        stale.push(stage);
+      }
     }
     state.route[stage] = mode;
   }
   state.size = size;
+  for (const stage of added) stale.push(...builtWithout(state, stage));
   closeQuestion(state, stale);
   save(pkgDir, state);
 }
@@ -273,7 +282,7 @@ export function validate(pkgDir) {
       continue;
     }
     if (entry.status === 'stale') {
-      add('stale-input', `${stage} was built from an output that has since changed; redo it or re-confirm it, then stamp it`);
+      add('stale-input', `${stage} is stale: ${oneLine(state.reasons[stage]) || 'no reason recorded'}; redo it or re-confirm it, then stamp it`);
       continue;
     }
     const { data, body } = art;
@@ -282,6 +291,10 @@ export function validate(pkgDir) {
     if (HEADER_STATUSES.includes(data.status) && approved !== (data.status === 'approved')) add('bad-header', mismatch(data));
     for (const message of staleInputs(state, stage, data)) add('stale-input', message);
     if (!approved) continue;
+    const before = predecessor(state, stage);
+    if (before && !recordedInputs(entry).some(ref => ref.stage === before)) {
+      add('stale-input', `${stage} was stamped without ${before}, the stage before it on the route; redo it on ${before}`);
+    }
     if (!oneLine(String(data.approved ?? ''))) add('bad-header', `${stage} is approved, but its header has no approval date`);
     if (!oneLine(String(data.words ?? '')) || !oneLine(entry.words)) {
       add('approved-without-words', `${stage} is approved, but the founder's words are missing from its ${oneLine(entry.words) ? 'header' : 'state'}`);
@@ -301,6 +314,32 @@ export function validate(pkgDir) {
     }
   }
   return { ok: problems.length === 0, problems };
+}
+
+// ---- what turns stale
+
+// Every later stage on record as built from `stage`, directly or through a stage this marks, turns stale
+// (§ 6). Read from what was stamped, never from the files as they are now. A stage skipped or not started
+// has nothing on record: skipping clears it.
+function cascade(state, stage, reason) {
+  const stale = [];
+  for (const later of STAGES.slice(at(stage) + 1)) {
+    const entry = state.stages[later];
+    if (!recordedInputs(entry).some(ref => [stage, ...stale].includes(ref.stage))) continue;
+    Object.assign(entry, { status: 'stale' });
+    state.reasons[later] = reason;
+    stale.push(later);
+  }
+  return stale;
+}
+
+// A stage added to the route: the next stage the route runs after it was built without it, and turns stale.
+function builtWithout(state, added) {
+  const after = STAGES.slice(at(added) + 1).find(later => state.route[later] !== 'skipped');
+  if (!after || state.stages[after].status !== 'approved') return [];
+  state.stages[after].status = 'stale';
+  state.reasons[after] = `${added} was added to the route before it`;
+  return [after];
 }
 
 // ---- checks shared by the verbs and validate
