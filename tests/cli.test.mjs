@@ -54,6 +54,25 @@ test('an unknown flag, a flag given twice, a flag with no value, and a flag take
   refuses(['--out', '--'], '--out needs a value; "--" is a flag');
 });
 
+test('a switch is a flag with no value: true when given, refused with a value, given twice, or not named', () => {
+  const SWITCHED = { flags: ['out'], switches: ['allow-errors'] };
+  assert.deepEqual(parseArgs(['in', '--allow-errors', '--out', 'b'], SWITCHED), {
+    help: false,
+    positional: ['in'],
+    flags: { 'allow-errors': true, out: 'b' },
+  });
+  // A switch takes nothing after it: the next argument stays a positional.
+  assert.deepEqual(parseArgs(['--allow-errors', 'in'], SWITCHED), { help: false, positional: ['in'], flags: { 'allow-errors': true } });
+  assert.deepEqual(parseArgs(['in'], SWITCHED), { help: false, positional: ['in'], flags: {} });
+  refuses(['--allow-errors=yes'], '--allow-errors takes no value', SWITCHED);
+  refuses(['--allow-errors='], '--allow-errors takes no value', SWITCHED);
+  refuses(['--allow-errors', '--allow-errors'], '--allow-errors is given twice', SWITCHED);
+  refuses(['--out', '--allow-errors'], '--out needs a value; "--allow-errors" is a flag', SWITCHED);
+  refuses(['--allow-errors'], 'unknown flag --allow-errors', { flags: ['out'] });
+  // A flag named as a value-taking flag is not a switch.
+  refuses(['--out'], '--out needs a value', SWITCHED);
+});
+
 test('isMain: true in the file node was given, even through a link; false in a file it imports, and with no file', t => {
   const dir = join(root, 'is main');
   mkdirSync(dir, { recursive: true });

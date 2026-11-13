@@ -13,32 +13,14 @@
 import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 import { UsageError, isMain, parseArgs } from './lib/cli.mjs';
+import { html } from './lib/html.mjs';
 import { ProposalFileError, REASONS, readProposalFile, reason } from './lib/proposal-file.mjs';
 import { SOURCE_ONLY, validate } from './lib/walkthrough.mjs';
 
 // ---- markup
 
-const ENTITIES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
-
-// The one escape. Every string of the proposal reaches the page through it, in text and in attributes
-// alike, so it is shown as text and never read as markup; nothing else in it is changed.
-const escape = value => String(value).replace(/[&<>"']/g, ch => ENTITIES[ch]);
-
-// Markup this script wrote. html`…` keeps its own literal text, and the markup of an inner html`…`; every
-// other value put into it is escaped. No string of the proposal reaches the page another way.
-class Markup {
-  constructor(text) {
-    this.text = text;
-  }
-}
-const put = value => {
-  if (value instanceof Markup) return value.text;
-  if (Array.isArray(value)) return value.map(put).join('');
-  return escape(value);
-};
-function html(strings, ...values) {
-  return new Markup(strings.reduce((out, string, i) => out + put(values[i - 1]) + string));
-}
+// Every string of the proposal reaches the page through html`…` (lib/html.mjs), which escapes it, in text
+// and in attributes alike; no string of the proposal reaches the page another way.
 
 // The element each role is drawn on (KIT-CONTRACT.md § The markup), and the attribute it also needs.
 const ROLE_ELEMENTS = {
