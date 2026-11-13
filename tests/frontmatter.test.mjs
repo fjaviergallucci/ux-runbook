@@ -134,10 +134,22 @@ test('a list with an empty item is refused, naming the line; [] and [""] stay va
   assert.deepEqual(parse('---\ntags: [""]\n---\n').data, { tags: [''] });
 });
 
-test('a number that would not read back as itself is refused, naming the line', () => {
+test('a digits-only value with a leading zero or beyond the safe range is refused, naming the line', () => {
   refused(() => parse('---\nid: 007\n---\n'), /line 2/, /"id"/, /quote/);
   refused(() => parse('---\nstage: intent\nid: 12345678901234567890\n---\n'), /line 3/, /quote/);
+  refused(() => parse('---\nid: 9007199254740992\n---\n'), /line 2/, /"id"/, /quote/);
   assert.deepEqual(parse('---\nid: "007"\n---\n').data, { id: '007' });
+});
+
+test('an unquoted list item holding a bracket is refused, naming the line; a quoted one may', () => {
+  refused(() => parse('---\nstage: intent\ntitle: [a] and [b]\n---\n'), /line 3/, /bracket/);
+  assert.deepEqual(parse('---\ntags: ["[a]", b]\n---\n').data, { tags: ['[a]', 'b'] });
+});
+
+test('serialize quotes a list item holding a closing bracket', () => {
+  const data = { tags: ['a]', 'b'] };
+  assert.equal(serialize(data, ''), '---\ntags: ["a]", b]\n---\n');
+  assert.deepEqual(parse(serialize(data, '')).data, data);
 });
 
 test('a fence may carry trailing whitespace', () => {

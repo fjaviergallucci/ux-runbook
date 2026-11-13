@@ -56,7 +56,7 @@ function readValue(value, at, key) {
   if (!DIGITS.test(value)) return value;
   const number = Number(value);
   if (!Number.isSafeInteger(number) || String(number) !== value) {
-    throw new FrontmatterError(`${at}: "${key}" would not read back as ${value} (a leading zero or too many digits); quote it to keep it as text: ${key}: "${value}"`);
+    throw new FrontmatterError(`${at}: "${key}" cannot be a number as written (a leading zero, or above ${Number.MAX_SAFE_INTEGER}); quote it to keep it as text: ${key}: "${value}"`);
   }
   return number;
 }
@@ -81,13 +81,17 @@ function readList(inner, at) {
   return items.map(raw => readItem(raw.trim(), at));
 }
 
-// A quote may only wrap a whole item, and an item is never empty unless written as "".
+// A quote may only wrap a whole item; an item is never empty unless written as ""; and only a quoted
+// item may hold a bracket, so text such as `[a] and [b]` is refused rather than read as a list.
 function readItem(item, at) {
   const text = unquote(item);
   if (text.includes('"')) {
     throw new FrontmatterError(`${at}: list item ${item} has a double quote that does not wrap the whole item; the format has no escapes`);
   }
   if (item === '') throw new FrontmatterError(`${at}: the list has an empty item; remove the extra comma, or write "" for an empty string`);
+  if (!isQuoted(item) && /[[\]]/.test(item)) {
+    throw new FrontmatterError(`${at}: list item ${item} holds a bracket; quote the item, or quote the whole value if it is not a list`);
+  }
   return text;
 }
 
@@ -111,14 +115,16 @@ function writeValue(key, value) {
 // A list is split on commas outside quotes, with no escapes: an item holding a quote cannot be written.
 function writeItem(key, item) {
   if (typeof item === 'string' && item.includes('"')) throw new FrontmatterError(`"${key}": a list item cannot hold a double quote`);
-  return writeString(key, item);
+  return writeString(key, item, itemNeedsQuotes);
 }
 
-function writeString(key, s) {
+function writeString(key, s, quoteWhen = needsQuotes) {
   if (typeof s !== 'string') throw new FrontmatterError(`"${key}": a value is a string, a whole number or a list of strings`);
   if (/[\r\n\u2028\u2029]/.test(s)) throw new FrontmatterError(`"${key}": a value must fit on one line`);
-  return needsQuotes(s) ? `"${s}"` : s;
+  return quoteWhen(s) ? `"${s}"` : s;
 }
 
 // The brief's four characters, plus every string that would not read back as itself unquoted.
 const needsQuotes = s => /[:#\[,]/.test(s) || s === '' || DIGITS.test(s) || s !== s.trim() || s.startsWith('"');
+// A list item also needs them for a `]`, which only a quoted item may hold (see readItem).
+const itemNeedsQuotes = s => needsQuotes(s) || s.includes(']');
