@@ -1,0 +1,14 @@
+{
+  "name": "ux-runbook",
+  "owner": {
+    "name": "Francisco Gallucci"
+  },
+  "plugins": [
+    {
+      "name": "ux",
+      "source": "./",
+      "version": "2.0.0-dev",
+      "description": "An interface design pipeline for UX and UI: staged, with makers, judges and audiences chosen per design, ending in a handoff another session can build from."
+    }
+  ]
+}
