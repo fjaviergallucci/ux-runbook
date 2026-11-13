@@ -1,0 +1,285 @@
+/* The grey kit: one plain part for each role and container of the walkthrough, for a project with no
+   design system. Greys only, one system font stack, one mid-grey kept for the primary action, a light and
+   a dark set, no motion. Every part is styled once and the same wherever it appears, so nothing here can
+   make one structure look better made than another.
+   The class names are a contract (../KIT-CONTRACT.md): a project kit restyles them and adds none.
+   parts.html shows the markup each part is drawn on. */
+
+:root {
+  color-scheme: light dark;
+  --ux-font: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Liberation Sans", Arial, sans-serif;
+  --ux-primary: #767676;
+  --ux-on-primary: #ffffff;
+  --ux-page: #ededed;
+  --ux-surface: #ffffff;
+  --ux-fill: #f4f4f4;
+  --ux-backdrop: #bbbbbb;
+  --ux-ink: #1f1f1f;
+  --ux-muted: #595959;
+  --ux-line: #c6c6c6;
+  --ux-line-strong: #8c8c8c;
+  --ux-gap: 0.75rem;
+  --ux-pad: 1rem;
+  --ux-radius: 4px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ux-page: #121212;
+    --ux-surface: #1e1e1e;
+    --ux-fill: #262626;
+    --ux-backdrop: #050505;
+    --ux-ink: #ececec;
+    --ux-muted: #a6a6a6;
+    --ux-line: #3d3d3d;
+    --ux-line-strong: #737373;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 1.5rem 1rem;
+  background: var(--ux-page);
+  color: var(--ux-ink);
+  font-family: var(--ux-font);
+  font-size: 1rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+/* A frame: one screen of the walkthrough on the board, captioned with its title. */
+.ux-frame {
+  margin: 0 0 2rem;
+}
+
+.ux-frame > header {
+  margin: 0 0 0.5rem;
+  color: var(--ux-muted);
+  font-size: 0.875rem;
+}
+
+.ux-frame > header > h2 {
+  margin: 0;
+  font-size: inherit;
+  font-weight: 600;
+}
+
+.ux-frame > header > * + * {
+  margin-top: 0.25rem;
+}
+
+/* A screen fills its frame; a dialog sits on a backdrop that stands for the screen it opens over. */
+.ux-screen,
+.ux-dialog {
+  padding: var(--ux-pad);
+  background: var(--ux-surface);
+  border: 1px solid var(--ux-line);
+}
+
+.ux-frame:has(> .ux-dialog) {
+  padding-bottom: 2rem;
+  background: var(--ux-backdrop);
+}
+
+.ux-frame:has(> .ux-dialog) > header {
+  margin: 0 0 2rem;
+  padding-bottom: 0.5rem;
+  background: var(--ux-page);
+}
+
+.ux-dialog {
+  width: min(30rem, calc(100% - 2rem));
+  margin: 0 auto;
+  border: 2px solid var(--ux-line-strong);
+}
+
+/* Inside a screen, a dialog and every container, parts stack in the order written. */
+:is(.ux-screen, .ux-dialog, .ux-region, .ux-group, .ux-expansion) > * {
+  margin: 0;
+}
+
+:is(.ux-screen, .ux-dialog, .ux-region, .ux-group, .ux-expansion) > * + * {
+  margin-top: var(--ux-gap);
+}
+
+/* Containers. A label is the container's first child: a header, or the summary of an expansion. */
+.ux-region {
+  padding: var(--ux-pad);
+  background: var(--ux-fill);
+  border: 1px solid var(--ux-line);
+}
+
+.ux-group {
+  padding: 0.75rem;
+  background: var(--ux-surface);
+  border: 1px solid var(--ux-line);
+  border-radius: var(--ux-radius);
+}
+
+.ux-region > header,
+.ux-group > header {
+  color: var(--ux-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.ux-expansion {
+  padding: 0.5rem 0;
+  border-top: 1px solid var(--ux-line);
+  border-bottom: 1px solid var(--ux-line);
+}
+
+.ux-expansion > summary {
+  font-weight: 600;
+}
+
+/* Roles. Each part holds its item's words; its options, when it has any, are a list inside it. */
+.ux-heading {
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.ux-text {
+  font-size: 1rem;
+}
+
+:is(.ux-heading, .ux-text, .ux-choice, .ux-input, .ux-action, .ux-list, .ux-status, .ux-media, .ux-link, .ux-nav) > ul {
+  margin: 0.375rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ux-choice > ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.ux-choice > ul > li {
+  padding: 0.375rem 0.75rem;
+  border: 1px solid var(--ux-line-strong);
+  border-radius: var(--ux-radius);
+}
+
+.ux-input {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.ux-input::after {
+  content: "";
+  display: block;
+  height: 2.25rem;
+  margin-top: 0.25rem;
+  background: var(--ux-surface);
+  border: 1px solid var(--ux-line-strong);
+  border-radius: var(--ux-radius);
+}
+
+.ux-action {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  padding: 0.5rem 1rem;
+  background: var(--ux-surface);
+  color: var(--ux-ink);
+  border: 1px solid var(--ux-line-strong);
+  border-radius: var(--ux-radius);
+  font: inherit;
+  font-weight: 600;
+  text-align: center;
+}
+
+.ux-action.is-primary {
+  background: var(--ux-primary);
+  color: var(--ux-on-primary);
+  border-color: var(--ux-primary);
+}
+
+.ux-list {
+  color: var(--ux-muted);
+  font-size: 0.875rem;
+}
+
+.ux-list > ul {
+  color: var(--ux-ink);
+  font-size: 1rem;
+  border-top: 1px solid var(--ux-line);
+}
+
+.ux-list > ul > li {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--ux-line);
+}
+
+.ux-status {
+  font-weight: 600;
+}
+
+.ux-status::before {
+  content: "";
+  display: inline-block;
+  width: 0.5em;
+  height: 0.5em;
+  margin-right: 0.5em;
+  background: currentColor;
+  border-radius: 50%;
+  vertical-align: 0.1em;
+}
+
+.ux-media {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 9;
+  max-height: 16rem;
+  padding: var(--ux-pad);
+  background: var(--ux-fill);
+  color: var(--ux-muted);
+  border: 1px dashed var(--ux-line-strong);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.ux-link {
+  display: block;
+  width: fit-content;
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.ux-nav {
+  padding-bottom: 0.5rem;
+  color: var(--ux-muted);
+  font-size: 0.8125rem;
+  border-bottom: 1px solid var(--ux-line);
+}
+
+.ux-nav > ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  color: var(--ux-ink);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* A designer's note: said about the interface, never part of it. */
+.ux-note {
+  padding-left: 0.5rem;
+  color: var(--ux-muted);
+  border-left: 2px dashed var(--ux-line-strong);
+  font-size: 0.8125rem;
+  font-style: italic;
+}
+
+:is(.ux-screen, .ux-dialog, .ux-region, .ux-group, .ux-expansion) > * + .ux-note {
+  margin-top: 0.25rem;
+}
