@@ -530,7 +530,7 @@ proven original, and make it generic.
 Implements § 7.
 
 **Files:**
-- Create: `pool/CARD-FORMAT.md`, `pool/makers/structure-describer.md`, `outside-describer.md`,
+- Create: `pool/CARD-FORMAT.md`, `pool/MODELS.md`, `pool/makers/structure-describer.md`, `outside-describer.md`,
   `screen-generator.md`, `transcriber.md`, `interaction-designer.md`, `interface-writer.md`,
   `prototype-builder.md`, `visual-designer.md`
 - Test: `tests/pool.test.mjs`
@@ -540,13 +540,16 @@ Implements § 7.
   (`maker | judge | audience`), `job` (one question or one sentence), `sits-at` (list of stages),
   `cast-when` (one sentence), `presets` (list of sizes), `loaded-with` (`profile | person | none`),
   `reads` (list), `never-reads` (list), `engine` (`own`, `skill:<name>`, `model:<provider>` or
-  `tool:<name>`), `verified` (date).
+  `tool:<name>`), `suggested-model` (`fable | opus | sonnet | haiku | none`), `suggested-effort`
+  (`low | medium | high | xhigh | max | none`), `verified` (date).
 - Body sections, in this order: `## Method` · `## Output` · `## Never` · `## Borrowed` (may say "nothing").
   A judge adds, before Method: `## Core checks` (two to five) and `## Optional checks` (a table with
   columns `id`, `trigger`, `method`).
 
 - [ ] **Step 1: Write the failing tests** (they will cover every card as the next tasks add them): every
-  `.md` under `pool/makers`, `pool/judges`, `pool/audiences` parses and has every header key; `id` matches
+  `.md` under `pool/makers`, `pool/judges`, `pool/audiences` parses and has every header key; `suggested-model` and `suggested-effort` hold one of
+  the values the format allows; `pool/MODELS.md` exists, carries a `Reviewed:` date and the word
+  `suggestion`; `id` matches
   the file's shelf and name; `sits-at` is a subset of `STAGES`; the body has the required sections in
   order; a judge has two to five core checks and every optional-check row has a non-empty trigger; no file
   under `pool/`, `templates/`, `skills/`, `kit/`, `reference/`, `scripts/` or the root `README.md` and
@@ -556,7 +559,10 @@ Implements § 7.
 - [ ] **Step 2: Run them.** → FAIL (no cards).
 - [ ] **Step 3: Write `CARD-FORMAT.md`** — the contract above, with the three engine rules of § 7: a card
   works without its engine; a missing engine is said at Frame; outside engines are off unless the profile
-  lists them in `engines-on`.
+  lists them in `engines-on`. It states that `suggested-model` and `suggested-effort` are suggestions,
+  never instructions (spec § 7, "Model and effort are suggestions"). Write `pool/MODELS.md`: a `Reviewed:`
+  date, the four reasons of that section in the kit's own words, and one table of every seat with its
+  suggested model and effort — the cards hold the values, this file holds the reasoning.
 - [ ] **Step 4: Write the eight maker cards** to these decisions:
 
 | Card | sits-at | engine | What the card must decide |
@@ -570,6 +576,10 @@ Implements § 7.
 | `maker.prototype-builder` | detail | own | Static HTML on the shared kit; one description per screen plus `strings.json` generates every state × language page; `data-ux` on every element the spec names; an index page. |
 | `maker.visual-designer` | look | `skill:frontend-design` | Static pages that link the project's token file. Inside a system: hierarchy, spacing, emphasis, density, responsive, themes; variants only on one named axis. Writes the table of measured values. In a fresh pass, rebuilds what the founder marked as named extensions. |
 
+  Suggested model and effort for the makers (suggestions): structure describer `fable` / `high`; outside
+  describer and screen generator `none` / `none` (they run on their engine); transcriber `sonnet` /
+  `medium`; interaction designer `fable` / `high`; interface writer `fable` / `high`; prototype builder
+  `opus` / `medium`; visual designer `fable` / `high`.
 - [ ] **Step 5: Confirm the visual designer's engine.** § 24 leaves it to the build: read
   `frontend-design` and each taste or motion skill installed on this machine (list them with
   `claude plugin list` and the skills folders), keep `skill:frontend-design` as the default unless one
@@ -608,6 +618,8 @@ Implements § 9 and § 10.
   `judge.profile` also carries, from § 10: its verdict words (*works · works with changes · does not
   work*); "why it matters" names the trait and labels it fact or guess; the "cannot tell" list; the ranking
   at Structure; disagreements between profiles stated, never averaged; never invents a trait.
+  Suggested model and effort for the judges (suggestions): `opus` / `high` for every judge, so that a
+  judge reads work made on another model; `judge.system-fidelity` is `opus` / `medium`.
   `engine`: `judge.visual-craft` is `skill:design-audit`, and its typography check names the
   `typography` skill as its method when that skill is installed; every other judge is `own`.
 
@@ -635,7 +647,7 @@ Implements § 8 (generic persons), § 11, § 7 (`INDEX.md`).
 - [ ] **Step 2: Run them.** → FAIL.
 - [ ] **Step 3: Write `audience.task-reader`** to § 11: screenshots only; the six answers per task; the
   ranking with gap sizes; the caveat verbatim on every read; a real person's read outranks it; its output
-  is `templates/outputs/TASK-READ.md`. One section, "On a public page", gives the other reading: stop,
+  is `templates/outputs/TASK-READ.md`. Suggested model and effort: `opus` / `medium`. One section, "On a public page", gives the other reading: stop,
   understand, click.
 - [ ] **Step 4: Write the five persons**, each as someone in a moment, not a demographic: the first-timer
   who has never seen the product; the daily expert who resents an added step; the one hurried on a phone,
@@ -681,7 +693,7 @@ Implements the outputs of § 4, § 8 (profile and person), § 9 (ledger), § 11,
 | the seven stage-output templates (`00`–`03`, `CHOSEN`, `DETAIL`, `LOOK`) | header has `stage`, `version: 1`, `status: draft`, `built-from`; the body's last section is `## Carry`; a `## Reviewed by the founder` section precedes it |
 | `01-context.md` | has the nine headings of § 4.1, among them `## What the product can show and do`, `## The angles considered`, `## The founder's own words`, `## Project sources` |
 | `02-intent.md` | has `## The person in the moment`, `## The one job`, `## Success criteria`, `## Tasks for the audience`, `## States` with the ten rows, `## The measure` |
-| `03-cast.md` | has one table per stage from structure to acceptance, a `## Fresh pass` section with a line for Structure and a line for Look, and `## Cost` |
+| `03-cast.md` | has one table per stage from structure to acceptance, each with `model` and `effort` columns headed as suggestions, a `## Fresh pass` section with a line for Structure and a line for Look, and `## Cost` |
 | `BRIEF.md` and `BRIEF-fresh.md` | both have `## The person`, `## The job`, `## The tasks`, `## What the product can show and do`, `## What to return`; `BRIEF-fresh.md` has no heading or line naming the design system, the kit, sibling surfaces or today's screens, and says so in a `## What you are not given` section |
 | `HANDOFF.md` | has `## Context`, `## Task`, `## Done when`, `## Verify`, `## Constraints`, `## Slices`, `## Out of scope`, `## Must not change`, `## Left to the builder`, `## What you write back`, and names `BUILD.md`, `STATES.md`, `DEVIATIONS.md` |
 | `PROFILE-CARD.md` | has the seven always-defined characteristics of § 8 as headings, each followed by the four fields; a `## Specialties` section with one example subsection; an `## Optional characteristics` list |
@@ -762,7 +774,9 @@ Implements § 3, § 5, § 6, § 12 (blind rules, fresh pass), § 14.
     map before `PICK.md` exists · put a key or a key file's path on a command line · read `work/` as an
     input.
 - [ ] **Step 4: Write the five references.** `loop.md`: the loop in full, with the one fix round and one
-  re-read rule and the identity line. `routes.md`: the kind, foundation and size tables of § 5, the route
+  re-read rule and the identity line; and that each seat is launched on the model and effort the cast
+  sheet names when it names one — suggestions the founder may change at Cast; a seat with none runs on
+  the session's model. `routes.md`: the kind, foundation and size tables of § 5, the route
   per size, "the size only moves up", and the correction rule (the same session may apply it after the
   nod, leaving a one-paragraph record and a before-and-after picture). `blind.md`: the table of § 12 as
   rules, the brief's "context, never the design" with the list of what a brief may not contain (component
@@ -770,7 +784,7 @@ Implements § 3, § 5, § 6, § 12 (blind rules, fresh pass), § 14.
   brief → founder reads it → makers → merge → render → shots → readers → decision page → pick → `PICK.md`
   → the map may be opened. `fresh-pass.md`: § 12's fresh pass in full, with the three outcomes.
   `lessons.md`: § 14 — the two files, the entry's shape, the line recording which seats' findings changed
-  a decision.
+  a decision and the model each ran on.
 - [ ] **Step 5: Run the tests.** → PASS for `design`.
 - [ ] **Step 6: Commit.** `git commit -m "feat: the conductor skill and the tests every skill must pass"`.
 
@@ -842,6 +856,9 @@ Implements § 4.0–4.3, § 5, § 8, § 10 ("in the pipeline").
   each filled or "cannot occur because"; the optional read by the profile judge.
 - [ ] **Step 5: Write `cast` and `presets.md`** to § 4.3, § 7, § 9, § 10, § 12: starts from the preset;
   explains each seat in one line (what it catches, what it costs); states the checks on and off per judge;
+  shows each seat's suggested model and effort and proposes — as suggestions he may change, never as
+  rules — a judge or audience on a different model from the maker it reads, and describers spread across
+  models;
   states whether a fresh pass runs at Structure, at Look or both, and which engines it uses; gives the
   count of agents per stage; nothing is removed silently later.
 - [ ] **Step 6: Run the tests.** → PASS for the four.

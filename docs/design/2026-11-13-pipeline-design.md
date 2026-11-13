@@ -189,7 +189,8 @@ project before its first design (§ 4.9).
 - **Reads** the intent. Proposes from the kit's `pool/INDEX.md` and the project's pool, starting from the
   preset for this kind and size.
 - **Writes `03-cast.md`:** per remaining stage, a table — seat · loaded with which profile or person ·
-  checks on and off · engine · why it is here; what was left out and what is lost without it; the number
+  checks on and off · engine · the suggested model and effort, which he may change · why it is here; what
+  was left out and what is lost without it; the number
   of agents per stage as the cost line; the blind rules for this design (§ 12); whether a **fresh pass**
   runs at Structure, at Look, or both (§ 12).
 - **Gate:** he edits by exception. Each seat is explained in one line: what it catches, what it costs.
@@ -409,6 +410,7 @@ what every session loads. A sub-agent is started fresh from a brief that names i
 | method | How it works, in the card's own words |
 | output | The template it fills |
 | engine | Its own text · an installed skill it wraps · an outside model called by a script |
+| suggested model, suggested effort | The model and the reasoning effort the seat is suggested to run on. A suggestion, never an instruction (below) |
 | verified | The date its engine was last checked |
 
 **Every card works without its engine.** If the skill it wraps is not installed, the seat runs on its own
@@ -416,6 +418,30 @@ text, and Frame says so. Outside models are off unless the project's profile tur
 *(author's call)*
 
 `pool/INDEX.md` lists every card in one row: id, job, cast when. Cast reads the index, not the cards.
+
+### Model and effort are suggestions *(the founder, 2026-11-13)*
+
+Each seat is a fresh sub-agent, and a sub-agent can be started on a chosen model at a chosen reasoning
+effort. The aim is the best tool for the job, not the cheapest. So every card carries a **suggested
+model** and a **suggested effort** — and they are suggestions, never instructions: nothing in the kit
+enforces them, Cast shows them, and the founder may change any of them. A seat with no suggestion runs on
+the session's model.
+
+What the suggestions rest on *(author's reasoning; the models are tiers of capability, not specialists)*:
+
+1. **Judgement or mechanics.** A seat whose output the founder picks from, or that gates a stage, is
+   suggested on the most capable model. A tightly specified seat is suggested on a faster one.
+2. **A different model for the judge.** Where another model is available, a judge or an audience is
+   suggested on a different model from the maker it reads: two models share fewer blind spots than two
+   copies of one. This too is a suggestion.
+3. **Range where ideas are born.** When several describers sit at Structure, they are suggested across
+   different models.
+4. **Effort is the second dial:** higher for seats that make ideas or judge them, lower for mechanical
+   ones.
+
+The reasoning and the date it was last reviewed live in one file, `pool/MODELS.md`, because which model
+suits what goes stale as fast as the list of tools. Cards name models by their family alias, never by a
+version.
 
 ### The first set *(author's call; the first real run needs these)*
 
@@ -722,7 +748,8 @@ Two files, both appended, never rewritten. *(author's call)*
 
 - **The project's `LESSONS.md`** — after every design: what was tried, what happened, what the next
   design does differently, the founder's words where they mattered, the cost in agents and tokens, and
-  **which seats' findings changed a decision**. That last line is what prunes the pool.
+  **which seats' findings changed a decision, and the model each ran on**. That last line is what prunes
+  the pool and corrects the model suggestions.
 - **The kit's `LESSONS.md`** — only what is true of the process on any project. The conductor proposes
   the entry; it lands in the kit's repository by an ordinary change.
 
@@ -931,6 +958,9 @@ it · Claude Code only.
 knowledge of what exists, then both presented and compared · outside text models and Stitch are turned on
 for the proving run, at Structure.
 
+**Also the founder's, 2026-11-13, after the build began:** each seat carries a suggested model and a
+suggested effort — "just as suggestion, not as instructions" (§ 7).
+
 **Answered by the founder, 2026-11-13:** a fresh pass may use a screen generator or an outside model at
 Look too, with nothing they make handed off. Outside the fresh pass, those tools stay at Structure.
 
@@ -974,7 +1004,7 @@ Four rules.
 
 | Tool | Stage · seat | How |
 |---|---|---|
-| Claude sub-agents | Every stage · every maker, judge and audience | One fresh agent per seat, from a brief that names its card. The base; nothing else is required. |
+| Claude sub-agents | Every stage · every maker, judge and audience | One fresh agent per seat, from a brief that names its card, on the model and effort the cast sheet suggests (§ 7). The base; nothing else is required. |
 | Outside text models (OpenAI, Google Gemini) | Structure · extra structure describers, and the fresh pass. Look · the fresh pass only | The same context-only brief, sent by a script; the answer is in, or is transcribed into, the walkthrough format; merged blind with the others. The lessons file records whose proposals are picked, and the seat is kept or dropped on that record. Off unless the project profile turns it on, because the brief leaves the machine. |
 | Google Stitch | Structure · one extra describer, and the fresh pass. Look · the fresh pass, and the direction maker in Direction mode | It generates a screen from the brief. For the board, an agent transcribes its structure into the format and its paint is set aside; in a fresh pass the screen is also shown as it came. In Direction mode its screens are shown as directions. Never used at Detail, and never the screens of record: its output is not on the project's tokens. |
 | `ui-ux-pro-max` | Look · the direction maker (palettes, pairings, styles). A lookup for the usability judge and for chart choices | Data, not judgement. Inside a binding design system its palettes and pairings are not used. |
