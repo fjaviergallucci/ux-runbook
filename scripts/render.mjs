@@ -11,6 +11,7 @@
 import { mkdirSync, readdirSync, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { ProposalFileError, REASONS, readProposalFile, reason } from './lib/proposal-file.mjs';
 import { validate } from './lib/walkthrough.mjs';
 
 // ---- markup
@@ -168,22 +169,11 @@ Exit codes: 0 success · 1 an invalid proposal, an unreadable input or an unwrit
 `;
 const FLAGS = ['kit', 'out', 'letter'];
 const HELP = ['--help', '-h'];
-// One leading byte-order mark is dropped by the decoder itself; bytes that are not UTF-8 are refused.
-const UTF8 = new TextDecoder('utf-8', { fatal: true });
-// What a person can do something about, for the failures that are common; any other keeps its own words.
-const REASONS = {
-  ENOENT: 'not found',
-  EISDIR: 'it is a folder, not a file',
-  ENOTDIR: 'part of the path is a file, not a folder',
-  EACCES: 'no permission',
-  EPERM: 'no permission',
-};
 
 class UsageError extends Error {}
-// A failure the command expects and explains in one message: exit 1, without a stack.
+// A failure the command expects and explains in one message: exit 1, without a stack. A proposal file
+// that cannot be read is one too (lib/proposal-file.mjs).
 class Failure extends Error {}
-
-const reason = e => (Object.hasOwn(REASONS, e.code) ? REASONS[e.code] : e.message);
 
 function readArgs(argv) {
   const positional = [];
@@ -260,18 +250,7 @@ function draw({ path, kit, out, letter }) {
   // Each stylesheet lands beside the page under its own name, on a file system that may ignore case.
   const clash = sheets.find(name => name.toLowerCase() === basename(out).toLowerCase());
   if (clash) throw new UsageError(`--out cannot be named ${basename(out)}: the kit's stylesheet ${clash} is copied there, beside the page`);
-  let text;
-  try {
-    text = UTF8.decode(readInput(path));
-  } catch (e) {
-    throw e instanceof Failure ? e : new Failure(`cannot read ${path}: it is not UTF-8`);
-  }
-  let proposal;
-  try {
-    proposal = JSON.parse(text);
-  } catch (e) {
-    throw new Failure(`cannot read ${path}: it is not JSON (${e.message})`);
-  }
+  const proposal = readProposalFile(path);
   const errors = validate(proposal);
   if (errors.length) throw new Failure(`cannot draw ${path}: it is not a valid proposal\n${errors.join('\n')}`);
   const css = sheets.map(name => [name, readInput(join(kit, name))]);
@@ -296,7 +275,7 @@ function main(argv) {
     if (e instanceof UsageError) {
       process.stderr.write(`${e.message}\n\n${USAGE}`);
       process.exitCode = 2;
-    } else if (e instanceof Failure) {
+    } else if (e instanceof Failure || e instanceof ProposalFileError) {
       process.stderr.write(`${e.message}\n`);
       process.exitCode = 1;
     } else {

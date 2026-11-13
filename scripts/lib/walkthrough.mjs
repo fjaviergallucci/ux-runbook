@@ -11,7 +11,7 @@ export const CONTAINERS = Object.freeze(['region', 'group', 'expansion']);
 const SCREEN_CONTAINERS = ['screen', 'dialog'];
 const TEXT_FIELDS = ['name', 'bet', 'cost', 'hardest', 'firstIdea'];
 // Who made a proposal, and how; allowed on the proposal only, and stripped by the blind merge.
-const PROVENANCE = ['author', 'engine', 'track', 'model', 'source'];
+export const PROVENANCE = Object.freeze(['author', 'engine', 'track', 'model', 'source']);
 const KEYS = {
   proposal: [...TEXT_FIELDS, 'absent', 'screens', ...PROVENANCE],
   screen: ['id', 'title', 'container', 'over', 'note', 'items'],
