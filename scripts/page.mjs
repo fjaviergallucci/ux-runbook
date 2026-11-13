@@ -11,7 +11,7 @@
 // As a command: see USAGE. Exit codes: 0 success · 1 invalid data, an unreadable input or an unwritable
 // output · 2 bad usage.
 import { mkdirSync, statSync, writeFileSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { dirname, join } from 'node:path';
 import { UsageError, isMain, parseArgs } from './lib/cli.mjs';
 import { Markup, html } from './lib/html.mjs';
 import { ProposalFileError, readProposalFile, reason } from './lib/proposal-file.mjs';
@@ -29,6 +29,9 @@ const KEYS = Object.freeze({
   recommendation: ['option', 'reason'],
 });
 const LETTER = /^[A-Z]$/;
+// A question mark in any of its forms: ?, the full-width one and the Arabic one. The Spanish opening mark
+// is not one: "\u00bfCu\u00e1l?" is one question.
+const QUESTION_MARKS = /[?\uFF1F\u061F]/g;
 // A second sentence begins where a full stop, an exclamation or a question mark is followed by space and
 // then a capital letter or a digit.
 const SECOND_SENTENCE = /[.!?]\s+[\p{Lu}\p{Nd}]/u;
@@ -71,7 +74,7 @@ export function validateDecision(data) {
   }
   if (need(data, 'recommendation', isObject, 'an object', at, fail)) checkRecommendation(data.recommendation, letters, fail);
   if (need(data, 'question', isText, TEXT, at, fail)) {
-    const marks = data.question.split('?').length - 1;
+    const marks = data.question.match(QUESTION_MARKS)?.length ?? 0;
     if (marks > 1) fail('question', `asks more than one question (${marks} question marks): a decision page asks one question`);
   }
   return errors;
@@ -336,10 +339,12 @@ seat, the recommendation with one sentence of reason, and last the one question.
 styles inline, a light and a dark set, no script; the pictures are referenced by the paths the data
 gives, relative to the page, never copied.
 
-The data is refused, and nothing is written, when it asks more than one question (more than one "?"),
-when the reason is more than one sentence, when the recommendation or a seat names an option that is not
-on the page, when an option has no letter or shows neither a picture nor a line, when two options share
-a letter, when the identity lacks any of design, kind, size, stage and of, or when a key is unknown.
+The data is refused, and nothing is written, when it asks more than one question (more than one
+question mark in all: "?", "\uFF1F" or "\u061F"); when the reason is more than one sentence; when the
+recommendation or a seat names an option that is not on the page; when an option has no letter or
+shows neither a picture nor a line; when two options share a letter; when the identity lacks any of
+design, kind, size, stage and of; when a key is unknown; or, the page finding its pictures from its
+own folder, when a picture it names is not a file in the folder of --out.
 
   --out <decision.html>   the page to write, not the data itself; its folder is made when it is not
                           there
@@ -373,11 +378,33 @@ function sameFile(a, b) {
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
+// The first picture, in the order of the page, that is not a file in the page's folder, as an error; none
+// when every one is there. The page refers to its pictures from its own folder, so they are found from it.
+function missingPicture(data, folder) {
+  const shown = [...data.options.map((option, i) => [`options[${i}]`, option]), ...(data.gallery?.items ?? []).map((item, i) => [`gallery.items[${i}]`, item])];
+  for (const [at, holder] of shown) {
+    for (const [i, image] of (holder.images ?? []).entries()) {
+      if (!isFile(join(folder, image))) return `${at}.images[${i}]: the picture ${JSON.stringify(image)} is not a file in ${folder}`;
+    }
+  }
+  return null;
+}
+
+function isFile(path) {
+  try {
+    return statSync(path).isFile();
+  } catch {
+    return false;
+  }
+}
+
 function build({ path, out }) {
   if (sameFile(out, path)) throw new UsageError('--out is the decision data itself: building would overwrite it');
   const data = readProposalFile(path);
   const errors = validateDecision(data);
   if (errors.length) throw new Failure(`cannot build the decision page from ${path}:\n${errors.join('\n')}`);
+  const missing = missingPicture(data, dirname(out));
+  if (missing) throw new Failure(`cannot build the decision page from ${path}:\n${missing}`);
   const page = renderDecision(data);
   try {
     // A folder that is a file is refused by the write, below, as part of the path.

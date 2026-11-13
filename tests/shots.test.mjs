@@ -554,6 +554,9 @@ test('the CLI prints its usage for --help and exits 0', () => {
   assert.equal(r.status, 0);
   assert.ok(r.stdout.startsWith('Usage: node scripts/shots.mjs <file or folder>... --out <folder> --widths <w,w...>'), r.stdout);
   assert.match(r.stdout, /reduced motion/);
+  // What a user could trip on, said where they look.
+  assert.match(r.stdout, /A script error raised after the picture is taken is not seen\./);
+  assert.match(r.stdout, /A request Chrome cancels itself \(net::ERR_ABORTED, as a video may\) is reported as an error too\./);
   assert.equal(r.stderr, '');
 });
 

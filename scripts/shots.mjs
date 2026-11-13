@@ -237,6 +237,8 @@ for (a stylesheet, an image) does not load, or when it does not open. Each is pr
 "error: <page>: <what>", and exits 1 unless --allow-errors; the pictures that could be taken are taken.
 A page wider than the screen at a width is printed as "overflow: <page> is wider than the screen at <w>
 px" and does not change the exit code.
+A script error raised after the picture is taken is not seen.
+A request Chrome cancels itself (net::ERR_ABORTED, as a video may) is reported as an error too.
 
 A flag may also be written --flag=value.
 

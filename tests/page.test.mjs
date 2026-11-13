@@ -56,6 +56,22 @@ test('a question with more than one question mark is refused: a decision page as
   valid(changed(d => (d.question = 'Pick the structure that goes on to Detail.')), 'no mark');
 });
 
+test('every question mark counts, ? and the full-width \\uFF1F and the Arabic \\u061F alike; the opening \u00bf does not', () => {
+  const FULL = '\uFF1F';
+  const ARABIC = '\u061F';
+  for (const mark of ['?', FULL, ARABIC]) valid(changed(d => (d.question = `Which structure goes on to Detail${mark}`)), `alone: ${JSON.stringify(mark)}`);
+  const pairs = [['?', FULL], [FULL, '?'], ['?', ARABIC], [ARABIC, '?'], [FULL, ARABIC], [FULL, FULL], [ARABIC, ARABIC]];
+  for (const [first, second] of pairs) {
+    refuses(
+      changed(d => (d.question = `Which structure goes on${first} And who reads it${second}`)),
+      /^question: asks more than one question \(2 question marks\): a decision page asks one question$/,
+      `together: ${JSON.stringify(first + second)}`,
+    );
+  }
+  refuses(changed(d => (d.question = `A? B${FULL} C${ARABIC}`)), /^question: asks more than one question \(3 question marks\)/, 'one of each');
+  valid(changed(d => (d.question = '\u00bfCu\u00e1l sigue a Detail: A, B o C?')), 'a Spanish question');
+});
+
 test('a missing, empty or blank question is refused', () => {
   refuses(changed(d => delete d.question), /^decision: "question" is missing$/);
   for (const question of ['', '   ', 42, null, ['Which?']]) {
@@ -378,6 +394,14 @@ const fresh = () => {
   mkdirSync(dir, { recursive: true });
   return dir;
 };
+// Each picture the data names, made as a small file under the folder the page goes to, but those to skip.
+const picturesOf = data => [...data.options, ...(data.gallery?.items ?? [])].flatMap(shown => shown.images ?? []);
+const placePictures = (folder, data, skip = []) => {
+  for (const image of picturesOf(data).filter(image => !skip.includes(image))) {
+    mkdirSync(dirname(join(folder, image)), { recursive: true });
+    writeFileSync(join(folder, image), 'a picture');
+  }
+};
 const writeData = (dir, data) => {
   const file = join(dir, 'the decision.json');
   writeFileSync(file, typeof data === 'string' ? data : JSON.stringify(data, null, 2));
@@ -388,6 +412,7 @@ test('the CLI builds the page from decision.json, in folders named with two word
   const dir = fresh();
   const input = writeData(dir, sample());
   const out = join(dir, 'the stage', 'decision page.html');
+  placePictures(join(dir, 'the stage'), sample());
   const r = run(input, '--out', out);
   assert.equal(r.status, 0, r.stderr);
   assert.equal(r.stderr, '');
@@ -396,6 +421,7 @@ test('the CLI builds the page from decision.json, in folders named with two word
   // --out=value is the same; a byte-order mark and CRLF line endings are read.
   const crlf = writeData(fresh(), `\uFEFF${JSON.stringify(sample(), null, 2).replace(/\n/g, '\r\n')}`);
   const again = join(dirname(crlf), 'decision.html');
+  placePictures(dirname(crlf), sample());
   assert.equal(run(crlf, `--out=${again}`).status, 0);
   assert.equal(readFileSync(again, 'utf8'), renderDecision(sample()));
 });
@@ -425,9 +451,61 @@ test('the CLI exits 1 for an input it cannot read, and for an output it cannot w
   assert.match(r.stderr, /^cannot read .*the decision\.json: it is not JSON/);
   const file = join(dir, 'a file');
   writeFileSync(file, 'x');
-  r = run(writeData(dir, sample()), '--out', join(file, 'decision.html'));
+  // With no picture to find beside it, the page reaches the write, which a file in the path refuses.
+  const unpictured = changed(d => {
+    for (const option of d.options) delete option.images;
+    delete d.gallery;
+  });
+  r = run(writeData(dir, unpictured), '--out', join(file, 'decision.html'));
   assert.deepEqual([r.status, r.stderr], [1, `cannot write ${join(file, 'decision.html')}: part of the path is a file, not a folder\n`]);
   assert.deepEqual(readdirSync(dir).sort(), ['a file', 'the decision.json']);
+});
+
+test('the CLI refuses a picture that is not a file beside the page, naming the first such, and writes nothing', () => {
+  const dir = fresh();
+  const input = writeData(dir, sample());
+  const stage = join(dir, 'the stage');
+  const out = join(stage, 'decision.html');
+  const missing = (where, image, folder = stage) =>
+    `cannot build the decision page from ${input}:\n${where}: the picture ${JSON.stringify(image)} is not a file in ${folder}\n`;
+  // An option's picture and the gallery's are missing: the option's is named, the first in the page.
+  placePictures(stage, sample(), ['shots/B-390-light.png', 'fresh/today-1.png']);
+  let r = run(input, '--out', out);
+  assert.deepEqual([r.status, r.stdout, r.stderr], [1, '', missing('options[1].images[1]', 'shots/B-390-light.png')]);
+  assert.ok(!existsSync(out), 'nothing is written');
+  // The gallery's alone.
+  writeFileSync(join(stage, 'shots', 'B-390-light.png'), 'a picture');
+  r = run(input, '--out', out);
+  assert.deepEqual([r.status, r.stdout, r.stderr], [1, '', missing('gallery.items[0].images[0]', 'fresh/today-1.png')]);
+  assert.ok(!existsSync(out), 'nothing is written');
+  // A folder where the picture should be is no picture.
+  mkdirSync(join(stage, 'fresh', 'today-1.png'), { recursive: true });
+  r = run(input, '--out', out);
+  assert.deepEqual([r.status, r.stderr], [1, missing('gallery.items[0].images[0]', 'fresh/today-1.png')]);
+  assert.ok(!existsSync(out), 'nothing is written');
+  // Once every picture is a file there, the page builds.
+  rmSync(join(stage, 'fresh', 'today-1.png'), { recursive: true });
+  writeFileSync(join(stage, 'fresh', 'today-1.png'), 'a picture');
+  r = run(input, '--out', out);
+  assert.equal(r.status, 0, r.stderr);
+  assert.ok(existsSync(out));
+  // Pictures are found from the page's folder, not from the data's: a page bound elsewhere finds none, and
+  // its folder is not made.
+  const elsewhere = join(dir, 'elsewhere');
+  r = run(input, '--out', join(elsewhere, 'decision.html'));
+  assert.deepEqual([r.status, r.stderr], [1, missing('options[0].images[0]', 'shots/A-1280-light.png', elsewhere)]);
+  assert.ok(!existsSync(elsewhere), 'nothing is made');
+});
+
+test('the CLI finds a picture in a folder whose name holds a space', () => {
+  const dir = fresh();
+  const data = changed(d => (d.options[0].images = ['two words/A 1280.png', 'shots/A-390-light.png']));
+  const input = writeData(dir, data);
+  placePictures(join(dir, 'the stage'), data);
+  const out = join(dir, 'the stage', 'decision.html');
+  const r = run(input, '--out', out);
+  assert.equal(r.status, 0, r.stderr);
+  assert.ok(readFileSync(out, 'utf8').includes('<a href="two words/A 1280.png"><img src="two words/A 1280.png" alt="Option A, picture 1 of 2"></a>'));
 });
 
 test('the CLI exits 2 for bad usage, with the usage, and writes nothing', () => {
@@ -456,5 +534,7 @@ test('the CLI prints its usage for --help and exits 0', () => {
   assert.equal(r.status, 0);
   assert.ok(r.stdout.startsWith('Usage: node scripts/page.mjs <decision.json> --out <decision.html>\n'));
   assert.match(r.stdout, /one question/);
+  assert.ok(r.stdout.includes('"?", "\uFF1F" or "\u061F"'), 'every question mark is named');
+  assert.match(r.stdout, /when a picture it names is not a file in the folder of --out/);
   assert.equal(r.stderr, '');
 });
