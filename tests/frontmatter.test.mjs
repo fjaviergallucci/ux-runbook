@@ -30,3 +30,79 @@ test('nested values are refused, naming the line', () => {
 test('an empty list parses as an empty array', () => {
   assert.deepEqual(parse('---\ncarry: []\n---\n').data, { carry: [] });
 });
+
+const refused = (fn, ...patterns) =>
+  assert.throws(fn, e => e instanceof FrontmatterError && patterns.every(p => p.test(e.message)));
+
+test('a key with nothing after the colon is the empty string', () => {
+  assert.deepEqual(parse('---\nstage: intent\napproved:\nwords:\n---\n').data, { stage: 'intent', approved: '', words: '' });
+});
+
+test('a blank value with an indented line below it is refused, naming the key and its line', () => {
+  refused(() => parse('---\nstage: intent\nroute:\n  frame: full\n---\n'), /line 3/, /"route"/);
+});
+
+test('a byte-order mark is ignored and never reaches the body', () => {
+  assert.deepEqual(parse(`\uFEFF${doc}`), parse(doc));
+  assert.deepEqual(parse('\uFEFF# Only\n'), { data: {}, body: '# Only\n' });
+});
+
+test('a byte-order mark with CRLF parses the same as plain LF', () => {
+  assert.deepEqual(parse(`\uFEFF${doc.replace(/\n/g, '\r\n')}`), parse(doc));
+});
+
+test('a duplicate key is refused, naming the key and its line', () => {
+  refused(() => parse('---\nstatus: draft\nstatus: approved\n---\n'), /line 3/, /"status"/);
+});
+
+test('a header that is never closed is refused, naming its opening line', () => {
+  refused(() => parse('---\nstage: intent\n# Title\n'), /line 1/, /never closed/);
+});
+
+test('a line that is not key: value is refused, naming the line', () => {
+  refused(() => parse('---\nStage: intent\n---\n'), /line 2/);
+  refused(() => parse('---\nstage: intent\njust words\n---\n'), /line 3/);
+  refused(() => parse('---\nstage: intent\n  frame: full\n---\n'), /line 3/);
+  refused(() => parse('---\ncarry:\n- frame@1\n---\n'), /line 3/);
+});
+
+test('blank lines inside the header are skipped', () => {
+  assert.deepEqual(parse('---\nstage: intent\n\nversion: 2\n---\n').data, { stage: 'intent', version: 2 });
+});
+
+test('a quoted list item may hold a comma', () => {
+  const data = { tags: ['a, b', 'c'] };
+  assert.deepEqual(parse('---\ntags: ["a, b", c]\n---\n').data, data);
+  assert.deepEqual(parse(serialize(data, '')).data, data);
+});
+
+test('strings that need quoting come back as themselves', () => {
+  const data = {
+    colon: 'a: b', hash: 'x # y', bracket: '[not a list', comma: '1,2', digits: '42', empty: '',
+    padded: ' padded ', quote: '"quoted',
+  };
+  const back = parse(serialize(data, '')).data;
+  assert.deepEqual(back, data);
+  assert.equal(typeof back.digits, 'string');
+});
+
+test('serialize writes LF and always writes both fences', () => {
+  assert.equal(serialize({ stage: 'intent' }, 'a\r\nb\r\n'), '---\nstage: intent\n---\na\nb\n');
+  assert.deepEqual(parse(serialize({}, '---\nrule\n')), { data: {}, body: '---\nrule\n' });
+});
+
+test('serialize refuses a value containing a newline, naming the key', () => {
+  refused(() => serialize({ words: 'yes\nand no' }, ''), /"words"/, /one line/);
+});
+
+test('serialize refuses what flat frontmatter cannot hold, naming the key', () => {
+  refused(() => serialize({ Stage: 'intent' }, ''), /"Stage"/);
+  refused(() => serialize({ route: { frame: 'full' } }, ''), /"route"/);
+  refused(() => serialize({ version: 1.5 }, ''), /"version"/, /whole number/);
+  refused(() => serialize({ version: -1 }, ''), /"version"/, /whole number/);
+  refused(() => serialize({ carry: [1] }, ''), /"carry"/);
+});
+
+test('serialize refuses a list item holding a double quote, naming the key', () => {
+  refused(() => serialize({ carry: ['say "hi"'] }, ''), /"carry"/, /double quote/);
+});

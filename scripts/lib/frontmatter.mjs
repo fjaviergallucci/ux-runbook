@@ -1,5 +1,7 @@
 // Flat frontmatter: the header of stage outputs, pool cards and a project's profile.
-// One `key: value` per line between two `---` lines; lists inline as `[a, b]`; nothing nested.
+// Its limits: one `key: value` per line between two `---` lines, keys ^[a-z][a-z0-9-]*$; a value is a
+// string, a whole number or an inline list `[a, b]` of strings; nothing nested; no escapes (quotes only
+// wrap a value, so a list item cannot hold a `"`).
 
 export class FrontmatterError extends Error {
   constructor(message) {
@@ -12,13 +14,14 @@ const FENCE = '---';
 const KEY = /^[a-z][a-z0-9-]*$/;
 const ENTRY = /^([a-z][a-z0-9-]*):(.*)$/;
 const DIGITS = /^\d+$/;
+const INDENTED = /^[ \t]/;
 
 const toLf = text => text.replace(/\r\n/g, '\n');
 const isQuoted = s => s.length >= 2 && s.startsWith('"') && s.endsWith('"');
 const unquote = s => (isQuoted(s) ? s.slice(1, -1) : s);
 
 export function parse(text) {
-  const lf = toLf(text);
+  const lf = toLf(text.replace(/^\uFEFF/, ''));
   const lines = lf.split('\n');
   if (lines[0] !== FENCE) return { data: {}, body: lf };
 
@@ -31,12 +34,12 @@ export function parse(text) {
     const at = `line ${i + 1}`;
     const match = ENTRY.exec(lines[i]);
     if (!match) {
-      throw new FrontmatterError(`${at}: expected "key: value" with a lower-case kebab key; frontmatter is flat, nothing nested`);
+      throw new FrontmatterError(`${at}: expected "key: value" on one line, a lower-case kebab key, lists inline as [a, b]; frontmatter is flat, nothing nested`);
     }
     const [, key, raw] = match;
     const value = raw.trim();
-    if (value === '') {
-      throw new FrontmatterError(`${at}: "${key}" has no value; nested values are refused (write ${key}: "" for an empty string)`);
+    if (value === '' && INDENTED.test(lines[i + 1])) {
+      throw new FrontmatterError(`${at}: "${key}" has a nested value below it; frontmatter is flat, so write the value on this line (lists inline as [a, b])`);
     }
     if (Object.hasOwn(data, key)) throw new FrontmatterError(`${at}: "${key}" appears twice`);
     data[key] = readValue(value);
