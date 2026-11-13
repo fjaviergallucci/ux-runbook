@@ -1,10 +1,13 @@
 #!/usr/bin/env node
 // page: the decision page, the one screen put in front of the founder at a gate. It opens with the identity
 // line (design · kind · size · stage n of m), then shows the options as pictures, the gallery when there is
-// one, one line per seat, one recommendation with one sentence of reason, and, last, one question. One
-// artefact per review, one question: data asking two questions does not build.
+// one, one line per seat, the findings that stayed open when there are any, one recommendation with one
+// sentence of reason, and, last, one question. One artefact per review, one question: data asking two
+// questions does not build.
 // The page is one self-contained file: its styles inline, a light and a dark set, no script, nothing
-// fetched but the pictures, which it references by the relative paths the data gives, as written.
+// fetched but the pictures, which it references by the relative paths the data gives, as written. Each
+// picture is shown whole, never cropped, and no wider than it is: the options are stacked, so a phone-width
+// picture keeps its own width wherever the page holds it, and each picture links to its file.
 //
 // As a module: validateDecision(data) → every error, [] when valid · renderDecision(data) → the page, as a
 // string; pure, the same data gives the same bytes.
@@ -14,18 +17,19 @@ import { mkdirSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { UsageError, isMain, parseArgs } from './lib/cli.mjs';
 import { Markup, html } from './lib/html.mjs';
-import { ProposalFileError, readProposalFile, reason } from './lib/proposal-file.mjs';
+import { JsonFileError, readJsonFile, reason } from './lib/json-file.mjs';
 
 // ---- the data
 
 // Every key the data knows, at each level. An unknown key is refused, so a misspelt part is told, not lost.
 const KEYS = Object.freeze({
-  decision: ['identity', 'options', 'gallery', 'seats', 'recommendation', 'question'],
+  decision: ['identity', 'options', 'gallery', 'seats', 'findings', 'recommendation', 'question'],
   identity: ['design', 'kind', 'size', 'stage', 'of'],
   option: ['letter', 'title', 'line', 'images'],
   gallery: ['title', 'items'],
   item: ['title', 'line', 'images'],
   seat: ['seat', 'line', 'option'],
+  finding: ['seat', 'line'],
   recommendation: ['option', 'reason'],
 });
 const LETTER = /^[A-Z]$/;
@@ -42,6 +46,9 @@ const ABSOLUTE = /^[/\\]/;
 const SCHEME = /^[a-zA-Z][a-zA-Z0-9+.-]*:/;
 const CONTROL = /[\u0000-\u001f\u007f]/;
 const isPicture = v => typeof v === 'string' && v.trim() === v && v !== '' && !CONTROL.test(v) && !ABSOLUTE.test(v) && !SCHEME.test(v);
+// A browser reads # as the start of a fragment, ? of a query and % of an escape: a path holding one names
+// one file on the disk and another to the page.
+const ADDRESS_MARKS = /[#?%]/;
 
 const isObject = v => v !== null && typeof v === 'object' && !Array.isArray(v);
 const isText = v => typeof v === 'string' && v.trim() !== '';
@@ -70,7 +77,11 @@ export function validateDecision(data) {
   const letters = need(data, 'options', v => Array.isArray(v) && v.length > 0, 'a list of at least one option', at, fail) ? checkOptions(data.options, fail) : null;
   if (Object.hasOwn(data, 'gallery') && need(data, 'gallery', isObject, 'an object', at, fail)) checkGallery(data.gallery, fail);
   if (need(data, 'seats', Array.isArray, 'a list of seats, empty when no seat read', at, fail)) {
-    data.seats.forEach((seat, i) => checkSeat(seat, `seats[${i}]`, letters, fail));
+    const said = new Map();
+    data.seats.forEach((seat, i) => checkSeat(seat, `seats[${i}]`, letters, said, fail));
+  }
+  if (Object.hasOwn(data, 'findings') && need(data, 'findings', Array.isArray, 'a list of findings, each a seat and a line', at, fail)) {
+    data.findings.forEach((finding, i) => checkFinding(finding, `findings[${i}]`, fail));
   }
   if (need(data, 'recommendation', isObject, 'an object', at, fail)) checkRecommendation(data.recommendation, letters, fail);
   if (need(data, 'question', isText, TEXT, at, fail)) {
@@ -117,7 +128,12 @@ function checkShown(holder, at, what, fail) {
   need(holder, 'title', isText, TEXT, at, fail);
   maybe(holder, 'line', isText, TEXT, at, fail);
   if (maybe(holder, 'images', Array.isArray, `a list of paths, each ${PICTURE}`, at, fail)) {
-    holder.images.forEach((image, i) => isPicture(image) || fail(`${at}.images[${i}]`, `must be ${PICTURE}; it is ${show(image)}`));
+    holder.images.forEach((image, i) => {
+      if (!isPicture(image)) fail(`${at}.images[${i}]`, `must be ${PICTURE}; it is ${show(image)}`);
+      else if (ADDRESS_MARKS.test(image)) {
+        fail(`${at}.images[${i}]`, `a picture path cannot hold "#", "?" or "%": a browser reads them as part of an address, so it would not find the file the disk holds; it is ${show(image)}`);
+      }
+    });
   }
   const noPicture = !Object.hasOwn(holder, 'images') || (Array.isArray(holder.images) && holder.images.length === 0);
   if (!Object.hasOwn(holder, 'line') && noPicture) fail(at, `has neither an image nor a line: ${what} shows one at least`);
@@ -137,12 +153,31 @@ function checkGallery(gallery, fail) {
   }
 }
 
-function checkSeat(seat, at, letters, fail) {
+// A seat says one line on each option at most, and one line on no option at most: `said` holds the first of
+// each, by seat and option.
+function checkSeat(seat, at, letters, said, fail) {
   if (!isObject(seat)) return fail(at, 'must be an object');
   unknownKeys(seat, KEYS.seat, at, fail);
-  need(seat, 'seat', isText, TEXT, at, fail);
+  const named = need(seat, 'seat', isText, TEXT, at, fail);
   need(seat, 'line', isText, TEXT, at, fail);
-  if (Object.hasOwn(seat, 'option')) names(seat, at, letters, fail);
+  const on = Object.hasOwn(seat, 'option');
+  if (on) names(seat, at, letters, fail);
+  if (!named) return;
+  const key = JSON.stringify([seat.seat, on ? seat.option : null]);
+  if (said.has(key)) {
+    const where = on ? `on option ${seat.option}` : 'with no option';
+    fail(at, `a second line for ${JSON.stringify(seat.seat)} ${where}; the first is ${said.get(key)}`);
+  } else {
+    said.set(key, at);
+  }
+}
+
+// A finding that stayed open: the seat that raised it, and one line.
+function checkFinding(finding, at, fail) {
+  if (!isObject(finding)) return fail(at, 'must be an object');
+  unknownKeys(finding, KEYS.finding, at, fail);
+  need(finding, 'seat', isText, TEXT, at, fail);
+  need(finding, 'line', isText, TEXT, at, fail);
 }
 
 function checkRecommendation(recommendation, letters, fail) {
@@ -222,9 +257,9 @@ h2 { margin: 2.25rem 0 0.75rem; font-size: 1.125rem; }
 h3 { margin: 0 0 0.5rem; font-size: 1.0625rem; line-height: 1.35; }
 p { margin: 0 0 0.5rem; }
 .options h2 { margin-top: 0; }
-/* auto-fill keeps every column, so a lone item stays one column wide and its picture is not blown up. */
-.grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr)); }
-.option, .item { padding: 1rem; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+/* The options and the gallery's items are stacked, one under the other, each as wide as the page: a picture
+   is then shown whole at the page's width, or at its own when that is less, and never cropped. */
+.option, .item { margin: 0 0 1rem; padding: 1rem; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
 .letter {
   display: inline-block;
   min-width: 1.75em;
@@ -234,22 +269,19 @@ p { margin: 0 0 0.5rem; }
   border-radius: 4px;
   text-align: center;
 }
-.pictures { display: grid; gap: 0.5rem; margin-top: 0.75rem; }
-.pictures a { display: block; }
+/* Pictures side by side while they fit, each at its own width; one wider than the page shrinks to it. */
+.pictures { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 1rem; margin-top: 0.75rem; }
 .pictures img {
   display: block;
-  width: 100%;
+  max-width: 100%;
   height: auto;
-  max-height: 32rem;
-  object-fit: cover;
-  object-position: top;
   background: var(--page);
   border: 1px solid var(--line);
   border-radius: 4px;
 }
-.seats ul { margin: 0; padding: 0; list-style: none; }
-.seats li { padding: 0.6rem 0; border-top: 1px solid var(--line); }
-.seats li:last-child { border-bottom: 1px solid var(--line); }
+.seats ul, .findings ul { margin: 0; padding: 0; list-style: none; }
+.seats li, .findings li { padding: 0.6rem 0; border-top: 1px solid var(--line); }
+.seats li:last-child, .findings li:last-child { border-bottom: 1px solid var(--line); }
 .on { display: inline-block; margin: 0 0.35em; padding: 0 0.4em; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; font-size: 0.875rem; }
 .pick { font-weight: 600; }
 .question { margin-top: 2.5rem; padding: 1.25rem; background: var(--surface); border: 2px solid var(--strong); border-radius: 6px; }
@@ -277,10 +309,8 @@ ${new Markup(STYLE)}</style>
 <h1 class="identity">${identity.design} · ${identity.kind} · ${identity.size} · stage ${identity.stage} of ${identity.of}</h1>
 <section class="options">
 <h2>The options</h2>
-<div class="grid">
-${data.options.map(option => drawShown(html`<span class="letter">${option.letter}</span> ${option.title}`, option, `Option ${option.letter}`, 'option'))}</div>
-</section>
-${drawGallery(data.gallery)}${drawSeats(data.seats)}<section class="recommendation">
+${data.options.map(option => drawShown(html`<span class="letter">${option.letter}</span> ${option.title}`, option, `Option ${option.letter}`, 'option'))}</section>
+${drawGallery(data.gallery)}${drawSeats(data.seats)}${drawFindings(data.findings ?? [])}<section class="recommendation">
 <h2>The recommendation</h2>
 <p class="pick">Option ${recommended.letter}: ${recommended.title}</p>
 <p>${data.recommendation.reason}</p>
@@ -308,9 +338,7 @@ function drawGallery(gallery) {
   if (!gallery) return '';
   return html`<section class="gallery">
 <h2>${gallery.title}</h2>
-<div class="grid">
-${gallery.items.map((item, i) => drawShown(item.title, item, `Gallery item ${i + 1}`, 'item'))}</div>
-</section>
+${gallery.items.map((item, i) => drawShown(item.title, item, `Gallery item ${i + 1}`, 'item'))}</section>
 `;
 }
 
@@ -328,6 +356,17 @@ ${lines}</ul>
 `;
 }
 
+// The findings that stayed open after the fix round, each with the seat that raised it.
+function drawFindings(findings) {
+  if (findings.length === 0) return '';
+  return html`<section class="findings">
+<h2>Open findings</h2>
+<ul>
+${findings.map(finding => html`<li><strong>${finding.seat}</strong> ${finding.line}</li>\n`)}</ul>
+</section>
+`;
+}
+
 // ---- the command line
 
 const USAGE = `Usage: node scripts/page.mjs <decision.json> --out <decision.html>
@@ -335,16 +374,19 @@ const USAGE = `Usage: node scripts/page.mjs <decision.json> --out <decision.html
 Builds the decision page, the one screen put in front of the founder at a gate, from a small data file
 (templates/outputs/decision.json is a filled sample). The page opens with the identity line, design ·
 kind · size · stage n of m; then the options as pictures, the gallery when there is one, one line per
-seat, the recommendation with one sentence of reason, and last the one question. It is one file: its
-styles inline, a light and a dark set, no script; the pictures are referenced by the paths the data
-gives, relative to the page, never copied.
+seat, the findings that stayed open when there are any (templates/outputs/decision-approve.json), the
+recommendation with one sentence of reason, and last the one question. It is one file: its styles
+inline, a light and a dark set, no script; the pictures are referenced by the paths the data gives,
+relative to the page, never copied, and each is shown whole and links to its file.
 
 The data is refused, and nothing is written, when it asks more than one question (more than one
 question mark in all: "?", "\uFF1F" or "\u061F"); when the reason is more than one sentence; when the
 recommendation or a seat names an option that is not on the page; when an option has no letter or
-shows neither a picture nor a line; when two options share a letter; when the identity lacks any of
-design, kind, size, stage and of; when a key is unknown; or, the page finding its pictures from its
-own folder, when a picture it names is not a file in the folder of --out.
+shows neither a picture nor a line; when two options share a letter; when a seat says two lines on one
+option, or two on none; when an open finding lacks its seat or its line; when a picture path holds "#",
+"?" or "%"; when the identity lacks any of design, kind, size, stage and of; when a key is unknown; or,
+the page finding its pictures from its own folder,
+when a picture it names is not a file in the folder of --out.
 
   --out <decision.html>   the page to write, not the data itself; its folder is made when it is not
                           there
@@ -400,7 +442,7 @@ function isFile(path) {
 
 function build({ path, out }) {
   if (sameFile(out, path)) throw new UsageError('--out is the decision data itself: building would overwrite it');
-  const data = readProposalFile(path);
+  const data = readJsonFile(path);
   const errors = validateDecision(data);
   if (errors.length) throw new Failure(`cannot build the decision page from ${path}:\n${errors.join('\n')}`);
   const missing = missingPicture(data, dirname(out));
@@ -418,7 +460,8 @@ function build({ path, out }) {
     throw new Failure(`cannot write ${out}: ${reason(e)}`);
   }
   const gallery = data.gallery ? `, a gallery of ${data.gallery.items.length}` : '';
-  process.stdout.write(`built ${out}: ${plural(data.options.length, 'option')}${gallery}, ${plural(data.seats.length, 'seat')}, one question\n`);
+  const findings = data.findings?.length ? `, ${plural(data.findings.length, 'open finding')}` : '';
+  process.stdout.write(`built ${out}: ${plural(data.options.length, 'option')}${gallery}, ${plural(data.seats.length, 'seat')}${findings}, one question\n`);
 }
 
 function main(argv) {
@@ -430,7 +473,7 @@ function main(argv) {
     if (e instanceof UsageError) {
       process.stderr.write(`${e.message}\n\n${USAGE}`);
       process.exitCode = 2;
-    } else if (e instanceof Failure || e instanceof ProposalFileError) {
+    } else if (e instanceof Failure || e instanceof JsonFileError) {
       process.stderr.write(`${e.message}\n`);
       process.exitCode = 1;
     } else {

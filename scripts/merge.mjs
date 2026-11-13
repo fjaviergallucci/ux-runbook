@@ -6,7 +6,7 @@
 // Exit codes: 0 success · 1 a refusal · 2 bad usage.
 import { UsageError, isMain, parseArgs } from './lib/cli.mjs';
 import { MAP, MAX_SEED, MergeError, PICK, mergeProposals, openMap } from './lib/merge.mjs';
-import { ProposalFileError } from './lib/proposal-file.mjs';
+import { ProposalFileError } from './lib/json-file.mjs';
 
 const USAGE = `Usage: node scripts/merge.mjs <proposals dir> --out <board dir> [--seed <n>]
        node scripts/merge.mjs open <board dir>

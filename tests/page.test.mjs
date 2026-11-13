@@ -3,18 +3,31 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { deflateSync } from 'node:zlib';
+import { chromium } from 'playwright-core';
+import { findChrome } from '../scripts/lib/chrome.mjs';
+import { JsonFileError, ProposalFileError, readJsonFile, readProposalFile } from '../scripts/lib/json-file.mjs';
 import { renderDecision, validateDecision } from '../scripts/page.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const cli = join(here, '..', 'scripts', 'page.mjs');
 const samplePath = join(here, '..', 'templates', 'outputs', 'decision.json');
+const approvePath = join(here, '..', 'templates', 'outputs', 'decision-approve.json');
 mkdirSync(join(here, '.tmp'), { recursive: true });
 const root = mkdtempSync(join(here, '.tmp', 'page-'));
 after(() => rmSync(root, { recursive: true, force: true }));
 
 // A fresh copy of the sample each time, to change at will.
 const sample = () => JSON.parse(readFileSync(samplePath, 'utf8'));
+const approveSample = () => JSON.parse(readFileSync(approvePath, 'utf8'));
+// The sample with two open findings, as an approve-stage page carries them.
+const withFindings = () => changed(d => {
+  d.findings = [
+    { seat: 'judge.accessibility', line: 'Partly fixed: focus in the booking dialog starts on Cancel.' },
+    { seat: 'judge.truth', line: 'Still present: the empty state promises a waiting list the product does not have.' },
+  ];
+});
 const count = (text, part) => text.split(part).length - 1;
 const bodyOf = page => page.match(/<body>\n([\s\S]*)<\/body>/)[1];
 const sectionOf = (page, name) => page.match(new RegExp(`<section class="${name}">\\n[\\s\\S]*?\\n</section>\\n`))?.[0];
@@ -45,6 +58,56 @@ test('the sample decision.json is valid: the room-booking surface "today", three
   assert.ok(!text.includes('\r'), 'LF line endings');
   assert.doesNotMatch(text, /\bVerbato\b/i);
   assert.doesNotMatch(text, /\bVersa\b/);
+});
+
+test('the approve sample is valid: one option, two seat lines, two open findings, a recommendation to approve', () => {
+  const data = approveSample();
+  valid(data);
+  assert.deepEqual([data.options.length, data.seats.length, data.findings.length], [1, 2, 2]);
+  assert.equal(data.recommendation.option, 'A');
+  assert.match(data.recommendation.reason, /^Approve/);
+  assert.equal(data.identity.design, 'today');
+  const text = readFileSync(approvePath, 'utf8');
+  assert.ok(!text.includes('\r'), 'LF line endings');
+  assert.doesNotMatch(text, /\bVerbato\b/i);
+  assert.doesNotMatch(text, /\bVersa\b/);
+});
+
+test('open findings are a list of a seat and a line each, both text; an empty list or none is allowed', () => {
+  valid(withFindings(), 'two findings');
+  valid(changed(d => (d.findings = [])), 'an empty list');
+  valid(sample(), 'none');
+  const bad = d => d.findings[1];
+  const cases = [
+    [d => (d.findings = { seat: 'judge.truth' }), /^decision: "findings" must be a list of findings, each a seat and a line/],
+    [d => (d.findings[1] = 'Still present'), /^findings\[1\]: must be an object$/],
+    [d => delete bad(d).seat, /^findings\[1\]: "seat" is missing$/],
+    [d => (bad(d).seat = ' '), /^findings\[1\]: "seat" must be a line of text/],
+    [d => delete bad(d).line, /^findings\[1\]: "line" is missing$/],
+    [d => (bad(d).line = ''), /^findings\[1\]: "line" must be a line of text/],
+    [d => (bad(d).option = 'A'), /^findings\[1\]: unknown key "option"$/],
+  ];
+  for (const [change, pattern] of cases) {
+    const data = withFindings();
+    change(data);
+    refuses(data, pattern, String(pattern));
+  }
+});
+
+test('a seat says at most one line on each option, and at most one line on no option; a second is refused naming both', () => {
+  refuses(changed(d => d.seats.push({ seat: 'judge.profile', line: 'B again.', option: 'B' })), /^seats\[4\]: a second line for "judge\.profile" on option B; the first is seats\[0\]$/);
+  refuses(changed(d => d.seats.push({ seat: 'judge.truth', line: 'Again.' })), /^seats\[4\]: a second line for "judge\.truth" with no option; the first is seats\[1\]$/);
+  // The same seat on another option, or on none beside one on an option, is another line.
+  valid(changed(d => d.seats.push({ seat: 'judge.profile', line: 'A is slower.', option: 'A' })), 'another option');
+  valid(changed(d => d.seats.push({ seat: 'judge.profile', line: 'On the whole, B.' })), 'no option beside an option');
+  valid(changed(d => d.seats.push({ seat: 'judge.truth', line: 'C holds a fact the product lacks.', option: 'C' })), 'an option beside none');
+  // Two lines with no seat named are two faults of their own, not a second line of one seat.
+  const nameless = changed(d => {
+    delete d.seats[1].seat;
+    delete d.seats[2].seat;
+    delete d.seats[2].option;
+  });
+  assert.deepEqual(validateDecision(nameless), ['seats[1]: "seat" is missing', 'seats[2]: "seat" is missing']);
 });
 
 test('a question with more than one question mark is refused: a decision page asks one question', () => {
@@ -175,6 +238,13 @@ test('an image is a relative path, as written: an absolute path, a URL, a scheme
   }
 });
 
+test('a picture path holding #, ? or % is refused: a browser reads them as part of an address, the disk does not', () => {
+  for (const path of ['shots/A#1.png', 'shots/A?.png', 'shots/A%201280.png', '#', '?', '%']) {
+    refuses(changed(d => (d.options[0].images[1] = path)), /^options\[0\]\.images\[1\]: a picture path cannot hold "#", "\?" or "%": a browser reads them as part of an address, so it would not find the file the disk holds; it is /, path);
+    refuses(changed(d => (d.gallery.items[0].images[0] = path)), /^gallery\.items\[0\]\.images\[0\]: a picture path cannot hold/, `gallery ${path}`);
+  }
+});
+
 test('a seat line that names an option not among the options is refused; a seat names none if it likes', () => {
   refuses(changed(d => (d.seats[0].option = 'Z')), /^seats\[0\]: "option" names "Z", which is no option on this page$/);
   valid(changed(d => delete d.seats[0].option), 'no option');
@@ -208,8 +278,13 @@ test('an unknown key is refused at every level, so a misspelt part never silentl
     ['seats\\[0\\]', d => d.seats[0]],
     ['gallery', d => d.gallery],
     ['gallery\\.items\\[0\\]', d => d.gallery.items[0]],
+    ['findings\\[0\\]', d => d.findings[0]],
   ];
-  for (const [path, at] of levels) refuses(changed(d => (at(d).galery = 'x')), new RegExp(`^${path}: unknown key "galery"$`), path);
+  for (const [path, at] of levels) {
+    const data = withFindings();
+    at(data).galery = 'x';
+    refuses(data, new RegExp(`^${path}: unknown key "galery"$`), path);
+  }
 });
 
 test('validateDecision reports something that is not an object as one error, and every fault in the order of the page', () => {
@@ -239,6 +314,16 @@ test('the page is one self-contained file: inline styles with a light and a dark
   assert.match(style, /@media \(prefers-color-scheme: dark\) \{/);
   assert.doesNotMatch(page, /<script|<link|<iframe|<object|<embed|@import|url\(|@font-face/i);
   assert.doesNotMatch(page, /\bon[a-z]+=/i, 'no event handler');
+  // A picture is shown whole: nothing in the styles crops, clips, fixes a size or hides what overflows.
+  assert.doesNotMatch(style, /max-height|object-fit|object-position|clip|aspect-ratio|overflow\s*:\s*(hidden|clip)/);
+  const picture = style.match(/\.pictures img \{\n([\s\S]*?)\n\}/)[1];
+  assert.match(picture, /max-width: 100%;/);
+  assert.match(picture, /height: auto;/);
+  assert.doesNotMatch(picture, /(^|\s)(width|height|min-width|min-height)\s*:(?!\s*auto;)/m, 'no size of its own but the cap');
+  // Every picture is inside a link to its own file.
+  const pictures = [...page.matchAll(/<img src="([^"]*)"/g)].map(([, src]) => src);
+  assert.equal(pictures.length, 7);
+  for (const src of pictures) assert.equal(count(page, `<a href="${src}"><img src="${src}" `), 1, src);
   // Every reference the page makes is to a picture the data names, by the path as written.
   const named = new Set([...data.options, ...data.gallery.items].flatMap(o => o.images));
   const refs = [...page.matchAll(/\b(?:src|href)="([^"]*)"/g)].map(([, ref]) => ref);
@@ -286,6 +371,25 @@ test('the order: the options, the gallery under its own title, the seats, the re
   assert.equal(count(page, '?'), 1, 'the only question mark on the page is the question');
 });
 
+test('open findings are drawn after the seats\' lines, under "Open findings", each with its seat; none, no section', () => {
+  const data = withFindings();
+  const page = renderDecision(data);
+  const body = bodyOf(page);
+  assert.ok(body.indexOf('class="seats"') < body.indexOf('class="findings"'));
+  assert.ok(body.indexOf('class="findings"') < body.indexOf('class="recommendation"'));
+  assert.equal(sectionOf(page, 'findings'), `<section class="findings">
+<h2>Open findings</h2>
+<ul>
+<li><strong>judge.accessibility</strong> ${data.findings[0].line}</li>
+<li><strong>judge.truth</strong> ${data.findings[1].line}</li>
+</ul>
+</section>
+`);
+  for (const without of [sample(), changed(d => (d.findings = []))]) assert.doesNotMatch(renderDecision(without), /class="findings"|Open findings/);
+  const marked = renderDecision(changed(d => (d.findings = [{ seat: 'judge.<i>truth</i>', line: 'Still <b>present</b> & "open"' }])));
+  assert.ok(marked.includes('<li><strong>judge.&lt;i&gt;truth&lt;/i&gt;</strong> Still &lt;b&gt;present&lt;/b&gt; &amp; &quot;open&quot;</li>'));
+});
+
 test('without a gallery, nothing of one is drawn; without a seat, no seats section', () => {
   const page = renderDecision(changed(d => { delete d.gallery; d.seats = []; }));
   assert.doesNotMatch(page, /class="gallery"|class="seats"|fresh\//);
@@ -316,7 +420,7 @@ test('a line containing <b> is shown escaped', () => {
   assert.doesNotMatch(page, /<b>/);
 });
 
-test('every string of the data goes through the one escape: identity, options, gallery, seats, recommendation, question', () => {
+test('every string of the data goes through the one escape: identity, options, gallery, seats, findings, recommendation, question', () => {
   // Letters and numbers stay; every other string becomes markup of its own, numbered.
   const keep = new Set(['letter', 'option', 'stage', 'of']);
   let made = 0;
@@ -326,7 +430,7 @@ test('every string of the data goes through the one escape: identity, options, g
     if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, hostile(v, k)]));
     return value;
   };
-  const data = hostile(sample());
+  const data = hostile(withFindings());
   assert.deepEqual(validateDecision(data), []);
   const page = renderDecision(data);
   const numberOf = text => Number(text.match(/"(\d+)"/)[1]);
@@ -338,7 +442,7 @@ test('every string of the data goes through the one escape: identity, options, g
     const escaped = `&lt;b title=&quot;x&quot;&gt;&#39;Tom &amp; Jerry&#39; &quot;${n}&quot;&lt;/b&gt;`;
     assert.equal(count(page, escaped), twice.has(n) || paths.has(n) ? 2 : 1, `string ${n}`);
   }
-  assert.ok(made > 25, `${made} strings`);
+  assert.ok(made > 30, `${made} strings`);
   assert.doesNotMatch(page, /<b[\s>]|Tom & Jerry|'Tom|"\d+"/);
 });
 
@@ -379,6 +483,19 @@ test('render and the decision page escape through the one shared escape, lib/htm
   }
 });
 
+test('a JSON file is read one way, by lib/json-file.mjs, under its own name and under the name render and merge use', () => {
+  assert.equal(readProposalFile, readJsonFile);
+  assert.equal(ProposalFileError, JsonFileError);
+  assert.ok(!existsSync(join(here, '..', 'scripts', 'lib', 'proposal-file.mjs')), 'the old module is gone');
+  for (const name of ['page.mjs', 'shots.mjs', 'render.mjs', 'merge.mjs', join('lib', 'merge.mjs')]) {
+    const source = readFileSync(join(here, '..', 'scripts', name), 'utf8');
+    assert.match(source, /from '\.\.?\/(lib\/)?json-file\.mjs';/, name);
+    assert.doesNotMatch(source, /proposal-file/, name);
+  }
+  const page = readFileSync(cli, 'utf8');
+  assert.match(page, /import \{ JsonFileError, readJsonFile, reason \} from '\.\/lib\/json-file\.mjs';/);
+});
+
 test('no product name appears in the decision page script', () => {
   const text = readFileSync(cli, 'utf8');
   assert.doesNotMatch(text, /\bVerbato\b/i);
@@ -407,6 +524,94 @@ const writeData = (dir, data) => {
   writeFileSync(file, typeof data === 'string' ? data : JSON.stringify(data, null, 2));
   return file;
 };
+
+// ---- the pictures, as Chrome shows them
+
+// A PNG of one grey, of the size asked: the signature, then IHDR, the rows deflated and IEND, each chunk
+// with its CRC (written here: zlib.crc32 is newer than the Node the package names).
+const CRC_TABLE = Array.from({ length: 256 }, (_, n) => {
+  let c = n;
+  for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+  return c >>> 0;
+});
+const crc32 = bytes => {
+  let c = 0xffffffff;
+  for (const byte of bytes) c = CRC_TABLE[(c ^ byte) & 0xff] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+};
+const pngChunk = (type, data) => {
+  const length = Buffer.alloc(4);
+  length.writeUInt32BE(data.length);
+  const body = Buffer.concat([Buffer.from(type, 'latin1'), data]);
+  const crc = Buffer.alloc(4);
+  crc.writeUInt32BE(crc32(body));
+  return Buffer.concat([length, body, crc]);
+};
+const greyPng = (width, height) => {
+  const header = Buffer.alloc(13);
+  header.writeUInt32BE(width, 0);
+  header.writeUInt32BE(height, 4);
+  header[8] = 8; // eight bits a pixel, greyscale
+  const row = Buffer.alloc(width + 1, 0x99);
+  row[0] = 0; // no filter
+  const signature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  return Buffer.concat([signature, pngChunk('IHDR', header), pngChunk('IDAT', deflateSync(Buffer.concat(Array(height).fill(row)))), pngChunk('IEND', Buffer.alloc(0))]);
+};
+
+test('in Chrome, at 1280 and 390, every picture is whole and a link to itself; a phone picture keeps its own width wherever the page holds it', async () => {
+  const dir = fresh();
+  const data = sample();
+  // Each wide picture 1280 by 1600, each phone picture (and the gallery's) 390 by 2400.
+  for (const image of picturesOf(data)) {
+    mkdirSync(dirname(join(dir, image)), { recursive: true });
+    writeFileSync(join(dir, image), image.includes('-1280-') ? greyPng(1280, 1600) : greyPng(390, 2400));
+  }
+  const file = join(dir, 'decision.html');
+  writeFileSync(file, renderDecision(data));
+  const browser = await chromium.launch({ executablePath: findChrome(), headless: true });
+  try {
+    for (const width of [1280, 390]) {
+      const context = await browser.newContext({ viewport: { width, height: 900 }, deviceScaleFactor: 1, reducedMotion: 'reduce' });
+      const page = await context.newPage();
+      await page.goto(pathToFileURL(file).href);
+      const seen = await page.evaluate(() => ({
+        overflow: document.documentElement.scrollWidth > innerWidth,
+        pictures: [...document.images].map(img => ({
+          src: img.getAttribute('src'),
+          loaded: img.complete && img.naturalWidth > 0,
+          link: img.parentElement.tagName === 'A' && img.parentElement.getAttribute('href') === img.getAttribute('src'),
+          fit: getComputedStyle(img).objectFit,
+          natural: [img.naturalWidth, img.naturalHeight],
+          shown: [img.clientWidth, img.clientHeight],
+        })),
+      }));
+      assert.equal(seen.overflow, false, `${width}: the page is no wider than the screen`);
+      assert.equal(seen.pictures.length, 7);
+      for (const { src, loaded, link, fit, natural, shown } of seen.pictures) {
+        const at = `${width}: ${src}, shown ${shown.join('x')} of ${natural.join('x')}`;
+        assert.ok(loaded && link && fit === 'fill', at);
+        assert.ok(Math.abs(shown[1] - (shown[0] * natural[1]) / natural[0]) <= 1, `${at}: whole, never cropped`);
+        assert.ok(shown[0] <= natural[0], `${at}: never blown up`);
+        if (width === 1280) assert.ok(natural[0] === 390 ? shown[0] === 390 : shown[0] >= 1100, `${at}: readable`);
+        else assert.ok(shown[0] >= 300, `${at}: as wide as the phone allows`);
+      }
+      await context.close();
+    }
+  } finally {
+    await browser.close();
+  }
+});
+
+test('the CLI builds the approve sample and counts its open findings', () => {
+  const dir = fresh();
+  const input = writeData(dir, approveSample());
+  placePictures(dir, approveSample());
+  const out = join(dir, 'decision.html');
+  const r = run(input, '--out', out);
+  assert.deepEqual([r.status, r.stderr], [0, '']);
+  assert.equal(r.stdout, `built ${out}: 1 option, 2 seats, 2 open findings, one question\n`);
+  assert.match(readFileSync(out, 'utf8'), /<h2>Open findings<\/h2>/);
+});
 
 test('the CLI builds the page from decision.json, in folders named with two words, and says where', () => {
   const dir = fresh();

@@ -16,7 +16,7 @@
 import { randomInt, randomUUID } from 'node:crypto';
 import { lstatSync, mkdirSync, readdirSync, readFileSync, realpathSync, renameSync, rmdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { basename, dirname, isAbsolute, join, parse, relative, sep } from 'node:path';
-import { readProposalFile, reason } from './proposal-file.mjs';
+import { readProposalFile, reason } from './json-file.mjs';
 import { ORDER, validate } from './walkthrough.mjs';
 
 // The author map and the founder's pick: file names in the board folder's parent, beside the board. The map

@@ -1,6 +1,6 @@
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
@@ -54,6 +54,22 @@ const pngSize = file => {
   return { width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20) };
 };
 const messagesOf = (result, file) => result.errors.filter(e => e.file === file).map(e => e.message);
+// A one-pixel picture, for a server to answer with.
+const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
+// A server that never answers for /held.css, and answers nothing else; closing it drops what it held.
+const holding = async () => {
+  const server = createServer(() => {});
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  return { at: `http://127.0.0.1:${server.address().port}`, close: () => (server.closeAllConnections(), server.close()) };
+};
+// The folder of the four page shapes that once ended a run: a resource addressed //host, a refresh to another
+// page, a script that sends the page to another, and the good page they are sent to.
+const strayPages = dir => ({
+  fine: page(dir, 'fine.html', '<p>The page they are sent to.</p>'),
+  host: page(dir, 'host.html', '<p>Fonts from a host.</p>', '<link rel="stylesheet" href="//fonts.example.invalid/x.css">\n'),
+  meta: page(dir, 'redirect-meta.html', '<p>Refreshed away.</p>', '<meta http-equiv="refresh" content="0; url=fine.html">\n'),
+  script: page(dir, 'redirect-script.html', '<script>location.href = "fine.html"</script>\n<p>Sent away.</p>'),
+});
 
 // A Chrome that writes its process id to a file and then becomes the real one. Playwright starts it as the
 // leader of a process group of its own, so every process the launch started carries that id as its group.
@@ -64,7 +80,13 @@ const countingChrome = dir => {
   chmodSync(file, 0o755);
   return { file, pids: () => (existsSync(pids) ? readFileSync(pids, 'utf8').trim().split('\n').map(Number) : []) };
 };
-const inGroup = pgid => spawnSync('ps', ['-A', '-o', 'pgid='], { encoding: 'utf8' }).stdout.split('\n').filter(line => Number(line.trim()) === pgid).length;
+// The processes of one group still running: a zombie (state Z) has ended, and only waits for its parent,
+// which may be a subreaper that reaps late, to collect it.
+const inGroup = pgid =>
+  spawnSync('ps', ['-A', '-o', 'pgid=,stat='], { encoding: 'utf8' })
+    .stdout.split('\n')
+    .map(line => line.trim().split(/\s+/))
+    .filter(([group, state]) => Number(group) === pgid && !state.startsWith('Z')).length;
 // The processes still alive in a group once it has had three seconds to wind down. Whatever is left is
 // killed, so a failing test never leaves a browser behind either.
 const leftIn = async pgid => {
@@ -126,29 +148,107 @@ test('an uncaught rejection, a console error, a missing stylesheet and a broken 
   assert.equal(result.files.length, 10, 'every picture is taken');
 });
 
-test('a resource answered with an HTTP error is a failed request; one answered 200 is not', async () => {
-  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
-  const server = createServer((request, response) => {
-    if (request.url === '/room.png') response.writeHead(200, { 'content-type': 'image/png' }).end(png);
-    else response.writeHead(404).end();
-  });
+test('a resource answered with an HTTP status from 400 is a failed request; one answered 200 or 399 is not', async () => {
+  // A picture answered with the status its path names.
+  const server = createServer((request, response) => response.writeHead(Number(request.url.slice(1, 4)), { 'content-type': 'image/png' }).end(PNG));
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   try {
     const at = `http://127.0.0.1:${server.address().port}`;
     const dir = fresh();
-    const file = page(dir, 'remote.html', `<img src="${at}/room.png" alt="here">\n<img src="${at}/gone.png" alt="gone">`);
+    const file = page(dir, 'remote.html', ['200', '399', '400', '404'].map(code => `<img src="${at}/${code}.png" alt="${code}">`).join('\n'));
     const result = await shoot([file], { out: join(dir, 'shots'), widths: [390] });
-    assert.deepEqual(result.errors, [{ file, message: `${at}/gone.png did not load: HTTP 404` }]);
+    assert.deepEqual(result.errors, [
+      { file, message: `${at}/400.png did not load: HTTP 400` },
+      { file, message: `${at}/404.png did not load: HTTP 404` },
+    ]);
   } finally {
     server.close();
   }
 });
 
-test('a navigation that fails is an error: a page that sends itself to a file that is not there', async () => {
+test('a navigation that fails is an error: a page that sends itself to a file that is not there, said once, and not pictured', async () => {
   const dir = fresh();
   const leaves = page(dir, 'leaves.html', '<script>location.href = "gone.html"</script>');
   const result = await shoot([leaves], { out: join(dir, 'shots'), widths: [390] });
-  assert.deepEqual(result.errors, [{ file: leaves, message: 'gone.html did not open: net::ERR_FILE_NOT_FOUND' }]);
+  assert.deepEqual(result.errors, [{ file: leaves, message: 'the page sent itself to gone.html, which did not open: net::ERR_FILE_NOT_FOUND' }]);
+  assert.deepEqual([result.files, result.titles], [[], {}]);
+});
+
+test('shoot never dies on a page: a //host resource, a refresh and a script that send the page away are errors of their own pages, and the run goes on', async () => {
+  const dir = fresh();
+  const pages = strayPages(dir);
+  const out = join(dir, 'shots');
+  // Older pictures under the names of the pages that leave: a judge must never read them.
+  mkdirSync(out);
+  for (const name of ['redirect-meta-390-light.png', 'redirect-script-1280-light.png']) writeFileSync(join(out, name), 'an older picture');
+  // Four contexts: a page that leaves is closed four times while it moves, which once hung Chrome for good.
+  let result;
+  try {
+    result = await shoot([dir], { out, widths: [1280, 390], themes: ['light', 'dark'] });
+  } catch (e) {
+    assert.fail(`shoot rejected: ${e.stack}`);
+  }
+  assert.deepEqual(result.errors, [
+    { file: pages.host, message: 'file://fonts.example.invalid/x.css did not load: net::ERR_INVALID_URL' },
+    { file: pages.meta, message: 'the page sent itself to fine.html' },
+    { file: pages.script, message: 'the page sent itself to fine.html' },
+  ]);
+  const pictured = ['1280-light', '1280-dark', '390-light', '390-dark'].flatMap(at => [`fine-${at}.png`, `host-${at}.png`]);
+  assert.deepEqual(result.files.map(file => basename(file)), pictured);
+  assert.deepEqual(readdirSync(out).sort(), [...pictured].sort());
+  assert.deepEqual(Object.keys(result.titles), [pages.fine, pages.host], 'a page that left has no title of its own');
+});
+
+test('a frame inside the page that goes nowhere is a resource that did not open; a frame that opens is nothing; neither moves the page', async () => {
+  const dir = fresh();
+  page(dir, 'inner.html', '<p>Inside.</p>');
+  const framed = page(dir, 'framed.html', '<iframe src="inner.html"></iframe>\n<iframe src="missing.html"></iframe>');
+  const result = await shoot([framed], { out: join(dir, 'shots'), widths: [390] });
+  assert.deepEqual(result.errors, [{ file: framed, message: 'missing.html did not open: net::ERR_FILE_NOT_FOUND' }]);
+  assert.deepEqual(result.files.map(file => basename(file)), ['framed-390-light.png']);
+});
+
+test('a page that only changes the part of its address after # stays its own page, and is pictured', async () => {
+  const dir = fresh();
+  // On a file page Chrome lets a script change nothing of the address but what follows the #.
+  const replaced = page(dir, 'replaced.html', '<script>history.replaceState(null, "", "#state"); location.hash = "later"</script>\n<p>Still here.</p>');
+  const result = await shoot([replaced], { out: join(dir, 'shots'), widths: [390] });
+  assert.deepEqual([result.errors, result.files.map(file => basename(file))], [[], ['replaced-390-light.png']]);
+});
+
+test('a page that cannot be read, or cannot be pictured, is an error of its own, with no picture; the run goes on', async () => {
+  const dir = fresh();
+  const unread = page(dir, 'a-unread.html', '<script>document.documentElement.remove()</script>');
+  const huge = page(dir, 'b-huge.html', '<div style="height: 100000000px">Taller than any picture.</div>', '<style>html, body { margin: 0 }</style>\n');
+  const busy = page(dir, 'c-busy.html', '<script>addEventListener("load", () => setTimeout(() => { for (;;); }))</script>\n<p>Busy for ever.</p>');
+  const fine = page(dir, 'd-fine.html', '<p>Fine.</p>');
+  const out = join(dir, 'shots');
+  const result = await shoot([dir], { out, widths: [390], timeout: 2000 });
+  assert.equal(messagesOf(result, unread).length, 1, JSON.stringify(result.errors));
+  assert.match(messagesOf(result, unread)[0], /^the page could not be read: .*scrollWidth/);
+  assert.equal(messagesOf(result, huge).length, 1, JSON.stringify(result.errors));
+  assert.match(messagesOf(result, huge)[0], /^the picture could not be taken: /);
+  assert.deepEqual(messagesOf(result, busy), ['the page could not be read: it gave no answer within 2000 ms']);
+  assert.deepEqual(result.files, [join(out, 'd-fine-390-light.png')]);
+  assert.deepEqual(Object.keys(result.titles), [fine]);
+});
+
+test('a page that does not finish loading within the timeout is an error naming it; an older picture of it is removed', async () => {
+  const server = await holding();
+  try {
+    const dir = fresh();
+    const slow = page(dir, 'slow.html', '<p>Waits for its stylesheet.</p>', `<link rel="stylesheet" href="${server.at}/held.css">\n`);
+    const fine = page(dir, 'fine.html', '<p>Fine.</p>');
+    const out = join(dir, 'shots');
+    mkdirSync(out);
+    writeFileSync(join(out, 'slow-390-light.png'), 'an older picture');
+    const result = await shoot([dir], { out, widths: [390], timeout: 1500 });
+    assert.deepEqual(result.errors, [{ file: slow, message: 'slow.html did not finish loading within 1500 ms' }]);
+    assert.deepEqual(readdirSync(out), ['fine-390-light.png']);
+    assert.equal(result.titles[fine], 'fine.html');
+  } finally {
+    server.close();
+  }
 });
 
 test('a page Chrome may not open is an error, said once, and no picture is taken of it', async t => {
@@ -317,6 +417,7 @@ test('bad options are refused as a TypeError: inputs, out, widths, themes', asyn
   bad.push([[board], { out, widths: [390, 1280, 390] }, /^390 is given twice$/]);
   for (const themes of ['light', [], ['sepia'], ['Light'], [null]]) bad.push([[board], { out, widths: [390], themes }, /^themes must be/]);
   bad.push([[board], { out, widths: [390], themes: ['dark', 'dark'] }, /^dark is given twice$/]);
+  for (const timeout of [0, -1, 1.5, '30000', null]) bad.push([[board], { out, widths: [390], timeout }, /^timeout must be a whole number of milliseconds from 1/]);
   for (const [inputs, options, message] of bad) {
     await assert.rejects(shoot(inputs, options), e => e instanceof TypeError && message.test(e.message), `${JSON.stringify(inputs)} ${JSON.stringify(options)}`);
   }
@@ -499,6 +600,10 @@ test('the CLI exits 2 for bad usage, with the usage, and makes nothing', () => {
     [[board, '--out', out, '--widths', '390', '--themes', 'light,'], '--themes must be light, dark or both, joined by a comma; it is "light,"'],
     [[board, '--out', out, '--widths', '390', '--themes', 'dark,dark'], '--themes names dark twice'],
     [[board, '--out', out, '--widths', '390', '--allow-errors=yes'], '--allow-errors takes no value'],
+    [[board, '--out', out, '--widths', '390', '--timeout', '0'], '--timeout must be a whole number of milliseconds from 1, as 30000; it is "0"'],
+    [[board, '--out', out, '--widths', '390', '--timeout', '1.5'], '--timeout must be a whole number of milliseconds from 1, as 30000; it is "1.5"'],
+    [[board, '--out', out, '--widths', '390', '--timeout', '2s'], '--timeout must be a whole number of milliseconds from 1, as 30000; it is "2s"'],
+    [[board, '--out', out, '--widths', '390', '--timeout', '99999999999999999999'], '--timeout must be a whole number of milliseconds from 1, as 30000; it is "99999999999999999999"'],
     [[board, '--out', out, '--widths', '390', '--kit', 'grey'], 'unknown flag --kit'],
   ];
   for (const [args, message] of cases) {
@@ -538,15 +643,88 @@ test('the CLI closes the browser when it is refused part-way, and says so with e
   assert.equal(await leftIn(pids[0]), 0, 'no process of that Chrome is left');
 });
 
-test('a Chrome that does not start is refused with exit 1, and nothing is left running', { skip: !UNIX && 'needs a shell script for Chrome' }, () => {
+test('a Chrome that does not start is refused with exit 1, and nothing is left running', { skip: !UNIX && 'needs a shell script for Chrome' }, async () => {
   const dir = fresh();
   const broken = join(dir, 'broken chrome.sh');
-  writeFileSync(broken, '#!/bin/sh\necho "this is no browser" >&2\nexit 3\n');
+  const pids = join(dir, 'broken.pids');
+  // It starts a child that would outlive it, then fails: the launch's whole process group must be gone.
+  writeFileSync(broken, `#!/bin/sh\necho $$ >> '${pids}'\nsleep 30 </dev/null >/dev/null 2>&1 3>&- 4>&- &\necho "this is no browser" >&2\nexit 3\n`);
   chmodSync(broken, 0o755);
   const r = run(board, '--out', join(dir, 'shots'), '--widths', '390', '--chrome', broken);
   assert.equal(r.status, 1, r.stderr);
   assert.match(r.stderr, new RegExp(`^Chrome at ${broken.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} did not start: .+\n$`));
   assert.equal(r.stdout, '');
+  const started = readFileSync(pids, 'utf8').trim().split('\n').map(Number);
+  assert.equal(started.length, 1, 'it was started once');
+  assert.equal(await leftIn(started[0]), 0, 'no process of that launch is left');
+});
+
+test('the CLI goes on past every page that once ended a run, says each, and exits 1', () => {
+  const dir = fresh();
+  const pages = strayPages(dir);
+  const out = join(dir, 'shots');
+  const r = run(dir, '--out', out, '--widths', '390');
+  assert.equal(r.status, 1, r.stderr);
+  assert.equal(r.stdout, `shot 2 pictures at 390 px, light, into ${out}\n`);
+  assert.equal(r.stderr, [
+    `error: ${pages.host}: file://fonts.example.invalid/x.css did not load: net::ERR_INVALID_URL\n`,
+    `error: ${pages.meta}: the page sent itself to fine.html\n`,
+    `error: ${pages.script}: the page sent itself to fine.html\n`,
+  ].join(''));
+  assert.deepEqual(readdirSync(out).sort(), ['fine-390-light.png', 'host-390-light.png']);
+});
+
+test('a report the page makes that cannot be read is an error of that page, and the run goes on', () => {
+  const dir = fresh();
+  const trapped = page(dir, 'a-trapped.html', '<img src="trap.png" alt="a picture that is not there">');
+  page(dir, 'b-fine.html', '<p>Fine.</p>');
+  // Reading a file address fails in a way it never does, for the trap only: inside a listener.
+  const fault = join(dir, 'fault.cjs');
+  writeFileSync(fault, [
+    "const url = require('node:url');",
+    "const { syncBuiltinESMExports } = require('node:module');",
+    'const toPath = url.fileURLToPath;',
+    "url.fileURLToPath = (address, ...rest) => { if (String(address).endsWith('/trap.png')) throw new Error('a listener fault'); return toPath(address, ...rest); };",
+    'syncBuiltinESMExports();',
+  ].join('\n'));
+  const out = join(dir, 'shots');
+  const r = spawnSync(process.execPath, ['--require', fault, cli, dir, '--out', out, '--widths', '390'], { encoding: 'utf8', timeout: 60_000 });
+  assert.equal(r.status, 1, r.stderr);
+  // The failed request the listener could not record is not known as failed, so Chrome's own console line
+  // about it is said too: the two reports the page made, each once.
+  assert.equal(r.stderr, [
+    `error: ${trapped}: console error: Failed to load resource: net::ERR_FILE_NOT_FOUND\n`,
+    `error: ${trapped}: a report from the page could not be read: a listener fault\n`,
+  ].join(''));
+  assert.deepEqual(readdirSync(out).sort(), ['a-trapped-390-light.png', 'b-fine-390-light.png']);
+});
+
+test('--timeout limits how long a page is given: one error naming the page, soon', async () => {
+  const server = await holding();
+  try {
+    const dir = fresh();
+    const slow = page(dir, 'slow.html', '<p>Waits for its stylesheet.</p>', `<link rel="stylesheet" href="${server.at}/held.css">\n`);
+    const started = Date.now();
+    // Four pictures of the page: each opening given up after a millisecond is closed before it has landed,
+    // the moment Chrome can hang in. A command that hangs is stopped, and fails.
+    const r = await new Promise(resolve => {
+      const child = spawn(process.execPath, [cli, slow, '--out', join(dir, 'shots'), '--widths', '1280,390', '--themes', 'light,dark', '--timeout', '1'], { cwd: root });
+      let stdout = '';
+      let stderr = '';
+      const stop = setTimeout(() => child.kill('SIGKILL'), 30_000);
+      child.stdout.on('data', chunk => (stdout += chunk));
+      child.stderr.on('data', chunk => (stderr += chunk));
+      child.on('close', status => {
+        clearTimeout(stop);
+        resolve({ status, stdout, stderr });
+      });
+    });
+    assert.equal(r.status, 1, r.stderr);
+    assert.equal(r.stderr, `error: ${slow}: slow.html did not finish loading within 1 ms\n`);
+    assert.ok(Date.now() - started < 15_000, `it took ${Date.now() - started} ms`);
+  } finally {
+    server.close();
+  }
 });
 
 test('the CLI prints its usage for --help and exits 0', () => {
@@ -555,7 +733,8 @@ test('the CLI prints its usage for --help and exits 0', () => {
   assert.ok(r.stdout.startsWith('Usage: node scripts/shots.mjs <file or folder>... --out <folder> --widths <w,w...>'), r.stdout);
   assert.match(r.stdout, /reduced motion/);
   // What a user could trip on, said where they look.
-  assert.match(r.stdout, /A script error raised after the picture is taken is not seen\./);
+  assert.match(r.stdout, /A script error, or a move to another page, raised after the picture is taken is not seen\./);
+  assert.match(r.stdout, /--timeout <ms> +how long a page is given to load, in milliseconds; 30000 when not given/);
   assert.match(r.stdout, /A request Chrome cancels itself \(net::ERR_ABORTED, as a video may\) is reported as an error too\./);
   assert.equal(r.stderr, '');
 });

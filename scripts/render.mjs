@@ -14,7 +14,7 @@ import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'n
 import { basename, dirname, join } from 'node:path';
 import { UsageError, isMain, parseArgs } from './lib/cli.mjs';
 import { html } from './lib/html.mjs';
-import { ProposalFileError, REASONS, readProposalFile, reason } from './lib/proposal-file.mjs';
+import { ProposalFileError, REASONS, readProposalFile, reason } from './lib/json-file.mjs';
 import { SOURCE_ONLY, validate } from './lib/walkthrough.mjs';
 
 // ---- markup
@@ -157,7 +157,7 @@ A flag may also be written --flag=value.
 Exit codes: 0 success · 1 an invalid proposal, an unreadable input or an unwritable output · 2 bad usage.
 `;
 // A failure the command expects and explains in one message: exit 1, without a stack. A proposal file
-// that cannot be read is one too (lib/proposal-file.mjs).
+// that cannot be read is one too (lib/json-file.mjs).
 class Failure extends Error {}
 
 function readArgs(argv) {

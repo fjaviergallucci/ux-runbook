@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { isDeepStrictEqual } from 'node:util';
 import { validate } from '../scripts/lib/walkthrough.mjs';
 import { MergeError, SealedError, mergeProposals, openMap } from '../scripts/lib/merge.mjs';
-import { ProposalFileError, readProposalFile } from '../scripts/lib/proposal-file.mjs';
+import { ProposalFileError, readProposalFile } from '../scripts/lib/json-file.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const cli = join(here, '..', 'scripts', 'merge.mjs');
@@ -1123,7 +1123,7 @@ test('the CLI --help prints the usage, naming both forms, every flag, where the 
 
 test('no product name appears in the merge scripts or the shared reader', () => {
   const scripts = join(here, '..', 'scripts');
-  for (const file of [cli, join(scripts, 'lib', 'merge.mjs'), join(scripts, 'lib', 'proposal-file.mjs'), join(scripts, 'lib', 'cli.mjs')]) {
+  for (const file of [cli, join(scripts, 'lib', 'merge.mjs'), join(scripts, 'lib', 'json-file.mjs'), join(scripts, 'lib', 'cli.mjs')]) {
     const text = readFileSync(file, 'utf8');
     assert.doesNotMatch(text, /\bVerbato\b/i, file);
     assert.doesNotMatch(text, /\bVersa\b/, file);
