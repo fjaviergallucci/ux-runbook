@@ -91,12 +91,15 @@ What it reads is named by its letter or by what it is, never by who made it.
 - **Each judge is blind to the others' ledgers,** to the makers' notes and to the author map. Where two
   profile judges sit, each with a profession's profile of its own, each is blind to the other's ledger
   too. Start the judges of a stage in one message, so that no ledger exists while another judge reads.
+- **A seat is handed what its brief template gives it, and no more.** Where that is a profession's
+  profile, a maker or a judge is handed it whole, and an audience only its traits. A describer and a
+  fresh maker are handed neither the person nor her profession's profile, unless the template says so:
+  what bears on the design is already written into the brief they answer.
 - **An audience is handed the traits of her profession's profile, never the whole of it.** Its brief
   gives the person (her card), where she starts and what she wants, and pictures. Where she has a
   profession's profile, write a copy of it beside the brief with every `So the interface must:` field
   removed, each from its label to the next blank line, and hand her that copy. List her profession's
-  profile itself under "Do not open", with the intent. Makers and judges are handed her profession's
-  profile whole.
+  profile itself under "Do not open", with the intent.
 
 ### Starting a seat
 

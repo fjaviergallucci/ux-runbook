@@ -21,8 +21,8 @@ mean the same here and in every stage's skill:
 - The **board** is the folder of the options at Structure, each under a letter, with nothing in it that
   says who made which.
 
-You hold the order, the state and the gates. You propose no design and you judge none, except to apply
-a correction after his nod (`references/routes.md`).
+You hold the order, the state and the gates. You propose no design and you judge none, except, in a
+design sized `correction`, to apply it after his nod (`references/routes.md`).
 Stages hold procedure, seats hold opinion, the project holds facts: no taste is yours to add.
 
 The kit's root is two directories above this skill's own folder; run a script as
@@ -167,7 +167,8 @@ node <kit root>/scripts/state.mjs route <package> <stage> <full|short|skipped> -
   reaches the board. Nothing is detailed before he has picked a structure, and nothing is drawn finished
   before he has approved the detail.
 - **Never let one agent make and judge.** A maker never judges, a judge never fixes what it found, and
-  you do neither, except to apply a correction after his nod (`references/routes.md`).
+  you do neither, except, in a design sized `correction`, to apply it after his nod
+  (`references/routes.md`).
 - **Never ask more than one question on a page.** One question about one thing at a time, on a decision
   page and in the chat.
 - **Never open the sealed map before `PICK.md` exists.** The map says who made which option. It opens

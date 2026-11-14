@@ -115,16 +115,29 @@ const kitPaths = text => [...new Set([...text.matchAll(KIT_PATH)].map(([path]) =
 // A file of the skill's own references, or a folder of them, as one of its files names it.
 const ownReferences = text => [...new Set([...text.matchAll(/(?<![\w/.-])references\/[\w.-]*\w(?:\/[\w.-]*\w)*/g)].map(([path]) => path))];
 
-// The words of a command: a quoted string or a <placeholder> is part of one word, spaces and all.
-const words = line => line.match(/(?:"[^"]*"|<[^>]*>|[^\s"<]+)+/g) ?? [];
-// What ends a command on a line of shell: the command after it, or a pipe.
+// The words of a command: a quoted string or a <placeholder> is part of one word, spaces and all. A `<` that
+// stands alone is a word of its own: the shell's sign for reading from a file.
+const words = line => line.match(/(?:"[^"]*"|<[^\s<>][^<>]*>|[^\s"<]+)+|</g) ?? [];
+// What ends a command on a line of shell and lets another begin: the command after it, or a pipe.
 const SEPARATORS = Object.freeze(['&&', '||', '|', ';']);
+// What may stand at the start of a line before its command.
+const PROMPTS = Object.freeze(['$', '%', '>']);
+// A setting of the environment, written before the command it is for: NAME=value.
+const isAssignment = word => /^[A-Za-z_]\w*=/.test(word);
+// A redirection ends a command too: `>`, `>>` or `2>`, alone or with its target against it, and `<` alone.
+const isRedirection = word => word === '<' || /^2?>/.test(word);
+// The kit's scripts folder, as a word of a command names it: `scripts/` where a path starts, or after
+// nothing but `./`, `../` or a <placeholder>. In `tests/scripts/x.mjs` and `myscripts/x.mjs` it is another
+// folder's, and an absolute path is not judged.
+const KIT_SCRIPTS = /(?<![\w./-])(?:(?:\.{1,2}|<[^<>]*>)\/)*scripts\//;
 // The commands a text gives that run a script of the kit, from each line of its code fences and then from
-// each of its code spans. A command starts at the word `node` and runs to the end, or to what ends a command
-// in a shell, and it is one of the kit's when a word of it names something under scripts/. So a prompt before
-// it (`$ node …`) and a command before it (`cd … && node …`) are passed over, and `node --version` is not the
-// kit's to check. A command stays on one line: one that a backslash carries on is read as far as the
-// backslash, and refused. In a table row a bar is written `\|`, and is read as the bar it stands for.
+// each of its code spans. A command starts at the word `node`, where a shell would start one: at the start of
+// the line, after a prompt (`$ node …`), after the command before it (`cd … && node …`), or after a setting of
+// the environment (`UX_CHROME=… node …`). So a line of prose in a fence, or a comment, is not a command. It
+// runs to the end, or to what ends a command in a shell, a redirection among them, and it is one of the kit's
+// when a word of it names the kit's scripts folder: `node --version` is not the kit's to check. A command
+// stays on one line: one that a backslash carries on is read as far as the backslash, and refused. In a
+// table row a bar is written `\|`, and is read as the bar it stands for.
 function commandsOf(text) {
   const lines = linesOf(text);
   const prose = lines.filter(({ fenced }) => !fenced).map(({ line }) => (/^\s*\|/.test(line) ? line.replace(/\\\|/g, '|') : line)).join('\n');
@@ -133,9 +146,13 @@ function commandsOf(text) {
     const all = words(line);
     const found = [];
     for (let from = all.indexOf('node'); from !== -1; from = all.indexOf('node', from + 1)) {
-      const end = all.findIndex((word, i) => i > from && SEPARATORS.includes(word));
+      // What leads up to it: settings of the environment, and before them nothing, a prompt, or another command's end.
+      let lead = from;
+      while (lead > 0 && isAssignment(all[lead - 1])) lead--;
+      if (lead > 0 && !SEPARATORS.includes(all[lead - 1]) && !(lead === 1 && PROMPTS.includes(all[0]))) continue;
+      const end = all.findIndex((word, i) => i > from && (SEPARATORS.includes(word) || isRedirection(word)));
       const command = all.slice(from, end === -1 ? undefined : end);
-      if (command.some(word => word.includes('scripts/'))) found.push(command.join(' '));
+      if (command.some(word => KIT_SCRIPTS.test(word))) found.push(command.join(' '));
     }
     return found;
   });
@@ -542,7 +559,8 @@ test('a reference a skill points to is in its own folder, or in a folder of it',
 test('the commands of a text are those that run a script of the kit, in its code fences and its code spans', () => {
   const text = [
     'Run `node <kit root>/scripts/rooms.mjs free <day> --floor <n>`, then, with the plan, `node <kit root>/scripts/rooms.mjs',
-    '<plan.json>`. Not `scripts/rooms.mjs`, not `nodes scripts/rooms.mjs`, not `node --version`, not node scripts/rooms.mjs said in a sentence.',
+    '<plan.json>`. Not `scripts/rooms.mjs`, not `nodes scripts/rooms.mjs`, not `node --version`, not `then node scripts/rooms.mjs`, not node',
+    'scripts/rooms.mjs said in a sentence.',
     '',
     '| When | Command |', '|---|---|', '| Two at the desk | `node <kit root>/scripts/desk.mjs staff <desk> <one\\|two\\|none>` |',
     '',
@@ -572,6 +590,34 @@ test('the commands of a text are those that run a script of the kit, in its code
   assert.deepEqual(words('node <kit root>/scripts/desk.mjs open <the desk>/front --by "the one who opens" --date=2026-11-14'), [
     'node', '<kit root>/scripts/desk.mjs', 'open', '<the desk>/front', '--by', '"the one who opens"', '--date=2026-11-14',
   ]);
+  assert.deepEqual(words('node <kit root>/scripts/rooms.mjs <plan.json> < <package>/answers.txt'), ['node', '<kit root>/scripts/rooms.mjs', '<plan.json>', '<', '<package>/answers.txt']);
+  assert.deepEqual(words('sort < rooms.txt > sorted.txt'), ['sort', '<', 'rooms.txt', '>', 'sorted.txt']);
+});
+
+test('a command starts where a shell would start one, and ends where a shell would end it', () => {
+  const fence = (...lines) => commandsOf(`\`\`\`\n${lines.join('\n')}\n\`\`\`\n`);
+  const CLOSED = 'node <kit root>/scripts/desk.mjs closed <desk>';
+  // It starts at the start of the line, after a prompt, after the command before it, or after a setting of the environment.
+  for (const line of [CLOSED, `$ ${CLOSED}`, `% ${CLOSED}`, `> ${CLOSED}`, `cd <project> && ${CLOSED}`, `ls ; ${CLOSED}`, `ls | ${CLOSED}`, `ls || ${CLOSED}`,
+    `UX_FLOOR=2 ${CLOSED}`, `UX_FLOOR=2 UX_WING=east ${CLOSED}`, `$ UX_FLOOR=2 ${CLOSED}`, `cd <project> && UX_FLOOR=2 ${CLOSED}`]) assert.deepEqual(fence(line), [CLOSED], line);
+  // Anywhere else the word is a word: a line of prose in a fence, a comment, a word after another.
+  for (const line of [
+    'Every node in the tree is a screen; see scripts/ for how.', '// node scripts/ are the kit\'s', '# node scripts/desk.mjs closed <desk>', 'echo node scripts/desk.mjs',
+    'then $ node scripts/desk.mjs closed <desk>', 'ls > node scripts/desk.mjs', 'floor=2 then node scripts/desk.mjs closed <desk>',
+    '--floor=2 node scripts/desk.mjs closed <desk>',
+  ]) assert.deepEqual(fence(line), [], line);
+  // It ends at a redirection, alone or with its target against it, as at the next command.
+  for (const tail of ['> <package>/closed.txt', '>> <package>/closed.txt', '2> errors.txt', '2>/dev/null', '>/dev/null', '2>&1', '< answers.txt', '| tee closed.txt']) {
+    assert.deepEqual(fence(`${CLOSED} ${tail}`), [CLOSED], tail);
+  }
+  // It is the kit's when it names the kit's scripts folder: where a path starts, or after only ./, ../ or a placeholder.
+  for (const path of ['scripts/desk.mjs', './scripts/desk.mjs', '../../scripts/desk.mjs', '<kit>/scripts/desk.mjs', '"<kit root>/scripts/desk.mjs"', '\'./scripts/desk.mjs\'']) {
+    assert.deepEqual(fence(`node ${path} closed <desk>`), [`node ${path} closed <desk>`], path);
+  }
+  assert.deepEqual(fence('node --input-type=module -e "import { validate } from \'./scripts/lib/walkthrough.mjs\';" <file>').length, 1);
+  for (const path of ['tests/scripts/desk.mjs', 'myscripts/desk.mjs', 'my-scripts/desk.mjs', 'my.scripts/desk.mjs', '/home/her/kit/scripts/desk.mjs', '<project>/tools/scripts/desk.mjs', 'desk.mjs']) {
+    assert.deepEqual(fence(`node ${path} closed <desk>`), [], path);
+  }
 });
 
 test('the forms of a usage are read from its usage lines, or one to a line when the script has verbs', () => {
@@ -609,6 +655,12 @@ test('a command that runs a script of the kit is written as its usage gives it',
     "node '<kit root>/scripts/desk.mjs' closed <desk>",
     '$ node <kit root>/scripts/desk.mjs closed <desk>',
     'cd <project> && node <kit root>/scripts/desk.mjs closed <desk> && node <kit root>/scripts/desk.mjs lock <desk> --now',
+    // What it prints may be sent to a file, and a setting of the environment may come before it.
+    'node <kit root>/scripts/desk.mjs closed <desk> > <package>/closed.txt',
+    'node <kit root>/scripts/desk.mjs closed <desk> 2>/dev/null',
+    'UX_FLOOR=2 node <kit root>/scripts/desk.mjs closed <desk>',
+    // A script of another folder is not the kit's.
+    'node tests/scripts/desk.mjs shut <desk>',
     // A name left to fill in has no usage to be held to, and another program's command is not the kit's to check.
     'node <kit root>/scripts/<name>.mjs --help',
     'node --version',
@@ -638,6 +690,8 @@ test('a command that runs a script of the kit is written as its usage gives it',
   refused('node "<kit root>/scripts/desk.mjs" shut <desk>', /^SKILL\.md: `node "<kit root>\/scripts\/desk\.mjs" shut <desk>` is not as scripts\/desk\.mjs takes it/);
   refused('$ node <kit root>/scripts/desk.mjs shut <desk>', /^SKILL\.md: `node <kit root>\/scripts\/desk\.mjs shut <desk>` is not as/);
   refused('cd <project> && node <kit root>/scripts/desk.mjs shut <desk>', /`node <kit root>\/scripts\/desk\.mjs shut <desk>` is not as/);
+  refused('UX_FLOOR=2 node <kit root>/scripts/desk.mjs shut <desk>', /`node <kit root>\/scripts\/desk\.mjs shut <desk>` is not as/);
+  refused('node <kit root>/scripts/desk.mjs shut <desk> > <package>/closed.txt', /`node <kit root>\/scripts\/desk\.mjs shut <desk>` is not as/);
   refused('node <kit root>/scripts/desk.mjs closed <desk> && node <kit root>/scripts/desk.mjs lock <desk>', /`node <kit root>\/scripts\/desk\.mjs lock <desk>` is not as/, /--now is missing/);
   // In a table a bar is written \|; anywhere else the backslash is part of the word.
   assert.deepEqual(withStep('See:\n\n| When | Command |\n|---|---|\n| Two at the desk | `node <kit root>/scripts/desk.mjs staff <desk> <one\\|two\\|none>` |'), []);
@@ -657,6 +711,9 @@ test('a command that runs a script of the kit is written node <kit root>/scripts
   assert.match(path, /names scripts\/rooms, which is not in the kit/);
   assert.match(form, FORM);
   assert.deepEqual(more, []);
+  // A line of a code fence that is not a command is not held to anything: prose, or a comment.
+  const notes = { 'references/free.md': '```\nEvery node in the tree is a room; see scripts/ for how.\n// node scripts/ are the kit\'s\n```\n' };
+  assert.deepEqual(faults({}, notes), []);
   // A command stays on one line: carried on by a backslash, it is refused, once, and says why.
   const wrapped = { 'references/free.md': '```\nnode <kit root>/scripts/rooms.mjs free <day> \\\n  --floor <n>\n```\n' };
   only(faults({}, wrapped), /^references\/free\.md: `node <kit root>\/scripts\/rooms\.mjs free <day> \\` runs on to the next line, and a command stays on one line$/);
@@ -851,10 +908,14 @@ test('the conductor opens with the words it uses, and tells the project profile 
   }
 });
 
-test('the conductor proposes no design and judges none, except to apply a correction after the nod', () => {
+test('the conductor proposes no design and judges none, except, in a design sized correction, to apply it after the nod', () => {
   const opening = flat(conductor().slice(0, conductor().indexOf('\n## ')));
-  assert.match(opening, /You propose no design and you judge none, except to apply a correction after his nod \(`references\/routes\.md`\)/);
-  assert.match(flat(section(conductor(), 'Never')), /\*\*Never let one agent make and judge\.\*\* A maker never judges, a judge never fixes what it found, and you do neither, except to apply a correction after his nod \(`references\/routes\.md`\)/);
+  const EXCEPT = /, except, in a design sized `correction`, to apply it after his nod \(`references\/routes\.md`\)/;
+  assert.match(opening, new RegExp(`You propose no design and you judge none${EXCEPT.source}`));
+  assert.match(flat(section(conductor(), 'Never')), new RegExp(`\\*\\*Never let one agent make and judge\\.\\*\\* A maker never judges, a judge never fixes what it found, and you do neither${EXCEPT.source}`));
+  // The exception is a size of design, as the state script names it, and is said no wider anywhere.
+  assert.ok(SIZES.includes('correction'));
+  assert.doesNotMatch(flat(conductor()), /except to apply/);
   // The reference it points to says the same.
   assert.match(flat(section(reference('routes.md'), 'A correction')), /the one size where the session that conducts may also do the work/);
 });
@@ -978,7 +1039,12 @@ test('loop.md: several ledgers are laid side by side, and an audience is handed 
   assert.match(loop, /"Do not open"/);
   assert.match(loop, /An audience is handed the traits of her profession's profile, never the whole of it/);
   assert.match(loop, /List her profession's profile itself under "Do not open", with the intent/);
-  assert.match(loop, /Makers and judges are handed her profession's profile whole/);
+  // What a seat is handed is what its brief template gives it: the maker's template gives a describer neither.
+  assert.match(loop, /A seat is handed what its brief template gives it, and no more/);
+  assert.match(loop, /Where that is a profession's profile, a maker or a judge is handed it whole, and an audience only its traits/);
+  assert.match(loop, /A describer and a fresh maker are handed neither the person nor her profession's profile, unless the template says so/);
+  assert.ok(flat(read('templates/briefs/maker.md')).includes('A describer and a fresh maker get neither of these two'));
+  assert.doesNotMatch(loop, /Makers and judges are handed/);
   // The label is the profile template's own, and the audience's brief asks for that copy.
   assert.ok(read('templates/people/PROFILE-CARD.md').includes('So the interface must:'));
   assert.ok(flat(read('templates/briefs/audience.md')).includes('`So the interface must:` taken out'));
@@ -1013,14 +1079,17 @@ test('routes.md: a correction costs one nod, and the same session may apply it',
   assert.match(text, /touch(?:es)? more[^.]*stop/);
 });
 
-test('blind.md: the map and the pick sit beside the board, and readers are handed the board folder only', () => {
+test('blind.md: the map and the pick sit beside the board; a judge is handed the board folder, an audience the pictures only', () => {
   const blind = reference('blind.md');
   const text = flat(blind);
   assert.equal(`${MAP} ${PICK}`, 'MAP.sealed.json PICK.md');
   for (const path of [`04-structure/${MAP}`, `04-structure/${PICK}`, '04-structure/board/']) assert.ok(blind.includes(`\`${path}\``), path);
   assert.doesNotMatch(blind, /board\/(?:MAP|PICK)/);
   assert.match(text, /beside the board(?: folder)?, never (?:inside|in) it/);
-  assert.match(text, /the board folder only, never its parent/);
+  assert.match(text, /A judge is handed the board folder and nothing above it; an audience is handed the pictures only/);
+  assert.doesNotMatch(text, /board folder only/);
+  // An audience's own brief gives it pictures, and pictures only.
+  assert.ok(flat(read('templates/briefs/audience.md')).includes('The pictures, and pictures only'));
   assert.match(text, /`Pick: <letter \| none>`/);
   assert.match(text, /never saved (?:there|in the board) as a one-letter `\.json`/);
   assert.match(text, /`templates\/outputs\/PICK\.md`/);
@@ -1044,28 +1113,41 @@ test('blind.md: the order, from the brief to the map', () => {
   inOrder(commands.join('\n'), [/scripts\/describe\.mjs --provider/, /scripts\/merge\.mjs <proposals dir> --out <board dir>$/m, /scripts\/render\.mjs /, /scripts\/shots\.mjs /, /scripts\/page\.mjs /, /scripts\/merge\.mjs open <board dir>$/m], 'the commands of the order');
   // The readers of step 7 are handed the board, and told what beside it they do not open.
   const readers = flat(order.slice(order.indexOf('7. **The readers.**'), order.indexOf('8. **The decision page.**')));
-  assert.match(readers, /handed the board folder only, never its parent/);
+  assert.match(readers, /A judge is handed the board folder and nothing above it: its letters, pages and pictures\. An audience is handed the pictures only, each by its path/);
   assert.match(readers, /list four things under "Do not open": the package's `work\/` folder, where the makers' briefs are, the map, the pick and the proposals folder/);
   // The kit every letter is drawn in is the project's kit folder, in the rule and in the step.
   assert.match(flat(order), /`<kit dir>` is always the project's kit folder, the one the project profile names/);
   // The rules of the table, as rules.
   const rules = flat(section(reference('blind.md'), 'The rules'));
-  for (const rule of [/one shared kit/, /grey kit/, /the founder reads it first/, /(?:do not|never) see each other/, /continuity maker/, /by letter/, /Nothing is (?:shortlisted|detailed)/, /sealed/, /handed the board folder only, never its parent/]) assert.match(rules, rule);
+  for (const rule of [/one shared kit/, /grey kit/, /the founder reads it first/, /(?:do not|never) see each other/, /continuity maker/, /by letter/, /Nothing is (?:shortlisted|detailed)/, /sealed/, /A judge is handed the board folder and nothing above it; an audience is handed the pictures only/]) assert.match(rules, rule);
   assert.match(rules, /the project's kit folder, the one the project profile names\. Setup writes it in every project, and where the project has no design system it holds the grey kit \(`kit\/grey\/`\) unchanged/);
 });
 
-test('blind.md: what the board holds, what never goes in it, and where a board that is made again goes', () => {
+test('blind.md: what the board holds, and what never goes in it; a fresh concept reaches it only as a letter', () => {
   const sealed = flat(section(reference('blind.md'), 'What stays sealed, and what stays out of the board'));
   assert.match(sealed, /\*\*The board holds four things:\*\* the letters' files, the drawn pages, the kit's stylesheets that the render copies beside them, and the pictures/);
-  assert.match(sealed, /\*\*Three things never go in the board:\*\* the decision page and its `decision\.json`; anything of a fresh pass, its gallery above all; anything from `work\/`/);
+  assert.match(sealed, /\*\*Three things never go in the board:\*\* the decision page and its `decision\.json`; anything of a fresh pass as it came, its screens and its gallery; anything from `work\/`/);
+  assert.match(sealed, /A fresh concept reaches the board only as its structure written into the walkthrough format, through the merge, like any other letter/);
   assert.match(sealed, /never saved there as a one-letter `\.json`/);
-  // A board that is made again is set aside whole, with its map and its pick, and is never an input again.
+  // The two references agree: fresh-pass.md puts the concept's structure on the board, and every valid proposal reaches it.
+  assert.match(flat(reference('fresh-pass.md')), /written into the walkthrough format, drawn in the shared kit, and joins the blind board as one more letter/);
+  assert.match(flat(section(reference('blind.md'), 'The rules')), /Every valid proposal reaches the board/);
+  assert.doesNotMatch(flat(reference('blind.md')), /anything of a fresh pass, its gallery|and nothing else\.\*\*/);
+});
+
+test('blind.md: nothing is deleted; a rejected round moves whole into earlier/, and nothing there is an input', () => {
+  const sealed = flat(section(reference('blind.md'), 'What stays sealed, and what stays out of the board'));
   assert.match(sealed, /a board is never deleted/);
   assert.match(sealed, /the merge refuses while a map or a pick lies beside the board folder/);
-  assert.match(sealed, /With his yes, move the board folder, the map and the pick together into `04-structure\/earlier\/<n>\/`: `1` for the first board set aside/);
-  assert.match(sealed, /Then merge again, into a clean `04-structure\/`/);
+  assert.match(sealed, /What is set aside is moved, into `04-structure\/earlier\/<n>\/`: `1` the first time, `2` the next/);
+  assert.match(sealed, /Where the script's refusal says to delete, move/);
   assert.match(sealed, /Nothing in `earlier\/` is ever an input/);
-  assert.doesNotMatch(flat(reference('blind.md')), /deleted on purpose|and nothing else\.\*\*/);
+  // A round he rejected: everything, the proposals among it, so that the next merge does not deal them again.
+  assert.match(sealed, /\*\*A round he rejected moves whole\.\*\* When he picks none and Intent or Context is reopened, everything in `04-structure\/` other than `earlier\/` is moved together, before the new round starts: the briefs, the proposals folder, the board, the map, the pick, the pictures, the reads, the decision page/);
+  assert.match(sealed, /Intent or Context is reopened, and the round moves whole/);
+  // A board made again within a round: the board, its map and its pick, and what was written about its letters.
+  assert.match(sealed, /\*\*A board made again within a round\*\* \(a proposal arrived late\) moves with its map and its pick, and with what was written about its letters, the reads and the decision page/);
+  assert.doesNotMatch(flat(reference('blind.md')), /deleted on purpose/);
 });
 
 test('fresh-pass.md: offered, what a fresh maker is and is not given, shown twice at Structure, and three outcomes only', () => {

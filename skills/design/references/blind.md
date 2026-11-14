@@ -17,7 +17,8 @@ a maker, not a judge, not you. So the work is kept cheap, and blind.
    continuity maker the cast names, who sees the current layout.
 5. **Letters by shuffle.** The merge gives each proposal a letter. The map of who made which stays
    sealed until he has picked.
-6. **Judges and audiences read by letter.** They are handed the board folder only, never its parent.
+6. **Judges and audiences read by letter.** A judge is handed the board folder and nothing above it; an
+   audience is handed the pictures only.
 7. **Nothing is shortlisted before he picks, and nothing is detailed.** Every valid proposal reaches the
    board. You drop none, mend none and rank none ahead of him.
 
@@ -93,9 +94,10 @@ package; `<proposals dir>` is the folder the makers write into, `04-structure/pr
    node <kit root>/scripts/shots.mjs <board dir> --out <board dir> --widths <w,w...>
    ```
 7. **The readers.** The judges and the audiences the cast names, each a fresh sub-agent. They read by
-   letter, and are handed the board folder only, never its parent: a judge its letters, pages and
-   pictures, an audience the pictures alone. Their briefs list four things under "Do not open": the
-   package's `work/` folder, where the makers' briefs are, the map, the pick and the proposals folder.
+   letter. A judge is handed the board folder and nothing above it: its letters, pages and pictures. An
+   audience is handed the pictures only, each by its path. Their briefs list four things under "Do not
+   open": the package's `work/` folder, where the makers' briefs are, the map, the pick and the
+   proposals folder.
 8. **The decision page.** The options by letter, one line for each seat that read them, one
    recommendation, one question:
 
@@ -123,19 +125,26 @@ package; `<proposals dir>` is the folder the makers write into, `04-structure/pr
   render copies beside them, and the pictures. A judge is handed the whole folder, so whatever lies in
   it is read.
 - **Three things never go in the board:** the decision page and its `decision.json`; anything of a fresh
-  pass, its gallery above all; anything from `work/`. And a graft or a variant is never saved there as a
-  one-letter `.json`: the map would no longer match the board, and would not open. A pick that is
-  redrawn goes in `04-structure/chosen/`.
+  pass as it came, its screens and its gallery; anything from `work/`. A fresh concept reaches the board
+  only as its structure written into the walkthrough format, through the merge, like any other letter.
+  And a graft or a variant is never saved there as a one-letter `.json`: the map would no longer match
+  the board, and would not open. A pick that is redrawn goes in `04-structure/chosen/`.
 - **One folder, one board, and a board is never deleted.** A sealed board is never merged again, and the
-  merge refuses while a map or a pick lies beside the board folder. When the board must be made again
-  (a proposal arrived late; he picked none and a stage was reopened), tell the founder. With his yes,
-  move the board folder, the map and the pick together into `04-structure/earlier/<n>/`: `1` for the
-  first board set aside, `2` for the next. The pick is the record of his words, and the board is what he
-  saw. Then merge again, into a clean `04-structure/`. Where the script's refusal says to delete, move.
-  Nothing in `earlier/` is ever an input.
+  merge refuses while a map or a pick lies beside the board folder. What is set aside is moved, into
+  `04-structure/earlier/<n>/`: `1` the first time, `2` the next. The pick is the record of his words,
+  and the board is what he saw. Where the script's refusal says to delete, move. Nothing in `earlier/`
+  is ever an input.
+  - **A round he rejected moves whole.** When he picks none and Intent or Context is reopened,
+    everything in `04-structure/` other than `earlier/` is moved together, before the new round starts:
+    the briefs, the proposals folder, the board, the map, the pick, the pictures, the reads, the
+    decision page. The new round starts in a clean `04-structure/`.
+  - **A board made again within a round** (a proposal arrived late) moves with its map and its pick,
+    and with what was written about its letters, the reads and the decision page: the next merge deals
+    the letters anew. Tell the founder first, and move them with his yes.
 - **A pick is one letter, or none.** "A bit of each" is not a pick. A graft is written in his words,
   exactly ("B, with A's status treatment"), and the line still names one letter. With `none`, no more
-  proposals are asked for against the same brief: Intent or Context is reopened.
+  proposals are asked for against the same brief: Intent or Context is reopened, and the round moves
+  whole.
 
 ## At the other stages
 
