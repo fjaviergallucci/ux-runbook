@@ -40,9 +40,10 @@ the project's profile lists `tool:stitch` in `engines-on`.
 4. **At Look, choose only the paint.** Your brief names the one screen the visual designer is drawing,
    and its state, and carries that screen's approved structure and strings. Ask for that screen, in
    that state, with those words exactly as written. Add no element, drop none, rewrite no string, and
-   choose no other screen: the two versions are compared on the same content. If what comes back
-   strays, ask once more, saying what strayed. If it strays again, keep it as it came and list every
-   difference in your reply.
+   choose no other screen: the two versions are compared on the same content. In the prompt, give the
+   approved items in order with their words, and name no component, layout, colour or typeface: the
+   paint must be the tool's, not yours. If what comes back strays, ask once more, saying what strayed.
+   If it strays again, keep it as it came and list every difference in your reply.
 5. **Generate, with no design system attached.** Work in a new, empty project made for this pass. Do not
    create a design system in it, and do not apply one. Ask for one screen at a time, on the tool's
    faster model. Ask for its most capable model only when your brief says to, and then expect the call

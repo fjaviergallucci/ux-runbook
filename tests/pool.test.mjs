@@ -371,6 +371,42 @@ test('a core check may be indented by up to three spaces, and a nested item is n
   assert.deepEqual(core('10. One.\n- Two.\n   - a\n   - b\n   - c\n   - d\n   - e'), []);
 });
 
+test('a second list after a paragraph is read at its own indentation', () => {
+  const core = text => judge({}, setSection('Core checks', text));
+  // The paragraph ended the first list, so the item two spaces in is a check, not a part of the first.
+  assert.deepEqual(core('- One.\n\nAnd, when the screen lists rooms:\n\n  - Two.'), []);
+  assert.deepEqual(core('1. One.\n\nAnd then:\n\n   1. Two.\n   2. Three.'), []);
+  // And what is nested in the second list is still nested.
+  assert.deepEqual(core('- One.\n\nAnd then:\n\n- Two.\n  - a\n  - b\n  - c\n  - d\n  - e'), []);
+  // A line that runs on from a check, with no blank line before it, does not end the list.
+  only(core('- One, which\nruns on.\n  - a\n  - b'), /has 1 check;/);
+  // Nor does a paragraph that sits inside the check, where its text starts.
+  only(core('- One.\n\n  More about one.\n\n  - a\n  - b'), /has 1 check;/);
+  only(core('1. One.\n\n    More about one.\n\n   - a'), /has 1 check;/);
+  // A blank line alone ends nothing, and nor do two.
+  only(core('- One.\n\n  - a\n\n  - b'), /has 1 check;/);
+  only(core('- One.\n\n\n  - a\n  - b'), /has 1 check;/);
+});
+
+test('inside a judge\'s checks, a line in a code fence is neither a check nor a row', () => {
+  const core = text => judge({}, setSection('Core checks', text));
+  const optional = text => judge({}, setSection('Optional checks', text));
+  // A fenced list is an example, not two more checks.
+  only(core('1. Every room shown exists.\n\n```\n- a room\n- another room\n```'), /^body: "## Core checks" has 1 check;/);
+  only(core('1. One.\n   ~~~\n   2. not a check\n   ~~~'), /has 1 check;/);
+  assert.deepEqual(core('1. One.\n\n   ```\n   - an example\n   ```\n2. Two.'), []);
+  assert.deepEqual(core(`${Array.from({ length: 6 }, (_, i) => `${i + 1}. Check.`).join('\n')}\n\n\`\`\`\n7. Not a seventh.\n\`\`\``), []);
+  // A fenced command may hold a pipe.
+  assert.deepEqual(optional(`${TABLE.join('\n')}\n\nThe pictures:\n\n\`\`\`\nnode scripts/shots.mjs page.html --out shots --widths 390 | head\n\`\`\``), []);
+  // A fenced table is an example: it is not the header, and its rows are not rows.
+  assert.deepEqual(optional(`An entry reads like this:\n\n\`\`\`\n| check | seen |\n|---|---|\n| overflow |  |\n\`\`\`\n\n${TABLE.join('\n')}`), []);
+  only(optional('```\n| id | trigger | method |\n|---|---|---|\n```'), /^body: "## Optional checks" needs a table/);
+  // A section that holds only a fence still has text under it; what it lacks is its checks.
+  only(core('```\n1. One.\n2. Two.\n```'), /has 0 checks;/);
+  // Once the fence closes, a line counts again.
+  only(optional(`\`\`\`\na | b\n\`\`\`\n\n${TABLE.join('\n')}\nd | e | f |`), /a table row begins and ends with a pipe/, /it has "d \| e \| f \|"/);
+});
+
 test('optional checks are a table of id, trigger and method', () => {
   assert.deepEqual(judge({}, table()), [], 'a table with no rows');
   assert.deepEqual(judge({}, table('| a | when b | do c |', '| d | when e | do f |')), []);
@@ -502,6 +538,9 @@ test('the outside describer never mentions a key', () => {
 
 // Every path under one of `folders` that a text names, anywhere in it, a command in a code fence included.
 const pathsUnder = (folders, text) => [...text.matchAll(new RegExp(`(?<![\\w-])(?:${folders.join('|')})/[\\w./-]*\\.[a-z]+\\b`, 'g'))].map(([path]) => path);
+// The folders of the kit that exist today, and those later tasks write.
+const LIVE = ['scripts', 'kit', 'pool', 'tests'];
+const LATER = ['templates', 'skills', 'reference'];
 // The pool's own texts: the two documents and every card, whatever its shelf.
 const poolTexts = () => ['CARD-FORMAT.md', 'MODELS.md', ...cards.map(card => card.file)].map(file => [`pool/${file}`, read(`pool/${file}`)]);
 
@@ -509,12 +548,14 @@ test('the paths a text can name are found wherever they are written', () => {
   const text = 'Read `kit/KIT-CONTRACT.md`, then:\n\n```\nnode ./scripts/describe.mjs --out x.json\n```\n\nSee templates/outputs/LEDGER.md, pool/makers/<name>.md and my-kit/notes.md.';
   assert.deepEqual(pathsUnder(['scripts', 'kit', 'pool'], text), ['kit/KIT-CONTRACT.md', 'scripts/describe.mjs']);
   assert.deepEqual(pathsUnder(['templates'], text), ['templates/outputs/LEDGER.md']);
+  assert.deepEqual(pathsUnder(LIVE, 'As `tests/fixtures/proposals/calendar.json` shows; see skills/cast/SKILL.md.'), ['tests/fixtures/proposals/calendar.json']);
+  assert.deepEqual(pathsUnder(LATER, 'See skills/cast/SKILL.md, reference/ANTI-PATTERNS.md and `templates/briefs/maker.md`, not kit/grey/kit.css.'), ['skills/cast/SKILL.md', 'reference/ANTI-PATTERNS.md', 'templates/briefs/maker.md']);
 });
 
-test('a script, a kit file or a pool file named in the pool exists', () => {
+test('a script, a kit file, a pool file or a test file named in the pool exists', () => {
   const seen = new Set();
   for (const [file, text] of poolTexts()) {
-    for (const path of pathsUnder(['scripts', 'kit', 'pool'], text)) {
+    for (const path of pathsUnder(LIVE, text)) {
       seen.add(path);
       assert.ok(existsSync(at(path)), `${file} names ${path}, which is not in the kit`);
     }
@@ -524,9 +565,9 @@ test('a script, a kit file or a pool file named in the pool exists', () => {
   }
 });
 
-test('a template named in the pool exists (Task 12 makes this live)', { todo: 'Task 12 writes the templates the judges and the audience name' }, () => {
+test('a template, a skill or a reference file named in the pool exists (Task 12 makes templates/ live; Tasks 13 to 18, skills/ and reference/)', { todo: 'Task 12 writes the templates; Tasks 13 to 18 write the skills and the reference files' }, () => {
   for (const [file, text] of poolTexts()) {
-    for (const path of pathsUnder(['templates'], text)) assert.ok(existsSync(at(path)), `${file} names ${path}, which is not in the kit`);
+    for (const path of pathsUnder(LATER, text)) assert.ok(existsSync(at(path)), `${file} names ${path}, which is not in the kit`);
   }
 });
 
@@ -643,6 +684,8 @@ test('pool/CARD-FORMAT.md lists what the checker allows, and nothing else', () =
   assert.ok(spans(forms).includes('\\|'), 'a pipe that is not a row\'s is written \\|');
   assert.match(forms, /up to three spaces/);
   assert.match(forms, /at least as many of the same/);
+  assert.match(forms, /A line inside a code fence is never a heading, a core check or a table row/);
+  assert.match(forms, /after a paragraph[\s\S]*its own indentation/);
   assert.match(text, /names the seat's card by its absolute path and\s+says to read it first/);
   assert.doesNotMatch(text, /reads it first|neither can say more/);
 });

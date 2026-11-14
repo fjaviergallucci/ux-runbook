@@ -189,33 +189,46 @@ function checkBody(body, isJudge, errors) {
   }
 }
 
-// The body's `## ` sections, each with the lines under it. A line inside a code fence is never a heading:
-// a fence is open from its first line to a line of the same character, at least as many of it, and nothing
-// after them.
+// The body's `## ` sections, each with the lines under it that are outside any code fence. A fence is open
+// from its first line to a line of the same character, at least as many of it, and nothing after them. What
+// it holds is passed over: a fenced line is never a heading, and a fenced list, table or command is an
+// example, never a judge's check or row. The line that opens a fence is kept, so a section that holds only
+// a fence has text under it.
 function sectionsOf(body) {
   const sections = [];
   let open = null;
   for (const line of body.split('\n')) {
     const [, marks, rest] = FENCE.exec(line) ?? [];
-    const heading = open === null ? HEADING.exec(line) : null;
-    if (open === null) open = marks ?? null;
+    const inside = open !== null;
+    const heading = inside ? null : HEADING.exec(line);
+    if (!inside) open = marks ?? null;
     else if (marks?.startsWith(open) && rest.trim() === '') open = null;
     if (heading) sections.push({ name: heading[1], lines: [] });
-    else sections.at(-1)?.lines.push(line);
+    else if (!inside) sections.at(-1)?.lines.push(line);
   }
   return sections;
 }
 
-// The items of a list that are not nested in another: an item that starts where the text of the item
-// counted before it starts, or further in, is inside that item.
+// The items of a list at the list's own level. An item that starts where the text of the check above it
+// starts, or further in, is inside that check. A paragraph that starts further out, after a blank line,
+// ends the list: what follows is read at its own indentation.
 function topItems(lines) {
   let count = 0;
-  let text = 0;
+  let text = null;
+  let afterBlank = false;
   for (const line of lines) {
     const [mark, indent] = LIST_ITEM.exec(line) ?? [];
-    if (mark === undefined || (count > 0 && indent.length >= text)) continue;
-    count += 1;
-    text = mark.length;
+    // Where the line's own text starts; -1 for a blank line.
+    const start = line.search(/\S/);
+    if (mark !== undefined) {
+      if (text === null || indent.length < text) {
+        count += 1;
+        text = mark.length;
+      }
+    } else if (afterBlank && start !== -1 && start < text) {
+      text = null;
+    }
+    afterBlank = start === -1;
   }
   return count;
 }

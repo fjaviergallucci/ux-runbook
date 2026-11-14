@@ -103,13 +103,14 @@ and the table). A test holds the lists in this file to the checker's, so the two
 The checker reads these written forms, and no other:
 
 - A section's heading is `## Name`: two hashes, a space, the name, and nothing else on the line.
-- A core check is a list item that is not nested: `-`, `*`, `+`, `1.` or `1)`, a space, and the check.
-  It may be indented by up to three spaces.
+- A core check is a list item at its list's own level, not nested in another: `-`, `*`, `+`, `1.` or
+  `1)`, a space, and the check. It may be indented by up to three spaces. A list that starts again
+  after a paragraph is read at its own indentation.
 - A table row begins and ends with a pipe, as `| id | trigger | method |`. A cell of the header row may
   be written with or without backticks. A row of dashes comes under the header row. Anywhere else in
   that section, in a cell or in a sentence, a pipe is written `\|`.
-- A `##` line inside a code fence is not a heading. A fence opens with three or more backticks or
-  tildes, and closes with at least as many of the same.
+- A line inside a code fence is never a heading, a core check or a table row. A fence opens with three
+  or more backticks or tildes, and closes with at least as many of the same.
 
 Only a reader can check the rest: that the title and the opening lines say what the seat is; that the
 Method, with a brief, is enough for an agent that knows nothing else, and says what happens without the
