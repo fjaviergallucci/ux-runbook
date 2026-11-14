@@ -6,6 +6,9 @@
 // validateCard(text, { file }) → every fault, the header's first, then the body's; [] when the card is
 // valid. `file` is the card's path under pool/, as makers/structure-describer.md: with it, the shelf must
 // be the folder's and the id the file's name.
+//
+// A person is a card of another kind: someone in a moment (spec § 8), whom the makers design for and an
+// audience is seated as. validatePerson(text, { file }) reports the same way; `file` is persons/<name>.md.
 import { FrontmatterError, parse } from './frontmatter.mjs';
 import { SIZES, STAGES } from './state.mjs';
 
@@ -30,12 +33,25 @@ export const CHECK_COLUMNS = Object.freeze(['id', 'trigger', 'method']);
 // What every judge is blind to: the makers' reasoning, who made what, and the other judges' ledgers (spec § 9).
 export const JUDGE_BLIND = Object.freeze(['maker-notes', 'author-map', 'other-ledgers']);
 
+// A person card: the folder of pool/ that holds the people, every key of the header (all required, and no
+// other allowed), what a card can rest on, and the body's sections in order.
+export const PERSON_FOLDER = 'persons';
+export const PERSON_KEYS = Object.freeze(['id', 'profile', 'specialty', 'evidence']);
+export const EVIDENCE = Object.freeze(['fact', 'guess', 'mixed']);
+export const PERSON_SECTIONS = Object.freeze(['The moment', 'The job', 'What she never does', 'The check']);
+
 // A skill is written as it is installed: its own name, or its plugin, a colon and its name.
 const SKILL = '[a-z0-9][a-z0-9_-]*';
 const ENGINE = new RegExp(`^(?:own|skill:${SKILL}(?::${SKILL})?|model:any|tool:[a-z0-9-]+)$`);
 const NAME = '[a-z][a-z0-9]*(?:-[a-z0-9]+)*';
 const ID = new RegExp(`^(${SHELVES.join('|')})\\.(${NAME})$`);
 const FILE = new RegExp(`^(${Object.keys(FOLDERS).join('|')})/(${NAME})\\.md$`);
+// A person's id and file, and the profile she inherits: each a word, a dot or a folder, and a name.
+const PERSON_ID = new RegExp(`^person\\.(${NAME})$`);
+const PERSON_FILE = new RegExp(`^${PERSON_FOLDER}/(${NAME})\\.md$`);
+const PROFILE_ID = new RegExp(`^profile\\.${NAME}$`);
+// The value that says there is none: no profile, no specialty.
+const NONE = 'none';
 const CORE_CHECKS = { least: 2, most: 6 };
 // The written forms, stricter than Markdown's, and the words an error gives for each.
 const HEADING = /^## +(.*\S)\s*$/;
@@ -55,24 +71,42 @@ const show = value => JSON.stringify(value);
 export function validateCard(text, { file } = {}) {
   const errors = [];
   const place = placeOf(file, errors);
-
-  let data;
-  let body;
-  try {
-    ({ data, body } = parse(text));
-  } catch (e) {
-    if (!(e instanceof FrontmatterError)) throw e;
-    return [...errors, `header: ${e.message}`];
-  }
-  // Without a header it is not a card yet: one fault, and the body waits.
-  if (Object.keys(data).length === 0) {
-    return [...errors, 'header: a card opens with its header, the keys of the format between two "---" lines'];
-  }
+  const card = open(text, 'a card', errors);
+  if (!card) return errors;
+  const { data, body } = card;
   // A shelf that cannot be read is taken from the folder; with neither, the card is not held to what a judge keeps.
   const isJudge = (SHELVES.includes(data.shelf) ? data.shelf : place?.shelf) === 'judge';
   checkHeader(data, place, isJudge, errors);
   checkBody(body, isJudge, errors);
   return errors;
+}
+
+export function validatePerson(text, { file } = {}) {
+  const errors = [];
+  const name = personOf(file, errors);
+  const card = open(text, 'a person card', errors);
+  if (!card) return errors;
+  checkPersonHeader(card.data, name, errors);
+  checkSections(card.body, PERSON_SECTIONS, { what: 'a person card' }, message => {
+    errors.push(`body: ${message}`);
+  });
+  return errors;
+}
+
+// The header and the body of a text; `what` is the kind of card it should be. Without a header that can
+// be read it is not a card yet: that is one fault, nothing is returned, and the body waits.
+function open(text, what, errors) {
+  let card;
+  try {
+    card = parse(text);
+  } catch (e) {
+    if (!(e instanceof FrontmatterError)) throw e;
+    errors.push(`header: ${e.message}`);
+    return null;
+  }
+  if (Object.keys(card.data).length > 0) return card;
+  errors.push(`header: ${what} opens with its header, the keys of the format between two "---" lines`);
+  return null;
 }
 
 // Where the card is: the shelf of its folder and its name, from its path under pool/.
@@ -84,10 +118,17 @@ function placeOf(file, errors) {
   return undefined;
 }
 
-function checkHeader(data, place, isJudge, errors) {
-  const fail = message => {
-    errors.push(`header: ${message}`);
-  };
+// Where the person is: her name, from her card's path under pool/.
+function personOf(file, errors) {
+  if (file === undefined) return undefined;
+  const match = PERSON_FILE.exec(String(file).replace(/\\/g, '/'));
+  if (match) return match[1];
+  errors.push(`file: a person card is ${PERSON_FOLDER}/<name>.md, the name in lower-case words joined by hyphens; this is ${show(file)}`);
+  return undefined;
+}
+
+// The rules a header's values are held to, each said through `fail` in the same words whatever the card.
+function rulesOf(data, fail) {
   const oneOf = (key, allowed) => {
     if (!allowed.includes(data[key])) fail(`"${key}" must be one of ${allowed.join(', ')}; it is ${show(data[key])}`);
   };
@@ -104,6 +145,25 @@ function checkHeader(data, place, isJudge, errors) {
       else if (allowed && !allowed.includes(item)) fail(`"${key}" names ${show(item)}, which is not a ${what} (${allowed.join(', ')})`);
     }
   };
+  return { oneOf, line, list };
+}
+
+// Every key of `keys` is there and passes its check, in the format's order, and no other key is there.
+function checkKeys(data, keys, checks, fail) {
+  for (const key of keys) {
+    if (!Object.hasOwn(data, key)) fail(`"${key}" is missing`);
+    else checks[key]();
+  }
+  for (const key of Object.keys(data)) {
+    if (!keys.includes(key)) fail(`unknown key "${key}"`);
+  }
+}
+
+function checkHeader(data, place, isJudge, errors) {
+  const fail = message => {
+    errors.push(`header: ${message}`);
+  };
+  const { oneOf, line, list } = rulesOf(data, fail);
 
   const checks = {
     id: () => checkId(data, place, fail),
@@ -140,13 +200,41 @@ function checkHeader(data, place, isJudge, errors) {
       if (!isDate(data.verified)) fail(`"verified" must be a date written YYYY-MM-DD; it is ${show(data.verified)}`);
     },
   };
-  for (const key of CARD_KEYS) {
-    if (!Object.hasOwn(data, key)) fail(`"${key}" is missing`);
-    else checks[key]();
-  }
-  for (const key of Object.keys(data)) {
-    if (!CARD_KEYS.includes(key)) fail(`unknown key "${key}"`);
-  }
+  checkKeys(data, CARD_KEYS, checks, fail);
+}
+
+// A person's header: who she is, the profile she inherits, her specialty of it, and what the card rests on.
+function checkPersonHeader(data, name, errors) {
+  const fail = message => {
+    errors.push(`header: ${message}`);
+  };
+  const { oneOf } = rulesOf(data, fail);
+
+  checkKeys(data, PERSON_KEYS, {
+    // person.<name>, the name the file's.
+    id: () => {
+      const match = typeof data.id === 'string' ? PERSON_ID.exec(data.id) : null;
+      if (!match) {
+        return fail(`"id" must be person.<name>, the name in lower-case words joined by hyphens, as person.first-timer; it is ${show(data.id)}`);
+      }
+      if (name !== undefined && match[1] !== name) {
+        fail(`"id" names "${match[1]}", but the file is ${PERSON_FOLDER}/${name}.md: it must be person.${name}`);
+      }
+    },
+    profile: () => {
+      if (data.profile !== NONE && !(typeof data.profile === 'string' && PROFILE_ID.test(data.profile))) {
+        fail(`"profile" must be a profile's id, as profile.<name>, or ${NONE}; it is ${show(data.profile)}`);
+      }
+    },
+    // A specialty is one of a profile: with no profile there is none. A profile that cannot be read is its own fault.
+    specialty: () => {
+      if (!isText(data.specialty)) return fail(`"specialty" must be a name, or ${NONE}; it is ${show(data.specialty)}`);
+      if (data.profile === NONE && data.specialty !== NONE) {
+        fail(`"specialty" must be ${NONE} when "profile" is ${NONE}: a person with no profession has no specialty; it is ${show(data.specialty)}`);
+      }
+    },
+    evidence: () => oneOf('evidence', EVIDENCE),
+  }, fail);
 }
 
 // An id is <shelf>.<name>: the shelf the header gives, and the name of the file.
@@ -174,15 +262,26 @@ function checkBody(body, isJudge, errors) {
     errors.push(`body: ${message}`);
   };
   const order = isJudge ? [...JUDGE_SECTIONS, ...SECTIONS] : SECTIONS;
-  const sections = sectionsOf(body);
+  checkSections(body, order, {
+    what: 'a card',
+    stray: name => (JUDGE_SECTIONS.includes(name) ? `"## ${name}" belongs to a judge card` : undefined),
+    inside: (name, lines) => {
+      if (name === 'Core checks') checkCore(lines, fail);
+      else if (name === 'Optional checks') checkOptional(lines, fail);
+    },
+  }, fail);
+}
 
+// A body against the sections its format gives, in `order`: each there once, in that order, with text under
+// it, and no other. `what` is the kind of card, as an error names it; `stray` may say more of a section that
+// is not in the order; `inside` checks what a section holds, once it holds something.
+function checkSections(body, order, { what, stray = () => undefined, inside = () => {} }, fail) {
   const first = new Map();
-  for (const section of sections) {
+  for (const section of sectionsOf(body)) {
     const { name } = section;
     if (first.has(name)) fail(`"## ${name}" appears twice`);
     else if (order.includes(name)) first.set(name, section);
-    else if (JUDGE_SECTIONS.includes(name)) fail(`"## ${name}" belongs to a judge card`);
-    else fail(`"## ${name}" is not a section of a card (${order.join(', ')}); ${HEADING_FORM}`);
+    else fail(stray(name) ?? `"## ${name}" is not a section of ${what} (${order.join(', ')}); ${HEADING_FORM}`);
   }
   for (const name of order) {
     if (!first.has(name)) fail(`"## ${name}" is missing; ${HEADING_FORM}`);
@@ -195,8 +294,7 @@ function checkBody(body, isJudge, errors) {
   for (const name of wanted) {
     const { lines } = first.get(name);
     if (lines.every(line => line.trim() === '')) fail(`"## ${name}" has nothing under it`);
-    else if (name === 'Core checks') checkCore(lines, fail);
-    else if (name === 'Optional checks') checkOptional(lines, fail);
+    else inside(name, lines);
   }
 }
 

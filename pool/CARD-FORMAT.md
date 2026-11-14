@@ -21,6 +21,9 @@ must", below, says which is which.
 The name is lower-case words joined by hyphens. A project keeps cards of its own in its own `pool/`, in
 the same three folders, under the same rules. A project card with the same id as a kit card replaces it.
 
+A fourth folder holds people, not seats: a person is `pool/persons/<name>.md`, and her card has a format
+of its own, in "The person card" at the end of this file.
+
 ## The header
 
 Flat frontmatter between two `---` lines: one `key: value` per line, a list written inline as `[a, b]`,
@@ -168,9 +171,47 @@ use. A card that needs another adds its row here.
 | `build` | The built interface at Acceptance: what the builder wrote back (what was built and where, how to reach each state, what deviates), the files it built or changed, pictures of each state, and the results of the acceptance checks run in it. |
 | `package` | The design's package apart from the handoff folder: every stage's folder, with all the stages wrote. |
 | `profile` | A profession's profile card: its base, and the section for the specialty the design serves. |
+| `person` | One person's card: someone in a moment, with her job, what she never does and the one check. An audience is handed the one it is seated as. |
 | `product-facts` | The project's own record of what the product does and what may be said of it, where it keeps one. |
 | `earlier-ledger` | The same seat's ledger from an earlier read of the same artefact. On a re-read it is opened only after the artefact has been read again, cold. |
 | `maker-notes` | What a maker said about its work and not as part of it: its reasons, its reply, what it assumed, what it set aside. A string's why-line is not one: it is part of the strings. |
 | `author-map` | The record of which maker, engine or model made which option or artefact. |
 | `other-ledgers` | Another judge's ledger on the same artefact. |
 | `task-reads` | What an audience wrote after trying a task: where it got stuck. |
+
+## The person card
+
+A person is not a seat. She is someone in a moment: the one a design is made for, and the one an audience
+is asked to be. One card serves both. A maker's brief hands it over to design for her, and an audience's
+brief seats a fresh agent as her. No instance is ever given both.
+
+She lives in `pool/persons/<name>.md`, the name in lower-case words joined by hyphens. The kit ships five
+with no profession. A project keeps its own in its own `pool/persons/`, under the same rules, and one with
+the same id as a kit person replaces her. `validatePerson(text, { file })`, in the same module as
+`validateCard`, checks what a machine can and reports it the same way.
+
+The header is flat frontmatter, as a seat's is. Every key is required, and no other is allowed.
+
+| Key | Allowed | What it says |
+|---|---|---|
+| `id` | `person.<name>` | The word person, a dot, and her file's name without the extension, as `person.first-timer`. |
+| `profile` | `profile.<name>` · `none` | The profile of her profession, by its id: what is true of the whole group, which she inherits. With `none` she has no profession, as the kit's five have none. |
+| `specialty` | a name · `none` | Her specialty within that profile, named as the profile names it. With `none` she is of the profile's base alone. It is `none` always when `profile` is `none`. |
+| `evidence` | `fact` · `guess` · `mixed` | What the card rests on. `fact`: every line has a source, someone who said it or saw it, and the card names it. `guess`: no line has one yet. `mixed`: some lines have, and the card marks which. |
+
+After the header come a title and a line or two saying who she is. A card that is a guess says so there.
+Then four sections, under these exact names, in this order, each with text under it. A person card has
+no other `##` section.
+
+1. `## The moment`: a scene, never a list of traits. Where she is and on what, what she has in her
+   hands, what just happened, what she is about to do.
+2. `## The job`: what she is trying to get done in that moment, and what "done" is to her.
+3. `## What she never does`: what no design may count on her doing. The heading is written this way
+   whoever the person is.
+4. `## The check`: the one question a maker or an audience asks of a screen on her behalf.
+
+The checker holds a person to her header and to her sections, whose headings it reads in the written
+form given above. The rest is a reader's, and one test comes before any other: if the card does not
+force a design decision you would not have made anyway, it is not finished. What is true of everyone in
+her profession belongs in the profile, not here: "comfortable with software" is the profile's, and "the
+phone is at her ear and the screen is angled away" is the moment.

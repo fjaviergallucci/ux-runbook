@@ -5,7 +5,8 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { validateAcceptance } from '../scripts/accept.mjs';
 import {
-  CARD_KEYS, CHECK_COLUMNS, EFFORTS, ENGINE_FORMS, FOLDERS, JUDGE_BLIND, JUDGE_SECTIONS, LOADED_WITH, MODELS, SECTIONS, SHELVES, validateCard,
+  CARD_KEYS, CHECK_COLUMNS, EFFORTS, ENGINE_FORMS, EVIDENCE, FOLDERS, JUDGE_BLIND, JUDGE_SECTIONS, LOADED_WITH, MODELS, PERSON_FOLDER, PERSON_KEYS,
+  PERSON_SECTIONS, SECTIONS, SHELVES, validateCard, validatePerson,
 } from '../scripts/lib/card.mjs';
 import { parse } from '../scripts/lib/frontmatter.mjs';
 import { SIZES, STAGES } from '../scripts/lib/state.mjs';
@@ -53,11 +54,12 @@ const JUDGE_HEADER = Object.freeze({
 const write = (header, sections) =>
   `---\n${Object.entries(header).map(([key, value]) => `${key}: ${value}`).join('\n')}\n---\n# A sample card\n\nOne line of what the seat is.\n\n${sections.map(([name, text]) => `## ${name}\n\n${text}\n`).join('\n')}`;
 
-// Each sample takes one change to its header and one to its sections, and is checked as its own file.
-const sample = (header, sections, file) => (changeHeader = {}, changeSections = s => s) => {
+// Each sample takes one change to its header and one to its sections, and is checked as its own file, by
+// the checker of its kind: a seat's card unless said.
+const sample = (header, sections, file, validate = validateCard) => (changeHeader = {}, changeSections = s => s) => {
   const h = { ...header, ...changeHeader };
   for (const key of Object.keys(h)) if (h[key] === undefined) delete h[key];
-  return validateCard(write(h, changeSections(sections.map(pair => [...pair]))), { file });
+  return validate(write(h, changeSections(sections.map(pair => [...pair]))), { file });
 };
 const maker = sample(HEADER, BODY, FILE.maker);
 const judge = sample(JUDGE_HEADER, [...CHECKS, ...BODY], FILE.judge);
@@ -127,7 +129,7 @@ test('no other key is allowed', () => {
 });
 
 test('a card with no header, or a header that cannot be read, is one error', () => {
-  only(validateCard('# A card\n\n## Method\n\nText.\n', { file: FILE.maker }), /^header: /, /"---"/);
+  only(validateCard('# A card\n\n## Method\n\nText.\n', { file: FILE.maker }), /^header: a card opens with its header/, /"---"/);
   only(validateCard('---\nid: maker.room-lister\njob:\n  nested: yes\n---\n', { file: FILE.maker }), /^header: line 3/);
   only(validateCard('---\nid: maker.room-lister\n', { file: FILE.maker }), /^header: line 1/, /never closed/);
   // One line each: a job that runs onto a second line is not flat frontmatter.
@@ -200,6 +202,11 @@ test('a card lives in makers/, judges/ or audiences/, under a kebab-case name', 
   for (const file of ['room-lister.md', 'notes/room-lister.md', 'makers/room-lister.txt', 'makers/more/room-lister.md', 'makers/Room_Lister.md', 'makers/room.lister.md', 'pool/makers/room-lister.md', 'makers/.md']) {
     only(validateCard(text, { file }), /^file: /, /makers\/<name>\.md/);
   }
+  // The file's fault comes first, and a header that cannot be read is still said.
+  const unread = validateCard('# A card\n', { file: 'room-lister.md' });
+  assert.equal(unread.length, 2, unread.join('\n'));
+  assert.match(unread[0], /^file: /);
+  assert.match(unread[1], /^header: a card opens with its header/);
 });
 
 test('sits-at is a list of at least one stage', () => {
@@ -525,6 +532,209 @@ test('every fault of a card is reported, the header first', () => {
   assert.match(errors[4], /^body: "## Optional checks" row 1/);
 });
 
+// ---- a person card: every rule of it is proven here, on people who exist nowhere else
+
+const PERSON_HEADER = Object.freeze({ id: 'person.desk-cover', profile: 'none', specialty: 'none', evidence: 'guess' });
+const PERSON_BODY = Object.freeze([
+  ['The moment', 'She is alone at the front desk. The phone is ringing, and the rooms screen has just opened.'],
+  ['The job', 'Find the caller a free room before he rings off.'],
+  ['What she never does', '- Read a help page with someone waiting.'],
+  ['The check', 'Would she know what to press first?'],
+]);
+const PERSON_FILE = 'persons/desk-cover.md';
+const PERSON_ORDER = 'The moment, The job, What she never does, The check';
+const person = sample(PERSON_HEADER, PERSON_BODY, PERSON_FILE, validatePerson);
+// One of a profession: its profile, a specialty of it, and some of her card heard from her.
+const PROFILED = Object.freeze({ profile: 'profile.front-desk', specialty: 'weekend cover', evidence: 'mixed' });
+
+test('the lists a person card is checked against', () => {
+  assert.deepEqual(PERSON_KEYS, ['id', 'profile', 'specialty', 'evidence']);
+  assert.deepEqual(EVIDENCE, ['fact', 'guess', 'mixed']);
+  assert.deepEqual(PERSON_SECTIONS, ['The moment', 'The job', 'What she never does', 'The check']);
+  assert.equal(PERSON_FOLDER, 'persons');
+  for (const list of [PERSON_KEYS, EVIDENCE, PERSON_SECTIONS]) assert.ok(Object.isFrozen(list));
+});
+
+test('a good person card is valid, with a profession or with none', () => {
+  assert.deepEqual(person(), []);
+  assert.deepEqual(person(PROFILED), []);
+  assert.deepEqual(person({ profile: 'profile.front-desk' }), [], 'a profile, and no specialty of it');
+});
+
+test('a person card with CRLF line endings is valid', () => {
+  for (const header of [PERSON_HEADER, { ...PERSON_HEADER, ...PROFILED }]) {
+    const text = write(header, PERSON_BODY).replace(/\n/g, '\r\n');
+    assert.ok(text.includes('\r\n'));
+    assert.deepEqual(validatePerson(text, { file: PERSON_FILE }), []);
+  }
+});
+
+test('a person card is valid without a file to check it against', () => {
+  assert.deepEqual(validatePerson(write(PERSON_HEADER, PERSON_BODY)), []);
+  assert.deepEqual(validatePerson(write(PERSON_HEADER, PERSON_BODY), {}), []);
+  // With no file, the id is held to its form alone.
+  assert.deepEqual(validatePerson(write({ ...PERSON_HEADER, id: 'person.anyone' }, PERSON_BODY)), []);
+  only(validatePerson(write({ ...PERSON_HEADER, id: 'anyone' }, PERSON_BODY)), /^header: "id" must be person\.<name>/);
+});
+
+test('a person text that is not a string is the caller\'s mistake, thrown and never reported as a fault of a card', () => {
+  assert.throws(() => validatePerson(undefined, { file: PERSON_FILE }), TypeError);
+  assert.throws(() => validatePerson({ id: 'person.desk-cover' }), TypeError);
+});
+
+test('every header key of a person is required', () => {
+  for (const key of PERSON_KEYS) only(person({ [key]: undefined }), /^header: /, new RegExp(`"${key}" is missing$`));
+  // One key, one fault: a specialty is not held to a profile that is not there.
+  only(person({ ...PROFILED, profile: undefined }), /"profile" is missing/);
+});
+
+test('a person has no other key', () => {
+  only(person({ age: '34' }), /^header: unknown key "age"$/);
+  // A seat's key is not a person's.
+  only(person({ shelf: 'audience' }), /^header: unknown key "shelf"$/);
+  assert.equal(person({ age: '34', device: 'phone' }).length, 2);
+});
+
+test('a person card with no header, or a header that cannot be read, is one error', () => {
+  only(validatePerson('# Someone\n\n## The moment\n\nText.\n', { file: PERSON_FILE }), /^header: a person card opens with its header/, /"---"/);
+  only(validatePerson('---\n---\n# Someone\n', { file: PERSON_FILE }), /^header: a person card opens with its header/);
+  only(validatePerson('---\nid: person.desk-cover\nprofile:\n  nested: yes\n---\n', { file: PERSON_FILE }), /^header: line 3/);
+  only(validatePerson('---\nid: person.desk-cover\n', { file: PERSON_FILE }), /^header: line 1/, /never closed/);
+  // A key written twice, whether or not the two agree.
+  only(validatePerson(write(PERSON_HEADER, PERSON_BODY).replace('evidence: guess\n', 'evidence: guess\nevidence: fact\n'), { file: PERSON_FILE }), /^header: line 6: "evidence" appears twice/);
+});
+
+test('a person\'s id is "person" and the name of the file', () => {
+  only(person({ id: 'person.desk-covers' }), /^header: "id" names "desk-covers", but the file is persons\/desk-cover\.md: it must be person\.desk-cover$/);
+  const FORM = /^header: "id" must be person\.<name>, the name in lower-case words joined by hyphens, as person\.first-timer; it is /;
+  const refused = [
+    'desk-cover', 'persons.desk-cover', 'audience.desk-cover', 'Person.desk-cover', 'person.Desk_Cover', 'person.desk.cover', 'person.',
+    'person.desk-cover.v2', 'person.-desk', 'person.desk-', 'xperson.desk-cover', '"person.desk-cover "', '', 'person-desk-cover',
+    'person/desk-cover',
+  ];
+  for (const id of refused) only(person({ id }), FORM);
+  only(person({ id: 'desk-cover' }), FORM, /it is "desk-cover"$/);
+  only(person({ id: '[person.desk-cover]' }), FORM, /it is \["person\.desk-cover"\]$/);
+  only(person({ id: '42' }), FORM, /it is 42$/);
+});
+
+test('a person lives in persons/, under a kebab-case name', () => {
+  const text = write(PERSON_HEADER, PERSON_BODY);
+  const refused = [
+    'desk-cover.md', 'people/desk-cover.md', 'audiences/desk-cover.md', 'persons/desk-cover.txt', 'persons/more/desk-cover.md',
+    'persons/Desk_Cover.md', 'persons/desk.cover.md', 'pool/persons/desk-cover.md', 'persons/.md', 'xpersons/desk-cover.md',
+    'Persons/desk-cover.md', 'persons/desk-cover.md.txt', 'persons/desk-cover.mdx', 'persons/desk-cover-md', 'persons/desk-coverxmd',
+  ];
+  for (const file of refused) {
+    only(validatePerson(text, { file }), /^file: a person card is persons\/<name>\.md, the name in lower-case words joined by hyphens; this is /, new RegExp(`${JSON.stringify(file).replace(/[.\\]/g, '\\$&')}$`));
+  }
+  assert.deepEqual(validatePerson(text, { file: 'persons\\desk-cover.md' }), [], 'a path written with backslashes');
+  // The file's fault comes first, and the card is still read.
+  const both = validatePerson(write({ ...PERSON_HEADER, evidence: 'hunch' }, PERSON_BODY), { file: 'desk-cover.md' });
+  assert.equal(both.length, 2, both.join('\n'));
+  assert.match(both[0], /^file: /);
+  assert.match(both[1], /^header: "evidence"/);
+  // And so does a header that cannot be read.
+  const unread = validatePerson('# Someone\n', { file: 'desk-cover.md' });
+  assert.equal(unread.length, 2, unread.join('\n'));
+  assert.match(unread[0], /^file: /);
+  assert.match(unread[1], /^header: a person card opens with its header/);
+});
+
+test('profile is a profile\'s id, or none', () => {
+  for (const profile of ['none', 'profile.front-desk', 'profile.a', 'profile.ward-2']) assert.deepEqual(person({ profile }), [], profile);
+  const FORM = /^header: "profile" must be a profile's id, as profile\.<name>, or none; it is /;
+  const refused = [
+    'front-desk', 'profile.', 'profile.Front_Desk', 'profile.front.desk', 'profiles.front-desk', 'person.front-desk', 'None', '', '"none "',
+    'xprofile.front-desk', 'profile.front-desk.md', 'profile.-desk', 'profile-front-desk', 'profile/front-desk',
+  ];
+  for (const profile of refused) only(person({ profile }), FORM);
+  only(person({ profile: 'front-desk' }), FORM, /it is "front-desk"$/);
+  only(person({ profile: '[profile.front-desk]' }), FORM, /it is \["profile\.front-desk"\]$/);
+  only(person({ profile: '7' }), FORM, /it is 7$/);
+});
+
+test('specialty is a name or none, and none when she has no profile', () => {
+  const profiled = specialty => person({ profile: 'profile.front-desk', specialty });
+  for (const specialty of ['none', 'mornings', 'weekend cover', '"Cover: weekends"']) assert.deepEqual(profiled(specialty), [], specialty);
+  const NAME = /^header: "specialty" must be a name, or none; it is /;
+  only(profiled(''), NAME, /it is ""$/);
+  only(profiled('"   "'), NAME);
+  only(profiled('[mornings, weekends]'), NAME, /it is \["mornings","weekends"\]$/);
+  only(profiled('2'), NAME, /it is 2$/);
+  // With no profile there is nothing to be a specialty of.
+  only(person({ specialty: 'mornings' }), /^header: "specialty" must be none when "profile" is none: a person with no profession has no specialty; it is "mornings"$/);
+  only(person({ specialty: 'None' }), /"specialty" must be none when "profile" is none/);
+  // A specialty that cannot be read is one fault, with or without a profile.
+  only(person({ specialty: '' }), NAME);
+  only(person({ specialty: '[mornings]' }), NAME);
+  // A profile that cannot be read is the one fault: the specialty is not held to it.
+  only(person({ profile: 'front-desk', specialty: 'mornings' }), /^header: "profile" must be/);
+});
+
+test('evidence is fact, guess or mixed', () => {
+  for (const evidence of EVIDENCE) assert.deepEqual(person({ evidence }), [], evidence);
+  only(person({ evidence: 'hypothesis' }), /^header: "evidence" must be one of fact, guess, mixed; it is "hypothesis"$/);
+  for (const evidence of ['unknown', 'Fact', 'none', '', '[fact]', '"fact, guess"']) only(person({ evidence }), /^header: "evidence" must be one of fact, guess, mixed; it is /);
+});
+
+test('every section of a person is required', () => {
+  for (const name of PERSON_SECTIONS) only(person({}, without(name)), new RegExp(`^body: "## ${name}" is missing; a section's heading is two hashes`));
+});
+
+test('a person\'s sections come in the format\'s order', () => {
+  const swap = (a, b) => sections => {
+    const out = [...sections];
+    [out[a], out[b]] = [out[b], out[a]];
+    return out;
+  };
+  only(person({}, swap(0, 1)), new RegExp(`^body: the sections are out of order: The job, The moment, What she never does, The check; the order is ${PERSON_ORDER}$`));
+  only(person({}, swap(1, 2)), /out of order: The moment, What she never does, The job, The check;/);
+  only(person({}, swap(2, 3)), /out of order: The moment, The job, The check, What she never does;/);
+  // A missing section is one fault, not two: what is left is still in order.
+  only(person({}, without('The job')), /is missing/);
+});
+
+test('a person has no other section, and none twice', () => {
+  const not = name => new RegExp(`^body: "## ${name}" is not a section of a person card \\(${PERSON_ORDER}\\); a section's heading is two hashes`);
+  only(person({}, sections => [...sections, ['Traits', 'Careful.']]), not('Traits'));
+  only(person({}, sections => [['Who she is', 'Someone.'], ...sections]), not('Who she is'));
+  // A seat's section is not a person's, a judge's no more than another.
+  only(person({}, sections => [...sections, ['Method', 'Be her.']]), not('Method'));
+  only(person({}, sections => [...sections, ['Core checks', '1. One.\n2. Two.']]), not('Core checks'));
+  // The names are exact, and the same whoever the person is.
+  const he = person({}, sections => sections.map(([name, text]) => [name === 'What she never does' ? 'What he never does' : name, text]));
+  assert.equal(he.length, 2, he.join('\n'));
+  assert.match(he[0], not('What he never does'));
+  assert.match(he[1], /^body: "## What she never does" is missing/);
+  only(person({}, setSection('The job', 'Text.\n\n## the job\n\nText.')), not('the job'));
+  only(person({}, sections => [...sections.slice(0, 2), ['The moment', 'Again.'], ...sections.slice(2)]), /^body: "## The moment" appears twice$/);
+});
+
+test('every section of a person has text under it', () => {
+  for (const name of PERSON_SECTIONS) only(person({}, setSection(name, '')), new RegExp(`^body: "## ${name}" has nothing under it$`));
+  only(person({}, setSection('The check', '   \n\t\n')), /"## The check" has nothing under it/);
+});
+
+test('in a person card too, a heading of another level, or a ## line inside a code fence, is not a section', () => {
+  assert.deepEqual(person({}, setSection('The moment', '### Earlier that day\n\nText.\n\n```\n## Not a section\n```')), []);
+  only(person({}, setSection('The moment', '```\n## Inside\n```\n\n## Outside\n\nText.')), /"## Outside" is not a section of a person card/);
+});
+
+test('every fault of a person card is reported, the header first', () => {
+  const errors = person(
+    { id: 'person.someone-else', specialty: 'mornings', evidence: 'hunch', age: '34' },
+    sections => [...without('The job')(sections), ['Traits', 'Careful.']],
+  );
+  assert.equal(errors.length, 6, errors.join('\n'));
+  assert.match(errors[0], /^header: "id" names "someone-else"/);
+  assert.match(errors[1], /^header: "specialty" must be none/);
+  assert.match(errors[2], /^header: "evidence"/);
+  assert.match(errors[3], /^header: unknown key "age"/);
+  assert.match(errors[4], /^body: "## Traits" is not a section of a person card/);
+  assert.match(errors[5], /^body: "## The job" is missing/);
+});
+
 // ---- the kit's own pool
 
 // A Markdown table row as its cells; a bar written \| stays in its cell.
@@ -534,8 +744,8 @@ const codeRows = text => text.split('\n').filter(line => /^\|\s*`/.test(line)).m
 const spans = text => [...text.matchAll(/`([^`]+)`/g)].map(([, span]) => span);
 const unspan = cell => cell.replace(/^`(.*)`$/, '$1');
 
-// Every card of the kit: its path under pool/, its text, its header. A shelf folder not there yet holds none.
-const cards = Object.keys(FOLDERS).flatMap(folder =>
+// Every card in one folder of pool/: its path under pool/, its text, its header. A folder not there yet holds none.
+const filesOf = folder =>
   (existsSync(at(`pool/${folder}`)) ? readdirSync(at(`pool/${folder}`)) : [])
     .filter(name => name.endsWith('.md'))
     .sort()
@@ -546,10 +756,20 @@ const cards = Object.keys(FOLDERS).flatMap(folder =>
       try {
         ({ data } = parse(text));
       } catch {
-        // validateCard says why, in the test below.
+        // The checker says why, in the tests below.
       }
       return { file, text, data };
-    }));
+    });
+// Every seat of the kit, shelf by shelf, and every person.
+const cards = Object.keys(FOLDERS).flatMap(filesOf);
+const persons = filesOf(PERSON_FOLDER);
+// One `## ` section of a text, from its heading to the next one or to the end.
+const sectionOf = (text, name) => {
+  const from = text.indexOf(`\n## ${name}\n`);
+  assert.notEqual(from, -1, `## ${name}`);
+  const to = text.indexOf('\n## ', from + 1);
+  return text.slice(from, to === -1 ? undefined : to);
+};
 
 test('every card in the pool keeps the card format', () => {
   assert.ok(cards.length >= 8, 'the pool holds cards');
@@ -610,6 +830,103 @@ test('every judge is blind to the makers\' notes, the author map and the other j
   }
 });
 
+// The caveat of design § 11, as every task read opens with it.
+const CAVEAT = 'A simulated person agrees too easily and understands what it was told to understand; this is a check on the makers\' blind spots, never evidence about real people; only the ranking and the stuck points carry information.';
+// What a blind pass answers for each task, in the design's order, and what a public page is asked instead.
+const ANSWERS = ['What do I think this is?', 'What do I do first?', 'Where do I hesitate, and at what?', 'What did I expect to happen?', 'Did I finish?', 'What would make me leave?'];
+const PUBLIC = ['**Stop.**', '**Understand.**', '**Click.**'];
+// A text as one line, so that a sentence is found however it is wrapped.
+const flat = text => text.replace(/\s+/g, ' ');
+// Each of `parts` is in the text, and they come in this order.
+const inOrder = (text, parts, message) => {
+  const places = parts.map(part => text.indexOf(part));
+  assert.deepEqual(parts.filter((_, i) => places[i] === -1), [], `${message}: not there`);
+  assert.deepEqual(places, [...places].sort((a, b) => a - b), `${message}: out of order`);
+};
+
+test('the task reader is the one audience card, and holds the decisions it was written to', () => {
+  const audiences = cards.filter(card => card.file.startsWith('audiences/'));
+  assert.deepEqual(audiences.map(card => card.data.id), ['audience.task-reader']);
+  const [{ data }] = audiences;
+  assert.deepEqual(
+    [data['sits-at'], data.presets, data['loaded-with'], data.engine, data['suggested-model'], data['suggested-effort'], data.verified],
+    [['structure', 'detail', 'acceptance'], ['surface', 'flow', 'system'], 'person', 'own', 'opus', 'medium', '2026-11-14'],
+  );
+});
+
+test('the task reader is handed a person and pictures, and nothing that says what the design means to do', () => {
+  const { data, text } = cards.find(card => card.data.id === 'audience.task-reader');
+  for (const name of ['brief', 'person', 'pictures']) assert.ok(data.reads.includes(name), `it reads "${name}"`);
+  // The intent the tasks came from; the makers' reasoning, in each place it is written; the page's code; who made what, and what others found.
+  const blind = ['intent', 'describers-brief', 'maker-notes', 'states-and-rules', 'strings', 'prototype', 'author-map', 'other-ledgers', 'task-reads'];
+  for (const name of blind) assert.ok(data['never-reads'].includes(name), `"${name}" is in never-reads`);
+  assert.deepEqual(data.reads.filter(name => data['never-reads'].includes(name)), [], 'nothing is both read and never read');
+  const method = flat(sectionOf(text, 'Method'));
+  assert.match(method, /never the intent the tasks came from/);
+  assert.match(method, /a person cannot find a control by reading markup/);
+});
+
+test('the task reader answers six things for each task, ranks with the size of each gap, and has the other reading for a public page', () => {
+  const { text } = cards.find(card => card.data.id === 'audience.task-reader');
+  const method = sectionOf(text, 'Method');
+  inOrder(method, ANSWERS, 'the six answers');
+  assert.match(flat(method), /Every answer points at something on the screen/);
+  assert.match(flat(method), /each task, on each option, in her language/);
+  inOrder(method, ['*clear*', '*slight*', '*tie*'], 'the size of a gap');
+  assert.match(flat(method), /with the size of each gap, .* one reason/);
+  assert.match(flat(method), /"no ranking: one option"/);
+  assert.match(flat(method), /a finding for the founder, never an average/);
+  // The other reading is a part of the method, since a card has no fifth section.
+  const page = method.indexOf('\n### On a public page\n');
+  assert.notEqual(page, -1, '### On a public page');
+  inOrder(method.slice(page), PUBLIC, 'stop, understand, click');
+  assert.ok(method.indexOf(ANSWERS.at(-1)) < page, 'the task read comes first');
+});
+
+test('the task reader opens every read with the caveat, word for word, and gives way to a real person', () => {
+  const { text } = cards.find(card => card.data.id === 'audience.task-reader');
+  const method = sectionOf(text, 'Method');
+  const output = sectionOf(text, 'Output');
+  // The sentence of the design, whole and on a line of its own, so that it is copied and never retold.
+  assert.equal(text.split('\n').filter(line => line.trim() === `> ${CAVEAT}`).length, 1, 'the caveat, verbatim, once');
+  assert.ok(method.includes(CAVEAT), 'the caveat is in the method');
+  assert.match(flat(method), /at the top of every read, word for word/);
+  assert.match(flat(output), /the caveat, at the top, word for word/);
+  assert.match(flat(text), /a real person's read, whenever there is one, takes this seat and outranks yours/);
+  // What it returns: the kit's template for a task read, which Task 12 writes.
+  assert.deepEqual(pathsUnder(['templates'], output), ['templates/outputs/TASK-READ.md']);
+  for (const held of ['six answers', 'stuck points', 'ranking']) assert.ok(output.includes(held), `the read holds the ${held}`);
+});
+
+// The five people the kit ships, by their files.
+const GENERIC = ['daily-expert', 'first-timer', 'hurried-on-a-phone', 'keyboard-user', 'second-language-reader'];
+
+test('every person in the pool keeps the person format', () => {
+  assert.deepEqual(persons.map(({ file }) => file), GENERIC.map(name => `${PERSON_FOLDER}/${name}.md`));
+  for (const { file, text } of persons) assert.deepEqual(validatePerson(text, { file }), [], `pool/${file}`);
+});
+
+test('the kit\'s five persons are archetypes with no profession, and each says once that she is a guess', () => {
+  assert.equal(persons.length, GENERIC.length);
+  for (const { file, text, data } of persons) {
+    assert.deepEqual([data.profile, data.specialty, data.evidence], ['none', 'none', 'guess'], file);
+    const said = text.slice(0, text.indexOf('\n## ')).split('\n').filter(line => /\barchetype\b/i.test(line));
+    assert.equal(said.length, 1, `${file} says in one line, before its sections, that she is an archetype`);
+    assert.match(said[0], /\bguess\b/, file);
+  }
+});
+
+test('each of the five is someone in a moment at the clinic\'s front desk, with one question to ask of a screen', () => {
+  assert.equal(persons.length, GENERIC.length);
+  for (const { file, text } of persons) {
+    const moment = sectionOf(text, 'The moment');
+    assert.doesNotMatch(moment, /^\s*(?:[-*+]|\d+[.)])\s|^\s*\|/m, `${file}: the moment is a scene, never a list of traits`);
+    assert.match(moment, /\bclinic\b/, `${file}: the scene is in the kit's example product`);
+    assert.match(moment, /\brooms?\b/, `${file}: the scene is in the kit's example product`);
+    assert.equal(sectionOf(text, 'The check').match(/\?/g)?.length, 1, `${file}: the check is one question`);
+  }
+});
+
 test('the outside describer never mentions a key', () => {
   const { text } = cards.find(card => card.data.id === 'maker.outside-describer');
   assert.doesNotMatch(text, /\bkeys?\b|secret|credential|password/i);
@@ -620,8 +937,9 @@ const pathsUnder = (folders, text) => [...text.matchAll(new RegExp(`(?<![\\w-])(
 // The folders of the kit that exist today, and those later tasks write.
 const LIVE = ['scripts', 'kit', 'pool', 'tests'];
 const LATER = ['templates', 'skills', 'reference'];
-// The pool's own texts: the two documents and every card, whatever its shelf.
-const poolTexts = () => ['CARD-FORMAT.md', 'MODELS.md', ...cards.map(card => card.file)].map(file => [`pool/${file}`, read(`pool/${file}`)]);
+// The pool's own texts: its three documents, every card whatever its shelf, and every person.
+const poolTexts = () =>
+  ['CARD-FORMAT.md', 'MODELS.md', 'INDEX.md', ...[...cards, ...persons].map(card => card.file)].map(file => [`pool/${file}`, read(`pool/${file}`)]);
 
 test('the paths a text can name are found wherever they are written', () => {
   const text = 'Read `kit/KIT-CONTRACT.md`, then:\n\n```\nnode ./scripts/describe.mjs --out x.json\n```\n\nSee templates/outputs/LEDGER.md, pool/makers/<name>.md and my-kit/notes.md.';
@@ -740,12 +1058,7 @@ test('pool/MODELS.md is dated, says these are suggestions, and has every seat as
 
 test('pool/CARD-FORMAT.md lists what the checker allows, and nothing else', () => {
   const text = read('pool/CARD-FORMAT.md');
-  const section = name => {
-    const from = text.indexOf(`\n## ${name}\n`);
-    assert.notEqual(from, -1, `## ${name}`);
-    const to = text.indexOf('\n## ', from + 1);
-    return text.slice(from, to === -1 ? undefined : to);
-  };
+  const section = name => sectionOf(text, name);
   // The header: one row for each key, in the checker's order, with the values the checker allows.
   const rows = codeRows(section('The header'));
   assert.deepEqual(rows.map(([key]) => unspan(key)), CARD_KEYS);
@@ -799,17 +1112,38 @@ test('pool/CARD-FORMAT.md lists what the checker allows, and nothing else', () =
 });
 
 test('every name a card reads, or is blind to, is explained in pool/CARD-FORMAT.md', () => {
-  const text = read('pool/CARD-FORMAT.md');
-  const from = text.indexOf('\n## The names in `reads` and `never-reads`\n');
-  assert.notEqual(from, -1);
-  const to = text.indexOf('\n## ', from + 1);
-  const names = codeRows(text.slice(from, to === -1 ? undefined : to)).map(([name]) => unspan(name));
+  const names = codeRows(sectionOf(read('pool/CARD-FORMAT.md'), 'The names in `reads` and `never-reads`')).map(([name]) => unspan(name));
   assert.deepEqual(names, [...new Set(names)], 'no name twice');
   for (const { file, data } of cards) {
     for (const key of ['reads', 'never-reads']) {
       for (const name of data[key] ?? []) assert.ok(names.includes(name), `pool/${file} has "${name}" in ${key}; add its row to "The names" in pool/CARD-FORMAT.md`);
     }
   }
+});
+
+test('pool/CARD-FORMAT.md says of a person card what the checker holds it to, and nothing else', () => {
+  const format = read('pool/CARD-FORMAT.md');
+  const text = sectionOf(format, 'The person card');
+  // Where she lives, and what checks her.
+  assert.ok(spans(text).includes(`pool/${PERSON_FOLDER}/<name>.md`));
+  assert.ok(spans(text).includes('validatePerson(text, { file })'));
+  assert.ok(sectionOf(format, 'Where a card lives').includes(`\`pool/${PERSON_FOLDER}/<name>.md\``), 'a person is listed where the cards are');
+  // The header: one row for each key, in the checker's order, with the values the checker allows.
+  const rows = codeRows(text);
+  assert.deepEqual(rows.map(([key]) => unspan(key)), PERSON_KEYS);
+  const allowed = Object.fromEntries(rows.map(([key, values]) => [unspan(key), spans(values)]));
+  assert.deepEqual(allowed, { id: ['person.<name>'], profile: ['profile.<name>', 'none'], specialty: ['none'], evidence: EVIDENCE });
+  const says = Object.fromEntries(rows.map(([key, , what]) => [unspan(key), what]));
+  assert.match(says.specialty, /always when `profile` is `none`/);
+  // What each value of `evidence` means.
+  for (const value of EVIDENCE) assert.match(says.evidence, new RegExp(`\`${value}\`: `), value);
+  assert.match(text, /Every key is required, and no other is allowed/);
+  // The body: the four sections, in order, and no other.
+  assert.deepEqual(spans(text).filter(span => span.startsWith('## ')), PERSON_SECTIONS.map(name => `## ${name}`));
+  assert.match(text, /under these exact names, in this order, each with text under it/);
+  assert.match(text, /no other `##` section/);
+  // What is a reader's to check: the old quality bar, kept on the person.
+  assert.match(flat(text), /does not force a design decision you would not have made anyway, it is not finished/);
 });
 
 // ---- no product name anywhere in what the kit ships
@@ -834,7 +1168,8 @@ test('no product name appears in what the kit ships', () => {
   const paths = ['pool/', 'templates/', 'skills/', 'kit/', 'reference/', 'scripts/', '.claude-plugin/', 'tests/fixtures/', 'README.md', 'LESSONS.md', 'package.json'];
   const files = paths.flatMap(textFiles);
   const known = [
-    'pool/CARD-FORMAT.md', 'pool/makers/visual-designer.md', 'scripts/lib/card.mjs', 'scripts/inpage/accept-inpage.js', 'kit/grey/kit.css',
+    'pool/CARD-FORMAT.md', 'pool/INDEX.md', 'pool/makers/visual-designer.md', 'pool/audiences/task-reader.md', 'pool/persons/first-timer.md',
+    'scripts/lib/card.mjs', 'scripts/inpage/accept-inpage.js', 'kit/grey/kit.css',
     'templates/outputs/decision.json', '.claude-plugin/plugin.json', '.claude-plugin/marketplace.json', 'tests/fixtures/proposals/calendar.json',
     'tests/fixtures/prototype/today-default-es.html', 'README.md', 'package.json',
   ];
@@ -844,12 +1179,38 @@ test('no product name appears in what the kit ships', () => {
   for (const file of files) assert.ok(!named(read(file)), `${file} names a product`);
 });
 
-// ---- the index (Task 11 writes it)
+// ---- the index: what Cast reads in place of the cards
 
-test('pool/INDEX.md has exactly one row for each card, with its id, job and cast-when', { todo: 'pool/INDEX.md is written with the audience card' }, () => {
-  const rows = read('pool/INDEX.md').split('\n').filter(line => /^\|\s*`?(?:maker|judge|audience)\./.test(line)).map(cells);
-  assert.deepEqual(rows.map(([id]) => unspan(id)).sort(), cards.map(card => card.data.id).sort());
+// The tables of a text, as rows of cells: a header row, its dashes, then the rows.
+const tableRows = text => text.split('\n').filter(line => line.startsWith('|')).map(cells);
+const isDashes = row => row.every(cell => /^:?-+:?$/.test(cell));
+const indexParts = () => {
+  const text = read('pool/INDEX.md');
+  const people = text.indexOf('\n## People\n');
+  assert.notEqual(people, -1, '## People');
+  return { seats: text.slice(0, people), people: sectionOf(text, 'People') };
+};
+
+test('pool/INDEX.md has exactly one row for each card, with its id, job and cast-when, in shelf order', () => {
+  const [head, dashes, ...rows] = tableRows(indexParts().seats);
+  assert.deepEqual(head, ['id', 'job', 'cast-when']);
+  assert.ok(isDashes(dashes), 'a line of dashes under the header row');
+  assert.deepEqual(rows.map(([id]) => unspan(id)).sort(), cards.map(card => card.data.id).sort(), 'one row for each card, and no row without a card');
   for (const { data } of cards) {
     assert.deepEqual(rows.find(([id]) => unspan(id) === data.id).slice(1), [data.job, data['cast-when']], data.id);
+  }
+  // The makers, then the judges, then the audiences.
+  const shelves = rows.map(([id]) => SHELVES.indexOf(unspan(id).split('.')[0]));
+  assert.deepEqual(shelves, [...shelves].sort((a, b) => a - b), 'in shelf order');
+});
+
+test('pool/INDEX.md lists the people too: exactly one row for each person, with one line of her moment', () => {
+  const [head, dashes, ...rows] = tableRows(indexParts().people);
+  assert.deepEqual(head, ['id', 'the moment']);
+  assert.ok(isDashes(dashes), 'a line of dashes under the header row');
+  assert.deepEqual(rows.map(([id]) => unspan(id)).sort(), persons.map(person => person.data.id).sort(), 'one row for each person, and no row without a file');
+  for (const [id, moment, ...more] of rows) {
+    assert.deepEqual(more, [], `${id} has two cells`);
+    assert.match(moment, /\S.*[.?]$/, `${id} has a line for her moment`);
   }
 });

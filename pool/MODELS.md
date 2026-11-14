@@ -52,3 +52,4 @@ When that order changes, the table changes with it. The four reasons do not.
 | `judge.system-fidelity` | `opus` | `medium` | Reason 2. A comparison against a source that is read, with little to decide. |
 | `judge.profile` | `opus` | `high` | Reason 2. Every finding is reasoned from a trait of the profession. |
 | `judge.cold-implementer` | `opus` | `high` | Reason 2. It has to notice what is missing, which is harder than checking what is there. |
+| `audience.task-reader` | `opus` | `medium` | Reason 2: it reads what was mostly made on `fable`. Medium effort, because she gives a screen a glance, and a reader that thinks harder understands more than she would. |
