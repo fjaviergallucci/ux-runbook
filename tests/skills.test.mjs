@@ -831,6 +831,8 @@ test('the usage of each script the conductor runs is read: the form it gives is 
     ['shots', '<board dir> --out <board dir> --widths <w,w...>', '<board dir> --out <board dir>'],
     ['page', '<decision.json> --out <decision.html>', '<decision.json> --output <decision.html>'],
     ['describe', '--provider <openai|gemini> --model <id> --brief <file> --out <file.json> --profile <PROFILE.md>', '--provider <openai|gemini> --model <id> --brief <file> --out <file.json>'],
+    // With --text it is a form of its own: the switch takes no value.
+    ['describe', '--text --provider <openai|gemini> --model <id> --brief <file> --out <file.txt> --profile <PROFILE.md>', '--text=yes --provider <openai|gemini> --model <id> --brief <file> --out <file.txt> --profile <PROFILE.md>'],
   ]) {
     assert.ok(takes(script, right), `${script}.mjs takes: ${right}`);
     assert.ok(!takes(script, wrong), `${script}.mjs does not take: ${wrong}`);

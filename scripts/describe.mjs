@@ -2,29 +2,31 @@
 // describe: an outside text model as one more describer at Structure. The brief the other describers read
 // is sent, whole and unchanged, to OpenAI or Google Gemini; when the answer is one valid proposal in the
 // walkthrough format, it is written where theirs are, with "engine": "model:<provider>" and the model it
-// ran on.
+// ran on. With --text the answer is not meant to be a proposal (a check that an engine answers, a fresh pass
+// at Look): it is written whole, as it came, to a text file, and no proposal is looked for in it.
 //
 // The brief leaves the machine and a key is involved, so the script is small and strict, in this order:
 //   1. the profile: an outside engine is off until the project profile's engines-on list holds
 //      model:<provider>;
-//   2. the usage: the model id, the address, the timeout and --out;
+//   2. the usage: the model id, the address, the timeout and --out, which with --text is none of the run's
+//      own inputs;
 //   3. the brief: it must hold text;
 //   4. the key: found by name, in the environment, else in the dotenv file the profile's keys-file names;
 //      the command line takes neither a key nor a keys file;
 //   5. the request: to the provider's own address, or to a stand-in on this machine that --endpoint names;
 //      the key in its header only, never in the address, and no redirect followed. Just before it, what an
-//      earlier run left at --out and <out>.raw.txt goes.
+//      earlier run left at --out and <out>.raw.txt goes; with --text, at --out alone.
 // Nothing of a provider's error body is shown or kept; an answer that holds the key, as written or in JSON's
 // escapes, is saved nowhere; and every string the script prints or writes passes through redact, which puts
 // [key] where the key was.
 //
-// As a module: describe({ provider, model, briefPath, outPath, profilePath, endpoint, timeoutMs, env }) →
+// As a module: describe({ provider, model, briefPath, outPath, profilePath, endpoint, timeoutMs, text, env }) →
 // { ok, heldKey, chars, seconds, errors }; baseOf(endpoint) → the address the requests go under.
-// As a command: see USAGE. Exit codes: 0 a proposal is written · 1 a refusal, an answer that holds the key,
-// or one that is not one valid proposal · 2 bad usage.
+// As a command: see USAGE. Exit codes: 0 a proposal is written, or with --text the answer · 1 a refusal, an
+// answer that holds the key, or, without --text, one that is not one valid proposal · 2 bad usage.
 import dns from 'node:dns';
 import { randomUUID } from 'node:crypto';
-import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { MAX_TIMEOUT, UsageError, isMain, parseArgs, readTimeout } from './lib/cli.mjs';
@@ -71,6 +73,9 @@ export const DEFAULT_TIMEOUT = 300_000;
 const SHOWN = 10;
 // A model id goes into an address.
 const MODEL = /^[A-Za-z0-9._-]+$/;
+// What --out names: a proposal, or with --text an answer kept as text.
+const PROPOSAL_OUT = /\.json$/i;
+const TEXT_OUT = /\.(?:txt|md|html)$/i;
 const LOOPBACK = Object.freeze(['127.0.0.1', 'localhost', '[::1]']);
 // A key is one word of visible ASCII with no quote and no backslash: sent in a header exactly as it is, so
 // that an answer or a string to print holds it, when it does, exactly as it was sent.
@@ -111,9 +116,10 @@ export class DescribeError extends Error {
 // describe(...) → { ok, heldKey, chars, seconds, errors }: whether a proposal was written to outPath, whether
 // the answer held the key (and so nothing of it was saved), the characters of the answer, the seconds the
 // request took, and why the answer is not one valid proposal (empty when it is, or when it held the key).
+// With `text` true, ok says the answer was written whole to outPath, and nothing is looked for in it.
 // `env` is where the key is looked up first (process.env by default). Throws a UsageError for bad usage, a
 // DescribeError for a refusal.
-export async function describe({ provider, model, briefPath, outPath, profilePath, endpoint, timeoutMs, env = process.env } = {}) {
+export async function describe({ provider, model, briefPath, outPath, profilePath, endpoint, timeoutMs, text: asText = false, env = process.env } = {}) {
   // The provider names the engine the profile must turn on, so it is known first.
   if (typeof provider !== 'string' || !Object.hasOwn(PROVIDERS, provider)) throw new UsageError('--provider must be openai or gemini');
   if (typeof profilePath !== 'string' || profilePath === '') throw new UsageError('--profile is missing');
@@ -128,17 +134,28 @@ export async function describe({ provider, model, briefPath, outPath, profilePat
   if (!Number.isSafeInteger(timeout) || timeout < 1 || timeout > MAX_TIMEOUT) {
     throw new UsageError(`--timeout must be a whole number of milliseconds from 1 to ${MAX_TIMEOUT}, as 30000`);
   }
-  if (typeof outPath !== 'string' || !/\.json$/i.test(outPath)) throw new UsageError(`--out must name a .json file; it is ${outPath}`);
+  if (typeof asText !== 'boolean') throw new UsageError('--text is a switch: to the module, text is true or false');
+  if (typeof outPath !== 'string' || !(asText ? TEXT_OUT : PROPOSAL_OUT).test(outPath)) {
+    throw new UsageError(`--out must name ${asText ? 'a .txt, .md or .html file when --text is given' : 'a .json file'}; it is ${outPath}`);
+  }
   if (typeof briefPath !== 'string' || briefPath === '') throw new UsageError('--brief is missing');
+  // With --text, --out may be named as an input of the run is (a brief and a profile are .md files), and
+  // --out is cleared before the request: so it is none of the run's inputs.
+  if (asText) {
+    for (const [input, what] of [[briefPath, 'the brief itself'], [profilePath, 'the profile itself'], [keysFile, 'the keys file the profile names']]) {
+      if (sameFile(outPath, input)) throw new UsageError(`--out is ${what}: the answer would overwrite it`);
+    }
+  }
   // 3. The brief.
   const brief = readBrief(briefPath);
   // 4. The key.
   const key = findKey(env, spec.variable, provider, keysFile);
   // 5. The request. Every refusal has passed: what an earlier run left goes now, so that what is on disk
   // after the request is this run's, whatever comes back. A run refused before this leaves the disk alone.
+  // With --text no run writes a raw file, so none beside --out is an earlier run's to remove.
   const raw = rawOf(outPath);
   remove(outPath);
-  remove(raw);
+  if (!asText) remove(raw);
   const headers = { 'content-type': 'application/json', ...spec.header(key) };
   const { status, text, seconds } = await ask(provider, `${base}${spec.path(model)}`, headers, JSON.stringify(spec.body(model, brief)), timeout);
 
@@ -158,6 +175,11 @@ export async function describe({ provider, model, briefPath, outPath, profilePat
   // and no raw file (what an earlier run left went before the request). Past this, nothing the answer says
   // can be the key.
   if (answer.text.includes(key) || undoEscapes(answer.text).includes(key)) return { ok: false, heldKey: true, chars, seconds, errors: [] };
+  // With --text the answer is what was asked for: written whole, as it came, and no proposal is looked for.
+  if (asText) {
+    writeWhole(outPath, answer.text);
+    return { ok: true, heldKey: false, chars, seconds, errors: [] };
+  }
   const found = proposalIn(answer.text);
   const proposal = found.proposal && { ...found.proposal, engine: `model:${provider}`, model };
   const errors = found.proposal ? check(proposal) : [found.error];
@@ -205,6 +227,17 @@ export function baseOf(endpoint) {
 
 const rawOf = outPath => `${outPath}.raw.txt`;
 const codeOf = e => (typeof e?.code === 'string' && CODE.test(e.code) ? e.code : 'no error code');
+
+// One file under two paths, whichever way each is written: the same device and the same file on it. A path
+// that names no file, or none at all, is no file's twin.
+function sameFile(a, b) {
+  try {
+    const [x, y] = [statSync(a, { bigint: true }), statSync(b, { bigint: true })];
+    return x.dev === y.dev && x.ino === y.ino;
+  } catch {
+    return false;
+  }
+}
 
 // The profile turns the engine on, and may name the keys file: → { keysFile }, its path as the system reads
 // it, or undefined.
@@ -400,12 +433,19 @@ function remove(path) {
 
 const USAGE = `Usage: node scripts/describe.mjs --provider <openai|gemini> --model <id> --brief <file> --out <file.json>
          --profile <PROFILE.md> [--endpoint <url>] [--timeout <ms>]
+       node scripts/describe.mjs --text --provider <openai|gemini> --model <id> --brief <file> --out <file.txt>
+         --profile <PROFILE.md> [--endpoint <url>] [--timeout <ms>]
 
 describe sends the brief, whole and unchanged, to an outside text model as one more describer at
 Structure. When the answer holds one JSON object (the whole answer, or the content of its one fenced
 block) that is a valid proposal in the walkthrough format, the proposal is written to <file.json> with
 "engine": "model:<provider>" and "model": "<id>". Otherwise the answer is kept as it came in
 <file.json>.raw.txt and the first ${SHOWN} reasons are shown; the two never both exist after a run.
+
+With --text the answer is not meant to be a proposal: a check that the engine answers, or a fresh pass
+at Look. It is written whole, as it came, to --out, which then names a .txt, .md or .html file. No
+proposal is looked for in it, and no .raw.txt is written. Everything below holds with --text as
+without it.
 
 An outside engine is off unless the profile turns it on, because the brief leaves this machine: the
 profile's engines-on list must hold model:openai or model:gemini, as engines-on: [model:openai].
@@ -419,7 +459,10 @@ and an answer that holds the key, as written or in JSON's escapes, is saved nowh
   --provider <name>   openai or gemini
   --model <id>        the provider's model id: letters, digits, ".", "_" and "-"
   --brief <file>      the brief to send
-  --out <file.json>   where the proposal is written; the folders above it are made when missing
+  --out <file.json>   where the proposal is written; the folders above it are made when missing.
+                      With --text, where the answer is written: a .txt, .md or .html file that is
+                      not the brief, the profile or the keys file, since the answer would overwrite it
+  --text              write the answer whole and look for no proposal in it
   --profile <file>    the project profile
   --endpoint <url>    a stand-in for the provider on this machine, as in the kit's tests: http: or
                       https: to 127.0.0.1, localhost or [::1], with no user, password, query or
@@ -433,18 +476,20 @@ A flag may also be written --flag=value.
 Standard output is one line, after an answer: the provider, the model, the characters of the answer and
 the seconds it took; or this help, when --help asks for it. Everything else goes to standard error.
 
-Exit codes: 0 a proposal is written · 1 a refusal (the engine off; a profile, brief or keys file that
-cannot be read; no key; a provider that refuses, fails, redirects or does not answer in time; a file that
-cannot be written), an answer that holds the key, or one that is not one valid proposal · 2 bad usage.
+Exit codes: 0 a proposal is written, or with --text the answer · 1 a refusal (the engine off; a profile,
+brief or keys file that cannot be read; no key; a provider that refuses, fails, redirects or does not
+answer in time; a file that cannot be written), an answer that holds the key, or, without --text, one
+that is not one valid proposal · 2 bad usage.
 `;
 
 const FLAGS = ['provider', 'model', 'brief', 'out', 'profile', 'endpoint', 'timeout'];
+const SWITCHES = ['text'];
 const REQUIRED = ['provider', 'model', 'brief', 'out', 'profile'];
 
 // The command line as describe() takes it. What a flag holds is shown back only when it is a path, or a
 // --timeout that is not a number of milliseconds (readTimeout says what it was given).
 function readArgs(argv) {
-  const args = parseArgs(argv, { flags: FLAGS });
+  const args = parseArgs(argv, { flags: FLAGS, switches: SWITCHES });
   if (args.help) return args;
   const { positional, flags } = args;
   if (positional.length) throw new UsageError(`describe takes no positional argument; ${positional.length} given`);
@@ -459,6 +504,7 @@ function readArgs(argv) {
     profilePath: flags.profile,
     endpoint: flags.endpoint,
     timeoutMs: readTimeout(flags),
+    text: flags.text === true,
   };
 }
 

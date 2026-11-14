@@ -951,6 +951,30 @@ test('the outside describer never mentions a key', () => {
   assert.doesNotMatch(text, /\bkeys?\b|secret|credential|password/i);
 });
 
+test('the outside describer runs the script for a proposal at Structure, and with --text at Look, where the answer is a concept', () => {
+  const { text } = cards.find(card => card.data.id === 'maker.outside-describer');
+  const commands = text.split('\n').map(line => line.trim()).filter(line => line.startsWith('node scripts/describe.mjs'));
+  assert.equal(commands.length, 2, 'one command at Structure, one at Look');
+  const [structure, look] = commands;
+  assert.equal(structure, 'node scripts/describe.mjs --provider <openai|gemini> --model <id> --brief <the brief> --out <proposals folder>/<name>.json --profile <PROFILE.md>');
+  assert.equal(look, 'node scripts/describe.mjs --text --provider <openai|gemini> --model <id> --brief <the fresh brief> --out <fresh pass folder>/<name>.md --profile <PROFILE.md>');
+  // Each is a form the script's own usage gives, flag for flag, and neither names a stand-in address.
+  const help = spawnSync(process.execPath, [fileURLToPath(at('scripts/describe.mjs')), '--help'], { encoding: 'utf8' }).stdout;
+  const usage = flat(help.slice(0, help.indexOf('\n\n')));
+  const flagsOf = command => command.match(/--[a-z-]+/g);
+  const forms = usage.split('node scripts/describe.mjs').slice(1).map(form => flagsOf(form.replace(/\[[^\]]*\]/g, '')));
+  assert.deepEqual(forms, [flagsOf(structure), flagsOf(look)]);
+  // The Look paragraph says why, and no longer leaves the concept in a raw file.
+  const from = text.indexOf('**At Look**');
+  const atLook = flat(text.slice(from, text.indexOf('**Without the engine**')));
+  assert.ok(from !== -1 && text.indexOf(look) > from, 'the --text command is in the Look paragraph');
+  assert.match(atLook, /not a proposal for the board, so the script is run with `--text`/);
+  assert.match(atLook, /looks for no proposal/);
+  assert.match(atLook, /`\.txt`, `\.md` or `\.html`/);
+  assert.doesNotMatch(atLook, /raw\.txt/);
+  assert.match(atLook, /never mended, and never handed off/);
+});
+
 // Every path under one of `folders` that a text names, anywhere in it, a command in a code fence included.
 const pathsUnder = (folders, text) => [...text.matchAll(new RegExp(`(?<![\\w-])(?:${folders.join('|')})/[\\w./-]*\\.[a-z]+\\b`, 'g'))].map(([path]) => path);
 // The folders of the kit that exist today, and those later tasks write.

@@ -1152,6 +1152,398 @@ test('help goes to standard output, and a missing flag or an unknown provider is
   assert.equal(s.server.requests.length, 0);
 });
 
+// --- R129. --text: the answer written whole, and no proposal looked for ------------------------------
+
+// A run whose --out is a text file, in a folder of its own.
+const textOf = s => ({ ...s, outPath: join(s.dir, 'answers', 'engine check.txt') });
+const textFlags = (s, over) => ['--text', ...flagsOf(s, over)];
+// What a careless writer would change in an answer: white space at either end, line ends, accents.
+const ANSWER = '\n  Listo.\r\nLa sala Jardín está libre — "free now".  \n\n';
+const TEXT_OUT = 'must name a .txt, .md or .html file when --text is given';
+
+test('with --text the answer is written whole to --out, no proposal is looked for, and the run exits 0', async t => {
+  let answer;
+  const s = textOf(await setup(t, (seen, res) => openaiSays(answer)(seen, res)));
+  const proposal = fixture('calendar.json');
+  const answers = {
+    prose: ANSWER,
+    'a valid proposal in one fenced block': fenced(proposal),
+    'a valid proposal, the whole answer': JSON.stringify(proposal),
+    'two fenced blocks': '```html\n<p>Sala Jardín</p>\n```\n\n```css\np { color: teal }\n```',
+  };
+  for (const [what, text] of Object.entries(answers)) {
+    answer = text;
+    const r = await run(textFlags(s));
+    assert.equal(r.status, 0, what);
+    assert.match(r.stdout, resultLine('openai', 'test-model', text.length), what);
+    assert.equal(r.stderr, '', what);
+    // As it came: not unfenced, no engine or model set in it, not a byte added or taken.
+    assert.equal(readFileSync(s.outPath, 'utf8') === text, true, `${what}: --out holds the answer as it came`);
+    assert.deepEqual(filesIn(dirname(s.outPath)), ['engine check.txt'], what);
+  }
+  // The request is the one a run without --text sends.
+  assert.equal(s.server.requests.length, 4);
+  for (const seen of s.server.requests) {
+    assert.equal(seen.method, 'POST');
+    assert.equal(seen.url, '/v1/chat/completions');
+    assert.equal(seen.headers['content-type'], 'application/json');
+    assert.equal(seen.headers.authorization === `Bearer ${KEY}`, true, 'the key is sent as a bearer token');
+    assert.deepEqual(JSON.parse(seen.body), { model: 'test-model', messages: [{ role: 'user', content: BRIEF }] });
+  }
+  // In this process: ok, with nothing to say against the answer.
+  answer = ANSWER;
+  const result = await call(s, { text: true });
+  assert.deepEqual({ ok: result.ok, heldKey: result.heldKey, chars: result.chars, errors: result.errors }, { ok: true, heldKey: false, chars: ANSWER.length, errors: [] });
+  assert.equal(typeof result.seconds, 'number');
+});
+
+test('with --text a gemini answer joins its parts and is written whole', async t => {
+  const s = await setup(t, geminiSays(ANSWER.slice(0, 9), ANSWER.slice(9)));
+  const outPath = join(s.dir, 'answers', 'a concept.html');
+  const r = await run(textFlags({ ...s, outPath }, { provider: 'gemini', model: 'gemini-test.1_b' }));
+  assert.equal(r.status, 0);
+  assert.match(r.stdout, resultLine('gemini', 'gemini-test\\.1_b', ANSWER.length));
+  assert.equal(r.stderr, '');
+  assert.equal(readFileSync(outPath, 'utf8') === ANSWER, true, '--out holds the answer as it came');
+  const [seen] = s.server.requests;
+  assert.equal(seen.url, '/v1beta/models/gemini-test.1_b:generateContent');
+  assert.equal(seen.headers['x-goog-api-key'] === KEY, true, 'the key is in the x-goog-api-key header');
+  assert.deepEqual(JSON.parse(seen.body), { contents: [{ parts: [{ text: BRIEF }] }] });
+});
+
+test('with --text, --out names a .txt, .md or .html file; without it, a .json file as before', async t => {
+  const s = await setup(t, openaiSays(ANSWER));
+  const taken = ['answer.txt', 'answer.md', 'answer.html', 'ANSWER.TXT', 'answer.Md', 'answer.raw.txt'];
+  for (const name of taken) {
+    const outPath = join(fresh(), name);
+    assert.equal((await call(s, { text: true, outPath })).ok, true, name);
+    assert.equal(readFileSync(outPath, 'utf8') === ANSWER, true, name);
+  }
+  assert.equal(s.server.requests.length, taken.length);
+  for (const name of ['answer.json', 'answer', 'answer.txt.bak', 'answer.htm', 'answer.mdx', 'answer.xhtml5', 'answertxt', 'txt']) {
+    const outPath = join(s.dir, name);
+    const { env, looked } = watched();
+    const e = await refusal(call(s, { text: true, outPath, env }));
+    assert.ok(e instanceof UsageError, name);
+    assert.equal(e.message, `--out ${TEXT_OUT}; it is ${outPath}`);
+    assert.deepEqual(looked, [], `${name}: no key is looked up`);
+  }
+  // A module caller's --out that is not text is no path, even one that would read as a text file's.
+  for (const outPath of [undefined, 12, { toString: () => join(s.dir, 'answer.txt') }]) {
+    const e = await refusal(call(s, { text: true, outPath, env: watched().env }));
+    assert.ok(e instanceof UsageError && e.message.startsWith(`--out ${TEXT_OUT}`), String(outPath));
+  }
+  // Without --text a text file is no place for a proposal, as before.
+  for (const name of ['answer.txt', 'answer.md', 'answer.html']) {
+    const outPath = join(s.dir, name);
+    for (const over of [{}, { text: false }]) {
+      const e = await refusal(call(s, { ...over, outPath, env: watched().env }));
+      assert.ok(e instanceof UsageError, name);
+      assert.equal(e.message, `--out must name a .json file; it is ${outPath}`);
+    }
+  }
+  const json = join(s.dir, 'answer.json');
+  const r = await run(textFlags({ ...s, outPath: json }));
+  assert.equal(r.status, 2);
+  assert.equal(r.stdout, '');
+  assert.ok(r.stderr.startsWith(`--out ${TEXT_OUT}; it is ${json}\n\nUsage: node scripts/describe.mjs`));
+  assert.equal(s.server.requests.length, taken.length);
+});
+
+test('--text is a switch: it takes no value and is given once; to the module it is true or false', async t => {
+  const s = textOf(await setup(t, openaiSays(fenced(fixture('calendar.json')))));
+  const cases = [
+    [[...flagsOf(s), '--text=yes'], '--text takes no value'],
+    [[...flagsOf(s), '--text='], '--text takes no value'],
+    [['--text', ...flagsOf(s), '--text'], '--text is given twice'],
+    [[...flagsOf(s), '--text', 'yes'], 'describe takes no positional argument; 1 given'],
+    [[...flagsOf(s), '--texts'], 'unknown flag --texts'],
+  ];
+  for (const [args, message] of cases) {
+    const r = await run(args);
+    assert.equal(r.status, 2, message);
+    assert.equal(r.stdout, '');
+    assert.ok(r.stderr.startsWith(`${message}\n\nUsage: node scripts/describe.mjs`), message);
+  }
+  for (const text of ['yes', 'true', 1, 0, '', null, []]) {
+    const { env, looked } = watched();
+    const e = await refusal(call(s, { text, env }));
+    assert.ok(e instanceof UsageError, JSON.stringify(text));
+    assert.equal(e.message, '--text is a switch: to the module, text is true or false');
+    assert.deepEqual(looked, []);
+  }
+  assert.equal(s.server.requests.length, 0);
+  assert.equal(existsSync(dirname(s.outPath)), false, 'nothing was written');
+  // Wherever the switch stands on the line, it is the same run.
+  const last = await run([...flagsOf(s), '--text']);
+  assert.equal(last.status, 0);
+  assert.equal(readFileSync(s.outPath, 'utf8') === fenced(fixture('calendar.json')), true, '--out holds the answer as it came');
+});
+
+test('with --text the profile is still read first, then the usage, then the brief, then the key, and only then is anything sent', async t => {
+  const s = textOf(await setup(t, openaiSays(ANSWER)));
+  const off = writeProfile(fresh(), []);
+  const on = writeProfile(fresh(), [ON, keysLine(join(s.dir, 'no-such-dotenv.txt'))]);
+  const noBrief = join(s.dir, 'NO-BRIEF.md');
+  const bad = {
+    'a model with a slash': { model: 'gpt/4' },
+    'an http address off this machine': { endpoint: 'http://api.example.test' },
+    'the provider’s own address, named': { endpoint: 'https://api.openai.com' },
+    'an address with a query': { endpoint: `${s.endpoint}/?x=1` },
+    'a timeout of 0': { timeoutMs: 0 },
+    'an out that is .json': { outPath: join(s.dir, 'answer.json') },
+    'a text that is neither true nor false': { text: 'yes' },
+  };
+  for (const [what, over] of Object.entries(bad)) {
+    const first = await refusal(call({ ...s, profilePath: off }, { text: true, ...over, env: watched().env }));
+    assert.ok(first instanceof DescribeError && first.message.includes('does not turn model:openai on'), `${what}: the profile first`);
+    const { env, looked } = watched();
+    const second = await refusal(call({ ...s, profilePath: on, briefPath: noBrief }, { text: true, ...over, env }));
+    assert.ok(second instanceof UsageError, `${what}: then the usage, before the brief`);
+    assert.deepEqual(looked, [], `${what}: no key is looked up`);
+  }
+  // The engine off: said as without --text, and no key is looked up.
+  const { env: offEnv, looked: offLooked } = watched();
+  const refused = await refusal(call({ ...s, profilePath: off }, { text: true, env: offEnv }));
+  assert.equal(
+    refused.message,
+    `the profile ${off} does not turn model:openai on. An outside model is sent the brief, so it stays off until the profile turns it on: add model:openai to its engines-on list, as engines-on: [model:openai]`,
+  );
+  assert.deepEqual(offLooked, []);
+  // The brief before the key: a missing one and an empty one.
+  const { env, looked } = watched();
+  const missing = await refusal(call({ ...s, profilePath: on, briefPath: noBrief }, { text: true, env }));
+  assert.ok(missing instanceof DescribeError);
+  assert.equal(missing.message, `cannot read the brief ${noBrief}: not found`);
+  const empty = join(s.dir, 'BRIEF-empty.md');
+  writeFileSync(empty, ' \r\n');
+  const nothing = await refusal(call({ ...s, profilePath: on, briefPath: empty }, { text: true, env }));
+  assert.equal(nothing.message, `the brief ${empty} is empty: there is nothing to send`);
+  assert.deepEqual(looked, []);
+  // The key before the request: none anywhere, said by the command as without --text.
+  const r = await run(textFlags(s), { env: {} });
+  assert.equal(r.status, 1);
+  assert.equal(r.stdout, '');
+  assert.equal(
+    r.stderr,
+    "no key for openai: set OPENAI_API_KEY in the environment, or write the line OPENAI_API_KEY=<the key> in the file the profile's keys-file names (the profile names none)\n",
+  );
+  const gone = await run(textFlags({ ...s, profilePath: on }), { env: {} });
+  assert.equal(gone.status, 1);
+  assert.equal(gone.stderr, `cannot read the keys file ${join(s.dir, 'no-such-dotenv.txt')}: ENOENT\n`);
+  // The command line: an engine that is off is said before a bad --out.
+  const order = await run(textFlags({ ...s, profilePath: off, outPath: join(s.dir, 'answer.json') }));
+  assert.equal(order.status, 1);
+  assert.match(order.stderr, /does not turn model:openai on/);
+  assert.equal(s.server.requests.length, 0);
+  assert.equal(existsSync(dirname(s.outPath)), false, 'nothing was written');
+});
+
+test('with --text the key is still found inside the script: the environment first, else the one line of the keys file', async t => {
+  const s = textOf(await setup(t, (seen, res) => openaiSays(ANSWER)(seen, res)));
+  const dir = fresh();
+  const keys = writeKeys(dir, [...NOISE, `export OPENAI_API_KEY="${OTHER_KEY}"`]);
+  const profilePath = writeProfile(dir, [ON, keysLine(keys)]);
+  const fromFile = await run(textFlags({ ...s, profilePath }), { env: {} });
+  assert.equal(fromFile.status, 0);
+  assert.equal(holdsNoise(`${fromFile.stdout}${fromFile.stderr}`) || `${fromFile.stdout}${fromFile.stderr}`.includes(OTHER_KEY), false, 'text of the keys file reached the screen');
+  const fromEnv = await run(textFlags({ ...s, profilePath }));
+  assert.equal(fromEnv.status, 0);
+  assert.deepEqual(s.server.requests.map(seen => seen.headers.authorization === `Bearer ${OTHER_KEY}`), [true, false], 'the file’s key, then not the file’s');
+  assert.equal(s.server.requests[1].headers.authorization === `Bearer ${KEY}`, true, 'the environment’s key was sent');
+  assert.equal(anyFileHolds(s.dir, KEY, OTHER_KEY), false, 'a file of the run holds a key');
+});
+
+test('with --text an answer that holds the key, as written or in JSON escapes, is saved nowhere, and an earlier answer goes too', async t => {
+  let answer;
+  const s = textOf(await setup(t, (seen, res) => answer(seen, res)));
+  const cases = {
+    'as written': [`You sent Bearer ${KEY}.`, seen => openaiSays(`You sent ${sentKey(seen)}.`)],
+    // Where a backslash before it would read as \t once escapes were undone: only the text as written shows it.
+    'as written, after a backslash': [`Saved under C:\\${KEY} for you.`, seen => openaiSays(`Saved under C:\\${sentKey(seen).slice(7)} for you.`)],
+    'in JSON escapes': [`I was given ${ESCAPED}; that is all.`, () => openaiSays(`I was given ${ESCAPED}; that is all.`)],
+  };
+  for (const [what, [text, responder]] of Object.entries(cases)) {
+    answer = (seen, res) => responder(seen)(seen, res);
+    mkdirSync(dirname(s.outPath), { recursive: true });
+    writeFileSync(s.outPath, 'an earlier answer');
+    const r = await run(textFlags(s));
+    assert.equal(r.status, 1, what);
+    assert.match(r.stdout, resultLine('openai', 'test-model', text.length), what);
+    assert.equal(r.stderr, HELD, what);
+    assert.deepEqual(filesIn(dirname(s.outPath)), [], what);
+    assert.equal(anyFileHolds(s.dir, KEY, ESCAPED), false, `${what}: a file holds the key`);
+  }
+  // In this process: not ok, held, and no reason beside it.
+  answer = (seen, res) => openaiSays(`You sent ${sentKey(seen)}.`)(seen, res);
+  const result = await call(s, { text: true });
+  assert.deepEqual({ ok: result.ok, heldKey: result.heldKey, errors: result.errors }, { ok: false, heldKey: true, errors: [] });
+  assert.deepEqual(filesIn(dirname(s.outPath)), []);
+});
+
+test('with --text an earlier run’s answer is gone once a request is sent and stays when none is; a file beside it is never this run’s to remove', BOUNDED, async t => {
+  let answer;
+  const s = textOf(await setup(t, (seen, res) => answer(seen, res)));
+  const folder = dirname(s.outPath);
+  // Named as a raw file is, beside a proposal: with --text no run writes one, so none is an earlier run's.
+  const beside = rawOf(s.outPath);
+  const stale = () => {
+    mkdirSync(folder, { recursive: true });
+    writeFileSync(s.outPath, 'an earlier answer');
+    writeFileSync(beside, 'another file');
+  };
+  const closed = await serve(never);
+  await closed.close();
+  const sent = {
+    'a 500': [reply(500, 'Incorrect API key provided: sk-secret'), {}, 'openai answered 500: the provider failed'],
+    'a 200 without text': [reply(200, { choices: [] }), {}, 'openai answered 200 with no text at choices[0].message.content; nothing of its body is shown or kept'],
+    'no answer in time': [never, { timeoutMs: 300 }, 'openai: no answer within 0.3 s'],
+    'a network failure': [never, { endpoint: closed.endpoint }, 'the request to openai failed before any answer came: ECONNREFUSED'],
+  };
+  for (const [what, [responder, over, message]] of Object.entries(sent)) {
+    answer = responder;
+    stale();
+    const e = await refusal(call(s, { text: true, ...over }));
+    assert.ok(e instanceof DescribeError, what);
+    assert.equal(e.message, message, what);
+    assert.equal(e.cause, undefined, what);
+    assert.deepEqual(filesIn(folder), ['engine check.txt.raw.txt'], `${what}: an earlier run’s answer is left, or the file beside it is gone`);
+  }
+  assert.equal(s.server.requests.length, 3);
+  // Refused before anything is sent: the disk is as it was.
+  const notSent = {
+    'the engine off': [{ ...s, profilePath: writeProfile(fresh(), []) }, {}],
+    'bad usage': [s, { model: 'gpt/4' }],
+    'no brief': [{ ...s, briefPath: join(s.dir, 'NO-BRIEF.md') }, {}],
+    'no key': [s, { env: {} }],
+  };
+  for (const [what, [where, over]] of Object.entries(notSent)) {
+    stale();
+    await refusal(call(where, { text: true, ...over }));
+    assert.deepEqual(filesIn(folder), ['engine check.txt', 'engine check.txt.raw.txt'], what);
+    assert.equal(readFileSync(s.outPath, 'utf8'), 'an earlier answer', what);
+  }
+  assert.equal(s.server.requests.length, 3);
+  // An answer takes the earlier one's place, and the file beside it is as it was.
+  answer = openaiSays(ANSWER);
+  stale();
+  assert.equal((await call(s, { text: true })).ok, true);
+  assert.deepEqual(filesIn(folder), ['engine check.txt', 'engine check.txt.raw.txt']);
+  assert.equal(readFileSync(s.outPath, 'utf8') === ANSWER, true, '--out holds this run’s answer');
+  assert.equal(readFileSync(beside, 'utf8'), 'another file');
+});
+
+test('with --text a provider’s refusal is still its status and one sentence, nothing of its body, and no file', async t => {
+  let answer;
+  const s = textOf(await setup(t, (seen, res) => answer(seen, res)));
+  const refusals = [
+    [(seen, res) => reply(401, { error: { message: `Incorrect API key provided: sk-secret; you sent ${sentKey(seen)}` } })(seen, res), 'openai answered 401: the key was refused\n'],
+    [reply(429, 'sk-secret', { 'content-type': 'text/plain' }), 'openai answered 429: the provider is limiting requests or the quota is spent\n'],
+    [reply(200, '<html>sk-secret</html>', { 'content-type': 'text/html' }), 'openai answered 200 with no text at choices[0].message.content; nothing of its body is shown or kept\n'],
+    [reply(200, { choices: [{ message: { content: ' \n ' }, finish_reason: 'stop' }] }), 'openai answered 200 with no text at choices[0].message.content (stop); nothing of its body is shown or kept\n'],
+  ];
+  for (const [responder, message] of refusals) {
+    answer = responder;
+    const r = await run(textFlags(s));
+    assert.equal(r.status, 1, message);
+    assert.equal(r.stdout, '', message);
+    assert.equal(r.stderr, message);
+    assert.deepEqual(filesIn(dirname(s.outPath)), [], message);
+  }
+  assert.equal(anyFileHolds(s.dir, 'sk-secret'), false, 'a file holds the body');
+});
+
+test('with --text a redirect is still never followed, and a request that never answers still ends at the timeout', BOUNDED, async t => {
+  const elsewhere = await open(t, openaiSays(ANSWER));
+  const s = textOf(await setup(t, never));
+  const redirecting = await open(t, reply(307, '', { location: `${elsewhere.endpoint}/v1/chat/completions` }));
+  const moved = await run(textFlags(s, { endpoint: redirecting.endpoint }));
+  assert.equal(moved.status, 1);
+  assert.equal(moved.stdout, '');
+  assert.equal(moved.stderr, 'openai answered with a redirect, which is never followed: it would send the key on to another address\n');
+  assert.equal(redirecting.requests.length, 1);
+  assert.equal(elsewhere.requests.length, 0, 'the second server received a request');
+  const late = await run(textFlags(s, { timeout: '500' }));
+  assert.equal(late.status, 1);
+  assert.equal(late.stdout, '');
+  assert.equal(late.stderr, 'openai: no answer within 0.5 s\n');
+  assert.ok(late.ms < 500 + 2000, `the run ended after ${late.ms} ms`);
+  assert.equal(s.server.requests.length, 1);
+  assert.deepEqual(filesIn(dirname(s.outPath)), []);
+});
+
+test('with --text, --out is never the brief, the profile or the keys file: the answer would take its place', async t => {
+  const s = await setup(t, openaiSays(ANSWER));
+  const dir = fresh();
+  const briefPath = join(dir, 'BRIEF.md');
+  writeFileSync(briefPath, BRIEF);
+  const keys = writeKeys(dir, [`OPENAI_API_KEY=${KEY}`]);
+  const profilePath = writeProfile(dir, [ON, keysLine(keys)]);
+  const mine = { ...s, briefPath, profilePath };
+  const inputs = [
+    [briefPath, '--out is the brief itself: the answer would overwrite it'],
+    [profilePath, '--out is the profile itself: the answer would overwrite it'],
+    [keys, '--out is the keys file the profile names: the answer would overwrite it'],
+    // Written another way, it is the same file.
+    [`${dir}/made-up/../BRIEF.md`, '--out is the brief itself: the answer would overwrite it'],
+  ];
+  for (const [outPath, message] of inputs) {
+    const before = readFileSync(outPath, 'utf8');
+    // Whether or not the environment holds a key, and before one is looked up.
+    for (const env of [watched().env, MADE_UP]) {
+      const e = await refusal(call(mine, { text: true, outPath, env }));
+      assert.ok(e instanceof UsageError, message);
+      assert.equal(e.message, message);
+    }
+    const { env, looked } = watched();
+    await refusal(call(mine, { text: true, outPath, env }));
+    assert.deepEqual(looked, [], `${message}: no key is looked up`);
+    assert.equal(readFileSync(outPath, 'utf8') === before, true, `${message}: the file is as it was`);
+  }
+  const r = await run(textFlags({ ...mine, outPath: profilePath }));
+  assert.equal(r.status, 2);
+  assert.equal(r.stdout, '');
+  assert.ok(r.stderr.startsWith('--out is the profile itself: the answer would overwrite it\n\nUsage: '));
+  // It is usage: said before the brief is read, where the brief is missing too.
+  const early = await refusal(call({ ...mine, briefPath: join(dir, 'NO-BRIEF.md') }, { text: true, outPath: profilePath, env: watched().env }));
+  assert.ok(early instanceof UsageError);
+  assert.equal(early.message, '--out is the profile itself: the answer would overwrite it');
+  assert.equal(s.server.requests.length, 0);
+  // The check is --text's own. Without --text nothing changes: --out is a .json file, which no input of a
+  // run is named as, and a brief that was named so is sent and its place taken by the proposal, as before.
+  const both = join(dir, 'a brief named as a proposal.json');
+  writeFileSync(both, BRIEF);
+  const proposalServer = await open(t, openaiSays(fenced(fixture('calendar.json'))));
+  const asBefore = await call({ ...mine, briefPath: both, outPath: both, endpoint: proposalServer.endpoint });
+  assert.equal(asBefore.ok, true);
+  assert.deepEqual(JSON.parse(proposalServer.requests[0].body).messages, [{ role: 'user', content: BRIEF }]);
+  assert.equal(readFileSync(both, 'utf8'), written(fixture('calendar.json')));
+  // A file beside them is none of them.
+  assert.equal((await call(mine, { text: true, outPath: join(dir, 'ANSWER.md') })).ok, true);
+  assert.equal(readFileSync(briefPath, 'utf8') === BRIEF, true, 'the brief is as it was');
+});
+
+test('the usage gives --text a form of its own, and says what the switch is for', async () => {
+  const help = await run(['--help']);
+  assert.equal(help.status, 0);
+  const usage = help.stdout.slice(0, help.stdout.indexOf('\n\n'));
+  assert.equal(
+    usage,
+    [
+      'Usage: node scripts/describe.mjs --provider <openai|gemini> --model <id> --brief <file> --out <file.json>',
+      '         --profile <PROFILE.md> [--endpoint <url>] [--timeout <ms>]',
+      '       node scripts/describe.mjs --text --provider <openai|gemini> --model <id> --brief <file> --out <file.txt>',
+      '         --profile <PROFILE.md> [--endpoint <url>] [--timeout <ms>]',
+    ].join('\n'),
+  );
+  const said = help.stdout.replace(/\s+/g, ' ');
+  assert.match(help.stdout, /^ {2}--text {2,}\S/m, 'the switch has its line among the flags');
+  assert.match(said, /With --text the answer is not meant to be a proposal/);
+  assert.match(said, /written whole, as it came, to --out/);
+  assert.match(said, /\.txt, \.md or \.html/);
+  assert.match(said, /Exit codes: 0 a proposal is written, or with --text the answer · 1 /);
+});
+
 // --- 18. The script's text ---------------------------------------------------------------------------
 
 test('the script writes standard output in two functions, everything through redact, and builds no key= address', () => {
