@@ -1,4 +1,4 @@
-import { test, after } from 'node:test';
+import { after, describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
 import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
@@ -7,9 +7,10 @@ import { tmpdir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { inflateSync } from 'node:zlib';
 import { CHROME_PATHS, ChromeError, findChrome } from '../scripts/lib/chrome.mjs';
 import { renderProposal } from '../scripts/render.mjs';
-import { ShotsError, shoot } from '../scripts/shots.mjs';
+import { ShotsError, nameOf, shoot } from '../scripts/shots.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const cli = join(here, '..', 'scripts', 'shots.mjs');
@@ -52,6 +53,47 @@ const pngSize = file => {
   assert.deepEqual([...bytes.subarray(0, 8)], [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], `${file} is a PNG`);
   assert.equal(bytes.toString('latin1', 12, 16), 'IHDR', file);
   return { width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20) };
+};
+// The colour of one pixel of a PNG, as "r,g,b": its rows are unfiltered down to the one asked for. A file that
+// is no PNG (an older picture left where a new one should be) fails here.
+const colourAt = (file, x = 3, y = 3) => {
+  const { width } = pngSize(file);
+  const bytes = readFileSync(file);
+  const bpp = { 2: 3, 6: 4 }[bytes[25]];
+  assert.ok(bytes[24] === 8 && bpp && bytes[28] === 0, `${file} is an 8-bit colour picture, not interlaced`);
+  const data = [];
+  for (let at = 8; at < bytes.length; at += 12 + bytes.readUInt32BE(at)) {
+    if (bytes.toString('latin1', at + 4, at + 8) === 'IDAT') data.push(bytes.subarray(at + 8, at + 8 + bytes.readUInt32BE(at)));
+  }
+  const raw = inflateSync(Buffer.concat(data));
+  const stride = width * bpp;
+  let above = Buffer.alloc(stride);
+  for (let row = 0; row <= y; row++) {
+    const filter = raw[row * (stride + 1)];
+    const line = Buffer.from(raw.subarray(row * (stride + 1) + 1, (row + 1) * (stride + 1)));
+    for (let i = 0; i < stride; i++) {
+      const left = i >= bpp ? line[i - bpp] : 0;
+      const up = above[i];
+      const corner = i >= bpp ? above[i - bpp] : 0;
+      // The five ways a PNG row is written: as it is, or as its difference from a neighbour.
+      const paeth = () => {
+        const [a, b, c] = [left, up, corner].map(value => Math.abs(left + up - corner - value));
+        return a <= b && a <= c ? left : b <= c ? up : corner;
+      };
+      line[i] = (line[i] + [0, left, up, (left + up) >> 1, paeth()][filter]) & 255;
+    }
+    above = line;
+  }
+  return above.subarray(x * bpp, x * bpp + 3).join(',');
+};
+const [BLUE, RED, GREEN, YELLOW] = ['0,0,255', '255,0,0', '0,255,0', '255,255,0'];
+// A page that paints one solid colour, so that a picture of it is told from a picture of any other by one
+// pixel; `colour` is "r,g,b".
+const painted = (dir, name, colour, body = '') => {
+  mkdirSync(dir, { recursive: true });
+  const file = join(dir, name);
+  writeFileSync(file, `<!doctype html>\n<html>\n<head>\n<meta charset="utf-8">\n<title>${name}</title>\n</head>\n<body style="background: rgb(${colour})">\n${body}\n</body>\n</html>\n`);
+  return file;
 };
 const messagesOf = (result, file) => result.errors.filter(e => e.file === file).map(e => e.message);
 // A one-pixel picture, for a server to answer with.
@@ -98,6 +140,14 @@ const leftIn = async pgid => {
   return left;
 };
 
+// The processes left by every Chrome a run started. Each group is counted, and what is left of it stopped,
+// before anything is asserted: a failing test leaves no browser behind.
+const leftOf = async pids => {
+  let left = 0;
+  for (const pid of pids) left += await leftIn(pid);
+  return left;
+};
+
 // A command of this run, given at most `ms` to end: stopped through its own handle when it does not.
 const runFor = (args, ms, env = {}) =>
   new Promise(resolve => {
@@ -112,35 +162,70 @@ const runFor = (args, ms, env = {}) =>
       resolve({ status, stdout, stderr });
     });
   });
-// Faults put into the browsers a command starts, through Playwright's own objects. FAULT=hang: page.close()
-// never returns for the page named FAULT_PAGE. FAULT=crash: as that page opens, the browser is stopped by its
-// own process handle, the one Playwright's server gives. FAULT=die-after: the same, once that page has been
-// closed. FAULT=stuck: no browser server ever closes. FAULT=context: the first context never closes.
+// Faults put into the browsers a command starts, through Playwright's own objects. FAULT names one:
+//   hang                page.close() never returns for the page named FAULT_PAGE
+//   crash               as that page opens, the browser is stopped by its own process handle, the one
+//                       Playwright's server gives
+//   die-after           the same, once that page has been closed
+//   stuck               no browser server ever closes, and its kill stops the browser but never returns
+//   context             the first context never closes
+//   dead-page           the browser is stopped, by its own process handle, as a page is asked of it: at the
+//                       calls numbered in FAULT_AT (as "2,3"), counted over the whole run, or at every
+//                       call ("all")
+//   dead-context        the same, as a context is asked of it
+//   no-page             the page asked for at the calls numbered in FAULT_AT never comes
+//   no-connect          the browser started never answers the one that started it
+//   leaves-as-read      the first time the page named FAULT_PAGE is read, it has just left for
+//                       away/elsewhere.html, and the reading fails as Playwright's does then
+//   leaves-as-pictured  that page leaves for away/elsewhere.html just before its picture is taken
+//   leaves-unpictured   that page leaves the same way, and the picture then fails as Playwright's does
+//   unread-as-pictured  that page can be read once, before its picture, and never again
+//   no-mark             the page asked for at the calls numbered in FAULT_AT can never be marked
+//   report              the failure of the request named FAULT_PAGE cannot be read
 const faults = join(root, 'browser-faults.cjs');
 writeFileSync(faults, [
   "const { chromium } = require('playwright-core');",
+  'const fault = process.env.FAULT;',
+  "const at = n => process.env.FAULT_AT === 'all' || (process.env.FAULT_AT ?? '').split(',').map(Number).includes(n);",
+  "const marked = url => (process.env.FAULT_PAGE ?? '').split(',').some(name => String(url).endsWith('/' + name));",
+  'const never = () => new Promise(() => {});',
   'const servers = [];',
+  'let contexts = 0;',
+  'let pages = 0;',
+  "const stopOwn = async () => { const child = servers.at(-1).process(); if (child.exitCode === null && child.signalCode === null) { child.kill('SIGKILL'); await new Promise(resolve => child.once('exit', resolve)); } };",
   'const launchServer = chromium.launchServer.bind(chromium);',
   'chromium.launchServer = async (...args) => {',
   '  const server = await launchServer(...args);',
   '  servers.push(server);',
-  "  if (process.env.FAULT === 'stuck') server.close = () => new Promise(() => {});",
+  "  if (fault === 'stuck') { const kill = server.kill.bind(server); server.close = never; server.kill = async () => { await kill(); await never(); }; }",
   '  return server;',
   '};',
-  "const marked = url => (process.env.FAULT_PAGE ?? '').split(',').some(name => String(url).endsWith('/' + name));",
   'const connect = chromium.connect.bind(chromium);',
   'chromium.connect = async (...args) => {',
+  "  if (fault === 'no-connect') await never();",
   '  const browser = await connect(...args);',
   '  const newContext = browser.newContext.bind(browser);',
   '  browser.newContext = async (...a) => {',
+  "    if (fault === 'dead-context' && at(++contexts)) await stopOwn();",
   '    const context = await newContext(...a);',
-  "    if (process.env.FAULT === 'context' && !globalThis.contextHung) { globalThis.contextHung = true; context.close = () => new Promise(() => {}); }",
+  "    if (fault === 'context' && !globalThis.contextHung) { globalThis.contextHung = true; context.close = never; }",
   '    const newPage = context.newPage.bind(context);',
   '    context.newPage = async (...b) => {',
+  '      pages++;',
+  "      if (fault === 'dead-page' && at(pages)) await stopOwn();",
+  "      if (fault === 'no-page' && at(pages)) await never();",
   '      const page = await newPage(...b);',
-  "      if (process.env.FAULT === 'hang') { const close = page.close.bind(page); page.close = (...c) => (marked(page.url()) ? new Promise(() => {}) : close(...c)); }",
-  "      if (process.env.FAULT === 'crash') { const goto = page.goto.bind(page); page.goto = (url, ...c) => { if (marked(url)) servers.at(-1).process().kill('SIGKILL'); return goto(url, ...c); }; }",
-  "      if (process.env.FAULT === 'die-after') { const close = page.close.bind(page); page.close = async (...c) => { const marks = marked(page.url()); await close(...c); if (marks) servers.at(-1).process().kill('SIGKILL'); }; }",
+  '      const evaluate = page.evaluate.bind(page);',
+  "      const leave = async () => { const landed = page.waitForEvent('framenavigated'); await evaluate(() => { location.href = 'away/elsewhere.html'; }); await landed; };",
+  "      if (fault === 'hang') { const close = page.close.bind(page); page.close = (...c) => (marked(page.url()) ? never() : close(...c)); }",
+  "      if (fault === 'crash') { const goto = page.goto.bind(page); page.goto = (url, ...c) => { if (marked(url)) servers.at(-1).process().kill('SIGKILL'); return goto(url, ...c); }; }",
+  "      if (fault === 'die-after') { const close = page.close.bind(page); page.close = async (...c) => { const marks = marked(page.url()); await close(...c); if (marks) servers.at(-1).process().kill('SIGKILL'); }; }",
+  "      if (fault === 'leaves-as-read') { let read = false; page.evaluate = async (...c) => { if (read || !marked(page.url())) return evaluate(...c); read = true; await leave(); throw new Error('page.evaluate: Execution context was destroyed, most likely because of a navigation'); }; }",
+  "      if (fault === 'leaves-as-pictured') { const screenshot = page.screenshot.bind(page); page.screenshot = async (...c) => { if (marked(page.url())) await leave(); return screenshot(...c); }; }",
+  "      if (fault === 'leaves-unpictured') { const screenshot = page.screenshot.bind(page); page.screenshot = async (...c) => { if (!marked(page.url())) return screenshot(...c); await leave(); throw new Error('page.screenshot: Timeout 30000ms exceeded.'); }; }",
+  "      if (fault === 'no-mark' && at(pages)) page.exposeBinding = never;",
+  "      if (fault === 'unread-as-pictured') { let reads = 0; page.evaluate = async (...c) => { if (marked(page.url()) && ++reads > 1) throw new Error('page.evaluate: the page did not say'); return evaluate(...c); }; }",
+  "      if (fault === 'report') { const on = page.on.bind(page); page.on = (event, listener) => on(event, event !== 'requestfailed' ? listener : request => { if (marked(request.url())) request.failure = () => { throw new Error('a listener fault'); }; return listener(request); }); }",
   '      return page;',
   '    };',
   '    return context;',
@@ -261,25 +346,157 @@ test('a frame inside the page that goes nowhere is a resource that did not open;
 
 test('a page that goes to about:blank, from its script or once loaded, sent itself there: an error, and no picture', async () => {
   const dir = fresh();
-  const loaded = page(dir, 'blank-load.html', '<script>addEventListener("load", () => (location.href = "about:blank"))</script>\n<p>Leaves.</p>');
-  const script = page(dir, 'blank-script.html', '<script>location.href = "about:blank"</script>');
-  page(dir, 'good.html', '<p>Good.</p>');
+  const loaded = painted(dir, 'blank-load.html', BLUE, '<script>addEventListener("load", () => (location.href = "about:blank"))</script>\n<p>Leaves.</p>');
+  const script = painted(dir, 'blank-script.html', BLUE, '<script>location.href = "about:blank"</script>');
+  painted(dir, 'good.html', GREEN, '<p>Good.</p>');
   const out = join(dir, 'shots');
   mkdirSync(out);
   writeFileSync(join(out, 'blank-load-390-light.png'), 'an older picture');
-  const result = await shoot([dir], { out, widths: [390] });
+  const result = await shoot([dir], { out, widths: [390, 400] });
   assert.deepEqual(result.errors, [
     { file: loaded, message: 'the page sent itself to about:blank' },
     { file: script, message: 'the page sent itself to about:blank' },
   ]);
-  assert.deepEqual(readdirSync(out), ['good-390-light.png']);
+  assert.deepEqual(readdirSync(out).sort(), ['good-390-light.png', 'good-400-light.png']);
+  for (const file of result.files) assert.equal(colourAt(file), GREEN, file);
 });
 
-test('a page that reloads itself with a query sent itself to that address, named with its query', async () => {
+test('a page that loads its own file again is no longer the document that was loaded: it reloaded itself, named with its query, and is not pictured', async () => {
   const dir = fresh();
-  const reload = page(dir, 'reload.html', '<script>if (!location.search) location.search = "?again"</script>\n<p>Again.</p>');
-  const result = await shoot([reload], { out: join(dir, 'shots'), widths: [390] });
-  assert.deepEqual([result.errors, result.files], [[{ file: reload, message: 'the page sent itself to reload.html?again' }], []]);
+  const reload = painted(dir, 'reload.html', BLUE, '<script>if (!location.search) location.search = "?again"</script>\n<p>Again.</p>');
+  // It leaves, and the page it went to sends it back: the file asked for, in a document of its own.
+  const returns = painted(dir, 'returns.html', BLUE, '<script>if (location.hash !== "#back") location.href = "away/back.html"</script>\n<p>Back.</p>');
+  painted(join(dir, 'away'), 'back.html', RED, '<script>location.href = "../returns.html#back"</script>');
+  painted(dir, 'good.html', GREEN, '<p>Good.</p>');
+  const out = join(dir, 'shots');
+  mkdirSync(out);
+  writeFileSync(join(out, 'reload-390-light.png'), 'an older picture');
+  const result = await shoot([dir], { out, widths: [390, 400] });
+  assert.deepEqual(result.errors, [
+    { file: reload, message: 'the page reloaded itself, as reload.html?again' },
+    { file: returns, message: 'the page reloaded itself, as returns.html' },
+  ]);
+  assert.deepEqual(readdirSync(out).sort(), ['good-390-light.png', 'good-400-light.png']);
+  for (const file of result.files) assert.equal(colourAt(file), GREEN, file);
+});
+
+test('a page that leaves just as it is pictured is never pictured as the page it left for: each picture kept shows the page asked for, and a page with none has an error', { timeout: 120_000 }, async t => {
+  const later = (to, ms) => `<script>setTimeout(() => (location.href = ${to}), ${ms})</script>\n<p>Leaves.</p>`;
+  const blob = `URL.createObjectURL(new Blob(['<body style="background: rgb(${RED})">blob'], { type: "text/html" }))`;
+  // Each page paints a colour of its own, and leaves about when its picture is taken: a page is judged
+  // settled 100 ms after it last moved. Where each goes paints another colour. The one that leaves after
+  // 150 ms is sometimes pictured first: as itself.
+  const leaving = {
+    'file-110.html': [BLUE, later('"away/target.html"', 110)],
+    'file-130.html': [BLUE, later('"away/target.html"', 130)],
+    'file-150.html': [BLUE, later('"away/target.html"', 150)],
+    'blank-120.html': [BLUE, later('"about:blank"', 120)],
+    'blob-110.html': [BLUE, later(blob, 110)],
+  };
+  // A pair that send each other back and forth, and a ring of three, every 110 ms.
+  const circling = {
+    'pair-a.html': [BLUE, later('"pair-b.html"', 110)],
+    'pair-b.html': [RED, later('"pair-a.html"', 110)],
+    'ring-1.html': [BLUE, later('"ring-2.html"', 110)],
+    'ring-2.html': [RED, later('"ring-3.html"', 110)],
+    'ring-3.html': [YELLOW, later('"ring-1.html"', 110)],
+  };
+  // Each page is shot three times, one browser at a time, beside a good page, with an older picture under
+  // every name. They are given little time: Chrome can take all it is given to picture a page that leaves
+  // meanwhile, and does for one that goes round.
+  const widths = [390, 400, 410];
+  const tally = { pages: 0, shots: 0, kept: 0, during: 0 };
+  for (const [pages, timeout] of [[leaving, 1000], [circling, 300]]) {
+    const dir = fresh();
+    const all = { ...pages, 'good.html': [GREEN, '<p>Good.</p>'] };
+    for (const [name, [colour, body]] of Object.entries(all)) painted(dir, name, colour, body);
+    painted(join(dir, 'away'), 'target.html', RED, '<p>The other page.</p>');
+    const out = join(dir, 'shots');
+    mkdirSync(out);
+    const pictureOf = (name, width) => join(out, `${basename(name, '.html')}-${width}-light.png`);
+    for (const name of Object.keys(all)) for (const width of widths) writeFileSync(pictureOf(name, width), 'an older picture');
+    const result = await shoot([dir], { out, widths, timeout });
+    for (const [name, [colour]] of Object.entries(all)) {
+      const messages = messagesOf(result, join(dir, name));
+      const kept = widths.filter(width => existsSync(pictureOf(name, width)));
+      // A picture kept shows the page asked for, never an older one or another page; a page with a picture
+      // missing has an error.
+      for (const width of kept) assert.equal(colourAt(pictureOf(name, width)), colour, `${pictureOf(name, width)} shows the page asked for`);
+      if (kept.length < widths.length) assert.ok(messages.length > 0, `${name} has a picture missing, and no error: ${JSON.stringify(result.errors)}`);
+      assert.deepEqual(result.files.filter(file => basename(file).startsWith(`${basename(name, '.html')}-`)), kept.map(width => pictureOf(name, width)), `${name}: the pictures said are the pictures there`);
+      if (name !== 'good.html') {
+        tally.pages++;
+        tally.shots += widths.length;
+        tally.kept += kept.length;
+        tally.during += messages.some(message => message.endsWith(' while it was being pictured'));
+      }
+    }
+    assert.deepEqual(messagesOf(result, join(dir, 'good.html')), []);
+    assert.equal(result.files.filter(file => basename(file).startsWith('good-')).length, widths.length, 'the good page is pictured each time');
+    // A page that left once is said to have left, and where the tab is now: before its picture, or while it
+    // was taken.
+    if (pages !== leaving) continue;
+    for (const name of Object.keys(leaving)) {
+      const where = name.startsWith('file-') ? 'away/target\\.html' : name.startsWith('blank-') ? 'about:blank' : 'blob:\\S+';
+      for (const message of messagesOf(result, join(dir, name))) assert.match(message, new RegExp(`^the page sent itself to ${where}( while it was being pictured)?$`), name);
+    }
+  }
+  t.diagnostic(`${tally.shots} shots of ${tally.pages} pages that leave: ${tally.kept} pictured as themselves, the others not pictured; ${tally.during} of the ${tally.pages} pages were seen leaving while pictured`);
+});
+
+test('a page that leaves while its picture is taken, or as it is read, has an error saying where it went, and one that cannot say whether it left has an error too; the picture taken is not kept', { skip: !UNIX && 'needs a shell script for Chrome' }, async () => {
+  for (const [fault, message] of [
+    ['leaves-as-pictured', 'the page sent itself to away/elsewhere.html while it was being pictured'],
+    ['leaves-unpictured', 'the page sent itself to away/elsewhere.html while it was being pictured'],
+    ['leaves-as-read', 'the page sent itself to away/elsewhere.html'],
+    ['unread-as-pictured', 'the page could not be read again once pictured: the page did not say'],
+  ]) {
+    const dir = fresh();
+    const chrome = countingChrome(dir);
+    painted(dir, 'a-good.html', GREEN, '<p>Good.</p>');
+    const leaves = painted(dir, 'b-leaves.html', BLUE, '<p>Leaves at the worst moment.</p>');
+    painted(dir, 'c-after.html', YELLOW, '<p>After.</p>');
+    painted(join(dir, 'away'), 'elsewhere.html', RED, '<p>Elsewhere.</p>');
+    const out = join(dir, 'shots');
+    mkdirSync(out);
+    writeFileSync(join(out, 'b-leaves-390-light.png'), 'an older picture');
+    const r = await runFor(['--require', faults, cli, dir, '--out', out, '--widths', '390', '--chrome', chrome.file], 30_000, { FAULT: fault, FAULT_PAGE: 'b-leaves.html' });
+    const left = await leftOf(chrome.pids());
+    assert.deepEqual([r.status, r.stderr], [1, `error: ${leaves}: ${message}\n`], fault);
+    // The picture taken is not kept under the page's name, nor the older one.
+    assert.deepEqual(readdirSync(out).sort(), ['a-good-390-light.png', 'c-after-390-light.png'], fault);
+    assert.deepEqual([colourAt(join(out, 'a-good-390-light.png')), colourAt(join(out, 'c-after-390-light.png'))], [GREEN, YELLOW]);
+    assert.equal(left, 0, 'no process of its Chrome is left');
+  }
+});
+
+test('a page that sends itself to an address that cannot be decoded is an error of its own, named as written; the run goes on', () => {
+  const dir = fresh();
+  const percent = painted(dir, 'a-percent.html', BLUE, '<script>location.href = "sub/x%zz.html"</script>');
+  painted(dir, 'b-good.html', GREEN, '<p>Good.</p>');
+  const out = join(dir, 'shots');
+  mkdirSync(out);
+  for (const name of ['a-percent', 'b-good']) writeFileSync(join(out, `${name}-390-light.png`), 'an older picture');
+  const r = run(dir, '--out', out, '--widths', '390');
+  assert.deepEqual([r.status, r.stderr], [1, `error: ${percent}: the page sent itself to sub/x%zz.html, which did not open: net::ERR_FILE_NOT_FOUND\n`]);
+  assert.deepEqual(readdirSync(out), ['b-good-390-light.png']);
+  assert.equal(colourAt(join(out, 'b-good-390-light.png')), GREEN);
+});
+
+test('naming an address never fails: a file beside the page by its path and query, a part that cannot be decoded as written, anything else by its address', () => {
+  const folder = join(root, 'named pages');
+  const at = rest => `${pathToFileURL(folder).href}${rest}`;
+  assert.equal(nameOf(at('/plain.html'), folder), 'plain.html');
+  assert.equal(nameOf(at('/two%20words/caf%C3%A9.html?step=2#here'), folder), 'two words/café.html?step=2');
+  assert.equal(nameOf(pathToFileURL(join(root, 'beside.html')).href, folder), '../beside.html');
+  // A bare %, and a byte that is no UTF-8, cannot be decoded: that part is shown as it is written.
+  assert.equal(nameOf(at('/sub/x%zz.html'), folder), 'sub/x%zz.html');
+  assert.equal(nameOf(at('/100%.html'), folder), '100%.html');
+  assert.equal(nameOf(at('/two%20words/%ff%20x.html?q=%zz'), folder), 'two words/%ff%20x.html?q=%zz');
+  // What names no path on this machine, or is no file address, or no address at all, is named by itself.
+  for (const address of ['file://fonts.example.invalid/x.css', at('/a%2Fb.html'), 'about:blank', 'http://127.0.0.1:9/x%zz.html', 'blob:null/1-2-3', 'chrome-error://chromewebdata/', 'file://%zz/x.html', '']) {
+    assert.equal(nameOf(address, folder), address, address);
+  }
 });
 
 test('a page or a folder whose name holds ^ or | is the page asked for: pictured, exit 0', () => {
@@ -324,12 +541,25 @@ test('a page settles only with no move under way and once it has stayed on one d
   }
 });
 
-test('a page that only changes the part of its address after # stays its own page, and is pictured', async () => {
+test('a page that changes its address and keeps its document stays the page asked for: what follows the #, a query pushed or replaced in its history; pictured, exit 0', () => {
   const dir = fresh();
-  // On a file page Chrome lets a script change nothing of the address but what follows the #.
-  const replaced = page(dir, 'replaced.html', '<script>history.replaceState(null, "", "#state"); location.hash = "later"</script>\n<p>Still here.</p>');
-  const result = await shoot([replaced], { out: join(dir, 'shots'), widths: [390] });
-  assert.deepEqual([result.errors, result.files.map(file => basename(file))], [[], ['replaced-390-light.png']]);
+  // On a file page Chrome lets a script change what follows the # of its address and its query, through its
+  // history too; another path it refuses. None of these loads a document.
+  const colours = {
+    hash: [BLUE, 'history.replaceState(null, "", "#state"); location.hash = "later"'],
+    pushed: [YELLOW, 'history.pushState(null, "", "?step=2")'],
+    replaced: [RED, 'history.replaceState(null, "", "?step=2")'],
+    ticking: [BLUE, 'setInterval(() => history.replaceState(null, "", "?tick=" + Date.now()), 30)'],
+    good: [GREEN, ''],
+  };
+  for (const [name, [colour, script]] of Object.entries(colours)) painted(dir, `${name}.html`, colour, `<script>${script}</script>\n<p>Still here.</p>`);
+  const out = join(dir, 'shots');
+  const r = run(dir, '--out', out, '--widths', '390,400,410');
+  assert.deepEqual([r.status, r.stderr], [0, '']);
+  assert.equal(r.stdout, `shot 15 pictures at 390, 400, 410 px, light, into ${out}\n`);
+  for (const [name, [colour]] of Object.entries(colours)) {
+    for (const width of [390, 400, 410]) assert.equal(colourAt(join(out, `${name}-${width}-light.png`)), colour, `${name} at ${width}`);
+  }
 });
 
 test('a page that cannot be read, or cannot be pictured, is an error of its own, with no picture; the run goes on', async () => {
@@ -363,6 +593,31 @@ test('a page that does not finish loading within the timeout is an error naming 
     assert.deepEqual(readdirSync(out), ['fine-390-light.png']);
     assert.equal(result.titles[fine], 'fine.html');
   } finally {
+    server.close();
+  }
+});
+
+test('a page that sets off for an address that never opens is an error saying where it was going', async () => {
+  // A server that answers 1.4 s after it is asked: by then the page has been given up, 1 s after it was
+  // opened, and its move lands at last, so that closing it waits for nothing more.
+  const server = createServer((request, response) => void setTimeout(() => response.end('late'), 1400));
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  try {
+    const at = `http://127.0.0.1:${server.address().port}`;
+    const dir = fresh();
+    // One sets off as it loads, and so never finishes loading; one sets off once loaded.
+    const loading = page(dir, 'a-loading.html', `<script>location.href = "${at}/held"</script>\n<p>Leaving.</p>`);
+    const loaded = page(dir, 'b-loaded.html', `<script>addEventListener("load", () => setTimeout(() => (location.href = "${at}/held"), 20))</script>\n<p>Leaving.</p>`);
+    page(dir, 'c-good.html', '<p>Good.</p>');
+    const out = join(dir, 'shots');
+    const result = await shoot([dir], { out, widths: [390], timeout: 1000 });
+    assert.deepEqual(result.errors, [
+      { file: loading, message: `a-loading.html did not finish loading within 1000 ms: it had set off for ${at}/held` },
+      { file: loaded, message: `the page kept moving for 1000 ms, last to ${at}/held` },
+    ]);
+    assert.deepEqual(readdirSync(out), ['c-good-390-light.png']);
+  } finally {
+    server.closeAllConnections();
     server.close();
   }
 });
@@ -794,17 +1049,9 @@ test('a report the page makes that cannot be read is an error of that page, and 
   const dir = fresh();
   const trapped = page(dir, 'a-trapped.html', '<img src="trap.png" alt="a picture that is not there">');
   page(dir, 'b-fine.html', '<p>Fine.</p>');
-  // Reading a file address fails in a way it never does, for the trap only: inside a listener.
-  const fault = join(dir, 'fault.cjs');
-  writeFileSync(fault, [
-    "const url = require('node:url');",
-    "const { syncBuiltinESMExports } = require('node:module');",
-    'const toPath = url.fileURLToPath;',
-    "url.fileURLToPath = (address, ...rest) => { if (String(address).endsWith('/trap.png')) throw new Error('a listener fault'); return toPath(address, ...rest); };",
-    'syncBuiltinESMExports();',
-  ].join('\n'));
+  // Why the trap did not load cannot be read: the report fails inside a listener, where no one could catch it.
   const out = join(dir, 'shots');
-  const r = spawnSync(process.execPath, ['--require', fault, cli, dir, '--out', out, '--widths', '390'], { encoding: 'utf8', timeout: 60_000 });
+  const r = spawnSync(process.execPath, ['--require', faults, cli, dir, '--out', out, '--widths', '390'], { encoding: 'utf8', timeout: 60_000, env: { ...process.env, FAULT: 'report', FAULT_PAGE: 'trap.png' } });
   assert.equal(r.status, 1, r.stderr);
   // The failed request the listener could not record is not known as failed, so Chrome's own console line
   // about it is said too: the two reports the page made, each once.
@@ -836,7 +1083,7 @@ test('--timeout limits how long a page is given: one error naming the page, soon
   }
 });
 
-test('pages that send each other back and forth never hang a run: twelve runs, each within 40 s, an error for each moving page, the good page pictured, nothing left', { skip: !UNIX && 'needs a shell script for Chrome', timeout: 180_000 }, async t => {
+test('pages that send each other back and forth never hang a run: twelve runs, three at a time, each within 40 s, an error for each moving page, the good page pictured, nothing left', { skip: !UNIX && 'needs a shell script for Chrome', timeout: 180_000 }, async t => {
   // Each run: two pages that send each other back and forth (after 20 ms, or at once), and a good page.
   const once = async delay => {
     const dir = fresh();
@@ -849,8 +1096,10 @@ test('pages that send each other back and forth never hang a run: twelve runs, e
     const r = await runFor([cli, dir, '--out', out, '--widths', '390', '--timeout', '700', '--chrome', chrome.file], 40_000);
     return { r, delay, took: Date.now() - started, moving, out, pids: chrome.pids() };
   };
-  // Twelve at once: six sending after 20 ms, six at once.
-  const runs = await Promise.all([20, 20, 20, 20, 20, 20, 0, 0, 0, 0, 0, 0].map(once));
+  // Twelve runs, never more than three browsers at once: six sending after 20 ms, six at once.
+  const delays = [20, 20, 20, 20, 20, 20, 0, 0, 0, 0, 0, 0];
+  const runs = [];
+  for (let i = 0; i < delays.length; i += 3) runs.push(...(await Promise.all(delays.slice(i, i + 3).map(once))));
   for (const { r, delay, took, moving, out, pids } of runs) {
     assert.equal(r.status, 1, `ended with ${r.status} after ${took} ms: ${r.stderr}`);
     const lines = r.stderr.trimEnd().split('\n');
@@ -868,24 +1117,6 @@ test('pages that send each other back and forth never hang a run: twelve runs, e
   const kept = runs.filter(run => run.delay).flatMap(run => run.r.stderr.split('\n')).filter(line => /: the page kept moving for 700 ms, last to (a-there|b-back)\.html$/.test(line));
   assert.ok(kept.length > 0, 'pages that never settle are said to keep moving');
   t.diagnostic(`12 runs; the longest took ${Math.max(...runs.map(run => run.took))} ms; ${kept.length} of 12 moving pages said to keep moving`);
-});
-
-test('a page whose close never returns is an error; its browser is stopped by its own handle, and the next page is pictured in a fresh one', { skip: !UNIX && 'needs a shell script for Chrome' }, async () => {
-  const dir = fresh();
-  const chrome = countingChrome(dir);
-  page(dir, 'a-first.html', '<p>First.</p>');
-  const hang = page(dir, 'b-hang.html', '<p>Will not close.</p>');
-  page(dir, 'c-after.html', '<p>After.</p>');
-  const out = join(dir, 'shots');
-  const started = Date.now();
-  const r = await runFor(['--require', faults, cli, dir, '--out', out, '--widths', '390', '--chrome', chrome.file], 30_000, { FAULT: 'hang', FAULT_PAGE: 'b-hang.html' });
-  assert.equal(r.status, 1, r.stderr);
-  assert.equal(r.stderr, `error: ${hang}: the page would not close; its browser was stopped\n`);
-  assert.deepEqual(readdirSync(out).sort(), ['a-first-390-light.png', 'b-hang-390-light.png', 'c-after-390-light.png']);
-  assert.ok(Date.now() - started < 20_000, `it took ${Date.now() - started} ms`);
-  const pids = chrome.pids();
-  assert.equal(pids.length, 2, 'a fresh browser was started');
-  for (const pid of pids) assert.equal(await leftIn(pid), 0, `processes left from the Chrome started as ${pid}`);
 });
 
 test('a browser that dies while a page opens is an error of that page, and the run goes on in a fresh browser', { skip: !UNIX && 'needs a shell script for Chrome' }, async () => {
@@ -921,32 +1152,154 @@ test('a browser that dies between two pages, or between two widths, is replaced:
   for (const pid of pids) assert.equal(await leftIn(pid), 0, `processes left from the Chrome started as ${pid}`);
 });
 
-test('a browser that will not close is stopped by its own handle, and the run ends', { skip: !UNIX && 'needs a shell script for Chrome' }, async () => {
+test('a page whose browser stops twice before it can be opened is an error of that page; its older picture is removed, and the run goes on', { skip: !UNIX && 'needs a shell script for Chrome' }, async () => {
   const dir = fresh();
   const chrome = countingChrome(dir);
-  page(dir, 'only.html', '<p>Only.</p>');
+  page(dir, 'a-first.html', '<p>First.</p>');
+  const twice = page(dir, 'b-twice.html', '<p>Its browser stops twice.</p>');
+  page(dir, 'c-after.html', '<p>After.</p>');
   const out = join(dir, 'shots');
-  const started = Date.now();
-  const r = await runFor(['--require', faults, cli, dir, '--out', out, '--widths', '390', '--chrome', chrome.file], 30_000, { FAULT: 'stuck' });
-  assert.deepEqual([r.status, r.stderr], [0, '']);
-  assert.deepEqual(readdirSync(out), ['only-390-light.png']);
-  assert.ok(Date.now() - started < 15_000, `it took ${Date.now() - started} ms`);
+  mkdirSync(out);
+  writeFileSync(join(out, 'b-twice-390-light.png'), 'an older picture');
+  // The browser stops as the second page is asked of it, and the fresh one as that page is asked again.
+  const r = await runFor(['--require', faults, cli, dir, '--out', out, '--widths', '390', '--chrome', chrome.file], 30_000, { FAULT: 'dead-page', FAULT_AT: '2,3' });
   const pids = chrome.pids();
-  assert.equal(pids.length, 1);
-  assert.equal(await leftIn(pids[0]), 0, 'the browser that would not close is gone');
+  const left = await leftOf(pids);
+  assert.deepEqual([r.status, r.stderr], [1, `error: ${twice}: the browser stopped twice while opening this page\n`]);
+  assert.equal(r.stdout, `shot 2 pictures at 390 px, light, into ${out}\n`);
+  assert.deepEqual(readdirSync(out).sort(), ['a-first-390-light.png', 'c-after-390-light.png']);
+  assert.equal(pids.length, 3, 'one browser, and a fresh one after each death');
+  assert.equal(left, 0, 'no process of any of them is left');
 });
 
-test('a context that will not close: its browser is stopped, a fresh one goes on with the next width, and the run ends', { skip: !UNIX && 'needs a shell script for Chrome' }, async () => {
-  const dir = fresh();
-  const chrome = countingChrome(dir);
-  page(dir, 'only.html', '<p>Only.</p>');
-  const out = join(dir, 'shots');
-  const r = await runFor(['--require', faults, cli, dir, '--out', out, '--widths', '1280,390', '--chrome', chrome.file], 40_000, { FAULT: 'context' });
-  assert.deepEqual([r.status, r.stderr], [0, '']);
-  assert.deepEqual(readdirSync(out).sort(), ['only-1280-light.png', 'only-390-light.png']);
-  const pids = chrome.pids();
-  assert.equal(pids.length, 2, 'a fresh browser after the context that would not close');
-  for (const pid of pids) assert.equal(await leftIn(pid), 0, `processes left from the Chrome started as ${pid}`);
+test('a Chrome that stops each time a page, or a context, is asked of it ends the run: three browsers started, no more, and exit 1', { skip: !UNIX && 'needs a shell script for Chrome' }, async () => {
+  for (const fault of ['dead-page', 'dead-context']) {
+    const dir = fresh();
+    const chrome = countingChrome(dir);
+    for (const name of ['a-first.html', 'b-next.html', 'c-last.html']) page(dir, name, `<p>${name}</p>`);
+    const out = join(dir, 'shots');
+    const started = Date.now();
+    const r = await runFor(['--require', faults, cli, dir, '--out', out, '--widths', '1280,390', '--chrome', chrome.file], 20_000, { FAULT: fault, FAULT_AT: 'all' });
+    const took = Date.now() - started;
+    const pids = chrome.pids();
+    const left = await leftOf(pids);
+    assert.deepEqual([r.status, r.stdout, r.stderr], [1, '', `Chrome at ${chrome.file} keeps stopping: 3 browsers in a row were started, and none opened a page\n`], fault);
+    assert.equal(pids.length, 3, `${fault}: it started ${pids.length} browsers`);
+    assert.ok(took < 10_000, `${fault}: it took ${took} ms`);
+    assert.deepEqual(readdirSync(out), [], fault);
+    assert.equal(left, 0, 'no process of any of them is left');
+  }
+});
+
+// Each of these waits CLOSE_MS, five seconds, for what never comes back, once or twice: they run three at a
+// time, each with one browser at a time, the longest first.
+describe('what never comes back is waited for no longer than its limit', { concurrency: 3 }, () => {
+  test('a browser that will not close is stopped by its own handle, and the run ends even when stopping it never returns', { skip: !UNIX && 'needs a shell script for Chrome' }, async () => {
+    const dir = fresh();
+    const chrome = countingChrome(dir);
+    page(dir, 'only.html', '<p>Only.</p>');
+    const out = join(dir, 'shots');
+    const started = Date.now();
+    // Its close never returns; stopping it by its handle stops it, and never returns either.
+    const r = await runFor(['--require', faults, cli, dir, '--out', out, '--widths', '390', '--chrome', chrome.file], 40_000, { FAULT: 'stuck' });
+    const took = Date.now() - started;
+    const pids = chrome.pids();
+    const left = await leftOf(pids);
+    assert.deepEqual([r.status, r.stdout, r.stderr], [0, `shot 1 picture at 390 px, light, into ${out}\n`, '']);
+    assert.deepEqual(readdirSync(out), ['only-390-light.png']);
+    assert.ok(took < 20_000, `it took ${took} ms`);
+    assert.equal(pids.length, 1);
+    assert.equal(left, 0, 'the browser that would not close is gone');
+  });
+
+  test('a page whose close never returns is an error; its browser is stopped by its own handle, and the next page is pictured in a fresh one', { skip: !UNIX && 'needs a shell script for Chrome' }, async () => {
+    const dir = fresh();
+    const chrome = countingChrome(dir);
+    page(dir, 'a-first.html', '<p>First.</p>');
+    const hang = page(dir, 'b-hang.html', '<p>Will not close.</p>');
+    page(dir, 'c-after.html', '<p>After.</p>');
+    const out = join(dir, 'shots');
+    const started = Date.now();
+    const r = await runFor(['--require', faults, cli, dir, '--out', out, '--widths', '390', '--chrome', chrome.file], 30_000, { FAULT: 'hang', FAULT_PAGE: 'b-hang.html' });
+    assert.equal(r.status, 1, r.stderr);
+    assert.equal(r.stderr, `error: ${hang}: the page would not close; its browser was stopped\n`);
+    assert.deepEqual(readdirSync(out).sort(), ['a-first-390-light.png', 'b-hang-390-light.png', 'c-after-390-light.png']);
+    assert.ok(Date.now() - started < 20_000, `it took ${Date.now() - started} ms`);
+    const pids = chrome.pids();
+    assert.equal(pids.length, 2, 'a fresh browser was started');
+    for (const pid of pids) assert.equal(await leftIn(pid), 0, `processes left from the Chrome started as ${pid}`);
+  });
+
+  test('a page that is asked of the browser and never comes is an error of that page; its browser is stopped, and the run goes on in a fresh one', { skip: !UNIX && 'needs a shell script for Chrome' }, async () => {
+    const dir = fresh();
+    const chrome = countingChrome(dir);
+    page(dir, 'a-first.html', '<p>First.</p>');
+    const never = page(dir, 'b-never.html', '<p>Never opened.</p>');
+    page(dir, 'c-after.html', '<p>After.</p>');
+    const out = join(dir, 'shots');
+    mkdirSync(out);
+    writeFileSync(join(out, 'b-never-390-light.png'), 'an older picture');
+    const started = Date.now();
+    const r = await runFor(['--require', faults, cli, dir, '--out', out, '--widths', '390', '--chrome', chrome.file], 30_000, { FAULT: 'no-page', FAULT_AT: '2' });
+    const took = Date.now() - started;
+    const pids = chrome.pids();
+    const left = await leftOf(pids);
+    assert.deepEqual([r.status, r.stderr], [1, `error: ${never}: no page could be opened for it (it gave no answer within 5000 ms); its browser was stopped\n`]);
+    assert.deepEqual(readdirSync(out).sort(), ['a-first-390-light.png', 'c-after-390-light.png']);
+    assert.ok(took < 20_000, `it took ${took} ms`);
+    assert.equal(pids.length, 2, 'a fresh browser was started');
+    assert.equal(left, 0, 'no process of either is left');
+  });
+
+  test('a browser that starts and never answers is a Chrome that did not start: refused with exit 1, and stopped', { skip: !UNIX && 'needs a shell script for Chrome' }, async () => {
+    const dir = fresh();
+    const chrome = countingChrome(dir);
+    page(dir, 'only.html', '<p>Only.</p>');
+    const out = join(dir, 'shots');
+    const started = Date.now();
+    const r = await runFor(['--require', faults, cli, dir, '--out', out, '--widths', '390', '--chrome', chrome.file], 30_000, { FAULT: 'no-connect' });
+    const took = Date.now() - started;
+    const pids = chrome.pids();
+    const left = await leftOf(pids);
+    assert.deepEqual([r.status, r.stdout, r.stderr], [1, '', `Chrome at ${chrome.file} did not start: it gave no answer within 5000 ms\n`]);
+    assert.ok(took < 20_000, `it took ${took} ms`);
+    assert.equal(pids.length, 1, 'it was started once');
+    assert.equal(left, 0, 'the browser that never answered is gone');
+  });
+
+  test('a page that cannot be marked in time is an error of that page; nothing of it is waited for further, and the run goes on', { skip: !UNIX && 'needs a shell script for Chrome' }, async () => {
+    const dir = fresh();
+    const chrome = countingChrome(dir);
+    page(dir, 'a-first.html', '<p>First.</p>');
+    const unmarked = page(dir, 'b-unmarked.html', '<p>Never marked.</p>');
+    page(dir, 'c-after.html', '<p>After.</p>');
+    const out = join(dir, 'shots');
+    mkdirSync(out);
+    writeFileSync(join(out, 'b-unmarked-390-light.png'), 'an older picture');
+    const started = Date.now();
+    const r = await runFor(['--require', faults, cli, dir, '--out', out, '--widths', '390', '--chrome', chrome.file], 30_000, { FAULT: 'no-mark', FAULT_AT: '2' });
+    const took = Date.now() - started;
+    const pids = chrome.pids();
+    const left = await leftOf(pids);
+    assert.deepEqual([r.status, r.stderr], [1, `error: ${unmarked}: the page did not open: it gave no answer within 5000 ms\n`]);
+    assert.deepEqual(readdirSync(out).sort(), ['a-first-390-light.png', 'c-after-390-light.png']);
+    assert.ok(took < 20_000, `it took ${took} ms`);
+    assert.equal(pids.length, 1, 'its browser goes on');
+    assert.equal(left, 0, 'no process of it is left');
+  });
+
+  test('a context that will not close: its browser is stopped, a fresh one goes on with the next width, and the run ends', { skip: !UNIX && 'needs a shell script for Chrome' }, async () => {
+    const dir = fresh();
+    const chrome = countingChrome(dir);
+    page(dir, 'only.html', '<p>Only.</p>');
+    const out = join(dir, 'shots');
+    const r = await runFor(['--require', faults, cli, dir, '--out', out, '--widths', '1280,390', '--chrome', chrome.file], 40_000, { FAULT: 'context' });
+    assert.deepEqual([r.status, r.stderr], [0, '']);
+    assert.deepEqual(readdirSync(out).sort(), ['only-1280-light.png', 'only-390-light.png']);
+    const pids = chrome.pids();
+    assert.equal(pids.length, 2, 'a fresh browser after the context that would not close');
+    for (const pid of pids) assert.equal(await leftIn(pid), 0, `processes left from the Chrome started as ${pid}`);
+  });
 });
 
 test('the CLI prints its usage for --help and exits 0', () => {
@@ -955,9 +1308,13 @@ test('the CLI prints its usage for --help and exits 0', () => {
   assert.ok(r.stdout.startsWith('Usage: node scripts/shots.mjs <file or folder>... --out <folder> --widths <w,w...>'), r.stdout);
   assert.match(r.stdout, /reduced motion/);
   // What a user could trip on, said where they look.
-  assert.match(r.stdout, /A script error raised after the picture is taken, or a move made after the page has settled, is not seen\./);
+  assert.match(r.stdout, /A script error raised after the picture is taken is not seen\./);
+  assert.doesNotMatch(r.stdout, /after the page has settled/);
   assert.match(r.stdout, /A page is judged once it has settled: 100 ms without moving\./);
+  assert.match(r.stdout, /It is judged by its document, not by its\naddress: a picture is kept only if the document that was loaded is still the one in the tab once the\npicture is taken\./);
+  assert.match(r.stdout, /A change of what follows the # of its address, or of its query through its\nhistory, keeps the document, and the page is pictured\./);
   assert.match(r.stdout, /a page that will not close, or a browser that dies, is an error of that\npage, and the run goes on in a fresh browser/);
+  assert.match(r.stdout, /A browser that stops twice before a page can be opened in it is an error of that page; three browsers\nstarted in a row with no page opened end the run\./);
   assert.match(r.stdout, /--timeout <ms> +how long a page is given to load, to settle, and for each step on it, in\n +milliseconds; 30000 when not given/);
   assert.match(r.stdout, /A request Chrome cancels itself \(net::ERR_ABORTED, as a video may\) is reported as an error too\./);
   assert.equal(r.stderr, '');

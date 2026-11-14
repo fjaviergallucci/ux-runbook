@@ -2,13 +2,16 @@
 // shots: photographs pages — a board's drawn proposals, a prototype, the final screens — headless, at each
 // width and theme asked for, with reduced motion set on every context. Judges and simulated users read
 // these pictures, so a picture of a broken page is reported, not passed: a script error, a console error,
-// a resource or a navigation that fails, a page that sends itself to another page, is an error of its page;
-// a page wider than the screen at a width is an overflow, reported but never an error. Nothing about one
-// page ends the run.
+// a resource or a navigation that fails, a page that puts another page in its place, is an error of its page;
+// a page wider than the screen at a width is an overflow, reported but never an error. A page is judged by
+// its document, never by its address: no picture is kept under a page's name unless the document that was
+// loaded was still the one in the tab once the picture was taken. Nothing about one page ends the run, and
+// no run goes on for ever: every wait has a limit, and every retry a count.
 //
 // As a module: shoot(inputs, { out, widths, themes, chrome, timeout }) → { files, overflow, errors, titles }.
 // As a command: see USAGE. Exit codes: 0 success · 1 a refusal (a page with an error, unless
 // --allow-errors; an unreadable input; an unwritable output; no Chrome) · 2 bad usage.
+import { randomBytes } from 'node:crypto';
 import { mkdirSync, readdirSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { basename, dirname, extname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -24,7 +27,7 @@ const HEIGHT = 900;
 export const TIMEOUT = 30000;
 
 // A refusal, never about one page: an input that cannot be read, an output folder that cannot be made or
-// cannot hold a picture, a Chrome that does not start.
+// cannot hold a picture, a Chrome that does not start, or that keeps stopping.
 export class ShotsError extends Error {
   name = 'ShotsError';
 }
@@ -38,14 +41,15 @@ export class ShotsError extends Error {
 //   timeout how long a page is given to load, to settle, and for each step on it, in milliseconds (TIMEOUT
 //           when not given)
 // One browser at a time, one context per width and theme. Everything is read and checked before Chrome
-// starts. Nothing waits without a limit: a page that will not close, or a browser that dies, is an error of
-// that page, and the run goes on in a fresh browser; every browser the run started is gone when it ends,
-// however it ends.
+// starts. Nothing waits without a limit, and nothing is tried without a count: a page that will not close,
+// or a browser that dies, is an error of that page, and the run goes on in a fresh browser; a browser that
+// stops before a page can be opened in it is replaced OPENINGS times for that page and STARTS times in a
+// row, no more; every browser the run started is gone when it ends, however it ends.
 // files: the pictures taken, in the order taken. overflow: { file, width } for each page wider than the
 // screen at a width, once whatever the theme. errors: { file, message } for each fault of a page, once
-// however many pictures saw it; no picture is taken of a page that did not open, did not settle, settled
-// on another page, or could not be read or pictured. titles: each page's document title once loaded, from
-// the first picture of it.
+// however many pictures saw it; no picture is kept of a page that did not open, did not settle, was no
+// longer the document in the tab before or after its picture, or could not be read or pictured. titles:
+// each page's document title once loaded, from the first picture of it.
 // Throws a TypeError for bad options, a ShotsError or a ChromeError for a refusal; never for one page.
 export async function shoot(inputs, { out, widths, themes = ['light'], chrome, timeout = TIMEOUT } = {}) {
   checkOptions(inputs, { out, widths, themes, timeout });
@@ -54,28 +58,29 @@ export async function shoot(inputs, { out, widths, themes = ['light'], chrome, t
   makeFolder(out);
   const found = new Found();
   try {
-    await browsers.start();
     for (const width of widths) {
       for (const theme of themes) {
         const options = { viewport: { width, height: HEIGHT }, deviceScaleFactor: 1, reducedMotion: 'reduce', colorScheme: theme };
         let context = null;
         for (const { file, name } of pages) {
           const picture = join(out, `${name}-${width}-${theme}.png`);
-          context ??= await browsers.context(options);
-          let next = await shootPage(context, file, picture, width, found, timeout, browsers);
-          // A browser that died before the page could be opened in it is no fault of the page: it is opened
-          // again in a fresh browser.
-          if (next === AGAIN) {
-            await browsers.replace();
-            context = await browsers.context(options);
-            next = await shootPage(context, file, picture, width, found, timeout, browsers);
+          // A browser that died before the page could be opened in it is no fault of the page: the page is
+          // opened again in a fresh browser, once. A second death is said of the page, and the run goes on.
+          let next = AGAIN;
+          for (let opening = 1; next === AGAIN && opening <= OPENINGS; opening++) {
+            context ??= await browsers.context(options);
+            next = context === null ? AGAIN : await shootPage(context, file, picture, width, found, timeout, browsers);
+            if (next !== KEEP) {
+              await browsers.stop();
+              context = null;
+            }
           }
-          if (next !== KEEP) {
-            await browsers.replace();
-            context = null;
+          if (next === AGAIN) {
+            found.error(file, 'the browser stopped twice while opening this page');
+            removeOlder(picture);
           }
         }
-        if (context && !(await closed(context.close()))) await browsers.replace();
+        if (context && !(await closed(context.close()))) await browsers.stop();
       }
     }
   } finally {
@@ -84,14 +89,18 @@ export async function shoot(inputs, { out, widths, themes = ['light'], chrome, t
   return found.result();
 }
 
-// The browsers a run starts, one at a time. Each is started through Playwright's browser server, which
-// gives the handle of its process: whether the browser died is known from that process, and a browser that
-// stops answering is stopped by that handle, never by a name or a pattern; a fresh one takes its place.
+// The browsers a run starts, one at a time, each when a context is asked for and none is running. Each is
+// started through Playwright's browser server, which gives the handle of its process: whether the browser
+// died is known from that process, and a browser that stops answering is stopped by that handle, never by
+// a name or a pattern; a fresh one takes its place. No more than STARTS are started in a row without a
+// page being opened in one: a Chrome that keeps stopping ends the run.
 class Browsers {
   #executablePath;
   // The browser of the moment: its server, the client connected to it, whether its process has ended, and
   // a promise kept when it ends.
   #session = null;
+  // How many browsers were started in a row with no page opened in any of them.
+  #unused = 0;
 
   constructor(executablePath) {
     this.#executablePath = executablePath;
@@ -108,7 +117,16 @@ class Browsers {
     return answer(this.#session.ended, ms).then(() => true, () => false);
   }
 
+  // A page was opened in the browser of the moment: it works.
+  used() {
+    this.#unused = 0;
+  }
+
   async start() {
+    if (this.#unused === STARTS) {
+      throw new ShotsError(`Chrome at ${this.#executablePath} keeps stopping: ${STARTS} browsers in a row were started, and none opened a page`);
+    }
+    this.#unused++;
     let server;
     try {
       server = await chromium.launchServer({ executablePath: this.#executablePath, headless: true, host: '127.0.0.1' });
@@ -126,29 +144,25 @@ class Browsers {
     }
   }
 
-  // A context in the browser; a browser that died first is replaced, and a living browser that gives none
-  // in time is a refusal: a browser that opens no context opens no page.
+  // A context in the browser, which is started first when none is running; null when the browser died
+  // before it gave one. A living browser that gives none in time is a refusal: a browser that opens no
+  // context opens no page.
   async context(options) {
-    for (;;) {
-      try {
-        return await answer(this.#session.browser.newContext(options), CLOSE_MS);
-      } catch (e) {
-        if (!(await this.died(DEATH_MS))) throw new ShotsError(`Chrome at ${this.#executablePath} opens no page: ${firstLine(e.message)}`);
-        await this.replace();
-      }
+    if (this.#session === null) await this.start();
+    try {
+      return await answer(this.#session.browser.newContext(options), CLOSE_MS);
+    } catch (e) {
+      if (await this.died(DEATH_MS)) return null;
+      throw new ShotsError(`Chrome at ${this.#executablePath} opens no page: ${firstLine(e.message)}`);
     }
   }
 
-  async replace() {
-    await this.stop();
-    await this.start();
-  }
-
-  // The browser is closed if it answers in time; if not, its process is stopped by its handle.
+  // The browser is closed if it answers in time; if not, its process is stopped by its handle, and that is
+  // given no more time than the close was.
   async stop() {
     const session = this.#session;
     this.#session = null;
-    if (session && !(await closed(session.server.close()))) await session.server.kill();
+    if (session && !(await closed(session.server.close()))) await closed(session.server.kill());
   }
 }
 
@@ -259,8 +273,14 @@ class Found {
 // One picture of one page in one context. Nothing about one page ends the run, and nothing waits without a
 // limit: each step (opening the page, letting it settle, reading its title and width, picturing it, closing
 // it) is raced against a time, and each report the page makes is guarded; what fails is an error of the
-// page asked for. A page is judged by where it settled (no move for QUIET_MS): a page still moving after
-// the timeout, or settled on another page than the one asked for, is not pictured. Whenever no picture is
+// page asked for.
+// A page is judged by its document, not by its address. The document the page loads is marked as it is
+// made (see `marking`), and it alone: a page that loads another in its place, or its own file again, is in
+// a document without the mark, whatever its address; a page that changes what follows the # of its
+// address, or its query through its history, is still in the marked one. Once the page has settled (no
+// move for QUIET_MS) the mark is asked for just before the picture is taken, and again just after: the
+// picture is kept only if the mark was there both times, since a document that has left the tab never
+// comes back to it. A page still moving after the timeout is not pictured either. Whenever no picture is
 // written, an older one under the same name is removed, so that none is read in its place.
 // Returns KEEP when the browser goes on; REPLACE when it had to be stopped, or died with the page open: the
 // run goes on in a fresh one; AGAIN when it had died before the page could be opened in it.
@@ -276,43 +296,33 @@ async function shootPage(context, file, picture, width, found, timeout, browsers
     removeOlder(picture);
     return REPLACE;
   }
+  browsers.used();
   const scripts = [];
   const consoled = [];
   const failed = new Map();
   const unread = [];
-  // The address asked for in Chrome's own spelling (its first request), the last address the page asked
-  // to go to, why a page it went to did not open, the document it is on, and when it last set off for
-  // another or arrived on one (a change of only what follows the # keeps the document).
-  let asked = null;
-  let lastAsked = null;
+  // The last address the page itself set off for (its opening, the first it asks for, is not one), why a
+  // page it went to did not open, and when it last set off for another document or landed on one.
+  let opening = true;
+  let headed = null;
   const notOpened = new Map();
-  let current = null;
   let lastMove = Date.now();
   // A move of the page under way and not landed yet (committed, an error page included), and what to call
   // when it lands: Chrome can hang closing a page in that moment, so the page is closed only once it has
-  // landed. Its opening is the first such move, under way from the start.
-  let moving = true;
+  // landed. Its opening is the first such move, under way from the moment it is asked for.
+  let moving = false;
   let landed = () => {};
   const isPageNavigation = request => request.isNavigationRequest() && request.frame() === page.mainFrame();
-  // A file beside the page is named by its path from the page's folder, with its query; anything else, and
-  // a file address that is no path here (//host/x from a file page), by its address.
-  const nameOf = url => {
-    if (!url.startsWith('file:')) return url;
-    let path;
-    try {
-      path = fileURLToPath(url);
-    } catch (e) {
-      if (NOT_A_PATH.includes(e.code)) return url;
-      throw e;
-    }
-    return relative(folder, path).split(sep).join('/') + new URL(url).search;
-  };
+  // Where the page last set off for, and why that did not open when it did not.
+  const heading = () => `${nameOf(headed, folder)}${notOpened.has(headed) ? `, which did not open: ${notOpened.get(headed)}` : ''}`;
   // Where the page is: an error page is named by the address that did not open, and why.
   const where = () => {
     const url = page.url();
-    if (!url.startsWith('chrome-error:') || lastAsked === null) return nameOf(url);
-    return `${nameOf(lastAsked)}${notOpened.has(lastAsked) ? `, which did not open: ${notOpened.get(lastAsked)}` : ''}`;
+    return url.startsWith('chrome-error:') && headed !== null ? heading() : nameOf(url, folder);
   };
+  // What to say of a page whose loaded document is no longer the one in the tab: where the tab is now. The
+  // file asked for, loaded again, is another document too; its address only words the error.
+  const left = when => (pathOf(page.url()) === resolve(file) ? `the page reloaded itself${when}, as ${where()}` : `the page sent itself to ${where()}${when}`);
   // A report the page makes that cannot be read is said as such, never thrown where no one can catch it.
   const guarded = listener => (...args) => {
     try {
@@ -327,17 +337,16 @@ async function shootPage(context, file, picture, width, found, timeout, browsers
   }));
   page.on('request', guarded(request => {
     if (!isPageNavigation(request)) return;
-    asked ??= request.url();
-    lastAsked = request.url();
+    if (opening) opening = false;
+    else headed = request.url();
     moving = true;
     lastMove = Date.now();
   }));
+  // A move under way has landed. A change of address that loads no document (what follows the #, the
+  // page's history) is reported here too, with no move under way: it is no move.
   page.on('framenavigated', guarded(frame => {
     if (frame !== page.mainFrame()) return;
-    if (current === null || !sameAddress(frame.url(), current)) {
-      current = frame.url();
-      lastMove = Date.now();
-    }
+    if (moving) lastMove = Date.now();
     moving = false;
     landed();
   }));
@@ -348,10 +357,10 @@ async function shootPage(context, file, picture, width, found, timeout, browsers
       notOpened.set(url, request.failure()?.errorText);
       return;
     }
-    failed.set(url, `${nameOf(url)} did not ${request.isNavigationRequest() ? 'open' : 'load'}: ${request.failure()?.errorText}`);
+    failed.set(url, `${nameOf(url, folder)} did not ${request.isNavigationRequest() ? 'open' : 'load'}: ${request.failure()?.errorText}`);
   }));
   page.on('response', guarded(response => {
-    if (response.status() >= 400) failed.set(response.url(), `${nameOf(response.url())} did not load: HTTP ${response.status()}`);
+    if (response.status() >= 400) failed.set(response.url(), `${nameOf(response.url(), folder)} did not load: HTTP ${response.status()}`);
   }));
   // Settled: no move under way, and QUIET_MS on one document since it last set off or arrived; false when
   // the page is still moving once the timeout has passed.
@@ -364,19 +373,58 @@ async function shootPage(context, file, picture, width, found, timeout, browsers
       await sleep(Math.max(1, Math.min(QUIET_MS - quiet, deadline - Date.now())) + 1);
     }
   };
+  // The mark of the document the page loads: a property of its window, under a name of this shot's own,
+  // that holds the token of this shot. Every document of the page, as it is made and before any script of
+  // its own runs, asks for the token, and only the first to ask is given it: that is the document the
+  // page's opening loads, the tab holding none before it. A document that takes its place has a window of
+  // its own, and is given none.
+  const mark = `shot${randomBytes(8).toString('hex')}`;
+  const token = randomBytes(16).toString('hex');
+  let given = false;
+  const marking = async () => {
+    await page.exposeBinding(`${mark}Asked`, ({ frame }) => {
+      if (given || frame !== page.mainFrame()) return null;
+      given = true;
+      return token;
+    });
+    // What the document was given, as soon as it is answered: asking the mark waits for that answer.
+    await page.addInitScript(mark => {
+      window[mark] = window[`${mark}Asked`]();
+    }, mark);
+  };
+  // What the loaded document says of itself (its title, whether it is wider than the screen), or null when
+  // another document is in its place.
+  const look = () =>
+    answer(
+      page.evaluate(async ([mark, token]) => ((await window[mark]) === token ? { title: document.title, wide: document.documentElement.scrollWidth > innerWidth } : null), [mark, token]),
+      timeout,
+    );
+  // A document being replaced as it is asked gives no answer: the page is then let settle, and asked once
+  // more. A page that gives none in time is not asked again.
+  const ask = async () => {
+    try {
+      return await look();
+    } catch (e) {
+      if (e instanceof NoAnswer || !(await settle())) throw e;
+      return look();
+    }
+  };
   let fault = null;
-  let read;
+  let read = null;
   let png;
   try {
+    await answer(marking(), CLOSE_MS);
+    moving = true;
     await answer(page.goto(target, { timeout }), timeout + CLOSE_MS);
   } catch (e) {
-    fault = e instanceof playwright.TimeoutError ? `${basename(file)} did not finish loading within ${timeout} ms` : `the page did not open: ${firstLine(e.message)}`;
+    const unfinished = `${basename(file)} did not finish loading within ${timeout} ms${headed === null ? '' : `: it had set off for ${heading()}`}`;
+    fault = e instanceof playwright.TimeoutError ? unfinished : `the page did not open: ${firstLine(e.message)}`;
   }
-  if (!fault && !(await settle())) fault = `the page kept moving for ${timeout} ms, last to ${where()}`;
-  if (!fault && !sameAddress(page.url(), asked ?? target)) fault = `the page sent itself to ${where()}`;
+  if (!fault && !(await settle())) fault = `the page kept moving for ${timeout} ms, last to ${moving && headed !== null ? heading() : where()}`;
   if (!fault) {
     try {
-      read = await answer(page.evaluate(() => ({ title: document.title, wide: document.documentElement.scrollWidth > innerWidth })), timeout);
+      read = await ask();
+      if (read === null) fault = left('');
     } catch (e) {
       fault = `the page could not be read: ${firstLine(e.message)}`;
     }
@@ -386,6 +434,13 @@ async function shootPage(context, file, picture, width, found, timeout, browsers
       png = await answer(page.screenshot({ fullPage: true, timeout }), timeout + CLOSE_MS);
     } catch (e) {
       fault = `the picture could not be taken: ${firstLine(e.message)}`;
+    }
+    // The picture shows the page only if its document was in the tab all the while: it is asked again, and
+    // the picture taken is dropped, never written, when the document is gone or cannot say.
+    try {
+      if ((await ask()) === null) fault = left(' while it was being pictured');
+    } catch (e) {
+      fault ??= `the page could not be read again once pictured: ${firstLine(e.message)}`;
     }
   }
   // A browser that died is said as such, whichever step it broke: its process handle knows at once.
@@ -424,6 +479,11 @@ const KEEP = 'keep';
 const REPLACE = 'replace';
 const AGAIN = 'again';
 
+// How many times a page is opened when its browser stops before it can be: once more in a fresh browser.
+const OPENINGS = 2;
+// How many browsers are started in a row with no page opened in any of them before the run is given up.
+const STARTS = 3;
+
 // How long the browser is given to open or close a page, a context or itself before it is stopped, in
 // milliseconds.
 export const CLOSE_MS = 5000;
@@ -435,23 +495,35 @@ const QUIET_MS = 100;
 // How long a page's move under way is given to land before the page is closed regardless, in milliseconds.
 const LANDING_MS = 5000;
 
-// The errors fileURLToPath gives for a file address that is no path on this machine.
-const NOT_A_PATH = ['ERR_INVALID_FILE_URL_HOST', 'ERR_INVALID_FILE_URL_PATH'];
+// Whether a part of a path can be decoded: one with a bare %, or a byte that is no UTF-8, cannot.
+const decodes = part => {
+  try {
+    decodeURIComponent(part);
+    return true;
+  } catch {
+    return false;
+  }
+};
 
-// Two addresses of one document, each in the spelling the URL standard gives it, but for what follows the
-// #: Node and Chrome spell some characters of a file address differently (^, |), so only addresses that
-// both come from Chrome are compared.
-function sameAddress(a, b) {
-  const plain = address => {
-    try {
-      const url = new URL(address);
-      url.hash = '';
-      return url.href;
-    } catch {
-      return address;
-    }
-  };
-  return plain(a) === plain(b);
+// The path a file address names on this machine, or null: for an address that is no file address, or one
+// that names no path here (//host/x from a file page, an encoded /). Never throws: a part of the path that
+// cannot be decoded is kept as it is written.
+function pathOf(url) {
+  if (!url.startsWith('file:')) return null;
+  try {
+    const address = new URL(url);
+    address.pathname = address.pathname.split('/').map(part => (decodes(part) ? part : part.replaceAll('%', '%25'))).join('/');
+    return fileURLToPath(address);
+  } catch {
+    return null;
+  }
+}
+
+// nameOf(url, folder) → the name an address is given in a message: a file by its path from `folder`, the
+// page's own, with its query; anything else by its address. Never throws.
+export function nameOf(url, folder) {
+  const path = pathOf(url);
+  return path === null ? url : relative(folder, path).split(sep).join('/') + new URL(url).search;
 }
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -499,21 +571,28 @@ page's file name without its extension. A folder means every .html file directly
 
 A page has an error when a script throws, when it writes an error to the console, when a resource it asks
 for (a stylesheet, an image) does not load, when it does not open or finish loading in time, when it
-keeps moving from page to page, when it settles on another page than the one asked for, or when it
-cannot be read, pictured or closed. Each is printed as one line, "error: <page>: <what>", and exits 1
-unless --allow-errors; the pictures that could be taken are taken, and none is kept under the name of a
-page that got no picture this time. A page is judged once it has settled: 100 ms without moving.
+keeps moving from page to page, when it puts another page, or its own file loaded again, in its place,
+or when it cannot be read, pictured or closed. Each is printed as one line, "error: <page>: <what>", and
+exits 1 unless --allow-errors; the pictures that could be taken are taken, and none is kept under the
+name of a page that got no picture this time.
+A page is judged once it has settled: 100 ms without moving. It is judged by its document, not by its
+address: a picture is kept only if the document that was loaded is still the one in the tab once the
+picture is taken. A page that leaves before its picture, or while it is taken, has an error saying where
+it went, and no picture. A change of what follows the # of its address, or of its query through its
+history, keeps the document, and the page is pictured.
 Nothing waits without a limit: a page that will not close, or a browser that dies, is an error of that
 page, and the run goes on in a fresh browser; every browser the run started is gone when it ends.
+A browser that stops twice before a page can be opened in it is an error of that page; three browsers
+started in a row with no page opened end the run.
 A page wider than the screen at a width is printed as "overflow: <page> is wider than the screen at <w>
 px" and does not change the exit code.
-A script error raised after the picture is taken, or a move made after the page has settled, is not seen.
+A script error raised after the picture is taken is not seen.
 A request Chrome cancels itself (net::ERR_ABORTED, as a video may) is reported as an error too.
 
 A flag may also be written --flag=value.
 
 Exit codes: 0 success · 1 a refusal (a page with an error, an unreadable input, an unwritable output,
-no Chrome, a Chrome that does not start) · 2 bad usage.
+no Chrome, a Chrome that does not start or keeps stopping) · 2 bad usage.
 `;
 
 const WIDTHS = /^[1-9]\d*(?:,[1-9]\d*)*$/;
