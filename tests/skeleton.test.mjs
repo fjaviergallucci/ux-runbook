@@ -23,7 +23,7 @@ test('package runs on node 20 with one dependency', () => {
   assert.equal(p.engines.node, '>=20');
   assert.deepEqual(Object.keys(p.dependencies), ['playwright-core']);
   assert.ok(!('devDependencies' in p), 'package.json has no devDependencies');
-  assert.equal(p.scripts.test, 'node --test tests/*.test.mjs');
+  assert.equal(p.scripts.test, 'node --test --test-concurrency=1 tests/*.test.mjs');
 });
 
 test('marketplace entry carries the plugin manifest version and description', () => {
