@@ -11,7 +11,9 @@
 //   3. the brief: it must hold text;
 //   4. the key: found by name, in the environment, else in the dotenv file the profile's keys-file names;
 //      the command line takes neither a key nor a keys file;
-//   5. the request: the key in its header only, never in the address, and no redirect followed.
+//   5. the request: to the provider's own address, or to a stand-in on this machine that --endpoint names;
+//      the key in its header only, never in the address, and no redirect followed. Just before it, what an
+//      earlier run left at --out and <out>.raw.txt goes.
 // Nothing of a provider's error body is shown or kept; an answer that holds the key, as written or in JSON's
 // escapes, is saved nowhere; and every string the script prints or writes passes through redact, which puts
 // [key] where the key was.
@@ -25,7 +27,7 @@ import { randomUUID } from 'node:crypto';
 import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
-import { UsageError, isMain, parseArgs, readTimeout } from './lib/cli.mjs';
+import { MAX_TIMEOUT, UsageError, isMain, parseArgs, readTimeout } from './lib/cli.mjs';
 import { FrontmatterError, parse } from './lib/frontmatter.mjs';
 import { reason } from './lib/json-file.mjs';
 import { validate } from './lib/walkthrough.mjs';
@@ -84,6 +86,8 @@ const ESCAPED = Object.freeze({ '"': '"', '\\': '\\', '/': '/', b: '\b', f: '\f'
 const undoEscapes = text => text.replace(ESCAPES, (_, hex, letter) => (hex ? String.fromCharCode(parseInt(hex, 16)) : ESCAPED[letter]));
 // What the command says when an answer holds the key.
 export const HELD_KEY = 'the answer held the key, so nothing of it was saved: no proposal and no raw file';
+// The one reason given when the walkthrough check itself fails on an answer.
+const NOT_CHECKED = 'the answer could not be checked against the walkthrough format (it may be nested too deeply)';
 
 // The keys this process has found, each added the moment it is found, before it is used.
 const foundKeys = new Set();
@@ -118,16 +122,23 @@ export async function describe({ provider, model, briefPath, outPath, profilePat
   const { keysFile } = readProfile(profilePath, provider);
   // 2. The usage.
   if (typeof model !== 'string' || !MODEL.test(model)) throw new UsageError('--model must be a model id of letters, digits, ".", "_" and "-", as gpt-4o-mini');
-  const base = baseOf(endpoint ?? spec.endpoint);
+  // The provider's own address, unless a stand-in on this machine is named.
+  const base = endpoint === undefined ? spec.endpoint : baseOf(endpoint);
   const timeout = timeoutMs ?? DEFAULT_TIMEOUT;
-  if (!Number.isSafeInteger(timeout) || timeout < 1) throw new UsageError('--timeout must be a whole number of milliseconds from 1, as 30000');
+  if (!Number.isSafeInteger(timeout) || timeout < 1 || timeout > MAX_TIMEOUT) {
+    throw new UsageError(`--timeout must be a whole number of milliseconds from 1 to ${MAX_TIMEOUT}, as 30000`);
+  }
   if (typeof outPath !== 'string' || !/\.json$/i.test(outPath)) throw new UsageError(`--out must name a .json file; it is ${outPath}`);
   if (typeof briefPath !== 'string' || briefPath === '') throw new UsageError('--brief is missing');
   // 3. The brief.
   const brief = readBrief(briefPath);
   // 4. The key.
   const key = findKey(env, spec.variable, provider, keysFile);
-  // 5. The request.
+  // 5. The request. Every refusal has passed: what an earlier run left goes now, so that what is on disk
+  // after the request is this run's, whatever comes back. A run refused before this leaves the disk alone.
+  const raw = rawOf(outPath);
+  remove(outPath);
+  remove(raw);
   const headers = { 'content-type': 'application/json', ...spec.header(key) };
   const { status, text, seconds } = await ask(provider, `${base}${spec.path(model)}`, headers, JSON.stringify(spec.body(model, brief)), timeout);
 
@@ -143,33 +154,38 @@ export async function describe({ provider, model, briefPath, outPath, profilePat
     throw new DescribeError(`${provider} answered ${status} with no text at ${spec.where}${why}; nothing of its body is shown or kept`);
   }
   const chars = answer.text.length;
-  const raw = rawOf(outPath);
-  // An answer that holds the key, as written or once JSON's escapes are undone, is saved nowhere: no proposal,
-  // no raw file, and none left by an earlier run. Past this, nothing the answer says can be the key.
-  if (answer.text.includes(key) || undoEscapes(answer.text).includes(key)) {
-    remove(outPath);
-    remove(raw);
-    return { ok: false, heldKey: true, chars, seconds, errors: [] };
-  }
+  // An answer that holds the key, as written or once JSON's escapes are undone, is saved nowhere: no proposal
+  // and no raw file (what an earlier run left went before the request). Past this, nothing the answer says
+  // can be the key.
+  if (answer.text.includes(key) || undoEscapes(answer.text).includes(key)) return { ok: false, heldKey: true, chars, seconds, errors: [] };
   const found = proposalIn(answer.text);
   const proposal = found.proposal && { ...found.proposal, engine: `model:${provider}`, model };
-  const errors = found.proposal ? validate(proposal) : [found.error];
+  const errors = found.proposal ? check(proposal) : [found.error];
   if (errors.length === 0) {
     writeWhole(outPath, `${JSON.stringify(proposal, null, 2)}\n`);
-    remove(raw);
     return { ok: true, heldKey: false, chars, seconds, errors };
   }
   writeWhole(raw, answer.text);
-  remove(outPath);
   return { ok: false, heldKey: false, chars, seconds, errors };
 }
 
-// baseOf(endpoint) → the address the provider's paths go under: https:, or http: to this machine only;
-// no user, password, query or fragment; a trailing slash dropped. The endpoint is never shown back. Throws
-// a UsageError.
+// The walkthrough check, which can itself fail on an answer (containers nested deep enough run it out of
+// stack): that answer is one that is not valid, for one fixed reason.
+function check(proposal) {
+  try {
+    return validate(proposal);
+  } catch {
+    return [NOT_CHECKED];
+  }
+}
+
+// baseOf(endpoint) → the address the provider's paths go under, for a stand-in on this machine: http: or
+// https: to 127.0.0.1, localhost or [::1]; no user, password, query or fragment; a trailing slash dropped.
+// Any other host is refused, the providers' own among them: a command line, written afresh on every run,
+// cannot say where a key goes. The endpoint is never shown back. Throws a UsageError.
 export function baseOf(endpoint) {
   const refuse = what => new UsageError(`--endpoint ${what}`);
-  const notAnAddress = refuse('must be an address, as https://api.openai.com');
+  const notAnAddress = refuse('must be an address, as http://127.0.0.1:8080');
   if (typeof endpoint !== 'string') throw notAnAddress;
   let url;
   try {
@@ -179,9 +195,10 @@ export function baseOf(endpoint) {
   }
   if (url.username !== '' || url.password !== '') throw refuse('must carry no user and no password');
   if (endpoint.includes('?') || endpoint.includes('#')) throw refuse('must carry no query and no fragment');
-  const loopback = LOOPBACK.includes(url.hostname);
-  if (url.protocol !== 'https:' && !(url.protocol === 'http:' && loopback)) {
-    throw refuse('must be an https: address, or http: to this machine only (127.0.0.1, localhost or [::1])');
+  if (!['http:', 'https:'].includes(url.protocol) || !LOOPBACK.includes(url.hostname)) {
+    throw refuse(
+      "must be an http: or https: address on this machine (127.0.0.1, localhost or [::1]), a stand-in for the provider; without --endpoint the request goes to the provider's own address",
+    );
   }
   return `${url.origin}${url.pathname.replace(/\/+$/, '')}`;
 }
@@ -250,7 +267,8 @@ const noKey = (provider, name, where) =>
 function valueIn(text, name) {
   const line = new RegExp(`^(?:export )?${name}=(.*)$`);
   let value = '';
-  for (const each of text.split(/\r?\n/)) {
+  // One byte-order mark before the first line is dropped, as the kit's other readers drop it.
+  for (const each of text.replace(/^\uFEFF/, '').split(/\r?\n/)) {
     const match = line.exec(each);
     if (match) value = unquote(match[1].trim());
   }
@@ -403,11 +421,12 @@ and an answer that holds the key, as written or in JSON's escapes, is saved nowh
   --brief <file>      the brief to send
   --out <file.json>   where the proposal is written; the folders above it are made when missing
   --profile <file>    the project profile
-  --endpoint <url>    the provider's address, by default https://api.openai.com or
-                      https://generativelanguage.googleapis.com: https:, or http: to this machine only
-                      (127.0.0.1, localhost or [::1]), with no user, password, query or fragment
-  --timeout <ms>      how long the whole answer may take, a whole number of milliseconds from 1
-                      (default ${DEFAULT_TIMEOUT})
+  --endpoint <url>    a stand-in for the provider on this machine, as in the kit's tests: http: or
+                      https: to 127.0.0.1, localhost or [::1], with no user, password, query or
+                      fragment; no other host. Without it, the request goes to the provider's own
+                      address, https://api.openai.com or https://generativelanguage.googleapis.com
+  --timeout <ms>      how long the whole answer may take, a whole number of milliseconds from 1 to
+                      ${MAX_TIMEOUT} (default ${DEFAULT_TIMEOUT})
 
 A flag may also be written --flag=value.
 
@@ -422,7 +441,8 @@ cannot be written), an answer that holds the key, or one that is not one valid p
 const FLAGS = ['provider', 'model', 'brief', 'out', 'profile', 'endpoint', 'timeout'];
 const REQUIRED = ['provider', 'model', 'brief', 'out', 'profile'];
 
-// The command line as describe() takes it. Nothing a flag holds is shown back but a path.
+// The command line as describe() takes it. What a flag holds is shown back only when it is a path, or a
+// --timeout that is not a number of milliseconds (readTimeout says what it was given).
 function readArgs(argv) {
   const args = parseArgs(argv, { flags: FLAGS });
   if (args.help) return args;

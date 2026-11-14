@@ -41,12 +41,18 @@ export function parseArgs(argv, { flags: known = [], switches = [] } = {}) {
   return { help: false, positional, flags };
 }
 
-// readTimeout(flags) → the --timeout a command line gives, a whole number of milliseconds from 1, or
-// undefined when it gives none (the script's own default then holds). Throws a UsageError.
+// The longest a timer can wait, in milliseconds: 2^31 - 1. One longer fires at once.
+export const MAX_TIMEOUT = 2_147_483_647;
+
+// readTimeout(flags) → the --timeout a command line gives, a whole number of milliseconds from 1 to
+// MAX_TIMEOUT, or undefined when it gives none (the script's own default then holds). Throws a UsageError.
 export function readTimeout(flags) {
   if (!Object.hasOwn(flags, 'timeout')) return undefined;
   if (!/^[1-9]\d*$/.test(flags.timeout) || !Number.isSafeInteger(Number(flags.timeout))) {
     throw new UsageError(`--timeout must be a whole number of milliseconds from 1, as 30000; it is "${flags.timeout}"`);
+  }
+  if (Number(flags.timeout) > MAX_TIMEOUT) {
+    throw new UsageError(`--timeout must be at most ${MAX_TIMEOUT} milliseconds, the longest a timer can wait; it is "${flags.timeout}"`);
   }
   return Number(flags.timeout);
 }

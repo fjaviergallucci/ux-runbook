@@ -100,5 +100,10 @@ test('readTimeout reads --timeout as a whole number of milliseconds from 1, and 
   for (const value of ['0', '1.5', '2s', '-5', '99999999999999999999']) {
     assert.throws(() => readTimeout({ timeout: value }), e => e instanceof UsageError && e.message === `--timeout must be a whole number of milliseconds from 1, as 30000; it is "${value}"`, value);
   }
+  // The longest a timer can wait, 2^31 - 1 ms: one more would fire at once.
+  assert.equal(readTimeout({ timeout: '2147483647' }), 2147483647);
+  for (const value of ['2147483648', '9007199254740991']) {
+    assert.throws(() => readTimeout({ timeout: value }), e => e instanceof UsageError && e.message === `--timeout must be at most 2147483647 milliseconds, the longest a timer can wait; it is "${value}"`, value);
+  }
   assert.ok(!('readTimeout' in browser), 'the browser library does not parse a command line');
 });

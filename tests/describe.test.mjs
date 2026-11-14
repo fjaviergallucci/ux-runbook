@@ -444,6 +444,15 @@ test('from the keys file only the one exact line is taken, its quotes stripped, 
   }
 });
 
+test('a byte-order mark before the keys file’s first line does not hide that line', async t => {
+  const s = await setup(t, openaiSays(fenced(fixture('calendar.json'))));
+  const dir = fresh();
+  const keys = writeKeys(dir, [`\uFEFFOPENAI_API_KEY=${KEY}`, '# the rest of the file']);
+  const result = await call({ ...s, profilePath: writeProfile(dir, [ON, keysLine(keys)]) }, { env: {} });
+  assert.equal(result.ok, true);
+  assert.equal(s.server.requests[0].headers.authorization === `Bearer ${KEY}`, true, 'the first line’s key was sent');
+});
+
 test('a keys file without the line, or with an empty value, is no key, and shows none of its text', async t => {
   const s = await setup(t, openaiSays(fenced(fixture('calendar.json'))));
   for (const last of [null, 'OPENAI_API_KEY=', 'OPENAI_API_KEY=""', "export OPENAI_API_KEY=''", 'OPENAI_API_KEY=   ']) {
@@ -590,10 +599,12 @@ test('no thrown error carries the key, even where a path it names holds it', asy
   const s = await setup(t, openaiSays(fenced(fixture('calendar.json'))));
   const dir = fresh();
   writeFileSync(join(dir, KEY), 'a file where a folder is wanted');
+  // An earlier run's --out cannot be cleared there, so nothing is sent.
   const e = await refusal(call({ ...s, outPath: join(dir, KEY, 'proposal.json') }));
   assert.ok(e instanceof DescribeError);
-  assert.ok(e.message.startsWith(`cannot write ${join(dir, '[key]', 'proposal.json')}: `));
+  assert.equal(e.message, `cannot remove ${join(dir, '[key]', 'proposal.json')}: part of the path is a file, not a folder`);
   assert.equal(holdsKey(e), false);
+  assert.equal(s.server.requests.length, 0);
 });
 
 test('a key echoed in an error body reaches neither the screen nor a file', async t => {
@@ -666,31 +677,35 @@ test('a redirect is never followed, so the key header is never resent elsewhere'
 
 // --- 11. The address, the model, the timeout ---------------------------------------------------------
 
-test('an endpoint is https:, or http: to this machine only, with no user, password, query or fragment', () => {
+test('an endpoint is a stand-in on this machine only, http: or https:, with no user, password, query or fragment', () => {
   const accepted = {
-    'https://api.example.test': 'https://api.example.test',
-    'https://api.example.test/': 'https://api.example.test',
-    'https://api.example.test/proxy/': 'https://api.example.test/proxy',
     'https://127.0.0.1:8443': 'https://127.0.0.1:8443',
     'http://127.0.0.1:8080': 'http://127.0.0.1:8080',
     'http://localhost:8080/': 'http://localhost:8080',
+    'https://localhost/stand-in/': 'https://localhost/stand-in',
     'http://[::1]:8080': 'http://[::1]:8080',
   };
   for (const [endpoint, base] of Object.entries(accepted)) assert.equal(baseOf(endpoint), base, endpoint);
+  const elsewhere = /must be an http: or https: address on this machine/;
   const refused = {
-    'http://api.example.test': /must be an https: address/,
-    'http://127.0.0.2:8080': /must be an https: address/,
-    'http://localhost.example.test': /must be an https: address/,
-    'ftp://127.0.0.1': /must be an https: address/,
-    'file:///tmp/x': /must be an https: address/,
-    'https://user:pw@api.example.test': /no user and no password/,
-    'https://user@api.example.test': /no user and no password/,
-    'https://:pw@api.example.test': /no user and no password/,
-    'http://user@127.0.0.1:8080': /no user and no password/,
-    'https://api.example.test/?x=1': /no query and no fragment/,
-    'https://api.example.test/?': /no query and no fragment/,
-    'https://api.example.test/#part': /no query and no fragment/,
-    'https://api.example.test#': /no query and no fragment/,
+    // Any host but this machine, the providers' own among them: their address is reached by leaving the flag out.
+    'https://api.openai.com': elsewhere,
+    'https://generativelanguage.googleapis.com': elsewhere,
+    'https://api.example.test': elsewhere,
+    'https://api.example.test/': elsewhere,
+    'http://api.example.test': elsewhere,
+    'http://127.0.0.2:8080': elsewhere,
+    'https://localhost.example.test': elsewhere,
+    'ftp://127.0.0.1': elsewhere,
+    'file:///tmp/x': elsewhere,
+    'https://user:pw@127.0.0.1': /no user and no password/,
+    'https://user@localhost': /no user and no password/,
+    'https://:pw@127.0.0.1': /no user and no password/,
+    'http://user@[::1]:8080': /no user and no password/,
+    'https://127.0.0.1/?x=1': /no query and no fragment/,
+    'https://127.0.0.1/?': /no query and no fragment/,
+    'https://localhost/#part': /no query and no fragment/,
+    'https://localhost#': /no query and no fragment/,
     'not an address': /must be an address/,
     '': /must be an address/,
   };
@@ -698,9 +713,27 @@ test('an endpoint is https:, or http: to this machine only, with no user, passwo
     assert.throws(() => baseOf(endpoint), e => e instanceof UsageError && message.test(e.message) && e.message.startsWith('--endpoint '), endpoint);
   }
   // A module caller's address that is not text is no address, even one a URL could be made from.
-  for (const endpoint of [new URL('https://api.example.test'), 443, null]) {
+  for (const endpoint of [new URL('http://127.0.0.1:8080'), 443, null]) {
     assert.throws(() => baseOf(endpoint), e => e instanceof UsageError && /must be an address/.test(e.message), String(endpoint));
   }
+});
+
+test('the provider’s own address is reached by leaving --endpoint out, never by naming it', async t => {
+  const s = await setup(t, openaiSays(fenced(fixture('calendar.json'))));
+  // No key, no keys file: whatever the address, nothing can be sent.
+  for (const [provider, endpoint] of [['openai', 'https://api.openai.com'], ['gemini', 'https://generativelanguage.googleapis.com'], ['openai', 'https://api.example.test']]) {
+    const r = await run(flagsOf(s, { provider, endpoint }), { env: {} });
+    assert.equal(r.status, 2, endpoint);
+    assert.ok(r.stderr.startsWith('--endpoint must be an http: or https: address on this machine'), endpoint);
+  }
+  // Left out, the provider's own address passes the usage: the run goes on to the brief, which is missing.
+  const { env, looked } = watched();
+  const briefPath = join(s.dir, 'NO-BRIEF.md');
+  const e = await refusal(call({ ...s, briefPath }, { endpoint: undefined, env }));
+  assert.ok(e instanceof DescribeError);
+  assert.equal(e.message, `cannot read the brief ${briefPath}: not found`);
+  assert.deepEqual(looked, []);
+  assert.equal(s.server.requests.length, 0);
 });
 
 test('a trailing slash on the endpoint is tolerated, and a bad endpoint on the command line is bad usage', async t => {
@@ -730,20 +763,23 @@ test('the model id is safe in an address: letters, digits, dot, underscore and h
   assert.equal(r.stderr.includes('gpt/4'), false, 'the model is not shown back');
 });
 
-test('the timeout is a whole number of milliseconds from 1, and 300000 when none is given', async t => {
+test('the timeout is a whole number of milliseconds from 1 to 2147483647, and 300000 when none is given', async t => {
   assert.equal(DEFAULT_TIMEOUT, 300000);
   const s = await setup(t, openaiSays(fenced(fixture('calendar.json'))));
-  for (const timeoutMs of [0, -1, 1.5, Number.NaN, '500', 2 ** 53]) {
+  for (const timeoutMs of [0, -1, 1.5, Number.NaN, '500', 2 ** 31, 2 ** 53]) {
     const { env, looked } = watched();
     const e = await refusal(call(s, { timeoutMs, env }));
     assert.ok(e instanceof UsageError, String(timeoutMs));
-    assert.equal(e.message, '--timeout must be a whole number of milliseconds from 1, as 30000');
+    assert.equal(e.message, '--timeout must be a whole number of milliseconds from 1 to 2147483647, as 30000');
     assert.deepEqual(looked, []);
   }
-  for (const timeout of ['0', 'abc', '1.5', '-5']) {
+  for (const timeout of ['0', 'abc', '1.5', '-5', '2147483648']) {
     const r = await run(flagsOf(s, { timeout }));
     assert.equal(r.status, 2, timeout);
   }
+  // The longest a timer can wait is taken; the answer comes at once, so nothing waits for it.
+  assert.equal((await call(s, { timeoutMs: 2 ** 31 - 1 })).ok, true);
+  assert.equal((await run(flagsOf(s, { timeout: '2147483647' }))).status, 0);
   // Left out, the run goes ahead under the default.
   const result = await call(s, { timeoutMs: undefined });
   assert.equal(result.ok, true);
@@ -758,6 +794,7 @@ test('the profile is read before the usage, and the usage before the brief, the 
   const bad = {
     'a model with a slash': { model: 'gpt/4' },
     'an http address off this machine': { endpoint: 'http://api.example.test' },
+    'the provider’s own address, named': { endpoint: 'https://api.openai.com' },
     'an address with a query': { endpoint: `${s.endpoint}/?x=1` },
     'a timeout of 0': { timeoutMs: 0 },
     'an out that is not .json': { outPath: join(s.dir, 'proposal.txt') },
@@ -775,6 +812,46 @@ test('the profile is read before the usage, and the usage before the brief, the 
   assert.equal(r.status, 1);
   assert.match(r.stderr, /does not turn model:openai on/);
   assert.equal(s.server.requests.length, 0);
+});
+
+test('an earlier run’s files are gone once a request is sent, whatever comes back, and stay when nothing is sent', BOUNDED, async t => {
+  let answer;
+  const s = await setup(t, (seen, res) => answer(seen, res));
+  const folder = dirname(s.outPath);
+  const stale = () => {
+    mkdirSync(folder, { recursive: true });
+    writeFileSync(s.outPath, 'an earlier proposal\n');
+    writeFileSync(rawOf(s.outPath), 'an earlier answer');
+  };
+  const closed = await serve(never);
+  await closed.close();
+  const sent = {
+    'a 500': [reply(500, 'Incorrect API key provided: sk-secret'), {}],
+    'a 200 without text': [reply(200, { choices: [] }), {}],
+    'no answer in time': [never, { timeoutMs: 300 }],
+    'a network failure': [never, { endpoint: closed.endpoint }],
+  };
+  for (const [what, [responder, over]] of Object.entries(sent)) {
+    answer = responder;
+    stale();
+    const e = await refusal(call(s, over));
+    assert.ok(e instanceof DescribeError, what);
+    assert.deepEqual(filesIn(folder), [], `${what}: an earlier run’s file is left`);
+  }
+  assert.equal(s.server.requests.length, 3);
+  // Refused before anything is sent: the disk is as it was.
+  const notSent = {
+    'the engine off': [{ ...s, profilePath: writeProfile(fresh(), []) }, {}],
+    'bad usage': [s, { model: 'gpt/4' }],
+    'no brief': [{ ...s, briefPath: join(s.dir, 'NO-BRIEF.md') }, {}],
+    'no key': [s, { env: {} }],
+  };
+  for (const [what, [where, over]] of Object.entries(notSent)) {
+    stale();
+    await refusal(call(where, over));
+    assert.deepEqual(filesIn(folder), ['model openai.json', 'model openai.json.raw.txt'], what);
+  }
+  assert.equal(s.server.requests.length, 3);
 });
 
 // --- 12. The timeout really stops it -----------------------------------------------------------------
@@ -906,6 +983,21 @@ test('the first ten validation errors go to standard error, and the result line 
   assert.equal(readFileSync(rawOf(s.outPath), 'utf8'), text);
 });
 
+test('an answer too deep to be checked is not a valid one: kept as it came, with the result line', async t => {
+  // Containers nested 20,000 deep: JSON reads it, and checking it runs out of stack.
+  const nest = '{"container":"group","label":"g","items":['.repeat(20_000) + '{"role":"text","text":"x"}' + ']}'.repeat(20_000);
+  const text = JSON.stringify({ ...fixture('calendar.json'), screens: [{ id: 'deep', title: 'Deep', container: 'screen', items: ['NEST'] }] }).replace('"NEST"', () => nest);
+  const s = await setup(t, openaiSays(text));
+  const r = await run(flagsOf(s));
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, resultLine('openai', 'test-model', text.length));
+  assert.equal(
+    r.stderr,
+    `the answer is not one valid proposal, so no proposal is written; the answer is kept as it came, in ${rawOf(s.outPath)}:\n  the answer could not be checked against the walkthrough format (it may be nested too deeply)\n`,
+  );
+  assert.equal(readFileSync(rawOf(s.outPath), 'utf8') === text, true, 'the raw file holds the answer as it came');
+});
+
 test('a 2xx without text is a fixed sentence, with the provider’s reason only when it is a short token', async t => {
   let body;
   const s = await setup(t, (seen, res) => reply(200, typeof body === 'function' ? body(seen) : body)(seen, res));
@@ -936,7 +1028,7 @@ test('a 2xx without text is a fixed sentence, with the provider’s reason only 
   assert.deepEqual(filesIn(join(s.dir, 'proposals')), []);
 });
 
-test('the proposal is written whole: a write that fails leaves the earlier one, and nothing staged', async t => {
+test('the proposal is written whole: a write that fails leaves no part of it, and nothing staged', async t => {
   const s = await setup(t, openaiSays(fenced(fixture('calendar.json'))));
   const folder = dirname(s.outPath);
   mkdirSync(folder, { recursive: true });
@@ -963,8 +1055,32 @@ test('the proposal is written whole: a write that fails leaves the earlier one, 
   assert.equal(r.status, 1);
   assert.equal(r.stdout, '');
   assert.equal(r.stderr, `cannot write ${s.outPath}: ENOSPC: no space left on device, write\n`);
-  assert.equal(readFileSync(s.outPath, 'utf8'), 'EARLIER\n');
-  assert.deepEqual(filesIn(folder), ['model openai.json']);
+  // The earlier one went before the request; of this one, not a byte is at --out.
+  assert.deepEqual(filesIn(folder), []);
+});
+
+test('a folder that turns into a file between the clearing and the write is said as the write’s failure', async t => {
+  const s = await setup(t, openaiSays(fenced(fixture('calendar.json'))));
+  const folder = dirname(s.outPath);
+  // Another hand puts a file where the folder of --out is to be made, just as it is made.
+  const preload = join(fresh(), 'turns.cjs');
+  writeFileSync(
+    preload,
+    [
+      "const fs = require('node:fs');",
+      'const make = fs.mkdirSync;',
+      'fs.mkdirSync = (path, ...rest) => {',
+      "  if (String(path) === process.env.TURN_DIR) fs.writeFileSync(path, 'a file now');",
+      '  return make(path, ...rest);',
+      '};',
+      "require('node:module').syncBuiltinESMExports();",
+    ].join('\n'),
+  );
+  const r = await run(flagsOf(s), { env: { ...MADE_UP, TURN_DIR: folder }, preload });
+  assert.equal(r.status, 1);
+  assert.equal(r.stdout, '');
+  assert.ok(r.stderr.startsWith(`cannot write ${s.outPath}: `), 'the failure said is the write’s');
+  assert.equal(r.stderr.split('\n').length, 2, 'one line, no stack');
 });
 
 // --- 15, 16. Standard output, --out, exit codes ------------------------------------------------------
@@ -1025,6 +1141,20 @@ test('the script writes standard output in two functions, everything through red
   }
   assert.equal(/console\.log|process\.stdout\.write/.test(rest), false, 'console.log or process.stdout.write outside printResult and printUsage');
   assert.equal(/console\./.test(source), false, 'no console call at all');
+  // Named once per door, so that no alias (const out = process.stdout) writes past the checks.
+  const count = text => source.split(text).length - 1;
+  assert.equal(count('process.stdout'), 2, 'process.stdout is named in printResult and printUsage only');
+  assert.equal(count('process.stderr'), 1, 'process.stderr is named in say only');
+  assert.equal(count('writeFileSync('), 1, 'one call writes a file');
+  for (const writer of ['appendFileSync', 'appendFile(', 'createWriteStream', 'writeFile(', 'writeSync(', 'fs/promises', 'fs.promises', 'promises.']) {
+    assert.equal(source.includes(writer), false, `the script names ${writer}`);
+  }
+  // Where a key may go when no --endpoint is given, and how localhost is looked up: read by no other test.
+  assert.equal(count("endpoint: 'https://api.openai.com',"), 1, 'the openai default address');
+  assert.equal(count("endpoint: 'https://generativelanguage.googleapis.com',"), 1, 'the gemini default address');
+  assert.equal(count('https://'), 4, 'no other https: address in the script but the two defaults, named again in the usage');
+  assert.match(source, /^import dns from 'node:dns';$/m);
+  assert.equal((source.match(/^dns\.setDefaultResultOrder\('ipv4first'\);$/gm) ?? []).length, 1, 'the dns line, at the top level');
   // Every other door, standard error and each file written, passes through redact too.
   const doors = source.match(/(?:process\.stderr\.write|writeFileSync)\([^\n]*/g) ?? [];
   assert.ok(doors.length >= 2, 'the script writes standard error and files');
