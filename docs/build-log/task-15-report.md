@@ -260,3 +260,118 @@ Concerns, each a reading the controller may want to rule on:
 Not done, on purpose: no skill tells a session to open, list or name a keys file, to pass
 `--endpoint`, or to run `describe.mjs`; `scripts/describe.mjs` was never run; no browser was started;
 no process was stopped; no dependency was added.
+
+---
+
+# Fix report — round 1
+
+One commit on `v2-pipeline`, on top of `121e51f`: **`457b6b2`** `fix: Cast knows who the design is for,
+and the opening stages' smaller findings`. Nothing pushed, nothing amended. Twelve files, all staged by
+path. `npm test` once, after the last edit: **725 tests, 719 pass, 0 fail, 1 skipped (NTFS), 5 `todo`.**
+
+Line counts after the round: frame 144 · context 194 · intent 168 · cast 186 · setup 198 (unchanged: the
+README lines are table rows) · `card.mjs` 111 · `tests/pool.test.mjs` 1526 (101 tests) ·
+`tests/skills.test.mjs` 2419 (97 tests, 5 `todo`).
+
+## Important
+
+| # | What changed | Where | Test that holds it |
+|---|---|---|---|
+| I1 | Context's "The people" opens with whether the design is for one profession, several or everyone, "as the frame says it: Cast reads it here", and names each profession's profile by id **and path**. Cast's step 6 says where it comes from: "in "The people" of the context … the intent carries it on, as `- context@1#the-people`". Cast's `## Carry` gains "a `- source:<path>` line for each profession's profile that is loaded into a seat". `presets.md` says "when the context's people section says". | `context/SKILL.md` step 5; `cast/SKILL.md` step 6 and Gate; `presets.md` § Added by rule | `cast: each seat explained in one line…` holds each link in one place (Context writes it, Intent's carried list has "The people", its slug is `the-people`, Cast reads it, `presets.md` words it, and no file of Cast says "when Frame says"); the run-through asserts `- context@1#the-people` is among the lines Intent carries and stamps Cast with a profile line and a project judge's line in its carry list |
+| I2 | The short form: "the adjustment row of the preset, with the project's `pinned` seats added and its `banned` ones taken out, and the truth judge on a public page … Steps 3, 5, 7, 8, 9, 10 and 11 hold as written." | `cast/SKILL.md`, under the steps | same test: the sentence, "and no more" gone, and the seven numbers resolved to the steps they name |
+| I3 | "A stage the route runs that the row leaves empty is cast from the surface row for that stage." | `cast/SKILL.md` step 5; `presets.md` § By size | `presets.md: what is added by rule…`: the rule, the adjustment row's Structure cell is "—" while `routeFor('adjustment').structure` is `skipped`, the surface cell it falls back to, and no other stage an adjustment runs is empty |
+| I4 | Context and Intent each list `<packages>/pool/judges/` in Reads, give `node <kit root>/scripts/card.mjs check <packages>/pool/judges/<name>.md`, report a faulty card to the founder "with what the command printed" and leave it out, and say a card with a kit card's id replaces it. Context checks every file of the folder before it reads one header. | `context/SKILL.md` Reads and step 3; `intent/SKILL.md` Reads and step 5 | `context: a surface that exists is read as it is first…` · `intent: the success-criteria test…` · `every command an opening stage gives…` · the run-through **runs** both commands on a sound project judge (`ok`) and Context's on a faulty one (exit 1, the fault printed) |
+| I5 / R139 | `presets.md` § Added by rule now opens "At every size, an adjustment's short cast included: `judge.truth` always sits on a public page, at each stage of the route its card sits at." The profile judge and the words judge keep "At any size from a surface up". The table is untouched. Cast's short form names the truth judge. | `presets.md`; `cast/SKILL.md` | `presets.md: what is added by rule…` (the order of the two headings and their lines; the card's `cast-when`) · the word-for-word table test, unchanged and passing |
+
+## Minor
+
+| # | What changed | Test |
+|---|---|---|
+| M1 | Frame step 1, on a package left half framed: "do not run `init` again. Go through steps 3 to 6, put the frame to him again with the three values as they stand, and write the request from his answer, never from the chat. Then go on from "Write `00-frame.md`", under "Gate"." | `frame: the package is made on his yes…` |
+| M2 | Context has a step 6, "Put the questions to him before the gate, one at a time", each answer written into the context as it comes. The gate: "what is wrong or missing in this context? The gate is that one message from him". | `context: the inventory…` (the step, the gate sentence, and "one at a time" no longer in Gate) |
+| M3 | Reads: "the product's own analytics, through a connection the project already has". Step 4: "Nothing of the project is sent to any service to gather context … The product's own analytics are read through a connection the project already has, and only read: the fact names that source and the day." The Never line follows. | `context: the one stage that reads the world…` |
+| M4 | A drafted profession's profile is written "at once to `<packages>/pool/profiles/<name>.md`, so that a session that resumes finds it", and corrected in that file at the gate. | `context: the inventory…` |
+| M5 | Short form: ""The founder's own words" are still asked for when the kind is `first-run`, `message` or `public-page`." Steps 4 and 6 hold. | same |
+| M6 | "When it says everyone, the project's own sit: with one profession's profile in the project's pool, its judge; with two or more, two contrasting ones…" | `presets.md: what is added by rule…` |
+| M7 | `card.mjs`: a path is asked what it is (`statSync`, nothing opened) before anything else. A folder, whatever its name, is `file: this is a folder, and files are checked one by one: name each file in it`. A `README.md` is passed over only when it is there; otherwise `file: cannot be read: <why>`. The usage says both. | `tests/pool.test.mjs`: two new tests, `…only a README.md that is there is passed over…` and `…a folder is not checked, whatever it is named…`; the usage test; the "cannot be read" test reworked (a folder is no longer "unread") |
+| M9 | Frame step 3: "an adjustment that changes the structure runs Structure, and one that changes nothing she can see skips Look". `presets.md`: "When it touches nothing she can see, Frame routes Look `skipped`, with the reason, and nobody is cast there." | `frame: one exchange…` (and that `route <package> look skipped --reason` is a form the script takes) |
+| M10 | Cast Reads: `status` "prints the kind, the foundation, the size and the route"; `packages` listed; "Nothing else of its header is Cast's" gone. Cost: "a transcriber that stands by counts only when it runs". `presets.md` opening and Cast step 5: a project cannot ban the truth judge on a public page, and Cast tells the founder when the two meet. Intent Reads: a reused person is used "once her card is checked again, as step 3 says". | `each opening stage reads…` · `cast: …` · `presets.md: …` · `intent: written from the corrected context…` |
+| M11 | `loop.md` § 7 opens: "At a stage whose gate is an approval of its own output (Frame, Context, Intent, Cast), that output is what he reads, and no page is built. Any other decision goes to the founder as one page, built from a small data file:". `pool/INDEX.md`: "Cast reads this page to choose seats, not the cards, and then the checks table of each judge it seats." `pool/CARD-FORMAT.md`, under "Where a card lives", and the four README lines of setup (`persons/`, `makers/`, `judges/`, `audiences/`): checked with `node <kit root>/scripts/card.mjs check <file>`. | `at each gate there is one question…` (loop) · `cast: a project's own cards are checked…` (index, format, the four README rows) · setup's command test now expects `card` among its scripts, as that one command |
+
+M8 is left as ruled.
+
+## Hand-mutation of the changed conditions of `card.mjs`
+
+Eight mutants, one at a time, against `tests/pool.test.mjs`, the file byte-compared after. **8 of 8 killed.**
+
+| Mutant | Failing tests |
+|---|---|
+| a folder is no longer told apart | 2 |
+| a README is passed over whether it is there or not | 1 |
+| the README is judged before the folder | 1 |
+| a path that cannot be reached is taken for a folder | 3 |
+| a missing README is sound | 1 |
+| a README that is there is a fault | 4 |
+| every path is a folder | 12 |
+| no path is a folder | 2 |
+
+RED first for M7: the two new tests and the usage test failed (3 of 101) before the command changed.
+
+## Three things to know
+
+1. **`loop.md` says "Any other decision", not "a decision between options".** The next lines of that
+   section keep `decision-approve.json`, "an approval with the findings that stayed open", which Detail
+   and Look use: "between options" would have left that approval page without a sentence. The four
+   stages are named, so nothing else moved. It is two sentences where the ruling asked for one.
+2. **A faulty project card with a kit card's id.** Context, Intent and Cast all say the faulty card is
+   reported and left out. None says whether the kit's card of the same id then sits in its place: the
+   founder hears of it and decides. If that should be a rule, it is one clause in each.
+3. **Cast's short form holds steps 3, 5, 7, 8, 9, 10 and 11, as ruled, and not 4 and 6.** A project's
+   own card that is pinned, or a pinned seat that is loaded, would need them; I kept to the ruling's
+   list.
+
+---
+
+# Fix report — round 2
+
+One commit on `v2-pipeline`, on top of `457b6b2`: **`189f58c`** `fix: Cast's short form keeps every step,
+and smaller findings`. Nothing pushed, nothing amended; twelve files, staged by path. `npm test` once,
+after the last edit: **725 tests, 719 pass, 0 fail, 1 skipped (NTFS), 5 `todo`.**
+
+Line counts: design 188 · setup 199 · frame 146 · context 195 · intent 169 · cast 188 · `card.mjs` 113 ·
+`tests/pool.test.mjs` 1532 (101 tests) · `tests/skills.test.mjs` 2427 (97 tests, 5 `todo`).
+
+| # | What changed | Where | Test that holds it |
+|---|---|---|---|
+| R140 | A faulty project card that carries a kit card's id is reported and left out, **and the kit's card sits in its place**. Cast: "the cast sheet says so: the line under "Left out" then names the project's replacement, not the seat". Context and Intent, which have no sheet yet: "the kit's card sits in its place", and the founder is told. | `cast/SKILL.md` step 3; `context/SKILL.md` step 3; `intent/SKILL.md` step 5 | `cast: a project's own cards are checked…` · `context: a surface that exists…` · `intent: the success-criteria test…` |
+| Ruling, N1 | The short form, whole: "only the row you start from differs: the adjustment row of the preset. Every step holds as written. A stage the route runs that the row leaves empty takes the cell of the surface row, the project's `pinned` seats are added and its `banned` ones taken out, and the truth judge sits on a public page." No step numbers, no count of seats, no "no audience", no "no fresh pass". | `cast/SKILL.md`, under the steps | `cast: each seat explained in one line…`: the paragraph is compared whole, the six old phrasings are refused, and it is set beside step 5, `presets.md` and `fresh-pass.md` ("the founder can ask for one at any decision page") |
+| N2 | `judge.profile` "…when the context's people section says…: at Frame, where no context exists yet, by Frame's own "Who it is for"." | `presets.md` § Added by rule | `presets.md: what is added by rule…` |
+| N3 | Context, Intent and Cast step 2: "Copy the template … and write `built-from`, unless the file is already there: then go on from what it holds." Frame, where it writes: "Copy the template, unless the file is already there: then go on from what it holds." | the four skills | `at each gate there is one question…` (the three) · `frame: the package is made on his yes…` |
+| N4 | Frame step 1, on a half-framed package: "Where `00-frame.md` does not hold the request, ask him for it again, as he would write it: it is written from his answer, never from the chat. Then go through steps 3 to 6, put the frame to him with the three values as they stand…" | `frame/SKILL.md` | `frame: the package is made on his yes…` |
+| N5 | `card.mjs`: a path that cannot be reached is `file: cannot be read: <why>` **whatever its name**, said before the README rule and before the folder rule. A card and a README under a file now print the same message. | `scripts/card.mjs` | `card.mjs check: a file that cannot be read…` (the two lines compared, path aside) · the usage test |
+| N6 | The four README lines end "and checked with the kit's `scripts/card.mjs`"; the full command is a sentence of the skill, under the table. `CARD-FORMAT.md`: "A project's own card is checked before it is cast, and a person's before she is seated". `loop.md` § 7: "At Frame, Context, Intent and Cast the gate is an approval of the stage's own output…". | `setup/SKILL.md`; `pool/CARD-FORMAT.md`; `design/references/loop.md` | `cast: a project's own cards are checked…` (the four rows, none holding `<kit root>`, and the skill's sentence) · `at each gate there is one question…` |
+| + | The conductor's step 7: "At Frame, Context, Intent and Cast, the output is what he reads. Any other decision is one page: …". Setup's `persons/` line: "each of a profession that has its file in `profiles/`, or of none". | `design/SKILL.md` (188 lines, its pins unchanged and passing); `setup/SKILL.md` (199) | `at each gate there is one question…` · `the project's pool is five folders…` |
+
+## Hand-mutation of the changed condition of `card.mjs`
+
+Five mutants against `tests/pool.test.mjs`, the file byte-compared after. **5 of 5 killed.**
+
+| Mutant | Failing tests |
+|---|---|
+| an unreachable path is not said first | 3 |
+| the README is passed over before the path is asked | 2 |
+| an unreachable path is sound | 3 |
+| only a README that cannot be reached is said so | 2 |
+| only a card that cannot be reached is said so | 2 |
+
+RED first: the three tests whose pins changed failed (3 of 101) before the command did.
+
+## One consequence of N5 to know
+
+I made the rule the general one rather than a case for "under a file": **any** path that cannot be
+reached is "cannot be read". So a file that is not there in another folder (`profiles/nowhere.md`) now
+says `cannot be read: not found`, where round 0 said `this file is in "profiles"`. That missing file was
+the only witness that a file in another folder is never opened. The code still judges the folder before
+it reads, and the usage still says so, but no test can see it any more on this mount (it keeps no
+permissions, so an unreadable file cannot be made). The test's title no longer claims it, and the
+round-0 mutant "the file read before its folder is judged" would now survive.
