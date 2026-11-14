@@ -55,7 +55,7 @@ heading that differs from one surface to the next.
    node <kit root>/scripts/state.mjs begin <package> intent
    ```
 2. **Read the context, and what its carry list names.** Copy the template to `<package>/02-intent.md`
-   and write `built-from`.
+   and write `built-from`, unless the file is already there: then go on from what it holds.
 3. **Write her card, on top of her profession's profile.** Copy `templates/people/PERSON-CARD.md` to
    `<packages>/pool/persons/<name>.md`, the name in lower-case words joined by hyphens.
    - Its header names the profession's profile she inherits, by its id, as
@@ -102,17 +102,18 @@ heading that differs from one surface to the next.
    - "What the readers found": "Not read", unless step 5 ran.
 5. **Optional, and cheap: the profile judge reads the intent.** Offer it when the design is for one
    profession or several: it costs one agent for each. On his yes, start one `judge.profile` for each
-   profession's profile, each a fresh sub-agent, started as "Starting a seat" in the loop says, from
-   a brief written from `templates/briefs/judge.md`. It is handed that profession's profile, whole,
-   and the intent, and it answers one thing: is the job stated as this profession would state it? A
-   card of the project's own with that id replaces the kit's, and is checked before it is seated,
-   with `node <kit root>/scripts/card.mjs check <packages>/pool/judges/<name>.md`: a faulty one is
-   reported to the founder, with what the command printed, and left out. No cast sheet exists yet:
-   the brief says that no cut of the checks was made, and the judge runs on the model and the effort
-   its card suggests (`pool/MODELS.md`), unless he says otherwise. What it marks `blocks` you mend,
-   since the intent is yours to write, and a fresh judge reads it once more: one fix round, one
-   re-read. Then write its verdict under "What the readers found", and each finding, fixed or open
-   with the reason. Its brief and its ledger stay in the package's `work/` folder.
+   profession's profile, each a fresh sub-agent, started as "Starting a seat" in the loop says, from a
+   brief written from `templates/briefs/judge.md`. It is handed that profession's profile, whole, and
+   the intent, and it answers one thing: is the job stated as this profession would state it? A card
+   of the project's own with that id replaces the kit's, and is checked before it is seated, with
+   `node <kit root>/scripts/card.mjs check <packages>/pool/judges/<name>.md`: a faulty one is reported
+   to the founder, with what the command printed, and left out, and the kit's card sits in its place:
+   tell him so. No cast sheet exists yet: the brief says that no cut of the checks was made, and the
+   judge runs on the model and the effort its card suggests (`pool/MODELS.md`), unless he says
+   otherwise. What it marks `blocks` you mend, since the intent is yours to write, and a fresh judge
+   reads it once more: one fix round, one re-read. Then write its verdict under "What the readers
+   found", and each finding, fixed or open with the reason. Its brief and its ledger stay in the
+   package's `work/` folder.
 
 **Routed `short`** (an adjustment), Intent is two sentences and its criteria. Under "The person in the
 moment" and "The one job": who she is, by her card's id, and what changes for her. Then "Success

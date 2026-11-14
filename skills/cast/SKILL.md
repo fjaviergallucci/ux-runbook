@@ -53,7 +53,7 @@ here". The table of a stage the route skips is deleted.
    node <kit root>/scripts/state.mjs begin <package> cast
    ```
 2. **Read the intent, and what its carry list names.** Copy the template to `<package>/03-cast.md` and
-   write `built-from`.
+   write `built-from`, unless the file is already there: then go on from what it holds.
 3. **Check the project's own cards before you read one.** Name every `.md` file of the project's
    `makers/`, `judges/`, `audiences/` and `persons/` folders in one run, each by its path, as
    `<packages>/pool/judges/booking-truth.md`:
@@ -65,8 +65,10 @@ here". The table of a stage the route skips is deleted.
    It prints one line for each file. `ok`: the card is sound, and you may read it. A file named
    `README.md` is passed over: it is never a card. Any other line is a fault, and **a faulty card is
    reported to the founder, with its lines, and left out**: it is not cast and not mended by you, and
-   it is never skipped in silence: it has its line under "Left out". A profession's profile has no
-   checker, and is read as it is written.
+   it is never skipped in silence: it has its line under "Left out". Where it carries the id of a kit
+   card, the kit's card sits in its place, and the cast sheet says so: the line under "Left out" then
+   names the project's replacement, not the seat. A profession's profile has no checker, and is read
+   as it is written.
 4. **Lay the two pools side by side.** The kit's seats and people are the rows of `pool/INDEX.md`. The
    project's are its sound cards: read each one's header. **A project card with the same id as a kit
    card replaces it for this project, and the cast sheet says so** on that seat's line. The same holds
@@ -127,10 +129,10 @@ here". The table of a stage the route skips is deleted.
       session makes, not an agent, and a transcriber that stands by counts only when it runs: say so
       beside the count.
 
-**Routed `short`** (an adjustment), the cast is the adjustment row of the preset, with the project's
-`pinned` seats added and its `banned` ones taken out, and the truth judge on a public page: one maker
-and one or two judges besides, no audience and no fresh pass. Steps 3, 5, 7, 8, 9, 10 and 11 hold as
-written.
+**Routed `short`** (an adjustment), only the row you start from differs: the adjustment row of the
+preset. Every step holds as written. A stage the route runs that the row leaves empty takes the cell
+of the surface row, the project's `pinned` seats are added and its `banned` ones taken out, and the
+truth judge sits on a public page.
 
 ## Gate
 

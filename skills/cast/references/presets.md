@@ -49,11 +49,12 @@ At every size, an adjustment's short cast included:
 At any size from a surface up:
 
 - `judge.profile`, once for each profession's profile, when the context's people section says the
-  experience is for one profession or for several. When it says everyone, the project's own sit: with
-  one profession's profile in the project's pool, its judge; with two or more, two contrasting ones,
-  the least comfortable with technology and the one with the highest stakes. Never all of them. It
-  reads at Structure, at Detail, which is its main read, and at Acceptance; at Look only when a
-  criterion that fires is about legibility or about where she uses it.
+  experience is for one profession or for several: at Frame, where no context exists yet, by Frame's
+  own "Who it is for". When it says everyone, the project's own sit: with one profession's profile in
+  the project's pool, its judge; with two or more, two contrasting ones, the least comfortable with
+  technology and the one with the highest stakes. Never all of them. It reads at Structure, at Detail,
+  which is its main read, and at Acceptance; at Look only when a criterion that fires is about
+  legibility or about where she uses it.
 - `judge.words` gets its own question to the founder when the kind is `first-run`, `message` or
   `public-page`. For those kinds the words get their own review: its line of the cast sheet says that
   its read is put to him as a question of its own, apart from the rest of the stage.

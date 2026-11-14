@@ -1321,7 +1321,7 @@ test('card.mjs prints its usage for --help and -h, and the usage gives the one f
   for (const args of [['--help'], ['-h'], ['check', '--help'], ['check', 'makers/room-lister.md', '-h']]) assert.deepEqual(check(args), [0, USAGE, ''], args.join(' '));
   // What it says of itself is what it does: the folders, the README, the three exit codes.
   for (const folder of [...Object.keys(FOLDERS), PERSON_FOLDER]) assert.ok(USAGE.includes(`${folder}/`), folder);
-  assert.match(USAGE, /A file named README\.md is never a card: it is\npassed over, and its line says so; one that is not there is a file that cannot be read/);
+  assert.match(USAGE, /A file named README\.md is never a card: it is\npassed over, and its line says so\. A path that cannot be reached, whatever its name, is a file that\ncannot be read/);
   assert.match(USAGE, /A folder is not checked: files are named one by one/);
   assert.match(USAGE, /pool\/CARD-FORMAT\.md/);
   assert.match(USAGE, /\nExit codes: 0 [^·]+ · 1 [^·]+ · 2 bad usage\.\n$/);
@@ -1395,17 +1395,18 @@ test('card.mjs check: the folder says what a file is: a seat in makers/, judges/
   assert.match(printed, /: header: "id" must be person\.<name>/);
 });
 
-test('card.mjs check: a file in any other folder is no card to check, which is a fault, and it is not opened', () => {
+test('card.mjs check: a file in any other folder is no card to check, which is a fault', () => {
   const pool = projectPool();
   const outside = [
     [put(pool, 'profiles/front-desk.md', '---\nid: profile.front-desk\n---\n# Front desk\n'), 'profiles'],
     // A sound card beside the folders, and one a folder too deep.
     [put(pool, 'room-lister.md', MAKER_CARD), 'pool'],
     [(mkdirSync(join(pool, 'makers', 'more')), put(pool, 'makers/more/room-lister.md', MAKER_CARD)), 'more'],
-    // One that is not there is said the same: the folder is judged before the file is opened.
-    [join(pool, 'profiles', 'nowhere.md'), 'profiles'],
   ];
   for (const [file, folder] of outside) assert.deepEqual(check(['check', file]), [1, noFolder(file, folder), ''], file);
+  // One that is not there is a file that cannot be read, here as in a folder of cards.
+  const nowhere = join(pool, 'profiles', 'nowhere.md');
+  assert.deepEqual(check(['check', nowhere]), [1, unread(nowhere, 'not found'), '']);
   // A folder named like one of the four, with a prefix, is another folder.
   mkdirSync(join(pool, 'my-makers'));
   const near = put(pool, 'my-makers/room-lister.md', MAKER_CARD);
@@ -1499,7 +1500,12 @@ test('card.mjs check: a file that cannot be read is a fault of that file, and th
   const missing = join(pool, 'judges', 'nowhere.md');
   const under = join(judge, 'room-facts.md');
   assert.deepEqual(check(['check', missing]), [1, unread(missing, 'not found'), '']);
-  assert.deepEqual(check(['check', missing, judge, under]), [1, `${unread(missing, 'not found')}${ok(judge)}${noFolder(under, 'room-truth.md')}`, '']);
+  // A path under a file cannot be reached: one message for it, whatever the file is named, a README among them.
+  const WHY = 'part of the path is a file, not a folder';
+  assert.deepEqual(check(['check', missing, judge, under]), [1, `${unread(missing, 'not found')}${ok(judge)}${unread(under, WHY)}`, '']);
+  const readme = join(judge, 'README.md');
+  assert.deepEqual(check(['check', under, readme]), [1, `${unread(under, WHY)}${unread(readme, WHY)}`, '']);
+  assert.equal(unread(under, WHY).replace(under, ''), unread(readme, WHY).replace(readme, ''));
 });
 
 test('card.mjs: bad usage says what is wrong, then prints the usage, and exits 2 with nothing checked', () => {

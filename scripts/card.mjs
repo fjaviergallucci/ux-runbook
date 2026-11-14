@@ -2,8 +2,8 @@
 // card: a project's own cards and people, checked before they are cast. The checking is the library's
 // (lib/card.mjs); this is the command over it. `check` holds each file to the format of the folder it is
 // in, and prints one line for each file that is sound or passed over, and one for each fault of the others.
-// A folder is never checked, and only a README.md that is there is passed over. It reads the files it is
-// given and writes nothing.
+// A folder is never checked, and a path that cannot be reached is a file that cannot be read, whatever its
+// name: only a README.md that is there is passed over. It reads the files it is given and writes nothing.
 // Exit codes: 0 every card is sound · 1 a fault found · 2 bad usage.
 import { readFileSync, statSync } from 'node:fs';
 import { basename, dirname, resolve } from 'node:path';
@@ -27,9 +27,9 @@ project's own cards and people are checked with it before they are cast. Nothing
 
 It prints one line for each file, under the path as it was given: "<file>: ok" when the card is sound,
 or one line for each of its faults, "<file>: <fault>". A file named ${README} is never a card: it is
-passed over, and its line says so; one that is not there is a file that cannot be read. A file in any
-other folder is no card to check, and is not opened: that is a fault of the file, and so is a file that
-cannot be read. A folder is not checked: files are named one by one, and a folder given is a fault.
+passed over, and its line says so. A path that cannot be reached, whatever its name, is a file that
+cannot be read. A file in any other folder is no card to check, and is not opened. Each is a fault of
+the file. A folder is not checked: files are named one by one, and a folder given is a fault.
 
 Exit codes: 0 every card is sound · 1 a card has a fault, a file is in no folder of cards, a file
 cannot be read, or a folder was given · 2 bad usage.
@@ -61,13 +61,15 @@ function placeOf(path) {
 }
 
 // What is wrong with one file, each fault one line; none when its card is sound, and null when the file is
-// passed over. A folder is no file, whatever its name. A README is passed over only when it is there. The
-// folder a file is in says what it is held to, and is judged before the file is opened.
+// passed over. A folder is no file, and a path that cannot be reached is said so, each whatever its name: a
+// README is passed over only when it is there. The folder a file is in says what it is held to, and is
+// judged before the file is opened.
 function faultsOf(path) {
   const name = basename(path);
   const { isFolder, unreachable } = placeOf(path);
   if (isFolder) return ['file: this is a folder, and files are checked one by one: name each file in it'];
-  if (name === README) return unreachable === undefined ? null : [`file: cannot be read: ${unreachable}`];
+  if (unreachable !== undefined) return [`file: cannot be read: ${unreachable}`];
+  if (name === README) return null;
   const folder = basename(dirname(resolve(path)));
   const validate = checkerOf(folder);
   if (!validate) return [`file: a card is in a folder named ${SEAT_FOLDERS}, and a person in one named ${PERSON_FOLDER}; this file is in "${folder}"`];

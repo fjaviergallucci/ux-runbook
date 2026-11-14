@@ -47,9 +47,10 @@ Steps 1 to 6 write nothing: the package is made at the gate, on his yes.
 
 1. **See whether the design is new.** It is, unless the conductor sent you to a package that exists:
    a folder with a `state.json`, whose next stage is `frame`. That design was left half framed. Its
-   three values are in the state already: do not run `init` again. Go through steps 3 to 6, put the
-   frame to him again with the three values as they stand, and write the request from his answer,
-   never from the chat. Then go on from "Write `00-frame.md`", under "Gate".
+   three values are in the state already: do not run `init` again. Where `00-frame.md` does not hold
+   the request, ask him for it again, as he would write it: it is written from his answer, never from
+   the chat. Then go through steps 3 to 6, put the frame to him with the three values as they stand,
+   and go on from "Write `00-frame.md`", under "Gate".
 2. **Name the kind, the foundation and the size,** each from its table in
    `skills/design/references/routes.md`, each with one line of why.
    - *Kind:* what the interface is for. One of the kit's five, or a kind the project profile adds.
@@ -107,10 +108,11 @@ one question, about one thing: is this the right frame for it?
   node <kit root>/scripts/state.mjs route <package> <stage> <full|short|skipped> --reason "<why>"
   ```
 
-- **Write `00-frame.md`.** "The request", word for word. "Kind, foundation, size", each value with its
-  why. "Route": the mode of each stage as `node <kit root>/scripts/state.mjs status <package>` prints
-  it, with the reason of each stage that is short, skipped or changed. "Who it is for". "Provisional
-  cast". "Engines missing".
+- **Write `00-frame.md`.** Copy the template, unless the file is already there: then go on from what
+  it holds. "The request", word for word. "Kind, foundation, size", each value with its why. "Route":
+  the mode of each stage as `node <kit root>/scripts/state.mjs status <package>` prints it, with the
+  reason of each stage that is short, skipped or changed. "Who it is for". "Provisional cast".
+  "Engines missing".
 - **Write his answer under `## Reviewed by the founder`:** what he corrected, and the words he
   confirmed it with, as he said them. Until it is there, it does not count.
 - **Write the carry list,** `## Carry`: one `- source:<path>` line for each profession's profile the

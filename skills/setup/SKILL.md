@@ -108,15 +108,16 @@ A file you write while working that is none of these goes in `<scratch>`: never 
    | Folder | Its `README.md` says |
    |---|---|
    | `profiles/` | One file for each profession this product serves, written from `templates/people/PROFILE-CARD.md` of the kit. |
-   | `persons/` | The people this product is designed for, each of a profession that has its file in `profiles/`: a card is written to "The person card" in `pool/CARD-FORMAT.md` of the kit, and checked with `node <kit root>/scripts/card.mjs check <file>`. |
-   | `makers/` | This project's own makers: a card is written to `pool/CARD-FORMAT.md` of the kit, and checked with `node <kit root>/scripts/card.mjs check <file>`. |
-   | `judges/` | This project's own judges: a card is written to `pool/CARD-FORMAT.md` of the kit, and checked with `node <kit root>/scripts/card.mjs check <file>`. |
-   | `audiences/` | This project's own audiences: a card is written to `pool/CARD-FORMAT.md` of the kit, and checked with `node <kit root>/scripts/card.mjs check <file>`. |
+   | `persons/` | The people this product is designed for, each of a profession that has its file in `profiles/`, or of none: a card is written to "The person card" in `pool/CARD-FORMAT.md` of the kit, and checked with the kit's `scripts/card.mjs`. |
+   | `makers/` | This project's own makers: a card is written to `pool/CARD-FORMAT.md` of the kit, and checked with the kit's `scripts/card.mjs`. |
+   | `judges/` | This project's own judges: a card is written to `pool/CARD-FORMAT.md` of the kit, and checked with the kit's `scripts/card.mjs`. |
+   | `audiences/` | This project's own audiences: a card is written to `pool/CARD-FORMAT.md` of the kit, and checked with the kit's `scripts/card.mjs`. |
 
-   A stub is one file for one profession, as `<packages>/pool/profiles/front-desk-coordinator.md`,
-   written from `templates/people/PROFILE-CARD.md`: its id `profile.<name>`, every heading and all four
-   labels kept, the example specialty deleted. Fill a field only from what the project's documents and
-   the founder said of that profession, and write "Not known yet." where they said nothing. **Mark the
+   The check those lines name is `node <kit root>/scripts/card.mjs check <file>`. A stub is one file
+   for one profession, as `<packages>/pool/profiles/front-desk-coordinator.md`, written from
+   `templates/people/PROFILE-CARD.md`: its id `profile.<name>`, every heading and all four labels
+   kept, the example specialty deleted. Fill a field only from what the project's documents and the
+   founder said of that profession, and write "Not known yet." where they said nothing. **Mark the
    evidence of every characteristic `guess`**: nobody of that profession has been heard.
 7. **Check the engines, and record what each said.** Read the `engine` line of every card in the kit's
    `pool/makers/`, `pool/judges/` and `pool/audiences/`. An engine that is `own` needs no check. Each

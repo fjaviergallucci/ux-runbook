@@ -56,7 +56,7 @@ Nothing of the project outside `<packages>` is written.
    node <kit root>/scripts/state.mjs begin <package> context
    ```
 2. **Read the frame, and what its carry list names.** Copy the template to `<package>/01-context.md`
-   and write `built-from`.
+   and write `built-from`, unless the file is already there: then go on from what it holds.
 3. **When the surface exists, have it read as it is, first.** The frame says so: its foundation is
    `redesign` or `small-change`.
    - *The pictures.* Where the surface can be opened as a page from a file, photograph it:
@@ -76,7 +76,8 @@ Nothing of the project outside `<packages>` is written.
      node <kit root>/scripts/card.mjs check <packages>/pool/judges/<name>.md
      ```
 
-     A faulty one is reported to the founder, with what the command printed, and left out. A sound
+     A faulty one is reported to the founder, with what the command printed, and left out: where it
+     carries the id of a kit card, the kit's card sits in its place, and you tell him so. A sound
      one sits when its header says it sits at `context`, and one with the id of a kit card replaces
      it. Each is a fresh sub-agent, started as "Starting a seat" in the loop says, from a brief
      written from `templates/briefs/judge.md`. The brief names the pictures by their paths and gives

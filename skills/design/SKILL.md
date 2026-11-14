@@ -120,8 +120,9 @@ all nine, with every command, is in `references/loop.md`: read it before the fir
 6. **Pick, or approve.** Where he picks, the reads go beside the options. Where he approves, the
    blocking findings are fixed first: one fix round, then one re-read by a fresh judge. What remains
    goes to him as open findings, with a recommendation.
-7. **The decision page.** One page: the identity line, the options as pictures, one line for each seat,
-   one recommendation, one question.
+7. **The decision page.** At Frame, Context, Intent and Cast, the output is what he reads. Any other
+   decision is one page: the identity line, the options as pictures, one line for each seat, one
+   recommendation, one question.
 8. **His answer, in the artefact.** In his words, under `## Reviewed by the founder`. His notes are
    calibration, not orders: where one meets a rule or a fact of the product, say so at once, with the
    source.
