@@ -28,15 +28,23 @@ export const SECTIONS = Object.freeze(['Method', 'Output', 'Never', 'Borrowed'])
 export const JUDGE_SECTIONS = Object.freeze(['Core checks', 'Optional checks']);
 export const CHECK_COLUMNS = Object.freeze(['id', 'trigger', 'method']);
 
-const ENGINE = /^(?:own|skill:[a-z0-9:_-]+|model:any|tool:[a-z0-9-]+)$/;
+// A skill is written as it is installed: its own name, or its plugin, a colon and its name.
+const SKILL = '[a-z0-9][a-z0-9_-]*';
+const ENGINE = new RegExp(`^(?:own|skill:${SKILL}(?::${SKILL})?|model:any|tool:[a-z0-9-]+)$`);
 const NAME = '[a-z][a-z0-9]*(?:-[a-z0-9]+)*';
 const ID = new RegExp(`^(${SHELVES.join('|')})\\.(${NAME})$`);
 const FILE = new RegExp(`^(${Object.keys(FOLDERS).join('|')})/(${NAME})\\.md$`);
 const CORE_CHECKS = { least: 2, most: 6 };
+// The written forms, stricter than Markdown's, and the words an error gives for each.
 const HEADING = /^## +(.*\S)\s*$/;
-const FENCE = /^ {0,3}(?:```|~~~)/;
-// A top-level list item, bulleted or numbered. A nested one is indented, and belongs to the item above it.
-const LIST_ITEM = /^(?:[-*+]|\d+[.)])[ \t]+\S/;
+const HEADING_FORM = 'a section\'s heading is two hashes, a space, the name, and nothing else on the line';
+const ROW_FORM = `a table row begins and ends with a pipe, as | ${CHECK_COLUMNS.join(' | ')} |`;
+// A fence line: up to three spaces, three or more backticks or tildes, and whatever follows them.
+const FENCE = /^ {0,3}(`{3,}|~{3,})(.*)$/;
+// A list item, bulleted or numbered, up to three spaces in. What is matched ends where its text starts.
+const LIST_ITEM = /^( {0,3})(?:[-*+]|\d+[.)])[ \t]+(?=\S)/;
+const PIPE = /(?<!\\)\|/;
+const CLOSING_PIPE = /(?<!\\)\|$/;
 const DASHES = /^:?-+:?$/;
 
 const isText = value => typeof value === 'string' && value.trim() !== '';
@@ -163,10 +171,10 @@ function checkBody(body, isJudge, errors) {
     if (first.has(name)) fail(`"## ${name}" appears twice`);
     else if (order.includes(name)) first.set(name, section);
     else if (JUDGE_SECTIONS.includes(name)) fail(`"## ${name}" belongs to a judge card`);
-    else fail(`"## ${name}" is not a section of a card (${order.join(', ')})`);
+    else fail(`"## ${name}" is not a section of a card (${order.join(', ')}); ${HEADING_FORM}`);
   }
   for (const name of order) {
-    if (!first.has(name)) fail(`"## ${name}" is missing`);
+    if (!first.has(name)) fail(`"## ${name}" is missing; ${HEADING_FORM}`);
   }
   // The sections that are there, as they come and as the format orders them.
   const found = [...first.keys()];
@@ -181,36 +189,60 @@ function checkBody(body, isJudge, errors) {
   }
 }
 
-// The body's `## ` sections, each with the lines under it. A line inside a code fence is never a heading.
+// The body's `## ` sections, each with the lines under it. A line inside a code fence is never a heading:
+// a fence is open from its first line to a line of the same character, at least as many of it, and nothing
+// after them.
 function sectionsOf(body) {
   const sections = [];
-  let fenced = false;
+  let open = null;
   for (const line of body.split('\n')) {
-    if (FENCE.test(line)) fenced = !fenced;
-    const heading = fenced ? null : HEADING.exec(line);
+    const [, marks, rest] = FENCE.exec(line) ?? [];
+    const heading = open === null ? HEADING.exec(line) : null;
+    if (open === null) open = marks ?? null;
+    else if (marks?.startsWith(open) && rest.trim() === '') open = null;
     if (heading) sections.push({ name: heading[1], lines: [] });
     else sections.at(-1)?.lines.push(line);
   }
   return sections;
 }
 
+// The items of a list that are not nested in another: an item that starts where the text of the item
+// counted before it starts, or further in, is inside that item.
+function topItems(lines) {
+  let count = 0;
+  let text = 0;
+  for (const line of lines) {
+    const [mark, indent] = LIST_ITEM.exec(line) ?? [];
+    if (mark === undefined || (count > 0 && indent.length >= text)) continue;
+    count += 1;
+    text = mark.length;
+  }
+  return count;
+}
+
 function checkCore(lines, fail) {
-  const count = lines.filter(line => LIST_ITEM.test(line)).length;
+  const count = topItems(lines);
   if (count < CORE_CHECKS.least || count > CORE_CHECKS.most) {
     fail(`"## Core checks" has ${count} check${count === 1 ? '' : 's'}; a judge has two to six, as a numbered or bulleted list`);
   }
 }
 
-// A table row as its cells, each trimmed; a bar written \| does not end its cell.
-const cellsOf = row => row.trim().replace(/^\|/, '').replace(/\|$/, '').split(/(?<!\\)\|/).map(cell => cell.trim());
+// A table row, already trimmed, as its cells, each trimmed; a pipe written \| does not end its cell.
+const cellsOf = row => row.slice(1, -1).split(PIPE).map(cell => cell.trim());
+// A header cell, with or without the backticks of a code span.
+const plain = cell => cell.replace(/^`(.+)`$/, '$1');
 
 // The optional checks are one table: its header row, a line of dashes, then a row for each check, or none.
+// A row begins and ends with a pipe, and no other line of the section holds one.
 function checkOptional(lines, fail) {
   const columns = CHECK_COLUMNS.join(', ');
-  const [header, dashes, ...rows] = lines.filter(line => line.trim().startsWith('|')).map(cellsOf);
-  if (!header) return fail(`"## Optional checks" needs a table with the columns ${columns} (it may have no rows)`);
-  if (header.join('\n') !== CHECK_COLUMNS.join('\n')) {
-    return fail(`the table of "## Optional checks" must have the columns ${columns}; it has ${header.join(', ')}`);
+  const written = lines.map(line => line.trim());
+  const odd = written.find(line => PIPE.test(line) && !(line.startsWith('|') && CLOSING_PIPE.test(line)));
+  if (odd !== undefined) return fail(`"## Optional checks": ${ROW_FORM}; it has ${show(odd)}`);
+  const [header, dashes, ...rows] = written.filter(line => line.startsWith('|')).map(cellsOf);
+  if (!header) return fail(`"## Optional checks" needs a table with the columns ${columns} (it may have no rows); ${ROW_FORM}`);
+  if (header.map(plain).join('\n') !== CHECK_COLUMNS.join('\n')) {
+    return fail(`the table of "## Optional checks" must have the columns ${columns}; it has ${header.map(plain).join(', ')}`);
   }
   if (!dashes || dashes.length !== CHECK_COLUMNS.length || !dashes.every(cell => DASHES.test(cell))) {
     return fail('the table of "## Optional checks" needs a line of dashes under its header row');

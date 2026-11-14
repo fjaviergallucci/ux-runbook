@@ -1,11 +1,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import {
   CARD_KEYS, CHECK_COLUMNS, EFFORTS, ENGINE_FORMS, FOLDERS, JUDGE_SECTIONS, LOADED_WITH, MODELS, SECTIONS, SHELVES, validateCard,
 } from '../scripts/lib/card.mjs';
 import { parse } from '../scripts/lib/frontmatter.mjs';
 import { SIZES, STAGES } from '../scripts/lib/state.mjs';
+import { CONTAINERS, KEYS, ROLES } from '../scripts/lib/walkthrough.mjs';
 
 const root = new URL('../', import.meta.url);
 const at = path => new URL(path, root);
@@ -123,6 +126,9 @@ test('a card with no header, or a header that cannot be read, is one error', () 
   only(validateCard('---\nid: maker.room-lister\n', { file: FILE.maker }), /^header: line 1/, /never closed/);
   // One line each: a job that runs onto a second line is not flat frontmatter.
   only(validateCard(write(HEADER, BODY).replace('free right now?', 'free right now,\nand which are next?'), { file: FILE.maker }), /^header: line 5/);
+  // A key written twice, whether or not the two agree.
+  only(validateCard(write(HEADER, BODY).replace('shelf: maker\n', 'shelf: maker\nshelf: judge\n'), { file: FILE.maker }), /^header: line 4: "shelf" appears twice/);
+  only(validateCard(write(HEADER, BODY).replace('engine: own\n', 'engine: own\nengine: own\n'), { file: FILE.maker }), /^header: line 12: "engine" appears twice/);
 });
 
 test('shelf is maker, judge or audience', () => {
@@ -149,12 +155,16 @@ test('suggested-effort is one of the six values', () => {
 });
 
 test('engine is own, a skill, any outside model, or a tool', () => {
-  for (const value of ['own', 'skill:frontend-design', 'skill:frontend-design:frontend-design', 'skill:my_skill2', 'model:any', 'tool:stitch', 'tool:screen-maker2']) {
-    assert.deepEqual(maker({ engine: value }), [], value);
-  }
+  const accepted = [
+    'own', 'skill:frontend-design', 'skill:frontend-design:frontend-design', 'skill:my_skill2', 'skill:a', 'skill:2d:x_y-z', 'model:any',
+    'tool:stitch', 'tool:screen-maker2',
+  ];
+  for (const value of accepted) assert.deepEqual(maker({ engine: value }), [], value);
   const refused = [
     'none', 'own:text', 'skill:', 'skill:Front-End', 'skill:front end', 'model:openai', 'model:gemini', 'model:', 'model:any:fast',
     'tool:', 'tool:Stitch', 'tool:stitch:pro', 'tool:screen_maker', 'xskill:a', 'skill:a b', '"own "', '"tool:stitch "', '[own]',
+    // A skill is one name, or a plugin and a name: neither is empty, neither starts with a mark, and there is no third part.
+    'skill:a:', 'skill::a', 'skill:a:b:c', 'skill:-a', 'skill:_a', 'skill:a:-b', 'skill:a:_b', 'skill:a::b',
   ];
   for (const value of refused) only(maker({ engine: value }), /^header: "engine" must be own, skill:<name>, model:any or tool:<name>; it is /);
 });
@@ -276,6 +286,41 @@ test('headings of other levels, and a ## line inside a code fence, are not secti
   assert.deepEqual(validateCard(write(HEADER, BODY).replace('## Method\n', '##   Method  \n').replace('## Never\n', '## Never\t\n'), { file: FILE.maker }), []);
 });
 
+test('a code fence closes only on its own character, at least as long, with nothing after it', () => {
+  const output = text => maker({}, setSection('Output', text));
+  // A fence of the other character inside it does not close it.
+  assert.deepEqual(output('~~~\n```\n## Inside\n~~~'), []);
+  assert.deepEqual(output('```\n~~~\n## Inside\n```'), []);
+  // Nor does a shorter one of its own.
+  assert.deepEqual(output('````\n```\n## Inside\n````'), []);
+  assert.deepEqual(output('~~~~~\n~~~\n~~~~\n## Inside\n~~~~~'), []);
+  // Nor a line that opens a fence, with a language after the marks.
+  assert.deepEqual(output('```\n```js\n## Inside\n```'), []);
+  // A longer one of its own does, and so does one with spaces after it or up to three before it.
+  only(output('```\n## Inside\n`````\n\n## Outside\n\nText.'), /"## Outside" is not a section of a card/);
+  only(output('~~~\n## Inside\n~~~  \n\n## Outside\n\nText.'), /"## Outside" is not a section of a card/);
+  only(output('```\n## Inside\n   ```\n\n## Outside\n\nText.'), /"## Outside" is not a section of a card/);
+  // Four spaces before the marks is not a fence line: the fence stays open.
+  assert.deepEqual(output('```\n## Inside\n    ```\n## Still inside\n```'), []);
+  // Two marks are not a fence.
+  only(output('``\n## Outside\n\nText.'), /"## Outside" is not a section of a card/);
+});
+
+test('a heading written another way is refused, and the error says how one is written', () => {
+  const FORM = /a section's heading is two hashes, a space, the name, and nothing else on the line/;
+  const never = heading => validateCard(write(HEADER, BODY).replace('## Never\n', `${heading}\n`), { file: FILE.maker });
+  // Closing hashes: the name is read with them, so it is unknown, and the section is missing.
+  const closed = never('## Never ##');
+  assert.equal(closed.length, 2, closed.join('\n'));
+  assert.match(closed[0], /^body: "## Never ##" is not a section of a card \(Method, Output, Never, Borrowed\)/);
+  assert.match(closed[0], FORM);
+  assert.match(closed[1], /^body: "## Never" is missing/);
+  assert.match(closed[1], FORM);
+  // A tab after the hashes: not a heading at all.
+  only(never('##\tNever'), /^body: "## Never" is missing/, FORM);
+  only(never('   ## Never'), /"## Never" is missing/, FORM);
+});
+
 test('only a judge has checks', () => {
   only(maker({}, sections => [CHECKS[0], ...sections]), /^body: "## Core checks" belongs to a judge card/);
   only(audience({}, sections => [CHECKS[1], ...sections]), /^body: "## Optional checks" belongs to a judge card/);
@@ -305,6 +350,27 @@ test('a judge has two to six core checks, numbered or bulleted', () => {
   only(judge({}, setSection('Core checks', '1. One.\n\n---\n\n2026 was the year.\n-not a bullet')), /has 1 check;/);
 });
 
+test('a core check may be indented by up to three spaces, and a nested item is never one', () => {
+  const core = text => judge({}, setSection('Core checks', text));
+  for (const indent of [' ', '  ', '   ']) assert.deepEqual(core(`${indent}1. One.\n${indent}2. Two.`), [], `${indent.length} spaces`);
+  assert.deepEqual(core('   - One.\n - Two.'), [], 'items of one list need not line up');
+  // Four spaces is a code block, not a list.
+  only(core('    1. One.\n    2. Two.'), /has 0 checks;/);
+  only(core('1. One.\n    2. Two.'), /has 1 check;/);
+  // An item is nested when it starts where the text of the check above it starts, or further in.
+  only(core('- One.\n  - a\n  - b'), /has 1 check;/);
+  only(core('- One.\n   - a\n   - b'), /has 1 check;/);
+  only(core(' 1. One.\n    - a\n    - b'), /has 1 check;/);
+  assert.deepEqual(core('- One.\n  - a\n - Two.'), []);
+  // The text of "10. Ten." starts four in, so an item three in is not inside it.
+  assert.deepEqual(core('10. Ten.\n   - Eleven.'), []);
+  assert.deepEqual(core('1.  One.\n   - Two.'), [], 'two spaces after the mark');
+  // Once back out, the next item is a check again.
+  assert.deepEqual(core('1. One.\n   - a\n2. Two.\n   - b'), []);
+  // Each item is measured against the check above it, not against the first of the list.
+  assert.deepEqual(core('10. One.\n- Two.\n   - a\n   - b\n   - c\n   - d\n   - e'), []);
+});
+
 test('optional checks are a table of id, trigger and method', () => {
   assert.deepEqual(judge({}, table()), [], 'a table with no rows');
   assert.deepEqual(judge({}, table('| a | when b | do c |', '| d | when e | do f |')), []);
@@ -312,8 +378,38 @@ test('optional checks are a table of id, trigger and method', () => {
   assert.deepEqual(judge({}, setSection('Optional checks', '|id|trigger|method|\n|:--|:-:|--:|\n|a|b|c|')), []);
   assert.deepEqual(judge({}, table('| a | a list \\| a table | do c |')), [], 'an escaped bar is part of its cell');
   assert.deepEqual(judge({}, setSection('Optional checks', TABLE.map(line => `  ${line}`).join('\n'))), [], 'an indented table');
-  only(judge({}, setSection('Optional checks', 'None yet.')), /^body: "## Optional checks" needs a table with the columns id, trigger, method/);
+  only(judge({}, setSection('Optional checks', 'None yet.')), /^body: "## Optional checks" needs a table with the columns id, trigger, method/, /\| id \| trigger \| method \|/);
   only(judge({}, setSection('Optional checks', '- overflow: any list of rooms')), /"## Optional checks" needs a table/);
+});
+
+test('a header cell of the optional checks may be written with or without backticks', () => {
+  const header = line => judge({}, setSection('Optional checks', `${line}\n|---|---|---|\n| a | b | c |`));
+  assert.deepEqual(header('| `id` | `trigger` | `method` |'), []);
+  assert.deepEqual(header('| `id` | trigger | `method` |'), []);
+  only(header('| `id | trigger | method |'), /must have the columns id, trigger, method; it has `id, trigger, method/);
+  only(header('| id` | trigger | method |'), /must have the columns/);
+  only(header('| ``id`` | trigger | method |'), /must have the columns/);
+  only(header('| `when` | `trigger` | `method` |'), /must have the columns id, trigger, method; it has when, trigger, method/);
+  // Only the header: a row's cells are the card's own words, backticks and all.
+  assert.deepEqual(judge({}, table('| `overflow` | any `list` | `Read` it. |')), []);
+});
+
+test('a row of the optional checks begins and ends with a pipe', () => {
+  const FORM = /a table row begins and ends with a pipe, as \| id \| trigger \| method \|/;
+  const section = text => judge({}, setSection('Optional checks', text));
+  // The whole table without its outer pipes, as Markdown allows and the format does not.
+  only(section('id | trigger | method\n---|---|---\na | b | c'), /^body: "## Optional checks": /, FORM, /it has "id \| trigger \| method"/);
+  // One row without its opening pipe, or without its closing one.
+  only(section(`${TABLE.join('\n')}\nd | when e | do f |`), FORM, /it has "d \| when e \| do f \|"/);
+  only(section(`${TABLE.join('\n')}\n| d | when e | do f`), FORM, /it has "\| d \| when e \| do f"/);
+  only(section('| id | trigger | method\n|---|---|---|'), FORM, /it has "\| id \| trigger \| method"/);
+  // A closing pipe written \| is part of the last cell, so the row is not closed.
+  only(section(`${TABLE.join('\n')}\n| d | when e | do f \\|`), FORM);
+  // A sentence beside the table may hold a pipe written \|, and no other.
+  assert.deepEqual(section(`A trigger is seen or not: yes \\| no.\n\n${TABLE.join('\n')}`), []);
+  only(section(`A trigger is seen or not: yes | no.\n\n${TABLE.join('\n')}`), FORM, /it has "A trigger is seen or not: yes \| no\."/);
+  // The first line at fault is the one reported.
+  only(section('id | trigger | method\n| a | b | c'), /it has "id \| trigger \| method"/);
 });
 
 test('the optional-checks table has exactly the three columns, in order', () => {
@@ -404,20 +500,92 @@ test('the outside describer never mentions a key', () => {
   assert.doesNotMatch(text, /\bkeys?\b|secret|credential|password/i);
 });
 
-test('a path of the kit named in the pool is a file that exists', () => {
-  // Anywhere in the text, a command in a code fence included: scripts/lib/card.mjs, kit/KIT-CONTRACT.md.
-  const KIT_PATH = /(?<![\w-])(?:scripts|kit|pool|templates|tests|skills|reference)\/[\w./-]*\.[a-z]+\b/g;
-  const files = ['CARD-FORMAT.md', 'MODELS.md', ...cards.filter(card => card.file.startsWith('makers/')).map(card => card.file)];
+// Every path under one of `folders` that a text names, anywhere in it, a command in a code fence included.
+const pathsUnder = (folders, text) => [...text.matchAll(new RegExp(`(?<![\\w-])(?:${folders.join('|')})/[\\w./-]*\\.[a-z]+\\b`, 'g'))].map(([path]) => path);
+// The pool's own texts: the two documents and every card, whatever its shelf.
+const poolTexts = () => ['CARD-FORMAT.md', 'MODELS.md', ...cards.map(card => card.file)].map(file => [`pool/${file}`, read(`pool/${file}`)]);
+
+test('the paths a text can name are found wherever they are written', () => {
+  const text = 'Read `kit/KIT-CONTRACT.md`, then:\n\n```\nnode ./scripts/describe.mjs --out x.json\n```\n\nSee templates/outputs/LEDGER.md, pool/makers/<name>.md and my-kit/notes.md.';
+  assert.deepEqual(pathsUnder(['scripts', 'kit', 'pool'], text), ['kit/KIT-CONTRACT.md', 'scripts/describe.mjs']);
+  assert.deepEqual(pathsUnder(['templates'], text), ['templates/outputs/LEDGER.md']);
+});
+
+test('a script, a kit file or a pool file named in the pool exists', () => {
   const seen = new Set();
-  for (const file of files) {
-    for (const [path] of read(`pool/${file}`).matchAll(KIT_PATH)) {
+  for (const [file, text] of poolTexts()) {
+    for (const path of pathsUnder(['scripts', 'kit', 'pool'], text)) {
       seen.add(path);
-      assert.ok(existsSync(at(path)), `pool/${file} names ${path}, which is not in the kit`);
+      assert.ok(existsSync(at(path)), `${file} names ${path}, which is not in the kit`);
     }
   }
   for (const path of ['scripts/lib/card.mjs', 'scripts/lib/walkthrough.mjs', 'scripts/describe.mjs', 'scripts/shots.mjs', 'scripts/accept.mjs', 'kit/KIT-CONTRACT.md', 'pool/MODELS.md']) {
     assert.ok(seen.has(path), `${path} is named, so the check reads what it should`);
   }
+});
+
+test('a template named in the pool exists (Task 12 makes this live)', { todo: 'Task 12 writes the templates the judges and the audience name' }, () => {
+  for (const [file, text] of poolTexts()) {
+    for (const path of pathsUnder(['templates'], text)) assert.ok(existsSync(at(path)), `${file} names ${path}, which is not in the kit`);
+  }
+});
+
+// The walkthrough format as two cards say it, each under this heading, as a list.
+const SUMMARY = '### The walkthrough format, in short';
+const summaryOf = text => {
+  const lines = text.split('\n');
+  const from = lines.indexOf(SUMMARY);
+  if (from === -1) return null;
+  const rest = lines.slice(from + 1);
+  const end = rest.findIndex(line => line !== '' && !/^(?:- |  )/.test(line));
+  return rest.slice(0, end === -1 ? undefined : end).join('\n');
+};
+
+test('a card that sums up the walkthrough format names every key, role and container of it, and no other', () => {
+  const format = new Set([...KEYS.proposal, ...KEYS.screen, ...KEYS.role, ...KEYS.container, ...ROLES, ...CONTAINERS, 'screen', 'dialog']);
+  const summaries = cards.map(card => [card.data.id, summaryOf(card.text)]).filter(([, summary]) => summary !== null);
+  assert.deepEqual(summaries.map(([id]) => id).sort(), ['maker.structure-describer', 'maker.transcriber']);
+  for (const [id, summary] of summaries) {
+    const named = new Set(spans(summary));
+    assert.deepEqual([...format].filter(word => !named.has(word)), [], `${id} leaves out a word of the format`);
+    assert.deepEqual([...named].filter(word => !format.has(word)), [], `${id} names a word the format lacks`);
+    // An expansion is the one container that must have a label.
+    assert.match(summary, /An expansion always has a\s+`label`/, id);
+    assert.match(summary, /A region or a group may have a\s+`label`/, id);
+  }
+});
+
+// The one command a card gives in a fence, by the words it starts with: the script between its double
+// quotes, to run without a shell.
+const scriptIn = (text, start) => {
+  const line = text.split('\n').map(l => l.trim()).find(l => l.startsWith(start));
+  assert.ok(line, `a command starting ${start}`);
+  return { line, script: line.slice(line.indexOf('"') + 1, line.lastIndexOf('" ')) };
+};
+const node = (args, cwd) => spawnSync(process.execPath, args, { cwd, encoding: 'utf8' });
+
+test('the command a describer or a transcriber checks its proposal with runs from the kit\'s root', () => {
+  const kit = fileURLToPath(root);
+  const proposal = fileURLToPath(at('tests/fixtures/proposals/calendar.json'));
+  for (const id of ['maker.structure-describer', 'maker.transcriber']) {
+    const { text, file } = cards.find(card => card.data.id === id);
+    const { line, script } = scriptIn(text, 'node --input-type=module -e "');
+    assert.ok(line.endsWith('" <the absolute path of your file>'), id);
+    const run = node(['--input-type=module', '-e', script, proposal], kit);
+    assert.deepEqual([run.status, run.stdout.trim(), run.stderr], [0, '[]', ''], id);
+    // The root it is run from is two folders above the card, as the card says.
+    assert.match(text, /From the kit's root — two folders above this card —/, id);
+    assert.equal(fileURLToPath(new URL('../../', at(`pool/${file}`))), kit);
+  }
+});
+
+test('the interface writer counts what a reader sees, not how it is stored', () => {
+  const { text } = cards.find(card => card.data.id === 'maker.interface-writer');
+  const { script } = scriptIn(text, 'node -e "');
+  const count = string => node(['-e', script, string]).stdout.trim();
+  assert.equal(count('Caf\u00e9'), '4', 'one code point for the accented letter');
+  assert.equal(count('Cafe\u0301'), '4', 'two code points for it');
+  assert.equal(count('Reservar sala'), '13');
 });
 
 test('pool/MODELS.md is dated, says these are suggestions, and has every seat as its card suggests it', () => {
@@ -468,6 +636,15 @@ test('pool/CARD-FORMAT.md lists what the checker allows, and nothing else', () =
   assert.match(engines, /\bFrame\b/);
   // Suggestions, never instructions.
   assert.match(text, /suggestions, never instructions/);
+  // The written forms, and one reading order.
+  const forms = section('What a machine checks, and what a reader must');
+  for (const form of ['## Name', `| ${CHECK_COLUMNS.join(' | ')} |`]) assert.ok(spans(forms).includes(form), form);
+  assert.match(forms, /with or without backticks/);
+  assert.ok(spans(forms).includes('\\|'), 'a pipe that is not a row\'s is written \\|');
+  assert.match(forms, /up to three spaces/);
+  assert.match(forms, /at least as many of the same/);
+  assert.match(text, /names the seat's card by its absolute path and\s+says to read it first/);
+  assert.doesNotMatch(text, /reads it first|neither can say more/);
 });
 
 test('every name a card reads, or is blind to, is explained in pool/CARD-FORMAT.md', () => {
@@ -503,10 +680,16 @@ test('the product-name check matches whole words only', () => {
 });
 
 test('no product name appears in what the kit ships', () => {
-  const files = ['pool/', 'templates/', 'skills/', 'kit/', 'reference/', 'scripts/', 'README.md', 'LESSONS.md'].flatMap(textFiles);
-  for (const expected of ['pool/CARD-FORMAT.md', 'pool/makers/visual-designer.md', 'scripts/lib/card.mjs', 'scripts/inpage/accept-inpage.js', 'kit/grey/kit.css', 'templates/outputs/decision.json', 'README.md']) {
-    assert.ok(files.includes(expected), `${expected} is read`);
-  }
+  const paths = ['pool/', 'templates/', 'skills/', 'kit/', 'reference/', 'scripts/', '.claude-plugin/', 'tests/fixtures/', 'README.md', 'LESSONS.md', 'package.json'];
+  const files = paths.flatMap(textFiles);
+  const known = [
+    'pool/CARD-FORMAT.md', 'pool/makers/visual-designer.md', 'scripts/lib/card.mjs', 'scripts/inpage/accept-inpage.js', 'kit/grey/kit.css',
+    'templates/outputs/decision.json', '.claude-plugin/plugin.json', '.claude-plugin/marketplace.json', 'tests/fixtures/proposals/calendar.json',
+    'tests/fixtures/prototype/today-default-es.html', 'README.md', 'package.json',
+  ];
+  for (const expected of known) assert.ok(files.includes(expected), `${expected} is read`);
+  // The tests themselves hold the two names, in the pattern above: only their fixtures are read.
+  assert.deepEqual(files.filter(file => file.startsWith('tests/') && !file.startsWith('tests/fixtures/')), []);
   for (const file of files) assert.ok(!named(read(file)), `${file} names a product`);
 });
 

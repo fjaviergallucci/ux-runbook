@@ -106,7 +106,8 @@ The checker reads these written forms, and no other:
 - A core check is a list item that is not nested: `-`, `*`, `+`, `1.` or `1)`, a space, and the check.
   It may be indented by up to three spaces.
 - A table row begins and ends with a pipe, as `| id | trigger | method |`. A cell of the header row may
-  be written with or without backticks. A row of dashes comes under the header row.
+  be written with or without backticks. A row of dashes comes under the header row. Anywhere else in
+  that section, in a cell or in a sentence, a pipe is written `\|`.
 - A `##` line inside a code fence is not a heading. A fence opens with three or more backticks or
   tildes, and closes with at least as many of the same.
 
