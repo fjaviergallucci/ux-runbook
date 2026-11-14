@@ -42,9 +42,9 @@ Each runs only when you see its trigger in what you were handed. One not run goe
 
 | id | trigger | method |
 |---|---|---|
-| first-action | The first screen she lands on holds more than one action. | Look at that screen alone. Which action would she take first, and is it the one the screen is for? A finding: two actions compete for first place, or the one she needs is not the one that stands out. |
+| first-action | The first screen she lands on holds more than one action. | Look at that screen alone. Would she know which action to take first, and is it the one the screen is for? A finding: she could not tell, because two read as the next step, or the one she needs is worded so that she would not pick it. Whether the eye lands on it is the visual craft judge's. |
 | steps | The artefact has three or more screens, a dialog counted as one. | Count the screens and the decisions on the main task. For each step, ask what she would lose if it were gone, or joined to the one before. A finding: a step that only confirms, repeats, or asks for what the product already knows. |
-| siblings | The intent names sibling surfaces: other screens of the product she already uses. | Compare what she has learned there with what she meets here: what a thing is called, where an action sits, how a list behaves. A finding: the same thing working another way here, with no reason given in the intent. |
+| siblings | The intent names sibling surfaces: other screens of the product she already uses. | Compare what she has learned there with what she meets here: what a thing is called, where an action sits, how a list behaves. A finding: something she learned there that no longer holds here, with no reason given in the intent. Whether the pattern is the system's own is the system fidelity judge's. |
 | destructive | An action that cannot be undone: a delete, a cancellation, anything sent. | Find each one. Is it apart from the primary action, does it say what will be lost, and does it ask first or offer a way back? A finding: it sits beside the primary action at the same weight, or one press does it in silence. |
 | teaching | An empty first-ever state: a screen as it is before she has made anything. | Read it as her first minute with the product. Does it say what will be here, and offer the first step? A finding: it only announces that nothing is there, or it cannot be told from the state of having cleared everything. |
 | overflow | A list, or free text that she or anyone else types. | Put the worst plausible content in it: two hundred rows, a ninety-character name. Can she still find the one row she wants, and is anything she needs cut off? A finding names what breaks, and at what length. |
@@ -56,8 +56,8 @@ Each runs only when you see its trigger in what you were handed. One not run goe
 1. **Read your brief, then what it lists, in its order,** and nothing it does not list. The intent comes
    before the artefact: who she is, the moment she is in, her tasks, the states, the success criteria.
 2. **Answer the job first.** Before any check, write two lines: what she came to do, and whether this
-   artefact lets her do it. If it does not, that is your first finding and it sets your verdict,
-   however well the rest is made.
+   artefact lets her do it. If it does not, that is your first finding and your first fix, and your
+   verdict cannot be *she can*, however well the rest is made.
 3. **Walk it as she would.** You have read the intent, the rules and the ids. She has only the screen.
    Wherever you got through a step by knowing something that is not on it, that step is a finding.
 4. **Run the four core checks, every time. Then test every trigger yourself,** on what is in front
@@ -77,11 +77,13 @@ Each runs only when you see its trigger in what you were handed. One not run goe
      look: judge what each screen holds, in what order, and what she can do there.
    - *Detail*: the prototype, in every state and language. This is your main read.
    - *Acceptance*: the build. Judge it as built, and name every place it differs from what was approved.
-7. **Leave the other seats their jobs.** A line that reads badly, a claim that may not be true, a colour
-   too faint to read: name each in one line under what was not looked at, with the seat it belongs to.
-8. **On a re-read,** your brief hands you this seat's earlier ledger. Mark each of its findings *fixed*,
-   *partly* or *still present*, with where you looked. Then read the whole artefact again: a fix can
-   break something else.
+7. **Leave the other seats their jobs.** You border three: where the eye lands is the visual craft
+   judge's, whether a pattern is the system's own is the system fidelity judge's, and what is true of
+   her profession is the profile judge's. A line that reads badly, a claim that may not be true and a
+   colour too faint to read have their seats too. Name each in one line under what was not looked at.
+8. **On a re-read, read cold first.** Read the artefact as if for the first time, and write your
+   findings. Only then open this seat's earlier ledger, which your brief hands you, and mark each of
+   its findings *fixed*, *partly* or *still present*, with where you looked.
 
 For a pattern's usual behaviour, or which chart suits which data, the `ui-ux-pro-max` skill is a lookup
 when it is installed: data, never a verdict. Without it, this card is enough.
@@ -114,7 +116,8 @@ its path, your verdict and the first fix. The ledger holds:
 
 - The success criteria read before any general check, the states a design owes an answer to, and the
   action that cannot be undone kept apart from the primary one: version 1 of this kit.
-- The judge's loop (the job before the craft, a fresh judge that never reads the maker's reasoning,
-  evidence for every row, the largest gap first and never averaged away, the re-read's three marks):
-  the picture-making process this pipeline was adapted from, after `business-motion-film` (recorded
-  there as MIT) and the Gauntlet Loop (somethingbig.ai/gauntlet-loop). Paraphrased, not copied.
+- The judge's loop (a fresh judge that never reads the maker's reasoning, evidence for every row, the
+  largest gap first and never averaged away, the re-read's three marks): the Gauntlet Loop
+  (somethingbig.ai/gauntlet-loop), as the `business-motion-film` skill adapts it, by way of the
+  picture-making process this pipeline was adapted from, whose own is the job asked about before the
+  craft. Ideas only, in this kit's words.

@@ -41,7 +41,7 @@ Each runs only when you see its trigger in what you were handed. One not run goe
 
 | id | trigger | method |
 |---|---|---|
-| public-claims | The intent gives the design's kind as a public page, or a string says what the product is, does or will do ("Rooms update by themselves"). | List each such string by its key, each language by itself. Trace it to a row of the project's facts document when your brief hands you one, and of the inventory when it does not. An absolute ("always", "every", "never") or a comparison needs a row that says exactly that. A finding: a claim with no row, or one language claiming more than another. |
+| public-claims | The intent gives the design's kind as a public page, or a string makes a claim about the product beyond naming a control: what it does, how well, how fast, how safely ("Rooms update by themselves"). | List each such string by its key, each language by itself. Trace it to a row of the project's facts document when your brief hands you one, and of the inventory when it does not. An absolute ("always", "every", "never") or a comparison needs a row that says exactly that. A finding: a claim with no row, or one language claiming more than another. |
 | numbers | A string holds a digit. | For each digit, ask where it comes from. A count, a time, a price or a limit comes from the product's data or its settings, never from the string. A finding: a number typed into a string that the product computes or could change, or a number with no row behind it. |
 | data-and-privacy | A string mentions her data, privacy or security: what is kept, who can see it, how it is protected. | Each is a promise. Trace it to a row that says so in those terms. A finding: a comfort word ("safe", "private", "secure") with no row behind it, or a string that says who can see something when no row does. |
 
@@ -57,7 +57,8 @@ Each runs only when you see its trigger in what you were handed. One not run goe
    load it as your lens. This card stands without it.
 2. **Honesty first.** Before any trace, write three lines. What this artefact leads her to expect: what
    she will see, what happens when she presses, what is kept. What the inventory says the product
-   does. The gap. A gap that would mislead her is your first finding, and it sets your verdict.
+   does. The gap. A gap that would mislead her is your first finding and your first fix, and your
+   verdict cannot be *true*.
 3. **A trace is a row you can quote.** "No row" means "not shown to exist". Nothing passes because the
    product probably has it, or because the maker's data map says so: the map is a claim to test, never
    your trace.
@@ -86,9 +87,9 @@ Each runs only when you see its trigger in what you were handed. One not run goe
 7. **Leave the other seats their jobs.** Whether a true line reads well is the words judge's, and
    whether a true screen can be used is the usability judge's. Name each in one line under what was
    not looked at.
-8. **On a re-read,** your brief hands you this seat's earlier ledger. Mark each of its findings *fixed*,
-   *partly* or *still present*, with where you looked. Then trace the whole artefact again: a fix can
-   add a claim.
+8. **On a re-read, read cold first.** Trace the whole artefact as if for the first time, and write
+   your findings. Only then open this seat's earlier ledger, which your brief hands you, and mark each
+   of its findings *fixed*, *partly* or *still present*, with where you looked.
 
 ## Output
 
@@ -125,5 +126,5 @@ its path, your verdict and the first fix. The ledger holds:
   of the claims reviewer of the picture-making process this pipeline was adapted from. Paraphrased, not
   copied. Honesty first (what she is led to expect, what the product does, the gap) is that reviewer's.
 - The judge's loop (a fresh judge that never reads the maker's reasoning, evidence for every row, the
-  largest gap first, the re-read's three marks): that process, after `business-motion-film` (recorded
-  there as MIT) and the Gauntlet Loop (somethingbig.ai/gauntlet-loop). Paraphrased, not copied.
+  largest gap first, the re-read's three marks): the Gauntlet Loop (somethingbig.ai/gauntlet-loop), as
+  the `business-motion-film` skill adapts it, by way of the same process. Ideas only, in this kit's words.

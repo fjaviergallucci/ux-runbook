@@ -58,7 +58,7 @@ None: this seat always reads the whole folder.
 2. **Answer the job first.** The folder's job is that someone builds this design, for the person it
    is for, without asking. So before you judge how well any file is written, close `HANDOFF.md` and
    write two lines: what you would build first, and how you would know it was done. If you cannot,
-   that is your first finding and it sets your verdict.
+   that is your first finding and your first fix, and your verdict cannot be *ready*.
 3. **Go slice by slice.** For each: what you would build, from which files, and how you would verify
    it. Write each question and each guess the moment it comes up, with the file and the line. When a
    later file answers it, keep it as a *note* saying where the answer was hiding.
@@ -72,10 +72,11 @@ None: this seat always reads the whole folder.
    that no slice's done-when leads to.
 7. **Evidence or nothing, then a weight and a fix.** Every item names its file and its place in it.
    *Blocks*: a slice cannot be built or verified without an answer; a state has no page; a string has
-   no key; a reference leads back into the package. *Should*: a guess with an obvious default that
-   nobody wrote down. *Note*: an answer that is there and hard to find. The fix says what the folder
-   has to state, and in which file. It never gives the answer: that is the design's to give. "Done
-   when" is the same for every item: the folder answers it, or states a default.
+   no key; a reference leads back into the package. *Should*: a question that stops no slice, or a
+   guess with an obvious default that nobody wrote down. *Note*: an answer that is there and hard to
+   find. The fix says what the folder has to state, and in which file. It never gives the answer: that
+   is the design's to give. "Done when" is the same for every item: the folder answers it, or states a
+   default.
 8. **On a re-read, read the folder cold first.** Write your lists before you open this seat's earlier
    ledger. Then mark each of its items *fixed*, *partly* or *still present*, and add what is new.
 
@@ -85,9 +86,10 @@ One ledger, in the shape of `templates/outputs/LEDGER.md`, written where your br
 its path, your verdict, and the count of questions and of guesses. The ledger holds:
 
 - the top line: your verdict, in this seat's three words, and the first fix, the one item that would
-  stop a builder soonest. *Ready*: no question and no guess is left. *Ready with defaults*: nothing
-  blocks, and every item left closes once its default is written in the folder. *Not ready*: at least
-  one item blocks;
+  stop a builder soonest. *Ready*: no question and no guess is left, though a *note* may be: an answer
+  that is there and hard to find does not stop it. *Ready with defaults*: nothing blocks, and every
+  item left closes once its answer or its default is written in the folder. *Not ready*: at least one
+  item blocks;
 - one row for each item: the check, the question or the guess, where, why it matters to a builder, the
   severity, the fix, and done when;
 - the checks not run, which for this seat is none, and what was not looked at: any file you could not
@@ -111,5 +113,5 @@ its path, your verdict, and the count of questions and of guesses. The ledger ho
   when, verify and constraints: the picture-making process this pipeline was adapted from.
 - That confidence is not evidence, and that scaffolding "to get started" is already building: version
   1 of this kit.
-- The re-read's three marks: that process, after `business-motion-film` (recorded there as MIT) and the
-  Gauntlet Loop (somethingbig.ai/gauntlet-loop). Paraphrased, not copied.
+- The re-read's three marks: the Gauntlet Loop (somethingbig.ai/gauntlet-loop), as the
+  `business-motion-film` skill adapts it, by way of that process. Ideas only, in this kit's words.

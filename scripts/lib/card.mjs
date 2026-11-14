@@ -27,6 +27,8 @@ export const ENGINE_FORMS = Object.freeze(['own', 'skill:<name>', 'model:any', '
 export const SECTIONS = Object.freeze(['Method', 'Output', 'Never', 'Borrowed']);
 export const JUDGE_SECTIONS = Object.freeze(['Core checks', 'Optional checks']);
 export const CHECK_COLUMNS = Object.freeze(['id', 'trigger', 'method']);
+// What every judge is blind to: the makers' reasoning, who made what, and the other judges' ledgers (spec § 9).
+export const JUDGE_BLIND = Object.freeze(['maker-notes', 'author-map', 'other-ledgers']);
 
 // A skill is written as it is installed: its own name, or its plugin, a colon and its name.
 const SKILL = '[a-z0-9][a-z0-9_-]*';
@@ -66,10 +68,10 @@ export function validateCard(text, { file } = {}) {
   if (Object.keys(data).length === 0) {
     return [...errors, 'header: a card opens with its header, the keys of the format between two "---" lines'];
   }
-  checkHeader(data, place, errors);
-  // A shelf that cannot be read is taken from the folder; with neither, the card is not held to a judge's sections.
-  const shelf = SHELVES.includes(data.shelf) ? data.shelf : place?.shelf;
-  checkBody(body, shelf === 'judge', errors);
+  // A shelf that cannot be read is taken from the folder; with neither, the card is not held to what a judge keeps.
+  const isJudge = (SHELVES.includes(data.shelf) ? data.shelf : place?.shelf) === 'judge';
+  checkHeader(data, place, isJudge, errors);
+  checkBody(body, isJudge, errors);
   return errors;
 }
 
@@ -82,7 +84,7 @@ function placeOf(file, errors) {
   return undefined;
 }
 
-function checkHeader(data, place, errors) {
+function checkHeader(data, place, isJudge, errors) {
   const fail = message => {
     errors.push(`header: ${message}`);
   };
@@ -117,7 +119,16 @@ function checkHeader(data, place, errors) {
     presets: () => list('presets', { least: 0, what: 'size', allowed: SIZES }),
     'loaded-with': () => oneOf('loaded-with', LOADED_WITH),
     reads: () => list('reads', { least: 1, what: 'thing' }),
-    'never-reads': () => list('never-reads', { least: 0, what: 'thing' }),
+    'never-reads': () => {
+      list('never-reads', { least: 0, what: 'thing' });
+      // A list that cannot be read is one fault: what it lacks is said once it is a list.
+      if (!isJudge || !Array.isArray(data['never-reads'])) return;
+      for (const name of JUDGE_BLIND) {
+        if (!data['never-reads'].includes(name)) {
+          fail(`"never-reads" of a judge must hold "${name}": every judge is blind to ${JUDGE_BLIND.join(', ')}`);
+        }
+      }
+    },
     engine: () => {
       if (typeof data.engine !== 'string' || !ENGINE.test(data.engine)) {
         fail(`"engine" must be ${ENGINE_FORMS.slice(0, -1).join(', ')} or ${ENGINE_FORMS.at(-1)}; it is ${show(data.engine)}`);

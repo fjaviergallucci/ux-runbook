@@ -64,6 +64,21 @@ needs another needs a change to this format first.
 
 A maker and an audience have neither of the first two.
 
+### What every judge keeps
+
+A judge, the kit's or a project's own, keeps five rules:
+
+1. Its `never-reads` holds `maker-notes`, `author-map` and `other-ledgers`. A judge is blind to the
+   makers' reasoning, to who made what, and to what the other judges found.
+2. Its Method opens with the job before the craft: first whether the artefact does its job for the
+   person in the intent, and only then whether it is good of its kind.
+3. It runs its core checks every time, and an optional check only when it sees the trigger in what it
+   was handed. Its ledger lists every optional check it did not run, with the reason.
+4. Its Output names the ledger and says what a ledger holds.
+5. It never fixes, redesigns or approves. It reports. The maker fixes, and the founder decides.
+
+The checker holds a judge to the first of these. The other four are a reader's to check.
+
 ## Engines
 
 An engine is what does the seat's work.
@@ -97,8 +112,9 @@ suggestions, and the day they were last reviewed, are in `pool/MODELS.md`.
 ## What a machine checks, and what a reader must
 
 The checker holds a card to its header (every key, every allowed value, the id against the file), to
-its sections (their names, their order, text under each) and to a judge's checks (two to six of them,
-and the table). A test holds the lists in this file to the checker's, so the two cannot drift apart.
+its sections (their names, their order, text under each), a judge to its checks (two to six of them,
+and the table) and to the three names it is blind to. A test holds the lists in this file to the
+checker's, so the two cannot drift apart.
 
 The checker reads these written forms, and no other:
 
@@ -115,7 +131,8 @@ The checker reads these written forms, and no other:
 Only a reader can check the rest: that the title and the opening lines say what the seat is; that the
 Method, with a brief, is enough for an agent that knows nothing else, and says what happens without the
 engine; that a trigger is something that can be seen in the artefact; that each Never is a real
-temptation; that Output names no file of the kit that is missing.
+temptation; that Output names no file of the kit that is missing; and, of a judge, the last four of
+the rules every judge keeps.
 
 ## The names in `reads` and `never-reads`
 
@@ -131,7 +148,7 @@ use. A card that needs another adds its row here.
 | `intent` | The approved intent: the person in her moment, the job, the tasks, the states, the success criteria. |
 | `chosen-structure` | The structure the founder picked. |
 | `states-and-rules` | What the interaction designer wrote: the states table, the rules, the edge cases, the data map and the dependencies. |
-| `strings` | The strings table: every string, in every language. |
+| `strings` | The strings table: every string in every language, each with its why-line. The why-line is part of the table and goes with it to the handoff: it is not a maker's note. |
 | `prototype` | The plain prototype: its pages, and the stable ids on them. |
 | `kit` | The shared kit, the project's or the grey one: its stylesheets, its parts and its contract. |
 | `tokens` | The project's token file. |
@@ -152,8 +169,8 @@ use. A card that needs another adds its row here.
 | `package` | The design's package apart from the handoff folder: every stage's folder, with all the stages wrote. |
 | `profile` | A profession's profile card: its base, and the section for the specialty the design serves. |
 | `product-facts` | The project's own record of what the product does and what may be said of it, where it keeps one. |
-| `earlier-ledger` | The same seat's ledger from an earlier read of the same artefact, handed over on a re-read. |
-| `maker-notes` | What a maker said about its work and not as part of it: its reasons, its reply, what it assumed, what it set aside. |
+| `earlier-ledger` | The same seat's ledger from an earlier read of the same artefact. On a re-read it is opened only after the artefact has been read again, cold. |
+| `maker-notes` | What a maker said about its work and not as part of it: its reasons, its reply, what it assumed, what it set aside. A string's why-line is not one: it is part of the strings. |
 | `author-map` | The record of which maker, engine or model made which option or artefact. |
 | `other-ledgers` | Another judge's ledger on the same artefact. |
 | `task-reads` | What an audience wrote after trying a task: where it got stuck. |

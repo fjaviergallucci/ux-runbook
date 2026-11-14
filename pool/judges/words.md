@@ -28,8 +28,9 @@ into a ledger. The writer fixes, and the founder decides.
 2. **Each language says the same thing and was written for itself.** *The same thing*: nothing is
    promised, warned or asked in one language and missing in another, and none says more. *For itself*:
    the word order, the idiom, the example and the punctuation are that language's own. A finding: a
-   line that is another language in this one's words, or two languages that part where the writer's
-   why-line says "same". With one language, only the second half is asked.
+   line that is another language in this one's words, or two languages that part where their why-line
+   says "same". The why-line is part of the strings table, not a maker's note: it is yours to read,
+   after the lines. With one language, only the second half is asked.
 3. **One word for one thing throughout.** List each thing and each action the interface names, with
    every word used for it, language by language, across all screens and states. A finding: two words
    for one thing ("booking" here, "reservation" there), one word for two things, or a button whose
@@ -83,9 +84,9 @@ Each runs only when you see its trigger in what you were handed. One not run goe
    one, in each language, whole, with no key showing and nothing left in another language.
 8. **Leave the other seats their jobs.** Whether a line is true is the truth judge's, and whether she
    can find her way is the usability judge's. Name each in one line under what was not looked at.
-9. **On a re-read,** your brief hands you this seat's earlier ledger. Mark each of its findings *fixed*,
-   *partly* or *still present*, quoting the line as it now stands. Then read every language again: a
-   fix to one line often makes a second word for one thing.
+9. **On a re-read, read cold first.** Read every language as if for the first time, and write your
+   findings. Only then open this seat's earlier ledger, which your brief hands you, and mark each of
+   its findings *fixed*, *partly* or *still present*, quoting the line as it now stands.
 
 ## Output
 
@@ -124,5 +125,5 @@ its path, your verdict and the first fix. The ledger holds:
   (github.com/coreyhaines31/marketingskills, MIT License, copyright 2025 Corey Haines), which credit
   their own sources, by way of that process. Paraphrased, not copied.
 - The judge's loop (a fresh judge that never reads the maker's reasoning, evidence for every row, the
-  largest gap first, the re-read's three marks): that process, after `business-motion-film` (recorded
-  there as MIT) and the Gauntlet Loop (somethingbig.ai/gauntlet-loop). Paraphrased, not copied.
+  largest gap first, the re-read's three marks): the Gauntlet Loop (somethingbig.ai/gauntlet-loop), as
+  the `business-motion-film` skill adapts it, by way of the same process. Ideas only, in this kit's words.

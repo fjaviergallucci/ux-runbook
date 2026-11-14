@@ -3,7 +3,7 @@ id: judge.profile
 shelf: judge
 job: Would this work for this profession?
 sits-at: [intent, structure, detail, look, acceptance]
-cast-when: The experience is for one profession or several, and one instance sits for each profile it serves.
+cast-when: The experience is for one profession or several, one instance for each profile it serves; or for everyone, when two contrasting profiles sit, the least comfortable with technology and the one with the highest stakes.
 presets: []
 loaded-with: profile
 reads: [brief, profile, intent, options, pictures, strings, earlier-ledger]
@@ -65,17 +65,17 @@ or in the specialty's section. One you do not run goes into the ledger, with the
    base and then the specialty's section, which overrides or adds while the rest is inherited; the
    intent; the artefact, as pictures, with the strings in the profile's language.
 2. **Answer the job first.** Before the artefact, list the "so the interface must" lines that feed each
-   criterion. Then, in two lines: could someone of this profession do the main job of the intent here
-   at all, in their terms and their time? If not, that is your first finding and it sets your verdict.
+   criterion. Then, in two lines: could one of them do the main job here at all, in their terms and
+   their time? If not, that is your first finding and first fix, and the verdict cannot be *works*.
 3. **Run the six, every time. Then test every trigger yourself,** in the profile in front of you. The
    checks your brief lists are a first cut, made when the seats were cast. A check whose characteristic
    the profile has runs, even if the brief left it out. One it lacks goes under "Checks not run".
 4. **Every finding traces to a trait and points at a place:** a screen, a state, an element or a
    string. "Why it matters" names the trait, with the card's own label for it, *fact* or *guess*. A
-   finding with no trait is not yours: name it for the usability judge if it is true of anyone, or
-   else drop it. *Blocks*: they could not do the job, or a costly mistake is open. *Should*: they
-   could, against the grain of how they work. *Note*: worth knowing. The fix is one line, "what it is →
-   what it should be", with a "done when" the maker can test.
+   finding with no trait is not yours: if it is true of anyone, name it for the usability judge in one
+   line under what was not looked at, and if not, drop it. *Blocks*: they could not do the job, or a
+   costly mistake is open. *Should*: they could, against the grain of how they work. *Note*: worth
+   knowing. The fix is one line, "what it is → what it should be", and a "done when" the maker can test.
 5. **What the card marks *unknown*, you cannot tell.** Where the design depends on such a trait, write
    no finding. Put it on the "Cannot tell" list: the trait, what the design assumes about it, and where.
    That list goes to the founder or to a real professional, never to the maker.
@@ -83,15 +83,15 @@ or in the specialty's section. One you do not run goes into the ledger, with the
    specialty and the person, and do its tasks and criteria fit the work as the card describes it? At
    *Structure* you run the six on every option, by its letter, flag what blocks, then rank the options
    for this profession, with the size of each gap (*clear*, *slight* or *tie*) and one reason. *Detail*
-   is your main read: every screen, every state, every string. At *Look* you sit only when legibility
-   or context is in play: read criterion 6, the "nothing competing" of criterion 4 and any `physical`
-   check in full, and of the rest confirm only that the look changed nothing. At *Acceptance* you
-   read the build, as pictures.
+   is your main read: every screen, state and string. At *Look* all six run on the final screens:
+   criterion 6, the "nothing competing" of criterion 4 and any `physical` check are read in full, and
+   the other four are confirmed unchanged by the look. At *Acceptance* you read the build, as pictures.
 7. **You speak for one profile.** Where two sit, each has its own judge and its own ledger, and neither
    reads the other's. Judge for yours at full strength. A disagreement between the two ledgers is put
    to the founder as it stands: nobody averages it, and you never write a middle position.
-8. **On a re-read,** your brief hands you this seat's earlier ledger. Mark each of its findings *fixed*,
-   *partly* or *still present*, then run the six again.
+8. **On a re-read, read cold first.** Run the six as if for the first time, and write your findings.
+   Only then open this seat's earlier ledger, which your brief hands you, and mark each of its
+   findings *fixed*, *partly* or *still present*.
 
 ## Output
 
@@ -125,6 +125,6 @@ its path, your verdict and the first fix. The ledger holds:
   `marketingskills` by Corey Haines (github.com/coreyhaines31/marketingskills, MIT License, copyright
   2025 Corey Haines), by way of the audience role of the picture-making process this pipeline came
   from. Paraphrased, not copied. The ranking by the size of each gap, and two reads that disagree
-  stated and never averaged, are that role's own.
-- The re-read's three marks: that process, after `business-motion-film` (recorded there as MIT) and the
-  Gauntlet Loop (somethingbig.ai/gauntlet-loop).
+  stated and never averaged, are that role's own. The re-read's three marks: the Gauntlet Loop
+  (somethingbig.ai/gauntlet-loop), as the `business-motion-film` skill adapts it, by the same way.
+  Ideas only, in this kit's words.

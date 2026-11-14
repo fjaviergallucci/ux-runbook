@@ -3,8 +3,9 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { validateAcceptance } from '../scripts/accept.mjs';
 import {
-  CARD_KEYS, CHECK_COLUMNS, EFFORTS, ENGINE_FORMS, FOLDERS, JUDGE_SECTIONS, LOADED_WITH, MODELS, SECTIONS, SHELVES, validateCard,
+  CARD_KEYS, CHECK_COLUMNS, EFFORTS, ENGINE_FORMS, FOLDERS, JUDGE_BLIND, JUDGE_SECTIONS, LOADED_WITH, MODELS, SECTIONS, SHELVES, validateCard,
 } from '../scripts/lib/card.mjs';
 import { parse } from '../scripts/lib/frontmatter.mjs';
 import { SIZES, STAGES } from '../scripts/lib/state.mjs';
@@ -43,6 +44,10 @@ const CHECKS = Object.freeze([
   ['Optional checks', TABLE.join('\n')],
 ]);
 const FILE = Object.freeze({ maker: 'makers/room-lister.md', judge: 'judges/room-truth.md', audience: 'audiences/room-reader.md' });
+// A judge's header: what every judge is blind to, and the proposals beside them.
+const JUDGE_HEADER = Object.freeze({
+  ...HEADER, id: 'judge.room-truth', shelf: 'judge', 'never-reads': '[maker-notes, author-map, other-ledgers, other-proposals]',
+});
 
 // A card as text: the header as written, a title, and each section in the order given.
 const write = (header, sections) =>
@@ -55,7 +60,7 @@ const sample = (header, sections, file) => (changeHeader = {}, changeSections = 
   return validateCard(write(h, changeSections(sections.map(pair => [...pair]))), { file });
 };
 const maker = sample(HEADER, BODY, FILE.maker);
-const judge = sample({ ...HEADER, id: 'judge.room-truth', shelf: 'judge' }, [...CHECKS, ...BODY], FILE.judge);
+const judge = sample(JUDGE_HEADER, [...CHECKS, ...BODY], FILE.judge);
 const audience = sample({ ...HEADER, id: 'audience.room-reader', shelf: 'audience', 'loaded-with': 'person' }, BODY, FILE.audience);
 
 const setSection = (name, text) => sections => sections.map(([n, t]) => [n, n === name ? text : t]);
@@ -82,7 +87,8 @@ test('the lists a card is checked against', () => {
   assert.deepEqual(SECTIONS, ['Method', 'Output', 'Never', 'Borrowed']);
   assert.deepEqual(JUDGE_SECTIONS, ['Core checks', 'Optional checks']);
   assert.deepEqual(CHECK_COLUMNS, ['id', 'trigger', 'method']);
-  for (const list of [CARD_KEYS, SHELVES, FOLDERS, LOADED_WITH, MODELS, EFFORTS, ENGINE_FORMS, SECTIONS, JUDGE_SECTIONS, CHECK_COLUMNS]) {
+  assert.deepEqual(JUDGE_BLIND, ['maker-notes', 'author-map', 'other-ledgers']);
+  for (const list of [CARD_KEYS, SHELVES, FOLDERS, LOADED_WITH, MODELS, EFFORTS, ENGINE_FORMS, SECTIONS, JUDGE_SECTIONS, CHECK_COLUMNS, JUDGE_BLIND]) {
     assert.ok(Object.isFrozen(list));
   }
 });
@@ -94,7 +100,7 @@ test('a good maker card, a good judge card and a good audience card are valid', 
 });
 
 test('a card with CRLF line endings is valid', () => {
-  for (const [header, sections, file] of [[HEADER, BODY, FILE.maker], [{ ...HEADER, id: 'judge.room-truth', shelf: 'judge' }, [...CHECKS, ...BODY], FILE.judge]]) {
+  for (const [header, sections, file] of [[HEADER, BODY, FILE.maker], [JUDGE_HEADER, [...CHECKS, ...BODY], FILE.judge]]) {
     const text = write(header, sections).replace(/\n/g, '\r\n');
     assert.ok(text.includes('\r\n'));
     assert.deepEqual(validateCard(text, { file }), []);
@@ -183,7 +189,7 @@ test('id is the shelf and the name of the file', () => {
 
 test('shelf is the folder the card is in', () => {
   // A judge card, whole and right in itself, filed among the makers.
-  const text = write({ ...HEADER, id: 'judge.room-lister', shelf: 'judge' }, [...CHECKS, ...BODY]);
+  const text = write({ ...JUDGE_HEADER, id: 'judge.room-lister' }, [...CHECKS, ...BODY]);
   only(validateCard(text, { file: FILE.maker }), /^header: "shelf" is judge, but the card is in makers\//);
   assert.deepEqual(validateCard(text, { file: 'judges/room-lister.md' }), []);
   assert.deepEqual(validateCard(text, { file: 'judges\\room-lister.md' }), [], 'a path written with backslashes');
@@ -237,6 +243,46 @@ test('reads names at least one thing; never-reads may name none', () => {
   only(maker({ 'never-reads': 'nothing' }), /^header: "never-reads" must be a list/);
   only(maker({ 'never-reads': '["", intent]' }), /^header: "never-reads" has an empty item/);
   only(maker({ 'never-reads': '["  "]' }), /"never-reads" has an empty item/);
+});
+
+test('a judge\'s never-reads holds the three things every judge is blind to', () => {
+  const lacks = name => new RegExp(`^header: "never-reads" of a judge must hold "${name}"`);
+  // None of the three: one error for each, in their order, each saying the rule.
+  const none = judge({ 'never-reads': '[other-proposals]' });
+  assert.equal(none.length, 3, none.join('\n'));
+  JUDGE_BLIND.forEach((name, i) => assert.match(none[i], lacks(name)));
+  for (const error of none) assert.match(error, /every judge is blind to maker-notes, author-map, other-ledgers$/);
+  assert.equal(judge({ 'never-reads': '[]' }).length, 3);
+  // One missing: one error, naming it.
+  for (const name of JUDGE_BLIND) {
+    only(judge({ 'never-reads': `[${JUDGE_BLIND.filter(other => other !== name).join(', ')}]` }), lacks(name));
+  }
+  // All three, in any order, with others beside them.
+  assert.deepEqual(judge({ 'never-reads': '[other-ledgers, task-reads, author-map, maker-notes]' }), []);
+  assert.deepEqual(judge({ 'never-reads': `[${JUDGE_BLIND.join(', ')}]` }), []);
+  // A name is exact.
+  only(judge({ 'never-reads': '[maker-note, author-map, other-ledgers]' }), lacks('maker-notes'));
+  only(judge({ 'never-reads': '[maker-notes, Author-Map, other-ledgers]' }), lacks('author-map'));
+  only(judge({ 'never-reads': '[maker-notes, author-map, "other-ledgers, mine"]' }), lacks('other-ledgers'));
+  // Only a judge: a maker or an audience may be blind to nothing, or to other things.
+  assert.deepEqual(maker({ 'never-reads': '[]' }), []);
+  assert.deepEqual(audience({ 'never-reads': '[intent]' }), []);
+  // A list that cannot be read, or is not there, is one fault, not four.
+  only(judge({ 'never-reads': 'nothing' }), /^header: "never-reads" must be a list/);
+  only(judge({ 'never-reads': 'maker-notes author-map other-ledgers' }), /"never-reads" must be a list/);
+  only(judge({ 'never-reads': undefined }), /^header: "never-reads" is missing/);
+  // An empty item is said first, then what the list lacks.
+  const empty = judge({ 'never-reads': '["", author-map, other-ledgers]' });
+  assert.equal(empty.length, 2, empty.join('\n'));
+  assert.match(empty[0], /"never-reads" has an empty item/);
+  assert.match(empty[1], lacks('maker-notes'));
+  // The errors come where the key's other faults come: after "reads", before "engine".
+  const order = judge({ reads: '[]', 'never-reads': '[author-map, other-ledgers]', engine: 'none' });
+  assert.deepEqual(order.map(error => /^header: "([a-z-]+)"/.exec(error)[1]), ['reads', 'never-reads', 'engine']);
+  // A card in judges/ whose shelf is mistyped is a judge by its folder; with no file, by its header alone.
+  assert.equal(judge({ shelf: 'judges', 'never-reads': '[]' }).length, 4);
+  assert.equal(validateCard(write({ ...JUDGE_HEADER, 'never-reads': '[]' }, [...CHECKS, ...BODY])).length, 3);
+  only(validateCard(write({ ...JUDGE_HEADER, shelf: 'desk', 'never-reads': '[]' }, BODY)), /"shelf" must be one of/);
 });
 
 test('every section is required', () => {
@@ -560,9 +606,7 @@ test('the eight judge cards hold the decisions they were written to', () => {
 test('every judge is blind to the makers\' notes, the author map and the other judges\' ledgers', () => {
   assert.ok(judges.length > 0, 'the pool holds judges');
   for (const { file, data } of judges) {
-    for (const name of ['maker-notes', 'author-map', 'other-ledgers']) {
-      assert.ok(data['never-reads']?.includes(name), `pool/${file} must have "${name}" in never-reads`);
-    }
+    for (const name of JUDGE_BLIND) assert.ok(data['never-reads']?.includes(name), `pool/${file} must have "${name}" in never-reads`);
   }
 });
 
@@ -667,6 +711,21 @@ test('the interface writer and the words judge count what a reader sees, not how
   }
 });
 
+test('the checks file the accessibility judge shows is one accept.mjs takes', () => {
+  const lines = cards.find(card => card.data.id === 'judge.accessibility').text.split('\n');
+  const from = lines.findIndex(line => line.trim() === '```json');
+  assert.notEqual(from, -1, 'the card shows a checks file in a json fence');
+  const to = lines.findIndex((line, i) => i > from && line.trim() === '```');
+  assert.ok(to - from - 1 <= 6, 'six lines at most');
+  const example = JSON.parse(lines.slice(from + 1, to).join('\n'));
+  assert.deepEqual(validateAcceptance(example), []);
+  // The two measured checks the card's table names, one of each.
+  assert.deepEqual(example.checks.map(check => check.type), ['contrast', 'min-size']);
+  // A check that is not valid is caught: the example is read, not passed over.
+  delete example.checks[0].criterion;
+  assert.equal(validateAcceptance(example).length, 1);
+});
+
 test('pool/MODELS.md is dated, says these are suggestions, and has every seat as its card suggests it', () => {
   const text = read('pool/MODELS.md');
   assert.match(text, /^Reviewed: \d{4}-\d{2}-\d{2}$/m);
@@ -708,6 +767,16 @@ test('pool/CARD-FORMAT.md lists what the checker allows, and nothing else', () =
   const optional = body.split('\n').find(line => line.includes('`## Optional checks`'));
   assert.deepEqual(spans(optional).slice(1, 4), CHECK_COLUMNS);
   assert.match(body, /two to six/);
+  // What every judge keeps: the three names the checker asks for, and which of the rules is a machine's.
+  const kept = body.indexOf('\n### What every judge keeps\n');
+  assert.notEqual(kept, -1, '### What every judge keeps');
+  const rules = body.slice(kept);
+  assert.deepEqual(spans(rules.split('\n').find(line => line.startsWith('1. '))), ['never-reads', ...JUDGE_BLIND]);
+  assert.equal(rules.split('\n').filter(line => /^\d+\. /.test(line)).length, 5);
+  assert.match(rules, /opens with the job before the craft/);
+  assert.match(rules, /an optional check only when it sees the trigger in what it\s+was handed/);
+  assert.match(rules, /never fixes, redesigns or approves/);
+  assert.match(rules, /The checker holds a judge to the first of these\. The other four are a reader's to check\./);
   // The engine rules, and how a profile writes an engine it turns on.
   const engines = section('Engines');
   for (const spelling of ['engines-on', 'model:openai', 'model:gemini', 'tool:stitch']) assert.ok(spans(engines).includes(spelling), spelling);
@@ -719,6 +788,7 @@ test('pool/CARD-FORMAT.md lists what the checker allows, and nothing else', () =
   const forms = section('What a machine checks, and what a reader must');
   for (const form of ['## Name', `| ${CHECK_COLUMNS.join(' | ')} |`]) assert.ok(spans(forms).includes(form), form);
   assert.match(forms, /with or without backticks/);
+  assert.match(forms, /to the three names it is blind to/);
   assert.ok(spans(forms).includes('\\|'), 'a pipe that is not a row\'s is written \\|');
   assert.match(forms, /up to three spaces/);
   assert.match(forms, /at least as many of the same/);

@@ -26,15 +26,18 @@ judge's. You report into a ledger. The maker fixes, and the founder decides.
    on an element. Every colour, size, space, radius, shadow, typeface and duration is one of the token
    file's, used by name, and the token file is linked, not pasted in. Search the styles for raw values
    (a `#` colour, `rgb(`, a number in `px`, `rem` or `em`) and check each one you find. A finding: a raw
-   value where a token exists, a token's value copied in, or a value one step off the scale.
+   value where a token exists, a token's value copied in, or a value one step off the scale. How the
+   spacing groups things, and the rhythm it keeps, is the visual craft judge's.
 2. **Every part is the system's or is flagged as new.** Set each part on the screens (an action, an
    input, a row, a dialog) beside the system's own, read from the component source and never from
    memory: the same anatomy, the same states, the same variants. Whatever is not the system's has to be
    on the list of named extensions. A finding: a part that looks like the system's and differs, a new
-   part nobody flagged, or a part made again when the system has one.
+   part nobody flagged, or a part made again when the system has one. Whether a part is well used for
+   its job is the visual craft judge's.
 3. **Patterns match the sibling surfaces.** Take how the product's other surfaces do the same job:
    where the primary action sits, how a list is filtered, how an error shows, how a dialog closes. A
-   finding: the same job done another way here, with no extension saying why.
+   finding: the same job done here in a pattern that is not the system's, with no extension saying
+   why. Whether what she learned there still holds for her here is the usability judge's.
 
 ## Optional checks
 
@@ -53,10 +56,10 @@ Each runs only when you see its trigger in what you were handed. One not run goe
 1. **Read your brief, then what it lists, in its order,** and nothing it does not list. The intent
    first: who she is and what she came to do. Then the system from its source: the token file, the
    components, what the project says of its conventions, the sibling surfaces. Then the artefact.
-2. **Answer the job first.** Her side of this seat's question is whether what she has learned elsewhere
-   in the product still works here. So before any value, write one line for each screen: would she
-   know it for the same product, with the same things in the same places behaving the same way? A
-   screen of perfect tokens that works unlike its siblings fails her, and that comes first.
+2. **Answer the job first.** Before any value, write one line for each screen: would she know it for
+   the same product, made of the same parts, in the same places, in the system's own patterns? A
+   screen of perfect tokens that follows none of those patterns fails here. That is your first finding
+   and your first fix, and your verdict cannot be *faithful*.
 3. **Read the system, never remember it.** A token's name and value come from the token file. A part's
    anatomy and states come from its source. What you cannot open, you do not judge against: it goes
    under what was not looked at.
@@ -66,7 +69,7 @@ Each runs only when you see its trigger in what you were handed. One not run goe
    it goes under "Checks not run", with what you looked for.
 5. **Evidence or nothing, then a weight and a fix.** A finding names the screen, the element by its id,
    the value or the part found, and the token or the part it should be. *Blocks*: a second system has
-   begun: a part made again, a pattern that works unlike its siblings. *Should*: a raw value, a value
+   begun: a part made again, a pattern of its own where the system has one. *Should*: a raw value, a value
    off the scale, an extension with no definition. *Note*: worth knowing, and it changes nothing now.
    The fix is one line, "what it is → what it should be", naming the token or the part, and "done
    when" is something the maker can test.
@@ -74,11 +77,14 @@ Each runs only when you see its trigger in what you were handed. One not run goe
    *Acceptance* you read the build: the files your brief lists as built or changed. There the question
    is asked of real components: each part is the system's own, used as the system uses it, and nothing
    from the prototype's markup was pasted in.
-7. **Leave the other seats their jobs.** A faithful screen can still be a poor one. Whether it is good
-   of its kind is the visual craft judge's, and a measured ratio is the accessibility judge's. Name
-   each in one line under what was not looked at.
-8. **On a re-read,** your brief hands you this seat's earlier ledger. Mark each of its findings *fixed*,
-   *partly* or *still present*, with the value as it now stands. Then search the styles again.
+7. **Leave the other seats their jobs.** A faithful screen can still be a poor one. You border two.
+   Whether it is good of its kind, how its spacing groups and whether a part is well used are the
+   visual craft judge's. Whether what she learned on a sibling surface still holds for her here is the
+   usability judge's. A measured ratio is the accessibility judge's. Name each in one line under what
+   was not looked at.
+8. **On a re-read, read cold first.** Search the styles and read the parts as if for the first time,
+   and write your findings. Only then open this seat's earlier ledger, which your brief hands you, and
+   mark each of its findings *fixed*, *partly* or *still present*, with the value as it now stands.
 
 ## Output
 
@@ -112,7 +118,7 @@ system has for it, and what it lacks.
 
 - Tokens and never raw values, a nudge with a raw value as a fault, one system extended and never a
   second one beside it, and the system read before anything is judged against it: version 1 of this kit.
-- The judge's loop (the job before the craft, a fresh judge that never reads the maker's reasoning,
-  evidence for every row, the largest gap first, the re-read's three marks): the picture-making process
-  this pipeline was adapted from, after `business-motion-film` (recorded there as MIT) and the Gauntlet
-  Loop (somethingbig.ai/gauntlet-loop). Paraphrased, not copied.
+- The judge's loop (a fresh judge that never reads the maker's reasoning, evidence for every row, the
+  largest gap first, the re-read's three marks): the Gauntlet Loop (somethingbig.ai/gauntlet-loop), as
+  the `business-motion-film` skill adapts it, by way of the picture-making process this pipeline was
+  adapted from, whose own is the job asked about before the craft. Ideas only, in this kit's words.
