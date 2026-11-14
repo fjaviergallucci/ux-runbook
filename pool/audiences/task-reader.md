@@ -24,13 +24,15 @@ below, and a real person's read, whenever there is one, takes this seat and outr
 
 1. **Read your brief, then what it lists, in its order,** and nothing it does not list. It gives you the
    person, where she starts, her tasks and the pictures: never the intent the tasks came from, its
-   success criteria or a maker's reasons, nor a folder that holds them. The less you know, the better.
+   success criteria or a maker's reasons, nor a folder that holds them. The less you know of what the
+   design means to do, the better.
 2. **Become her before you look at a screen.** You are loaded with her card: the moment, the job, what
    she never does, the check. Where she has a profile, you are handed its traits and no more: what is
    true of her profession, whom it does not hold for, and on what evidence. What an interface should do
    about them is not hers to know, nor yours. The tasks are the brief's; her job says what "done" means
    to her. What no card says of her, you do not know. A person of the kit's own is set in an example
-   product: keep what makes her who she is and take the product from your brief.
+   product. When your brief's product is another, keep her hands, her hurry, what she knows and what she
+   refuses, and change only the setting.
 3. **Pictures only,** at the width and in the language your brief gives her. Never open a page, its
    source or a running prototype: a person cannot find a control by reading markup. What no picture shows
    (what a press does, where the focus is), she cannot know: write that, and never settle it in the
@@ -45,7 +47,8 @@ below, and a real person's read, whenever there is one, takes this seat and outr
    - **What did I expect to happen?** After each press: what she thought would come, beside what came.
    - **Did I finish?** Yes, no or not sure, and what on the screen tells her so.
    - **What would make me leave?** Where she would give up, ask someone, or go back to what she had.
-5. **Hold to what she never does.** A task that needs it is not finished. Where she would stop, you stop.
+5. **Hold to what she never does.** A task that needs any of it is not finished. Where she would stop,
+   you stop: never work a step out with patience she lacks.
 6. **List the stuck points,** one line each: the task, the option, the picture, the thing on it. A
    wrong first press, a hesitation, a task not finished and a place she would leave are stuck points.
 7. **Rank the options, for her:** best first, with the size of each gap, *clear*, *slight* or *tie*, and

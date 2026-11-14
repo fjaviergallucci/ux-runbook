@@ -18,9 +18,10 @@ She speaks it with patients all day without trouble. Reading it is slower, word 
 every word, because skimming is the one thing she cannot yet do in it. It is the quiet half hour after
 lunch, and the waiting room is empty. A patient has written to ask whether tomorrow's appointment can
 move to the afternoon. Ana has tried to move it, and the room-booking tool has answered with a message:
-three short lines about Room 1, with two buttons under them. She has all the time she needs, and nobody
-is watching. But she is about to write back to the patient, and she will not write a word until she is
-sure what the message says has already happened, and what will happen if she presses.
+three short lines about Room 1, with two buttons under them. Her hands are on the keyboard, and her
+phone, with its translation app, lies beside it. She has all the time she needs, and nobody is watching.
+But she is about to write back to the patient, and she will not write a word until she is sure what the
+message says has already happened, and what will happen if she presses.
 
 ## The job
 
