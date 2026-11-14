@@ -12,13 +12,14 @@
 //   4. the key: found by name, in the environment, else in the dotenv file the profile's keys-file names;
 //      the command line takes neither a key nor a keys file;
 //   5. the request: the key in its header only, never in the address, and no redirect followed.
-// Nothing of a provider's error body is shown or kept, and every string the script prints or writes passes
-// through redact, which puts [key] where the key was.
+// Nothing of a provider's error body is shown or kept; an answer that holds the key, as written or in JSON's
+// escapes, is saved nowhere; and every string the script prints or writes passes through redact, which puts
+// [key] where the key was.
 //
 // As a module: describe({ provider, model, briefPath, outPath, profilePath, endpoint, timeoutMs, env }) →
-// { ok, chars, seconds, errors }; baseOf(endpoint) → the address the requests go under.
-// As a command: see USAGE. Exit codes: 0 a proposal is written · 1 a refusal, or an answer that is not one
-// valid proposal · 2 bad usage.
+// { ok, heldKey, chars, seconds, errors }; baseOf(endpoint) → the address the requests go under.
+// As a command: see USAGE. Exit codes: 0 a proposal is written · 1 a refusal, an answer that holds the key,
+// or one that is not one valid proposal · 2 bad usage.
 import dns from 'node:dns';
 import { randomUUID } from 'node:crypto';
 import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
@@ -69,13 +70,20 @@ const SHOWN = 10;
 // A model id goes into an address.
 const MODEL = /^[A-Za-z0-9._-]+$/;
 const LOOPBACK = Object.freeze(['127.0.0.1', 'localhost', '[::1]']);
-// A key is one word of visible ASCII with no quote and no backslash: sent in a header exactly as it is, and
-// written the same in any JSON that echoes it, so that redact finds it wherever it comes back.
+// A key is one word of visible ASCII with no quote and no backslash: sent in a header exactly as it is, so
+// that an answer or a string to print holds it, when it does, exactly as it was sent.
 const KEY_TEXT = /^[\x21\x23-\x5b\x5d-\x7e]+$/;
 // The reason a provider gives for an answer without text is shown only when it is a short token.
 const REASON = /^[A-Za-z_]{1,40}$/;
 // An error code is shown only when it looks like one.
 const CODE = /^[A-Z][A-Z0-9_]{0,39}$/;
+
+// JSON's escapes, undone over the whole of a text in one pass: what a key written with them reads as.
+const ESCAPES = /\\(?:u([0-9a-fA-F]{4})|(["\\/bfnrt]))/g;
+const ESCAPED = Object.freeze({ '"': '"', '\\': '\\', '/': '/', b: '\b', f: '\f', n: '\n', r: '\r', t: '\t' });
+const undoEscapes = text => text.replace(ESCAPES, (_, hex, letter) => (hex ? String.fromCharCode(parseInt(hex, 16)) : ESCAPED[letter]));
+// What the command says when an answer holds the key.
+export const HELD_KEY = 'the answer held the key, so nothing of it was saved: no proposal and no raw file';
 
 // The keys this process has found, each added the moment it is found, before it is used.
 const foundKeys = new Set();
@@ -96,10 +104,11 @@ export class DescribeError extends Error {
   }
 }
 
-// describe(...) → { ok, chars, seconds, errors }: whether a proposal was written to outPath, the characters
-// of the answer, the seconds the request took, and why the answer is not one valid proposal (empty when it
-// is). `env` is where the key is looked up first (process.env by default). Throws a UsageError for bad
-// usage, a DescribeError for a refusal.
+// describe(...) → { ok, heldKey, chars, seconds, errors }: whether a proposal was written to outPath, whether
+// the answer held the key (and so nothing of it was saved), the characters of the answer, the seconds the
+// request took, and why the answer is not one valid proposal (empty when it is, or when it held the key).
+// `env` is where the key is looked up first (process.env by default). Throws a UsageError for bad usage, a
+// DescribeError for a refusal.
 export async function describe({ provider, model, briefPath, outPath, profilePath, endpoint, timeoutMs, env = process.env } = {}) {
   // The provider names the engine the profile must turn on, so it is known first.
   if (typeof provider !== 'string' || !Object.hasOwn(PROVIDERS, provider)) throw new UsageError('--provider must be openai or gemini');
@@ -134,20 +143,25 @@ export async function describe({ provider, model, briefPath, outPath, profilePat
     throw new DescribeError(`${provider} answered ${status} with no text at ${spec.where}${why}; nothing of its body is shown or kept`);
   }
   const chars = answer.text.length;
-  // From here on the answer is read with the key taken out.
-  const said = redact(answer.text);
-  const found = proposalIn(said);
+  const raw = rawOf(outPath);
+  // An answer that holds the key, as written or once JSON's escapes are undone, is saved nowhere: no proposal,
+  // no raw file, and none left by an earlier run. Past this, nothing the answer says can be the key.
+  if (answer.text.includes(key) || undoEscapes(answer.text).includes(key)) {
+    remove(outPath);
+    remove(raw);
+    return { ok: false, heldKey: true, chars, seconds, errors: [] };
+  }
+  const found = proposalIn(answer.text);
   const proposal = found.proposal && { ...found.proposal, engine: `model:${provider}`, model };
   const errors = found.proposal ? validate(proposal) : [found.error];
-  const raw = rawOf(outPath);
   if (errors.length === 0) {
     writeWhole(outPath, `${JSON.stringify(proposal, null, 2)}\n`);
     remove(raw);
-    return { ok: true, chars, seconds, errors };
+    return { ok: true, heldKey: false, chars, seconds, errors };
   }
-  writeWhole(raw, said);
+  writeWhole(raw, answer.text);
   remove(outPath);
-  return { ok: false, chars, seconds, errors: errors.map(redact) };
+  return { ok: false, heldKey: false, chars, seconds, errors };
 }
 
 // baseOf(endpoint) → the address the provider's paths go under: https:, or http: to this machine only;
@@ -382,7 +396,7 @@ The key is found by name, and never on the command line: OPENAI_API_KEY or GEMIN
 environment, else a line NAME=<the key> or export NAME=<the key> in the dotenv file the profile's
 keys-file names (an absolute path, ~/ for the home folder, or a path read from the profile's folder).
 It goes in a request header only. No error body of a provider is shown or kept, no redirect is followed,
-and the key is shown as [key] wherever an answer echoes it.
+and an answer that holds the key, as written or in JSON's escapes, is saved nowhere.
 
   --provider <name>   openai or gemini
   --model <id>        the provider's model id: letters, digits, ".", "_" and "-"
@@ -398,11 +412,11 @@ and the key is shown as [key] wherever an answer echoes it.
 A flag may also be written --flag=value.
 
 Standard output is one line, after an answer: the provider, the model, the characters of the answer and
-the seconds it took. Everything else goes to standard error, this help too.
+the seconds it took; or this help, when --help asks for it. Everything else goes to standard error.
 
 Exit codes: 0 a proposal is written · 1 a refusal (the engine off; a profile, brief or keys file that
 cannot be read; no key; a provider that refuses, fails, redirects or does not answer in time; a file that
-cannot be written), or an answer that is not one valid proposal · 2 bad usage.
+cannot be written), an answer that holds the key, or one that is not one valid proposal · 2 bad usage.
 `;
 
 const FLAGS = ['provider', 'model', 'brief', 'out', 'profile', 'endpoint', 'timeout'];
@@ -428,9 +442,14 @@ function readArgs(argv) {
   };
 }
 
-// The one place standard output is written: the result line.
+// One of the two places standard output is written: the result line.
 function printResult(provider, model, chars, seconds) {
   process.stdout.write(redact(`${provider} ${model}: ${chars} characters in ${seconds.toFixed(1)} s\n`));
+}
+
+// The other: the usage, when --help asks for it.
+function printUsage() {
+  process.stdout.write(redact(USAGE));
 }
 
 const say = text => process.stderr.write(redact(text));
@@ -446,12 +465,15 @@ async function main(argv) {
   try {
     const args = readArgs(argv);
     if (args.help) {
-      say(USAGE);
+      printUsage();
       return;
     }
-    const { ok, chars, seconds, errors } = await describe(args);
+    const { ok, heldKey, chars, seconds, errors } = await describe(args);
     printResult(args.provider, args.model, chars, seconds);
-    if (!ok) {
+    if (heldKey) {
+      say(`${HELD_KEY}\n`);
+      process.exitCode = 1;
+    } else if (!ok) {
       say(notValid(args.outPath, errors));
       process.exitCode = 1;
     }

@@ -2,7 +2,7 @@ import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { inspect } from 'node:util';
@@ -135,6 +135,14 @@ const watched = () => {
 // Nothing of the key, in any form inspect shows: message, stack, own properties, cause.
 const holdsKey = e => inspect(e, { showHidden: true, depth: Infinity }).includes(KEY);
 const filesIn = dir => (existsSync(dir) ? readdirSync(dir).sort() : []);
+// Whether any file anywhere under the folder holds one of the texts.
+const anyFileHolds = (dir, ...texts) =>
+  readdirSync(dir, { recursive: true }).some(name => {
+    const path = join(dir, String(name));
+    return statSync(path).isFile() && texts.some(text => readFileSync(path, 'utf8').includes(text));
+  });
+// What the command says when an answer holds the key, and nothing of it is saved.
+const HELD = 'the answer held the key, so nothing of it was saved: no proposal and no raw file\n';
 
 // The command, started without waiting (the provider is a server in this process). Its environment is this
 // process's without the two key names, then the test's own.
@@ -174,6 +182,7 @@ test('an openai answer in one fenced json block is unfenced, checked and written
   const s = await setup(t, openaiSays(answer));
   const result = await call(s);
   assert.equal(result.ok, true);
+  assert.equal(result.heldKey, false);
   assert.equal(result.chars, answer.length);
   assert.equal(typeof result.seconds, 'number');
   assert.deepEqual(result.errors, []);
@@ -407,11 +416,11 @@ test('from the keys file only the one exact line is taken, its quotes stripped, 
   const keys = writeKeys(dir, [...NOISE.slice(0, 4), `export OPENAI_API_KEY="${KEY}"`, ...NOISE.slice(4)], '\r\n');
   const r = await run(flagsOf({ ...s, profilePath: writeProfile(dir, [ON, keysLine(keys)]) }), { env: {} });
   assert.equal(s.server.requests[0].headers.authorization === `Bearer ${KEY}`, true, 'the exact line’s key was sent');
-  // The echo is an answer in no format: kept with [key] where the key was, the file's other text nowhere.
+  // The echo holds the key the file gave: nothing of it is kept, and the file's other text is nowhere.
   assert.equal(r.status, 1);
-  const raw = readFileSync(rawOf(s.outPath), 'utf8');
-  assert.equal(raw, 'You sent Bearer [key].');
-  assert.equal(holdsNoise(`${r.stdout}${r.stderr}${raw}`), false, 'text of another line was kept');
+  assert.equal(r.stderr, HELD);
+  assert.equal(existsSync(rawOf(s.outPath)), false);
+  assert.equal(holdsNoise(`${r.stdout}${r.stderr}`), false, 'text of another line was kept');
   // One pair of matching quotes, single or double, is stripped; only one.
   const quoted = {
     [`OPENAI_API_KEY='${KEY}'`]: KEY,
@@ -510,49 +519,71 @@ test('a key is sent trimmed, and one a header cannot carry exactly is refused wi
 
 // --- 8. The key leaves by no other door --------------------------------------------------------------
 
-test('a key echoed in a 200 answer is replaced by [key] in the raw file', async t => {
-  const s = await setup(t, (seen, res) => openaiSays(`Your header was ${sentKey(seen)} and the key ${KEY}.`)(seen, res));
-  const r = await run(flagsOf(s));
-  assert.equal(r.status, 1);
-  const raw = readFileSync(rawOf(s.outPath), 'utf8');
-  assert.equal(raw, 'Your header was Bearer [key] and the key [key].');
-  assert.match(r.stdout, resultLine('openai', 'test-model', `Your header was Bearer ${KEY} and the key ${KEY}.`.length));
-  assert.equal(existsSync(s.outPath), false);
-});
+// The key written with JSON escapes: its first letter as \u0074, its first hyphen as \u002D. Not the key as
+// text; the key once the escapes are undone.
+const ESCAPED = `\\u0074${KEY.slice(1).replace('-', '\\u002D')}`;
+// A key with a slash, which JSON may write as \/.
+const SLASH_KEY = 'test/key-2222-not-real';
 
-test('a key echoed inside a valid proposal is replaced by [key] in the proposal', async t => {
+test('an answer that holds the key as written is saved nowhere, valid or not, and an earlier run’s files go too', async t => {
   const proposal = fixture('unified-list.json');
-  const s = await setup(t, (seen, res) => geminiSays(JSON.stringify({ ...proposal, hardest: `${proposal.hardest} ${sentKey(seen)}` }))(seen, res));
-  const r = await run(flagsOf(s, { provider: 'gemini' }));
-  assert.equal(r.status, 0);
-  const out = readFileSync(s.outPath, 'utf8');
-  assert.equal(out.includes(KEY), false, 'the key reached the proposal');
-  assert.equal(JSON.parse(out).hardest, `${proposal.hardest} [key]`);
-});
-
-test('a key echoed where the proposal is not valid reaches neither the errors nor the raw file', async t => {
-  // Long enough that an error showing it would cut it short, where an exact match no longer finds it.
-  const long = `${KEY}-${'0'.repeat(30)}`;
-  const proposal = fixture('calendar.json');
-  const s = await setup(t, (seen, res) => openaiSays(JSON.stringify({ ...proposal, screens: [{ ...proposal.screens[0], items: [{ role: sentKey(seen).slice(7), text: 'x' }] }] }))(seen, res));
-  const r = await run(flagsOf(s), { env: { OPENAI_API_KEY: long } });
-  assert.equal(r.status, 1);
-  assert.match(r.stderr, /screens\[0\]\.items\[0\]: unknown role "\[key\]"/);
-  assert.equal(`${r.stdout}${r.stderr}`.includes(long.slice(0, 20)), false, 'a part of the key reached the screen');
-  assert.equal(readFileSync(rawOf(s.outPath), 'utf8').includes(KEY), false, 'the key reached the raw file');
-});
-
-test('a key the answer writes in JSON escapes is not in the errors handed back', async t => {
-  const proposal = fixture('calendar.json');
-  // The key with its first letter as \u0074: not the key as text, the key once parsed.
-  const escaped = `\\u0074${KEY.slice(1)}`;
-  const text = JSON.stringify({ ...proposal, screens: [{ ...proposal.screens[0], items: [{ role: 'ROLE', text: 'x' }] }] }).replace('ROLE', escaped);
-  const s = await setup(t, openaiSays(text));
+  let answer;
+  const s = await setup(t, (seen, res) => answer(seen, res));
+  const cases = {
+    // A valid proposal but for the key in one of its lines.
+    'a valid proposal': [{ provider: 'gemini' }, () => JSON.stringify({ ...proposal, hardest: `${proposal.hardest} ${KEY}` }), seen => geminiSays(JSON.stringify({ ...proposal, hardest: `${proposal.hardest} ${sentKey(seen)}` }))],
+    // Prose where a backslash before it would read as \t once escapes were undone: only the text as written shows it.
+    'prose, after a backslash': [{}, () => `Saved under C:\\${KEY} for you.`, seen => openaiSays(`Saved under C:\\${sentKey(seen).slice(7)} for you.`)],
+  };
+  for (const [what, [over, text, responder]] of Object.entries(cases)) {
+    answer = (seen, res) => responder(seen)(seen, res);
+    mkdirSync(dirname(s.outPath), { recursive: true });
+    writeFileSync(s.outPath, 'an earlier proposal\n');
+    writeFileSync(rawOf(s.outPath), 'an earlier answer');
+    const r = await run(flagsOf(s, over));
+    assert.equal(r.status, 1, what);
+    assert.match(r.stdout, resultLine(over.provider ?? 'openai', 'test-model', text().length), what);
+    assert.equal(r.stderr, HELD, what);
+    assert.deepEqual(filesIn(dirname(s.outPath)), [], what);
+    assert.equal(anyFileHolds(s.dir, KEY), false, `${what}: a file holds the key`);
+  }
+  // In this process: not ok, held, and no reason beside it.
+  answer = (seen, res) => openaiSays(`You sent ${sentKey(seen)}.`)(seen, res);
   const result = await call(s);
   assert.equal(result.ok, false);
-  // This process may have found other made-up keys before; whichever is replaced, it is by [key].
-  assert.equal(result.errors.some(error => error.startsWith('screens[0].items[0]: unknown role ') && error.includes('[key]')), true);
-  assert.equal(result.errors.some(error => error.includes(KEY)), false, 'the key reached the errors');
+  assert.equal(result.heldKey, true);
+  assert.deepEqual(result.errors, []);
+  assert.equal(result.chars, `You sent Bearer ${KEY}.`.length);
+  assert.deepEqual(filesIn(dirname(s.outPath)), []);
+});
+
+test('an answer that holds the key in JSON escapes inside a valid proposal is saved nowhere', async t => {
+  const proposal = fixture('unified-list.json');
+  // The escapes go into the JSON text as they are; the rest of the line is written as JSON writes it.
+  const withKey = escaped => JSON.stringify({ ...proposal, hardest: 'HARDEST' }).replace('HARDEST', () => `${JSON.stringify(proposal.hardest).slice(1, -1)} ${escaped}`);
+  const s = await setup(t, (seen, res) => openaiSays(withKey(sentKey(seen) === `Bearer ${KEY}` ? ESCAPED : SLASH_KEY.replace('/', '\\/')))(seen, res));
+  // Without the key in it, the same answer is a valid proposal.
+  assert.deepEqual(validate({ ...JSON.parse(withKey('a line')), engine: 'model:openai', model: 'test-model' }), []);
+  for (const [key, escaped] of [[KEY, ESCAPED], [SLASH_KEY, SLASH_KEY.replace('/', '\\/')]]) {
+    const r = await run(flagsOf(s), { env: { OPENAI_API_KEY: key } });
+    assert.equal(r.status, 1, escaped);
+    assert.match(r.stdout, resultLine('openai', 'test-model', withKey(escaped).length));
+    assert.equal(r.stderr, HELD, escaped);
+    assert.equal(`${r.stdout}${r.stderr}`.includes(key) || `${r.stdout}${r.stderr}`.includes(escaped), false, 'the key reached the screen');
+    assert.deepEqual(filesIn(dirname(s.outPath)), [], escaped);
+    assert.equal(anyFileHolds(s.dir, key, escaped), false, 'a file holds the key');
+  }
+});
+
+test('an answer that holds the key in JSON escapes inside prose keeps no raw file', async t => {
+  const prose = `I was given \\u0074${KEY.slice(1)}; here is no proposal.`;
+  const s = await setup(t, openaiSays(prose));
+  const r = await run(flagsOf(s));
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, resultLine('openai', 'test-model', prose.length));
+  assert.equal(r.stderr, HELD);
+  assert.equal(existsSync(rawOf(s.outPath)), false);
+  assert.equal(anyFileHolds(s.dir, KEY, ESCAPED, `\\u0074${KEY.slice(1)}`), false, 'a file holds the key');
 });
 
 test('no thrown error carries the key, even where a path it names holds it', async t => {
@@ -961,12 +992,15 @@ test('--out must name a .json file', async t => {
   assert.equal(s.server.requests.length, 0);
 });
 
-test('help goes to standard error, and a missing flag or an unknown provider is bad usage', async t => {
+test('help goes to standard output, and a missing flag or an unknown provider is bad usage', async t => {
   const s = await setup(t, openaiSays(fenced(fixture('calendar.json'))));
-  const help = await run(['--help']);
-  assert.equal(help.status, 0);
-  assert.equal(help.stdout, '');
-  assert.ok(help.stderr.startsWith('Usage: node scripts/describe.mjs --provider <openai|gemini> --model <id>'));
+  for (const ask of ['--help', '-h']) {
+    const help = await run([ask, ...flagsOf(s)]);
+    assert.equal(help.status, 0, ask);
+    assert.equal(help.stderr, '', ask);
+    assert.ok(help.stdout.startsWith('Usage: node scripts/describe.mjs --provider <openai|gemini> --model <id>'), ask);
+    assert.ok(help.stdout.endsWith('2 bad usage.\n'), ask);
+  }
   const missing = await run(['--provider', 'openai', '--model', 'test-model']);
   assert.equal(missing.status, 2);
   assert.ok(missing.stderr.startsWith('--brief, --out, --profile are missing\n\nUsage: '));
@@ -978,14 +1012,19 @@ test('help goes to standard error, and a missing flag or an unknown provider is 
 
 // --- 18. The script's text ---------------------------------------------------------------------------
 
-test('the script writes standard output in one function, everything through redact, and builds no key= address', () => {
+test('the script writes standard output in two functions, everything through redact, and builds no key= address', () => {
   const source = readFileSync(cli, 'utf8');
-  const printer = /\nfunction printResult\([^)]*\) \{\n[\s\S]*?\n\}\n/.exec(source);
-  assert.ok(printer, 'the script has a function printResult');
-  const rest = source.replace(printer[0], '\n');
-  assert.equal(/console\.log|process\.stdout\.write/.test(rest), false, 'console.log or process.stdout.write outside printResult');
+  // The result line, and the usage --help asks for: the only two places standard output is written.
+  let rest = source;
+  for (const name of ['printResult', 'printUsage']) {
+    const printer = new RegExp(`\\nfunction ${name}\\([^)]*\\) \\{\\n[\\s\\S]*?\\n\\}\\n`).exec(source);
+    assert.ok(printer, `the script has a function ${name}`);
+    assert.equal((printer[0].match(/process\.stdout\.write\(/g) ?? []).length, 1, `${name} writes standard output once`);
+    assert.equal(/process\.stdout\.write\(redact\(/.test(printer[0]), true, `${name} writes through redact`);
+    rest = rest.replace(printer[0], '\n');
+  }
+  assert.equal(/console\.log|process\.stdout\.write/.test(rest), false, 'console.log or process.stdout.write outside printResult and printUsage');
   assert.equal(/console\./.test(source), false, 'no console call at all');
-  assert.equal(/process\.stdout\.write\(redact\(/.test(printer[0]), true, 'the result line passes through redact');
   // Every other door, standard error and each file written, passes through redact too.
   const doors = source.match(/(?:process\.stderr\.write|writeFileSync)\([^\n]*/g) ?? [];
   assert.ok(doors.length >= 2, 'the script writes standard error and files');
