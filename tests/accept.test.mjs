@@ -952,6 +952,29 @@ describe('the in-page file, evaluated through a driver of its own', () => {
       await context.close();
     }
   };
+  // The same, and for each check the page's own answer: whether elementFromPoint at the centre of the
+  // element's box finds it, or something in it.
+  const evaluateAndPoint = async (body, checks, { head = '', then } = {}) => {
+    const context = await browser.newContext(contextOptions(390, 'light'));
+    try {
+      const page = await context.newPage();
+      await page.setContent(`<!doctype html><html lang="en"><head><meta charset="utf-8"><title>t</title>${STYLE}${head}</head><body>${body}</body></html>`);
+      if (then) await page.evaluate(then);
+      await page.evaluate(source);
+      const results = await page.evaluate(checks => window.__uxAccept(checks), checks);
+      const painted = await page.evaluate(ids =>
+        ids.map(id => {
+          const element = document.querySelector(`[data-ux="${id}"]`);
+          const box = element.getBoundingClientRect();
+          const at = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+          return at !== null && element.contains(at);
+        }),
+      checks.map(check => check.target));
+      return { results, painted };
+    } finally {
+      await context.close();
+    }
+  };
   // No margin round the page, and a line 18 px high, so that boxes can be said exactly.
   const STYLE = '<style>body { margin: 0 } p { line-height: 18px }</style>';
   const c = (id, type, fields = {}) => ({ id, type, target: id, ...fields });
@@ -1559,7 +1582,7 @@ describe('the in-page file, evaluated through a driver of its own', () => {
     const head = '<style>p { margin: 0 } .clip { width: 100px; height: 100px; overflow: hidden }</style>';
     const body = [
       // Boxes in fractions of a pixel, their client sizes in whole ones.
-      '<div class="card-n" style="overflow: hidden; font: 16px/1.4 sans-serif"><p data-ux="line">Room 2, free until 10:30</p></div>',
+      '<div class="card-n" style="overflow: hidden"><p data-ux="line" style="font: 16px/1.4 sans-serif">Room 2, free until 10:30</p></div>',
       '<div style="width: 200.3px; overflow: hidden"><p data-ux="wide-line">Sala Jardín</p></div>',
       '<div style="display: grid; grid-template-columns: 1fr 1fr 1fr"><div style="overflow: hidden"><p data-ux="cell">Room 1</p></div><div></div><div></div></div>',
       // An inline box clips nothing.
@@ -1590,9 +1613,11 @@ describe('the in-page file, evaluated through a driver of its own', () => {
     const cut = id => [id, false, 'it is clipped by <div class="clip">'];
     assert.deepEqual(said(await evaluate(escaping(''), both, { head })), [['absolute', true, ''], ['fixed', true, '']]);
     assert.deepEqual(said(await evaluate(escaping('position: relative'), both, { head })), [cut('absolute'), ['fixed', true, '']]);
-    for (const holds of ['transform: translateX(0)', 'perspective: 100px', 'filter: blur(0)', 'backdrop-filter: blur(0)', 'contain: layout', 'contain: paint', 'contain: strict', 'contain: content', 'container-type: inline-size', 'will-change: transform', 'will-change: perspective', 'will-change: filter']) {
+    for (const holds of ['transform: translateX(0)', 'perspective: 100px', 'filter: blur(0)', 'backdrop-filter: blur(0)', 'contain: layout', 'contain: paint', 'contain: strict', 'contain: content', 'will-change: transform', 'will-change: perspective', 'will-change: filter', 'translate: 0px 0px', 'scale: 0.95', 'rotate: 0deg']) {
       assert.deepEqual(said(await evaluate(escaping(holds), both, { head })), [cut('absolute'), cut('fixed')], holds);
     }
+    // A query container holds neither: both escape it, painted.
+    assert.deepEqual(said(await evaluate(escaping('container-type: inline-size'), both, { head })), [['absolute', true, ''], ['fixed', true, '']]);
     // The walk goes on from the block it found: a box in between is passed over; the block's own block is not.
     const chain = [
       '<div class="clip outer" style="position: relative"><div class="between" style="width: 50px; height: 50px; overflow: hidden"><p data-ux="passed-over" style="position: absolute; top: 60px">p</p></div></div>',
@@ -1710,6 +1735,124 @@ describe('the in-page file, evaluated through a driver of its own', () => {
       ['patient', true, 'Patient Note', ''],
       ['send', true, '', ''],
       ['when', true, '2026-11-14', ''],
+    ]);
+  });
+
+  test('in-viewport asks the browser what it clipped, and agrees with what the page paints', async () => {
+    const said = results => results.map(({ id, pass, message }) => [id, pass, message]);
+    const cases = [
+      // A toast fixed to the screen, written in a query container inside a scrolling main: painted.
+      ['<main class="scroll" style="height: 300px; overflow: auto"><section style="container-type: inline-size"><div data-ux="toast" style="position: fixed; bottom: 16px; left: 16px; width: 100px; height: 30px">Saved</div></section></main>', 'toast', true, ''],
+      // A menu in a query-container card that hides its overflow: the card holds it not.
+      ['<div class="card" style="container-type: inline-size; overflow: hidden; height: 40px"><ul data-ux="menu" style="position: absolute; top: 400px; left: 0; margin: 0; width: 100px"><li>Room 1</li></ul></div>', 'menu', true, ''],
+      // A drawer that translates holds the fixed flyout written in it, and cuts it.
+      ['<div class="drawer" style="position: fixed; top: 0; left: 0; width: 200px; height: 300px; translate: 0px 0px; overflow: hidden"><div data-ux="flyout" style="position: fixed; top: 20px; left: 250px; width: 80px; height: 40px">Flyout</div></div>', 'flyout', false, 'it is clipped by <div class="drawer">'],
+      // A card at scale 0.95 holds the absolute element written in it, and cuts it.
+      ['<div class="scaled-card" style="scale: 0.95; overflow: hidden; width: 200px; height: 100px"><p data-ux="scaled-tail" style="position: absolute; top: 150px; margin: 0">tail</p></div>', 'scaled-tail', false, 'it is clipped by <div class="scaled-card">'],
+      // content-visibility: auto cuts what overflows it.
+      ['<div class="lazy" style="content-visibility: auto; height: 100px"><p data-ux="lazy-low" style="margin: 300px 0 0; height: 20px">low</p></div>', 'lazy-low', false, 'it is clipped by <div class="lazy">'],
+      // An <svg> cuts a label written outside it, and not one inside it.
+      ['<svg class="chart" width="100" height="50" style="margin-left: 100px; display: block"><text data-ux="label-out" x="-50" y="20">Label out</text></svg>', 'label-out', false, 'it is clipped by <svg class="chart">'],
+      ['<svg class="chart" width="100" height="50"><text data-ux="label-in" x="10" y="30">In</text></svg>', 'label-in', true, ''],
+      // A clip-path cuts the absolute and the fixed element written in it, and what its own inset cuts.
+      ['<div class="cp" style="clip-path: inset(0); width: 100px; height: 100px"><p data-ux="cp-absolute" style="position: absolute; top: 150px; margin: 0">a</p></div>', 'cp-absolute', false, 'it is clipped by <div class="cp">'],
+      ['<div class="cp" style="clip-path: inset(0); width: 100px; height: 100px"><p data-ux="cp-fixed" style="position: fixed; top: 200px; left: 0; margin: 0">f</p></div>', 'cp-fixed', false, 'it is clipped by <div class="cp">'],
+      // Its edges are cut and its centre is not: cut, though the page paints its centre.
+      ['<div class="inset" style="clip-path: inset(10px); width: 100px; height: 100px"><p data-ux="cp-inner" style="margin: 0; height: 100px">i</p></div>', 'cp-inner', false, 'it is clipped by <div class="inset">', true],
+      // Inside a clip-path that cuts nothing: the browser is asked, and finds it; a rule one pixel high too.
+      ['<div class="whole" style="clip-path: inset(0); width: 100px; height: 100px"><p data-ux="cp-whole" style="margin: 0; height: 50px">w</p></div>', 'cp-whole', true, ''],
+      ['<div class="whole" style="clip-path: inset(0); width: 100px; height: 100px"><div data-ux="rule" style="height: 1px; background: #000000"></div></div>', 'rule', true, ''],
+      ['<div class="whole" style="clip-path: inset(0); width: 100px; height: 100px"><div data-ux="upright" style="width: 1px; height: 50px; background: #000000"></div></div>', 'upright', true, ''],
+      // A link with an empty line in it: its empty line box is not pointed at. The centre of its whole box
+      // falls on that empty line, where the page finds nothing of it: each line is pointed at instead.
+      ['<div class="whole" style="clip-path: inset(0); width: 200px"><a data-ux="blank-line" href="#">Room 2<br><br>Sala Jardín</a></div>', 'blank-line', true, '', false],
+      // Outside a box that hides its overflow, inside one with a clip-path: the first is named.
+      ['<div class="outer-cp" style="clip-path: inset(0)"><div class="inner" style="width: 100px; height: 100px; overflow: hidden"><p data-ux="both-clips" style="margin: 0 0 0 150px; width: 50px">b</p></div></div>', 'both-clips', false, 'it is clipped by <div class="inner">'],
+      // Clipped on one axis only, each way.
+      ['<div class="across" style="width: 100px; overflow-x: clip"><p data-ux="clip-x" style="margin: 0 0 0 150px; width: 50px">x</p></div>', 'clip-x', false, 'it is clipped by <div class="across">'],
+      ['<div class="down" style="height: 50px; overflow-y: clip"><div style="height: 100px"></div><p data-ux="clip-y" style="margin: 0; height: 20px">y</p></div>', 'clip-y', false, 'it is clipped by <div class="down">'],
+      // contain: strict and contain: content hold paint containment too.
+      ['<div class="strict" style="height: 100px; contain: strict"><p data-ux="strict-low" style="margin: 300px 0 0; height: 20px">s</p></div>', 'strict-low', false, 'it is clipped by <div class="strict">'],
+      ['<div class="content" style="height: 100px; contain: content"><p data-ux="content-low" style="margin: 300px 0 0; height: 20px">c</p></div>', 'content-low', false, 'it is clipped by <div class="content">'],
+    ];
+    for (const [body, id, pass, message, centre = pass] of cases) {
+      const { results, painted } = await evaluateAndPoint(body, [c(id, 'in-viewport')]);
+      assert.deepEqual(said(results), [[id, pass, message]], id);
+      // What the function says is what the page paints at the element's centre.
+      assert.equal(painted[0], centre, `${id}: the page paints it at its centre: ${painted[0]}`);
+    }
+    // A modal dialog opened in a transformed clipping box is in the top layer, painted in full.
+    const modal = await evaluateAndPoint('<div class="held" style="transform: translateX(0); overflow: hidden; width: 100px; height: 100px"><dialog><button data-ux="modal-ok">OK, book it</button></dialog></div>', [c('modal-ok', 'in-viewport')], { then: () => document.querySelector('dialog').showModal() });
+    assert.deepEqual([said(modal.results), modal.painted], [[['modal-ok', true, '']], [true]]);
+  });
+
+  test('in-viewport says "cannot be told" where pointing cannot answer, and never asks for what lies inside every box', async () => {
+    const said = results => results.map(({ id, pass, message }) => [id, pass, message]);
+    const clip = (attributes, id, style) => `<div class="pc" ${attributes} style="width: 100px; height: 100px; overflow: hidden"><p data-ux="${id}" style="margin: 0; height: 20px; ${style}">x</p></div>`;
+    const asked = ', and the browser is asked by pointing at it';
+    assert.deepEqual(said(await evaluate(clip('', 'no-pointer', 'pointer-events: none; margin-left: 150px; width: 50px'), [c('no-pointer', 'in-viewport')])), [['no-pointer', false, `cannot be told: it has pointer-events: none${asked}`]]);
+    assert.deepEqual(said(await evaluate(clip('', 'no-pointer-in', 'pointer-events: none; width: 50px'), [c('no-pointer-in', 'in-viewport')])), [['no-pointer-in', true, '']]);
+    // Inside its box by a fraction of a pixel's rounding: inside, and never asked.
+    assert.deepEqual(said(await evaluate('<div style="overflow: hidden"><p data-ux="no-pointer-fraction" style="margin: 0; pointer-events: none; font: 16px/1.4 sans-serif">Room 2, free until 10:30</p></div>', [c('no-pointer-fraction', 'in-viewport')])), [['no-pointer-fraction', true, '']]);
+    // A bordered box of a fractional height: its sizes rounded apart, its edges come out a hair off, and the
+    // pixel of play keeps what fits it inside.
+    assert.deepEqual(said(await evaluate('<div style="border: 1.5px solid #000000; height: 30.3px; overflow: hidden"><p data-ux="bordered-fraction" style="margin: 0; height: 30.3px; pointer-events: none">x</p></div>', [c('bordered-fraction', 'in-viewport')])), [['bordered-fraction', true, '']]);
+    assert.deepEqual(said(await evaluate(clip('inert', 'inert-out', 'margin-left: 150px; width: 50px'), [c('inert-out', 'in-viewport')])), [['inert-out', false, `cannot be told: it is inert${asked}`]]);
+    // Behind an open modal dialog: outside a clipping box it cannot be told; inside every box it passes.
+    const behind = clip('', 'behind-out', 'margin-left: 150px; width: 50px') + clip('', 'behind-in', 'width: 50px') + '<dialog><p>Book Room 2?</p></dialog>';
+    assert.deepEqual(said(await evaluate(behind, [c('behind-out', 'in-viewport'), c('behind-in', 'in-viewport')], { then: () => document.querySelector('dialog').showModal() })), [
+      ['behind-out', false, `cannot be told: a modal dialog is open and it is not inside it${asked}`],
+      ['behind-in', true, ''],
+    ]);
+    // On a page scrolled since, out of the window now: measured at the top, it would have been told.
+    const escaped = '<div class="pc" style="width: 100px; height: 100px; overflow: hidden"><p data-ux="escaped" style="position: absolute; top: 150px; left: 0; margin: 0">e</p></div><div style="height: 3000px"></div>';
+    assert.deepEqual(said(await evaluate(escaped, [c('escaped', 'in-viewport')], { then: () => window.scrollTo(0, 1000) })), [['escaped', false, 'cannot be told: the page is scrolled and it is not in the window now; measure at the top of the page']]);
+    assert.deepEqual(said(await evaluate(escaped, [c('escaped', 'in-viewport')])), [['escaped', true, '']]);
+    // Scrolled across, the same.
+    const across = '<div class="pc" style="width: 100px; height: 100px; overflow: hidden"><p data-ux="across" style="position: absolute; top: 150px; left: 150px; margin: 0">a</p></div><div style="width: 3000px; height: 10px"></div>';
+    assert.deepEqual(said(await evaluate(across, [c('across', 'in-viewport')], { then: () => window.scrollTo(1000, 0) })), [['across', false, 'cannot be told: the page is scrolled and it is not in the window now; measure at the top of the page']]);
+    // Scrolled, and still in the window: the browser is asked, and finds it.
+    const near = '<div style="height: 1000px"></div><div class="pc" style="width: 100px; height: 100px; overflow: hidden"><p data-ux="near" style="position: absolute; top: 1150px; left: 0; margin: 0">n</p></div><div style="height: 3000px"></div>';
+    assert.deepEqual(said(await evaluate(near, [c('near', 'in-viewport')], { then: () => window.scrollTo(0, 1000) })), [['near', false, 'it is not inside the first viewport, 375 × 900: its bottom edge is at 1168']]);
+  });
+
+  test('in-viewport: a link wrapped over three lines is pointed at by the centre of each line, and passes when all of it shows', async () => {
+    const body = '<div class="column" style="width: 160px; height: 300px; overflow: auto; clip-path: inset(0)"><p style="margin: 0">Free right now at the desk: <a data-ux="wrapped" href="#">Room 2, Sala Jardín, Room 3 and the gym</a> and more</p></div>';
+    const { results, painted } = await evaluateAndPoint(body, [c('wrapped', 'in-viewport')]);
+    assert.deepEqual(results.map(({ id, pass, message }) => [id, pass, message]), [['wrapped', true, '']]);
+    assert.deepEqual(painted, [true]);
+    // It does wrap over three lines, the last stopping short of its box's middle, where the five points of a
+    // single box would find nothing of it.
+    const context = await browser.newContext(contextOptions(390, 'light'));
+    try {
+      const page = await context.newPage();
+      await page.setContent(`${STYLE}${body}`);
+      const boxes = await page.evaluate(() => {
+        const link = document.querySelector('[data-ux=wrapped]');
+        const box = link.getBoundingClientRect();
+        const rects = link.getClientRects();
+        return { lines: rects.length, lastStopsShort: rects[rects.length - 1].right < box.left + box.width / 2 };
+      });
+      assert.deepEqual(boxes, { lines: 3, lastStopsShort: true });
+    } finally {
+      await context.close();
+    }
+    // In a column two lines high that hides the rest, its third line is cut.
+    const cut = body.replace('height: 300px; overflow: auto', 'height: 36px; overflow: hidden');
+    assert.deepEqual((await evaluate(cut, [c('wrapped', 'in-viewport')])).map(({ pass, message }) => [pass, message]), [[false, 'it is clipped by <div class="column">']]);
+  });
+
+  test('content-visibility on an inline box does nothing: a span hidden until found, or with content-visibility: hidden, is shown', async () => {
+    const body = '<p data-ux="spans">Room <span data-ux="until" hidden="until-found">2</span> and <span data-ux="skips" style="content-visibility: hidden">Sala</span></p>';
+    const results = await evaluate(body, [c('until', 'visible'), c('skips', 'visible'), c('until', 'absent'), c('skips', 'absent'), c('until', 'text', { equals: '2' }), c('skips', 'text', { equals: 'Sala' }), c('spans', 'text', { equals: 'Room 2 and Sala' })]);
+    assert.deepEqual(results.map(({ id, pass, message }) => [id, pass, message]), [
+      ['until', true, ''],
+      ['skips', true, ''],
+      ['until', false, 'data-ux="until" is rendered'],
+      ['skips', false, 'data-ux="skips" is rendered'],
+      ['until', true, ''],
+      ['skips', true, ''],
+      ['spans', true, ''],
     ]);
   });
 });

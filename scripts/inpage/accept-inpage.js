@@ -8,13 +8,16 @@
 // inside the one element whose data-screen is that screen, and nowhere else. An element is named by its
 // data-ux. A shadow root is not searched. A screen element's own data-ux is not inside that screen.
 // Rendered means: not display: none or opacity: 0, on itself or on an element it is in; visibility:
-// visible; its content painted: not content-visibility: hidden (or hidden="until-found") on itself, and
+// visible; its content painted: not content-visibility: hidden (or hidden="until-found") on itself unless
+// it is inline (where that does nothing), and
 // as the browser's checkVisibility() says (where it has none: not inside a closed <details> other than in
 // its summary); and a box of some width and height. An element with display: contents has no box of its
 // own: its content is painted when that of the nearest element with a box is; visible, min-size and
 // in-viewport on it fail, saying so.
 // The types, and what each passes on:
 //   visible      exactly one element has the id, and it is rendered
+//                It means painted with a box: it does not ask whether a clipping box cuts the element
+//                away, or whether something covers it (pair it with in-viewport).
 //   absent       no element has the id, or none that has it is rendered
 //   text         what the one element shows, its runs of white space made one and trimmed, is `equals`, or
 //                is matched by the regular expression `matches`: an input's or a textarea's value, a
@@ -25,14 +28,19 @@
 //                A container's text does not include the values of the fields inside it.
 //                A submit input with no value, and a date input, read their value, not what the browser
 //                draws.
+//                A line the browser shows cut with an ellipsis reads as its whole string.
 //   order        the elements named in `targets` come in that order in the document
 //   in-viewport  the one element is rendered, its whole box lies inside the first viewport (where it was
-//                before any scrolling, and inside the page's scroll bars), and inside every box that clips
-//                it, as each is scrolled now: along its containing blocks (what holds an absolute or a
-//                fixed element, not merely what it is written in), each with a box that can clip and an
-//                overflow other than visible, or contain: paint; the page's own box only when its
-//                overflow is not the viewport's
-//                An element cut by a clipping box by no more than one pixel passes.
+//                before any scrolling, and inside the page's scroll bars), and nothing cuts it away. When
+//                its box lies inside every element it is written in that might cut it (an overflow other
+//                than visible, contain: paint, content-visibility other than visible, a clip-path, an
+//                <svg>; up to the body) and none of them has a clip-path, nothing can. Else the browser is
+//                asked, as scrolled now: it is pointed at five points of the box (the centres of its line
+//                boxes when it wraps), and a point where it finds the element not is cut away. Where
+//                pointing cannot tell (pointer-events: none, inert, outside an open modal dialog, out of
+//                the window on a scrolled page), it fails "cannot be told: …", never a guess.
+//                An edge that passes a box by no more than one pixel is inside it.
+//                Measure at the top of the page: an element that sticks may be misjudged after a scroll.
 //   min-size     the one element's box is at least `minWidth` by `minHeight` CSS pixels
 //   contrast     the one element's text colour against the nearest background behind it that is not
 //                transparent, translucent colours laid over what is behind them, down to the page's canvas
@@ -146,7 +154,8 @@
   function unpainted(element) {
     var boxed = element;
     while (boxed.parentElement && getComputedStyle(boxed).display === 'contents') boxed = boxed.parentElement;
-    if (getComputedStyle(boxed).contentVisibility === 'hidden') return hidesItsOwn(boxed);
+    var own = getComputedStyle(boxed);
+    if (own.display !== 'inline' && own.contentVisibility === 'hidden') return hidesItsOwn(boxed);
     var closed = closedDetails(element);
     if (typeof boxed.checkVisibility !== 'function') return closed && 'inside the closed ' + named(closed);
     if (boxed.checkVisibility()) return null;
@@ -212,50 +221,88 @@
     return text;
   }
 
-  // Whether an element is the containing block of every element in it, fixed ones included.
-  var holdsAll = function (style) {
-    return (
-      style.transform !== 'none' ||
-      style.perspective !== 'none' ||
-      style.filter !== 'none' ||
-      (style.backdropFilter || 'none') !== 'none' ||
-      /\b(layout|paint|strict|content)\b/.test(style.contain) ||
-      (style.containerType || 'normal') !== 'normal' ||
-      /\b(transform|perspective|filter)\b/.test(style.willChange)
-    );
-  };
-
-  // The element whose box is an element's containing block, or null when that is the viewport or the
-  // page's first box: its parent, unless it is absolute (the nearest element that is positioned or holds
-  // all) or fixed (the nearest that holds all).
-  function blockOf(element) {
-    var position = getComputedStyle(element).position;
-    if (position !== 'absolute' && position !== 'fixed') return element.parentElement;
-    for (var at = element.parentElement; at; at = at.parentElement) {
-      var style = getComputedStyle(at);
-      if (holdsAll(style) || (position === 'absolute' && style.position !== 'static')) return at;
-    }
-    return null;
-  }
-
-  // The boxes that clip an element, along its containing blocks, each with the axes it clips: a box that
-  // can clip (not inline, not display: contents) with an overflow other than visible on an axis, or
-  // contain: paint on both. The page's first box never clips (its overflow is the viewport's); the body
-  // only when the page's own overflow is not visible.
-  function clippers(element) {
+  // The elements an element is written in that might cut it away, nearest first, up to and with the body:
+  // an overflow other than visible, contain: paint, content-visibility other than visible, a clip-path, an
+  // <svg>. Which of them does cut it, only the browser knows.
+  function mightClip(element) {
     var found = [];
-    var root = getComputedStyle(document.documentElement);
-    var bodyClips = root.overflowX !== 'visible' || root.overflowY !== 'visible';
-    for (var at = blockOf(element); at && at !== document.documentElement; at = blockOf(at)) {
-      if (at === document.body && !bodyClips) continue;
+    for (var at = element.parentElement; at && at !== document.documentElement; at = at.parentElement) {
       var style = getComputedStyle(at);
-      if (style.display === 'inline' || style.display === 'contents') continue;
-      var paint = /\b(paint|strict|content)\b/.test(style.contain);
-      var x = paint || style.overflowX !== 'visible';
-      var y = paint || style.overflowY !== 'visible';
-      if (x || y) found.push({ element: at, x: x, y: y });
+      if (
+        style.overflowX !== 'visible' ||
+        style.overflowY !== 'visible' ||
+        /\b(paint|strict|content)\b/.test(style.contain) ||
+        (style.contentVisibility || 'visible') !== 'visible' ||
+        style.clipPath !== 'none' ||
+        at.localName === 'svg'
+      ) {
+        found.push(at);
+      }
     }
     return found;
+  }
+
+  // Whether a box lies inside an element's padding box (scroll bars aside, scaled as the element is drawn),
+  // an edge passing it by no more than TOLERANCE.
+  function inside(box, at) {
+    var edge = at.getBoundingClientRect();
+    var sx = at.offsetWidth > 0 ? edge.width / at.offsetWidth : 1;
+    var sy = at.offsetHeight > 0 ? edge.height / at.offsetHeight : 1;
+    var left = edge.left + at.clientLeft * sx;
+    var top = edge.top + at.clientTop * sy;
+    var right = left + at.clientWidth * sx;
+    var bottom = top + at.clientHeight * sy;
+    return left - box.left <= TOLERANCE && box.right - right <= TOLERANCE && top - box.top <= TOLERANCE && box.bottom - bottom <= TOLERANCE;
+  }
+
+  // The points of an element the browser is asked about: the centre of each of its first eight line boxes
+  // when it wraps, else its centre and the middle of each edge, one pixel in (half the side when the side
+  // is under two pixels).
+  function pointsOf(element, box) {
+    var rects = Array.prototype.filter.call(element.getClientRects(), function (rect) {
+      return rect.width > 0 && rect.height > 0;
+    });
+    if (rects.length > 1) {
+      return rects.slice(0, 8).map(function (rect) {
+        return [rect.left + rect.width / 2, rect.top + rect.height / 2];
+      });
+    }
+    var dx = box.width < 2 ? box.width / 2 : 1;
+    var dy = box.height < 2 ? box.height / 2 : 1;
+    var cx = box.left + box.width / 2;
+    var cy = box.top + box.height / 2;
+    return [[cx, cy], [cx, box.top + dy], [cx, box.bottom - dy], [box.left + dx, cy], [box.right - dx, cy]];
+  }
+
+  // Whether the browser finds an element, or one in it, under a point: elementsFromPoint lists whatever
+  // lies there, however covered, and never what was clipped away.
+  var found = function (element, point) {
+    return Array.prototype.some.call(document.elementsFromPoint(point[0], point[1]), function (at) {
+      return element.contains(at);
+    });
+  };
+
+  var openModal = function () {
+    try {
+      return document.querySelector(':modal');
+    } catch (_) {
+      return null;
+    }
+  };
+
+  // Why pointing at an element cannot tell whether it is cut, or null: pointing passes over an element
+  // that takes no pointer events, an inert one, and one outside an open modal dialog; and on a scrolled
+  // page a box out of the window has no point to point at.
+  function untellable(element, box) {
+    var asked = ', and the browser is asked by pointing at it';
+    if (getComputedStyle(element).pointerEvents === 'none') return 'it has pointer-events: none' + asked;
+    if (element.closest('[inert]')) return 'it is inert' + asked;
+    var modal = openModal();
+    if (modal && !modal.contains(element)) return 'a modal dialog is open and it is not inside it' + asked;
+    var scrolled = window.scrollX !== 0 || window.scrollY !== 0;
+    var out = box.left < 0 || box.top < 0 || box.right > window.innerWidth || box.bottom > window.innerHeight;
+    if (scrolled && out) return 'the page is scrolled and it is not in the window now; measure at the top of the page';
+    return null;
   }
 
   // ---- colours
@@ -453,20 +500,23 @@
       if (x + box.width > width) outside.push('its right edge is at ' + two(x + box.width));
       if (y + box.height > height) outside.push('its bottom edge is at ' + two(y + box.height));
       var faults = outside.length === 0 ? [] : ['it is not inside the first viewport, ' + width + ' × ' + height + ': ' + outside.join(', ')];
-      // Inside every box that clips it, as each is scrolled now: its padding box, scroll bars aside, given
-      // in whole pixels, so an edge may pass it by one; scaled as the box is drawn.
-      clippers(element).forEach(function (clip) {
-        var at = clip.element;
-        var edge = at.getBoundingClientRect();
-        var sx = at.offsetWidth > 0 ? edge.width / at.offsetWidth : 1;
-        var sy = at.offsetHeight > 0 ? edge.height / at.offsetHeight : 1;
-        var left = edge.left + at.clientLeft * sx;
-        var top = edge.top + at.clientTop * sy;
-        var right = left + at.clientWidth * sx;
-        var bottom = top + at.clientHeight * sy;
-        var cut = (clip.x && (left - box.left > TOLERANCE || box.right - right > TOLERANCE)) || (clip.y && (top - box.top > TOLERANCE || box.bottom - bottom > TOLERANCE));
-        if (cut) faults.push('it is clipped by ' + named(at));
+      // Clearly not cut: inside every box that might cut it, and none of them with a clip-path. Otherwise
+      // the browser is asked, when it can be.
+      var clips = mightClip(element);
+      var outsideOf = clips.filter(function (at) {
+        return !inside(box, at);
       });
+      var clipped = clips.filter(function (at) {
+        return getComputedStyle(at).clipPath !== 'none';
+      });
+      if (outsideOf.length > 0 || clipped.length > 0) {
+        var why = untellable(element, box);
+        if (why !== null) return failed(actual, ['cannot be told: ' + why].concat(faults).join('; '));
+        var all = pointsOf(element, box).every(function (point) {
+          return found(element, point);
+        });
+        if (!all) faults.push('it is clipped by ' + named(outsideOf.length > 0 ? outsideOf[0] : clipped[0]));
+      }
       if (faults.length === 0) return passed(actual);
       return failed(actual, faults.join('; '));
     },
