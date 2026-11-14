@@ -6,20 +6,32 @@
 //
 // A check is { id, type, target, …parameters }, with an optional `screen`: then its element is looked for
 // inside the one element whose data-screen is that screen, and nowhere else. An element is named by its
-// data-ux. The types, and what each passes on:
-//   visible      exactly one element has the id, and it is rendered: not display: none or opacity: 0, on
-//                itself or on an element it is in; visibility: visible; a box of some width and height
+// data-ux. A shadow root is not searched. A screen element's own data-ux is not inside that screen.
+// Rendered means: not display: none or opacity: 0, on itself or on an element it is in; visibility:
+// visible; painted, as the browser's checkVisibility() says (where it has none: not inside a closed
+// <details> other than in its summary); and a box of some width and height.
+// The types, and what each passes on:
+//   visible      exactly one element has the id, and it is rendered
 //   absent       no element has the id, or none that has it is rendered
-//   text         the one element's text, its runs of white space made one and trimmed, is `equals`, or is
-//                matched by the regular expression `matches`
+//   text         what the one element shows, its runs of white space made one and trimmed, is `equals`, or
+//                is matched by the regular expression `matches`: an input's or a textarea's value, a
+//                select's chosen options joined by ", ", else the text whose own element is rendered
+//                (its box aside), as written, whatever text-transform does
+//                A placeholder is not text.
+//                Two blocks with no white space between them read as joined.
 //   order        the elements named in `targets` come in that order in the document
-//   in-viewport  the one element is rendered, and its whole box lies inside the first viewport: where it
-//                was before any scrolling, and inside the page's scroll bars
+//   in-viewport  the one element is rendered, its whole box lies inside the first viewport (where it was
+//                before any scrolling, and inside the page's scroll bars), and inside every element it is
+//                in that clips what overflows it (other than the page's own), as each is scrolled now
 //   min-size     the one element's box is at least `minWidth` by `minHeight` CSS pixels
 //   contrast     the one element's text colour against the nearest background behind it that is not
 //                transparent, translucent colours laid over what is behind them, down to the page's canvas
 //                when nothing else is behind, has a WCAG ratio of at least `min`
-//   count        the number of elements whose data-ux starts with `target` is `equals`
+//                It measures declared colours, composed, and nothing else.
+//                It refuses to guess ("cannot be measured: …") over a background-image, an opacity below 1,
+//                a filter, a backdrop-filter or a blend mode.
+//   count        the number of rendered elements (their box aside) whose data-ux starts with `target` is
+//                `equals`
 // `actual` is what was measured (null when nothing could be), sizes and ratios to two decimals, never
 // rounded up past what was measured; `message` says why a check failed, and is empty when it passed.
 // It never throws, and it changes nothing on the page: a check that cannot be made (an element missing or
@@ -101,9 +113,32 @@
     return size.width + ' × ' + size.height;
   };
 
-  // Why an element is not rendered, or null when it is: display and opacity are looked for on it and on
-  // every element it is in, visibility on it alone.
-  function unrendered(element) {
+  // The closed <details> an element is inside, other than in its summary (the first summary in it, which a
+  // closed one still shows), or null.
+  function closedDetails(element) {
+    for (var child = element, at = element.parentElement; at; child = at, at = at.parentElement) {
+      if (at.localName === 'details' && !at.open && at.querySelector(':scope > summary') !== child) return at;
+    }
+    return null;
+  }
+
+  // Why the browser does not paint an element that has a display, or null: as checkVisibility() says when
+  // it has it, else a closed <details>.
+  function unpainted(element) {
+    var closed = closedDetails(element);
+    if (typeof element.checkVisibility !== 'function') return closed && 'inside the closed ' + named(closed);
+    if (element.checkVisibility()) return null;
+    if (closed) return 'inside the closed ' + named(closed);
+    for (var at = element.parentElement; at; at = at.parentElement) {
+      if (at.getAttribute('hidden') === 'until-found') return 'hidden="until-found" on ' + named(at);
+      if (getComputedStyle(at).contentVisibility === 'hidden') return 'content-visibility: hidden on ' + named(at);
+    }
+    return 'the browser does not paint it';
+  }
+
+  // Why an element is not shown, its box aside, or null when it is: display and opacity are looked for on
+  // it and on every element it is in, visibility on it alone, then whether the browser paints it.
+  function unshown(element) {
     if (!element.isConnected) return 'it is not in the document';
     for (var at = element; at; at = at.parentElement) {
       var style = getComputedStyle(at);
@@ -113,9 +148,54 @@
     // Not walked up: visibility is inherited, and a child set visible inside a hidden parent is painted.
     var visibility = getComputedStyle(element).visibility;
     if (visibility !== 'visible') return 'visibility: ' + visibility;
+    return unpainted(element);
+  }
+
+  // Why an element is not rendered, or null when it is: shown, and a box of some width and height.
+  function unrendered(element) {
+    var why = unshown(element);
+    if (why !== null) return why;
     var box = element.getBoundingClientRect();
     if (!(box.width > 0 && box.height > 0)) return 'its box is ' + said(sizeOf(box));
     return null;
+  }
+
+  // What an element shows as text: a text field's value, a select's chosen options, else the text whose
+  // own element is shown. Throws a Miss for an input that shows no text.
+  var NO_TEXT = ['checkbox', 'radio', 'file', 'hidden', 'range', 'color', 'image', 'password'];
+  function shownText(element) {
+    if (element.localName === 'input') {
+      if (NO_TEXT.indexOf(element.type) !== -1) throw new Miss('an <input type="' + element.type + '"> shows no text');
+      return element.value;
+    }
+    if (element.localName === 'textarea') return element.value;
+    if (element.localName === 'select') {
+      return Array.prototype.map.call(element.selectedOptions, function (option) {
+        return option.text;
+      }).join(', ');
+    }
+    var seen = new Map();
+    var text = '';
+    var walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+    for (var node = walker.nextNode(); node; node = walker.nextNode()) {
+      var parent = node.parentElement;
+      if (!seen.has(parent)) seen.set(parent, unshown(parent) === null);
+      if (seen.get(parent)) text += node.data;
+    }
+    return text;
+  }
+
+  // The elements an element is in that clip what overflows them, other than the page's own (whose
+  // overflow is the viewport's), each with the axes it clips.
+  function clippers(element) {
+    var found = [];
+    for (var at = element.parentElement; at && at !== document.body && at !== document.documentElement; at = at.parentElement) {
+      var style = getComputedStyle(at);
+      var x = style.overflowX !== 'visible';
+      var y = style.overflowY !== 'visible';
+      if (x || y) found.push({ element: at, x: x, y: y });
+    }
+    return found;
   }
 
   // ---- colours
@@ -177,6 +257,31 @@
     return colour;
   }
 
+  // An element as a refusal to measure names it: by its tag, and its data-ux when it has one.
+  var tagged = function (element) {
+    return '<' + element.localName + (element.hasAttribute('data-ux') ? ' data-ux=' + quoted(element.getAttribute('data-ux')) : '') + '>';
+  };
+
+  // Why an element's contrast cannot be measured from declared colours, or null: a background-image on it
+  // or an element it is in, up to and with the nearest opaque background colour; an opacity below 1, a
+  // filter, a backdrop-filter or a blend mode on it or on any element it is in.
+  function unmeasurable(element) {
+    var opaque = false;
+    for (var at = element; at; at = at.parentElement) {
+      var style = getComputedStyle(at);
+      var refuse = function (property) {
+        return 'cannot be measured: ' + property + ' on ' + tagged(at);
+      };
+      if (!opaque && style.backgroundImage !== 'none') return refuse('background-image');
+      if (Number(style.opacity) < 1) return refuse('opacity');
+      if (style.filter !== 'none') return refuse('filter');
+      if ((style.backdropFilter || 'none') !== 'none') return refuse('backdrop-filter');
+      if ((style.mixBlendMode || 'normal') !== 'normal') return refuse('mix-blend-mode');
+      if (colourOf(style.backgroundColor).a >= 1) opaque = true;
+    }
+    return null;
+  }
+
   // WCAG 2's relative luminance and contrast ratio.
   var linear = function (channel) {
     var c = channel / 255;
@@ -231,7 +336,7 @@
           throw new Miss('matches is not a regular expression: ' + messageOf(e));
         }
       }
-      var text = one(scope, id).textContent.replace(/[ \t\n\r\f]+/g, ' ').replace(/^ | $/g, '');
+      var text = shownText(one(scope, id)).replace(/[ \t\n\r\f]+/g, ' ').replace(/^ | $/g, '');
       if (pattern === null) return text === check.equals ? passed(text) : failed(text, 'the text is ' + quoted(text) + ', not ' + quoted(check.equals));
       return pattern.test(text) ? passed(text) : failed(text, 'the text ' + quoted(text) + ' does not match /' + check.matches + '/');
     },
@@ -282,8 +387,17 @@
       if (y < 0) outside.push('its top edge is at ' + two(y));
       if (x + box.width > width) outside.push('its right edge is at ' + two(x + box.width));
       if (y + box.height > height) outside.push('its bottom edge is at ' + two(y + box.height));
-      if (outside.length === 0) return passed(actual);
-      return failed(actual, 'it is not inside the first viewport, ' + width + ' × ' + height + ': ' + outside.join(', '));
+      var faults = outside.length === 0 ? [] : ['it is not inside the first viewport, ' + width + ' × ' + height + ': ' + outside.join(', ')];
+      // Inside every element that clips it, as each is scrolled now: its padding box, scroll bars aside.
+      clippers(element).forEach(function (clip) {
+        var edge = clip.element.getBoundingClientRect();
+        var left = edge.left + clip.element.clientLeft;
+        var top = edge.top + clip.element.clientTop;
+        var cut = (clip.x && (box.left < left || box.right > left + clip.element.clientWidth)) || (clip.y && (box.top < top || box.bottom > top + clip.element.clientHeight));
+        if (cut) faults.push('it is clipped by ' + named(clip.element));
+      });
+      if (faults.length === 0) return passed(actual);
+      return failed(actual, faults.join('; '));
     },
 
     'min-size': function (check, scope) {
@@ -301,6 +415,8 @@
       var id = targetOf(check);
       if (typeof check.min !== 'number' || !(check.min >= 1 && check.min <= 21)) throw new Miss('min must be a number from 1 to 21');
       var element = one(scope, id);
+      var refused = unmeasurable(element);
+      if (refused !== null) return failed(null, refused);
       var background = behind(element);
       var ratio = ratioOf(over(colourOf(getComputedStyle(element).color), background), background);
       return ratio >= check.min ? passed(two(ratio)) : failed(two(ratio), 'the contrast is ' + two(ratio) + ', less than ' + check.min);
@@ -309,11 +425,16 @@
     count: function (check, scope) {
       var prefix = targetOf(check);
       if (!Number.isSafeInteger(check.equals) || check.equals < 0) throw new Miss('equals must be a whole number from 0');
-      var n = Array.prototype.filter.call(scope.root.querySelectorAll('[data-ux]'), function (element) {
+      var all = Array.prototype.filter.call(scope.root.querySelectorAll('[data-ux]'), function (element) {
         return element.getAttribute('data-ux').indexOf(prefix) === 0;
+      });
+      var n = all.filter(function (element) {
+        return unshown(element) === null;
       }).length;
       if (n === check.equals) return passed(n);
-      return failed(n, n + ' elements have a data-ux starting with ' + quoted(prefix) + '; the check wants ' + check.equals);
+      var unseen = all.length - n;
+      var more = unseen === 0 ? '' : '; ' + unseen + (unseen === 1 ? ' more is there and not rendered' : ' more are there and not rendered');
+      return failed(n, n + ' rendered elements have a data-ux starting with ' + quoted(prefix) + '; the check wants ' + check.equals + more);
     },
   };
 

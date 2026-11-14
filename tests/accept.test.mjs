@@ -575,6 +575,32 @@ test('a page whose browser stops twice before it can be opened fails each of its
   assert.equal(left, 0);
 });
 
+test('accept prototype reads a closed expansion as the kit draws it: its items are not rendered, its summary is', () => {
+  const dir = prototypeIn(fresh(), {
+    'expansion.html': [
+      '<section class="ux-frame" data-screen="today"><header><h2>Today</h2></header><div class="ux-screen">',
+      '<details class="ux-expansion"><summary data-ux="later-label">Later today</summary><p class="ux-text" data-ux="later-room">Room 1, free from 10:00</p></details>',
+      '<details class="ux-expansion" open><summary data-ux="now-label">Free 9:40 to 11:15</summary><button class="ux-action" type="button" data-ux="book-jardin">Book Sala Jardín</button></details>',
+      '</div></section>',
+    ].join('\n'),
+  });
+  const on = fields => check({ page: 'expansion.html', screen: 'today', ...fields });
+  const file = writeJson(dir, 'acceptance.json', {
+    design: 'today',
+    checks: [
+      on({ id: 'later-hidden', type: 'visible', target: 'later-room' }),
+      on({ id: 'later-absent', type: 'absent', target: 'later-room' }),
+      on({ id: 'later-label', type: 'visible', target: 'later-label' }),
+      on({ id: 'now-shown', type: 'visible', target: 'book-jardin' }),
+    ],
+  });
+  const out = join(dir, 'results.json');
+  const r = run('prototype', file, '--root', dir, '--out', out);
+  assert.equal(r.status, 1, r.stderr);
+  assert.equal(r.stderr, 'failed: later-hidden: not rendered: inside the closed <details class="ux-expansion">\n');
+  assert.deepEqual(JSON.parse(readFileSync(out, 'utf8')).map(result => [result.id, result.pass]), [['later-hidden', false], ['later-absent', true], ['later-label', true], ['now-shown', true]]);
+});
+
 test('a page that leaves while it is checked, or cannot be read once checked, fails each of its checks, saying so; the run goes on and leaves no browser', { skip: !UNIX && 'needs a shell script for Chrome' }, async () => {
   for (const [fault, message] of [
     ['leaves-as-checked', 'the page sent itself to away/elsewhere.html while it was being checked'],
@@ -1041,8 +1067,14 @@ describe('the in-page file, evaluated through a driver of its own', () => {
       '<section data-screen="book"><p data-ux="free-count">Book a room</p></section>',
       '<section data-screen="twice"></section><section data-screen="twice"></section>',
       '<p data-ux=\'say "hi"\'>Quoted</p>',
+      '<div id="host"></div>',
+      '<section data-screen="own" data-ux="own-id"><p>Its own</p></section>',
     ].join('');
+    const shadow = () => (document.getElementById('host').attachShadow({ mode: 'open' }).innerHTML = '<p data-ux="in-shadow">In a shadow root</p>');
     const results = await evaluate(body, [
+      c('in-shadow', 'visible'),
+      c('own-id', 'visible', { screen: 'own' }),
+      c('own-id', 'visible'),
       c('free-count', 'visible'),
       c('free-count', 'visible', { screen: 'today' }),
       c('free-count', 'text', { screen: 'book', equals: 'Book a room' }),
@@ -1055,8 +1087,13 @@ describe('the in-page file, evaluated through a driver of its own', () => {
       { id: 'no-target', type: 'visible' },
       { id: 'empty-target', type: 'visible', target: '' },
       { id: 'list-target', type: 'visible', target: ['room-1'] },
-    ]);
+    ], { then: shadow });
     assert.deepEqual(shown(results), [
+      // A shadow root is not searched.
+      ['in-shadow', false, null, 'data-ux="in-shadow" not found'],
+      // A screen element's own data-ux is not inside that screen; it is in the document.
+      ['own-id', false, null, 'data-ux="own-id" not found in data-screen="own"'],
+      ['own-id', true, { width: 390, height: 18 }, ''],
       ['free-count', false, null, 'data-ux="free-count" found 2 times; it must be on exactly one element'],
       ['free-count', true, { width: 390, height: 18 }, ''],
       ['free-count', true, 'Book a room', ''],
@@ -1298,26 +1335,222 @@ describe('the in-page file, evaluated through a driver of its own', () => {
   });
 
   test('count: the elements whose data-ux starts with the target, inside the screen when one is named', async () => {
-    const body = '<section data-screen="today"><ul data-ux="rooms"><li data-ux="room-1">1</li><li data-ux="room-2" hidden>2</li></ul></section><section data-screen="book"><p data-ux="room-3">3</p></section><p data-ux="spare-room-4">4</p>';
+    const body = '<section data-screen="today"><ul data-ux="rooms"><li data-ux="room-1">1</li><li data-ux="room-2" hidden>2</li></ul></section><section data-screen="book"><p data-ux="room-3">3</p></section><p data-ux="spare-room-4">4</p><div hidden><p data-ux="row-1">1</p><p data-ux="row-2">2</p></div><details><summary data-ux="later-label">Later</summary><p data-ux="later-1">1</p></details><p data-ux="tag-1" style="height: 0; margin: 0"></p>';
     const results = await evaluate(body, [
-      c('room-', 'count', { equals: 3 }),
-      c('room-', 'count', { equals: 2, screen: 'today' }),
+      c('room-', 'count', { equals: 2 }),
+      c('room-', 'count', { equals: 1, screen: 'today' }),
       c('room-', 'count', { equals: 1, screen: 'book' }),
-      c('room', 'count', { equals: 3 }),
+      c('room', 'count', { equals: 4 }),
+      // Two rows there and hidden; one in a closed expansion, beside its label.
+      c('row-', 'count', { equals: 2 }),
+      c('later-', 'count', { equals: 1 }),
+      // A box of no size is counted: its box is not asked about.
+      c('tag-', 'count', { equals: 1 }),
       c('desk-', 'count', { equals: 0 }),
       c('room-', 'count', { equals: -1 }),
       c('room-', 'count', { equals: 1.5 }),
       c('room-', 'count', {}),
     ]);
     assert.deepEqual(shown(results), [
-      ['room-', true, 3, ''],
       ['room-', true, 2, ''],
       ['room-', true, 1, ''],
-      ['room', false, 4, '4 elements have a data-ux starting with "room"; the check wants 3'],
+      ['room-', true, 1, ''],
+      ['room', false, 3, '3 rendered elements have a data-ux starting with "room"; the check wants 4; 1 more is there and not rendered'],
+      ['row-', false, 0, '0 rendered elements have a data-ux starting with "row-"; the check wants 2; 2 more are there and not rendered'],
+      ['later-', true, 1, ''],
+      ['tag-', true, 1, ''],
       ['desk-', true, 0, ''],
       ['room-', false, null, 'equals must be a whole number from 0'],
       ['room-', false, null, 'equals must be a whole number from 0'],
       ['room-', false, null, 'equals must be a whole number from 0'],
+    ]);
+  });
+
+  test('rendered means painted: a closed expansion hides all but its summary, and so do hidden="until-found" and content-visibility: hidden, as the browser says; where it cannot say, a closed <details> still hides', async () => {
+    const body = [
+      '<details class="ux-expansion"><summary data-ux="closed-label">Later <span data-ux="in-label">today</span></summary><p data-ux="closed-item">Room 1, free from 10:00</p><summary data-ux="second-summary">Not its summary</summary></details>',
+      '<details class="ux-expansion" open><summary data-ux="open-label">Free 9:40 to 11:15</summary><p data-ux="open-item">Book Sala Jardín</p></details>',
+      '<div hidden="until-found"><p data-ux="found-later">Room 3</p></div>',
+      '<div class="skipped" style="content-visibility: hidden"><p data-ux="skipped">Gym</p></div>',
+    ].join('');
+    const ids = ['closed-label', 'in-label', 'closed-item', 'second-summary', 'open-label', 'open-item', 'found-later', 'skipped'];
+    const checks = [...ids.map(id => c(id, 'visible')), ...ids.map(id => ({ ...c(id, 'absent'), id: `${id}-absent` }))];
+    const said = results => results.map(({ id, pass, message }) => [id, pass, message]);
+    const closed = 'not rendered: inside the closed <details class="ux-expansion">';
+    const absentFails = id => [`${id}-absent`, false, `data-ux="${id}" is rendered`];
+    assert.deepEqual(said(await evaluate(body, checks)), [
+      ['closed-label', true, ''],
+      ['in-label', true, ''],
+      ['closed-item', false, closed],
+      ['second-summary', false, closed],
+      ['open-label', true, ''],
+      ['open-item', true, ''],
+      ['found-later', false, 'not rendered: hidden="until-found" on <div>'],
+      ['skipped', false, 'not rendered: content-visibility: hidden on <div class="skipped">'],
+      absentFails('closed-label'),
+      absentFails('in-label'),
+      ['closed-item-absent', true, ''],
+      ['second-summary-absent', true, ''],
+      absentFails('open-label'),
+      absentFails('open-item'),
+      ['found-later-absent', true, ''],
+      ['skipped-absent', true, ''],
+    ]);
+    // A browser with no checkVisibility: a closed <details> is still read; what only the browser knows is not.
+    const without = await evaluate(body, checks, { then: () => delete Element.prototype.checkVisibility });
+    assert.deepEqual(said(without).slice(0, 8), [
+      ['closed-label', true, ''],
+      ['in-label', true, ''],
+      ['closed-item', false, closed],
+      ['second-summary', false, closed],
+      ['open-label', true, ''],
+      ['open-item', true, ''],
+      ['found-later', true, ''],
+      ['skipped', true, ''],
+    ]);
+  });
+
+  test('contrast is measured from declared colours alone, and refuses to guess over a background-image, an opacity, a filter, a backdrop-filter or a blend mode, on the element or an element it is in', async () => {
+    const on = (id, style, text = 'color: #000000') => `<div style="background: #ffffff"><p data-ux="${id}" style="${text}; ${style}">${id}</p></div>`;
+    const under = (id, style) => `<div class="under" style="background: #ffffff; ${style}"><p data-ux="${id}" style="color: #000000">${id}</p></div>`;
+    const body = [
+      on('image', 'background-image: linear-gradient(#111111, #222222)'),
+      `<div style="background-color: transparent; background-image: linear-gradient(#111111, #222222)"><p data-ux="image-under" style="color: #ffffff">image under</p></div>`,
+      // An image on the nearest opaque background is refused; one further behind it is hidden by it.
+      under('image-on-opaque', 'background-image: linear-gradient(#111111, #222222)'),
+      `<div style="background-image: linear-gradient(#111111, #222222)"><div style="background: #ffffff"><p data-ux="image-hidden" style="color: #000000">image hidden</p></div></div>`,
+      on('faded', 'opacity: 0.2'),
+      under('faded-under', 'opacity: 0.3'),
+      `<div style="opacity: 0.5"><div style="background: #ffffff"><p data-ux="faded-far" style="color: #000000">faded far</p></div></div>`,
+      on('blurred', 'filter: blur(1px)'),
+      under('blurred-under', 'filter: grayscale(1)'),
+      on('frosted', 'backdrop-filter: blur(4px)'),
+      under('frosted-under', 'backdrop-filter: blur(4px)'),
+      on('blended', 'mix-blend-mode: multiply'),
+      under('blended-under', 'mix-blend-mode: difference'),
+      // What it does measure, as before.
+      '<div style="background: #ffffff"><p data-ux="black" style="color: #000000">black</p></div>',
+      '<div style="background: #ffffff"><p data-ux="grey" style="color: #767676">grey</p></div>',
+      '<div style="background: #ffffff"><div style="background: rgba(0, 0, 0, 0.5)"><p data-ux="translucent" style="color: rgba(0, 0, 0, 0.5)">translucent</p></div></div>',
+    ].join('');
+    const ids = ['image', 'image-under', 'image-on-opaque', 'image-hidden', 'faded', 'faded-under', 'faded-far', 'blurred', 'blurred-under', 'frosted', 'frosted-under', 'blended', 'blended-under', 'black', 'grey', 'translucent'];
+    const refused = (property, element) => `cannot be measured: ${property} on ${element}`;
+    assert.deepEqual(shown(await evaluate(body, ids.map(id => c(id, 'contrast', { min: 1 })))), [
+      ['image', false, null, refused('background-image', '<p data-ux="image">')],
+      ['image-under', false, null, refused('background-image', '<div>')],
+      ['image-on-opaque', false, null, refused('background-image', '<div>')],
+      ['image-hidden', true, 21, ''],
+      ['faded', false, null, refused('opacity', '<p data-ux="faded">')],
+      ['faded-under', false, null, refused('opacity', '<div>')],
+      ['faded-far', false, null, refused('opacity', '<div>')],
+      ['blurred', false, null, refused('filter', '<p data-ux="blurred">')],
+      ['blurred-under', false, null, refused('filter', '<div>')],
+      ['frosted', false, null, refused('backdrop-filter', '<p data-ux="frosted">')],
+      ['frosted-under', false, null, refused('backdrop-filter', '<div>')],
+      ['blended', false, null, refused('mix-blend-mode', '<p data-ux="blended">')],
+      ['blended-under', false, null, refused('mix-blend-mode', '<div>')],
+      ['black', true, 21, ''],
+      ['grey', true, 4.54, ''],
+      // Half-black text over half-black over white: 63.75 on 127.5.
+      ['translucent', true, 2.61, ''],
+    ]);
+  });
+
+  test("text is what is shown: a field's value, a select's chosen options, the text whose element is shown; an input that shows no text fails, naming its type", async () => {
+    const body = [
+      '<input data-ux="typed" value="Room 1">',
+      '<input data-ux="named" value="Room 2">',
+      '<input data-ux="empty" placeholder="Patient name">',
+      '<textarea data-ux="note">first words</textarea>',
+      '<select data-ux="room"><option>One</option><option selected>  Two\n rooms </option></select>',
+      '<select data-ux="rooms" multiple><option selected>One</option><option>Two</option><option selected>Three</option></select>',
+      ...['checkbox', 'radio', 'file', 'hidden', 'range', 'color', 'image', 'password'].map(type => `<input data-ux="${type}" type="${type}">`),
+      '<p data-ux="partly">3 <span style="display: none">of 10 </span>free</p>',
+      '<p data-ux="unseen">Free <span style="visibility: hidden">now</span></p>',
+      '<p data-ux="seen-again" style="visibility: hidden">hidden <span style="visibility: visible">shown</span></p>',
+      '<div data-ux="expansion"><details><summary>Later today</summary><p>Room 1</p></details></div>',
+      '<div data-ux="blocks"><p>Room</p><p>2</p></div>',
+      // A box of no height, its text hanging out of it, still shows that text.
+      '<div data-ux="no-box"><div style="height: 0">hanging words</div></div>',
+    ].join('');
+    // Typed into, as a person would: the value changes, the markup does not.
+    const typed = () => {
+      document.querySelector('[data-ux=typed]').value = 'Sala Jardín';
+      document.querySelector('[data-ux=note]').value = 'typed  over';
+    };
+    const checks = [
+      c('typed', 'text', { equals: 'Sala Jardín' }),
+      c('named', 'text', { equals: 'Room 2' }),
+      c('empty', 'text', { equals: '' }),
+      c('empty', 'text', { equals: 'Patient name' }),
+      c('note', 'text', { equals: 'typed over' }),
+      c('room', 'text', { equals: 'Two rooms' }),
+      c('rooms', 'text', { equals: 'One, Three' }),
+      ...['checkbox', 'radio', 'file', 'hidden', 'range', 'color', 'image', 'password'].map(type => c(type, 'text', { equals: '' })),
+      c('partly', 'text', { equals: '3 free' }),
+      c('unseen', 'text', { equals: 'Free' }),
+      c('seen-again', 'text', { equals: 'shown' }),
+      c('expansion', 'text', { equals: 'Later today' }),
+      c('blocks', 'text', { equals: 'Room2' }),
+      c('no-box', 'text', { equals: 'hanging words' }),
+    ];
+    assert.deepEqual(shown(await evaluate(body, checks, { then: typed })), [
+      ['typed', true, 'Sala Jardín', ''],
+      ['named', true, 'Room 2', ''],
+      ['empty', true, '', ''],
+      ['empty', false, '', 'the text is "", not "Patient name"'],
+      ['note', true, 'typed over', ''],
+      ['room', true, 'Two rooms', ''],
+      ['rooms', true, 'One, Three', ''],
+      ...['checkbox', 'radio', 'file', 'hidden', 'range', 'color', 'image', 'password'].map(type => [type, false, null, `an <input type="${type}"> shows no text`]),
+      ['partly', true, '3 free', ''],
+      ['unseen', true, 'Free', ''],
+      ['seen-again', true, 'shown', ''],
+      ['expansion', true, 'Later today', ''],
+      ['blocks', true, 'Room2', ''],
+      ['no-box', true, 'hanging words', ''],
+    ]);
+  });
+
+  test('in-viewport: inside every element that clips it, as each is scrolled now, on the axes each clips', async () => {
+    const body = [
+      '<div class="scroller" style="height: 100px; overflow: auto"><p data-ux="inside" style="margin: 0; height: 20px">inside</p><p data-ux="beyond" style="margin: 480px 0 0; height: 20px">beyond</p></div>',
+      '<div class="narrow" style="width: 100px; overflow-x: hidden"><p data-ux="aside" style="margin: 0 0 0 150px; width: 20px; height: 20px">aside</p></div>',
+      // Clipped across only: what hangs below it is not cut.
+      '<div class="flat" style="width: 100px; height: 10px; overflow-x: clip"><p data-ux="hanging" style="margin: 0; width: 20px; height: 40px">hanging</p></div>',
+      // Clipped down only: what sticks out to the side is not cut.
+      '<div class="short" style="width: 100px; height: 50px; overflow-y: clip"><p data-ux="sticking" style="margin: 0; width: 150px; height: 20px">sticking</p></div>',
+      '<div class="offset" style="margin-left: 100px; width: 100px; overflow: hidden"><p data-ux="left-out" style="margin: 0 0 0 -50px; width: 20px; height: 20px">left out</p></div>',
+      // The clip is the padding box: under a border is cut.
+      '<div class="bordered" style="border: 10px solid #000000; width: 100px; overflow: hidden"><p data-ux="under-left" style="margin: 0 0 0 -5px; width: 20px; height: 20px">l</p></div>',
+      '<div class="bordered" style="border: 10px solid #000000; width: 100px; height: 100px; overflow: hidden"><p data-ux="under-top" style="margin: -5px 0 0 30px; width: 20px; height: 20px">t</p></div>',
+      '<div class="bordered" style="border: 10px solid #000000; width: 100px; height: 30px; overflow: hidden"><p data-ux="under-bottom" style="margin: 0; width: 20px; height: 35px">b</p></div>',
+      // A scroll bar is not part of what shows.
+      '<div class="barred" style="width: 100px; height: 50px; overflow-y: scroll; overflow-x: hidden"><p data-ux="under-bar" style="margin: 0; width: 100px; height: 20px">under the bar</p></div>',
+    ].join('');
+    const ids = ['inside', 'beyond', 'aside', 'hanging', 'sticking', 'left-out', 'under-left', 'under-top', 'under-bottom', 'under-bar'];
+    const said = results => results.map(({ id, pass, message }) => [id, pass, message]);
+    assert.deepEqual(said(await evaluate(body, ids.map(id => c(id, 'in-viewport')))), [
+      ['inside', true, ''],
+      ['beyond', false, 'it is clipped by <div class="scroller">'],
+      ['aside', false, 'it is clipped by <div class="narrow">'],
+      ['hanging', true, ''],
+      ['sticking', true, ''],
+      ['left-out', false, 'it is clipped by <div class="offset">'],
+      ['under-left', false, 'it is clipped by <div class="bordered">'],
+      ['under-top', false, 'it is clipped by <div class="bordered">'],
+      ['under-bottom', false, 'it is clipped by <div class="bordered">'],
+      ['under-bar', false, 'it is clipped by <div class="barred">'],
+    ]);
+    // The page's own overflow is the viewport's: a body that hides it clips nothing in the first viewport.
+    const page = await evaluate('<div style="height: 500px"></div><p data-ux="low" style="margin: 0; height: 20px">low</p>', [c('low', 'in-viewport')], { head: '<style>body { overflow: hidden; height: 100px }</style>' });
+    assert.deepEqual(said(page), [['low', true, '']]);
+    // Scrolled down inside it: what was beyond is in its visible part now, and what was inside is not; it
+    // has gone up past the top of the page's first viewport too, and both are said.
+    const scrolled = await evaluate(body, ids.map(id => c(id, 'in-viewport')), { then: () => (document.querySelector('.scroller').scrollTop = 450) });
+    assert.deepEqual(said(scrolled).slice(0, 2), [
+      ['inside', false, 'it is not inside the first viewport, 390 × 900: its top edge is at -420; it is clipped by <div class="scroller">'],
+      ['beyond', true, ''],
     ]);
   });
 });
