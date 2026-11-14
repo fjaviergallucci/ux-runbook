@@ -8,8 +8,8 @@
 // The brief leaves the machine and a key is involved, so the script is small and strict, in this order:
 //   1. the profile: an outside engine is off until the project profile's engines-on list holds
 //      model:<provider>;
-//   2. the usage: the model id, the address, the timeout and --out, which with --text is none of the run's
-//      own inputs;
+//   2. the usage: the model id, the address, the timeout and --out, which is none of the run's own
+//      inputs: not the brief, the profile or the keys file;
 //   3. the brief: it must hold text;
 //   4. the key: found by name, in the environment, else in the dotenv file the profile's keys-file names;
 //      the command line takes neither a key nor a keys file;
@@ -90,7 +90,7 @@ const ESCAPES = /\\(?:u([0-9a-fA-F]{4})|(["\\/bfnrt]))/g;
 const ESCAPED = Object.freeze({ '"': '"', '\\': '\\', '/': '/', b: '\b', f: '\f', n: '\n', r: '\r', t: '\t' });
 const undoEscapes = text => text.replace(ESCAPES, (_, hex, letter) => (hex ? String.fromCharCode(parseInt(hex, 16)) : ESCAPED[letter]));
 // What the command says when an answer holds the key.
-export const HELD_KEY = 'the answer held the key, so nothing of it was saved: no proposal and no raw file';
+export const HELD_KEY = 'the answer held the key, so nothing of it was saved: no file was written';
 // The one reason given when the walkthrough check itself fails on an answer.
 const NOT_CHECKED = 'the answer could not be checked against the walkthrough format (it may be nested too deeply)';
 
@@ -139,12 +139,10 @@ export async function describe({ provider, model, briefPath, outPath, profilePat
     throw new UsageError(`--out must name ${asText ? 'a .txt, .md or .html file when --text is given' : 'a .json file'}; it is ${outPath}`);
   }
   if (typeof briefPath !== 'string' || briefPath === '') throw new UsageError('--brief is missing');
-  // With --text, --out may be named as an input of the run is (a brief and a profile are .md files), and
-  // --out is cleared before the request: so it is none of the run's inputs.
-  if (asText) {
-    for (const [input, what] of [[briefPath, 'the brief itself'], [profilePath, 'the profile itself'], [keysFile, 'the keys file the profile names']]) {
-      if (sameFile(outPath, input)) throw new UsageError(`--out is ${what}: the answer would overwrite it`);
-    }
+  // What an earlier run left at --out is cleared just before the request, and the answer is then written
+  // there: so --out is none of the run's own inputs, with --text or without.
+  for (const [input, what] of [[briefPath, 'the brief itself'], [profilePath, 'the profile itself'], [keysFile, 'the keys file the profile names']]) {
+    if (sameFile(outPath, input)) throw new UsageError(`--out is ${what}: the answer would overwrite it`);
   }
   // 3. The brief.
   const brief = readBrief(briefPath);
@@ -171,9 +169,9 @@ export async function describe({ provider, model, briefPath, outPath, profilePat
     throw new DescribeError(`${provider} answered ${status} with no text at ${spec.where}${why}; nothing of its body is shown or kept`);
   }
   const chars = answer.text.length;
-  // An answer that holds the key, as written or once JSON's escapes are undone, is saved nowhere: no proposal
-  // and no raw file (what an earlier run left went before the request). Past this, nothing the answer says
-  // can be the key.
+  // An answer that holds the key, as written or once JSON's escapes are undone, is saved nowhere: nothing at
+  // --out and no raw file (what an earlier run left went before the request). Past this, nothing the answer
+  // says can be the key.
   if (answer.text.includes(key) || undoEscapes(answer.text).includes(key)) return { ok: false, heldKey: true, chars, seconds, errors: [] };
   // With --text the answer is what was asked for: written whole, as it came, and no proposal is looked for.
   if (asText) {
@@ -460,8 +458,8 @@ and an answer that holds the key, as written or in JSON's escapes, is saved nowh
   --model <id>        the provider's model id: letters, digits, ".", "_" and "-"
   --brief <file>      the brief to send
   --out <file.json>   where the proposal is written; the folders above it are made when missing.
-                      With --text, where the answer is written: a .txt, .md or .html file that is
-                      not the brief, the profile or the keys file, since the answer would overwrite it
+                      With --text, where the answer is written: a .txt, .md or .html file. Never
+                      the brief, the profile or the keys file: the answer would overwrite it
   --text              write the answer whole and look for no proposal in it
   --profile <file>    the project profile
   --endpoint <url>    a stand-in for the provider on this machine, as in the kit's tests: http: or

@@ -154,7 +154,7 @@ const anyFileHolds = (dir, ...texts) =>
     return texts.some(text => content.includes(text));
   });
 // What the command says when an answer holds the key, and nothing of it is saved.
-const HELD = 'the answer held the key, so nothing of it was saved: no proposal and no raw file\n';
+const HELD = 'the answer held the key, so nothing of it was saved: no file was written\n';
 
 // The command, started without waiting (the provider is a server in this process). Its environment is this
 // process's without the two key names, then the test's own.
@@ -1472,55 +1472,58 @@ test('with --text a redirect is still never followed, and a request that never a
   assert.deepEqual(filesIn(dirname(s.outPath)), []);
 });
 
-test('with --text, --out is never the brief, the profile or the keys file: the answer would take its place', async t => {
-  const s = await setup(t, openaiSays(ANSWER));
-  const dir = fresh();
-  const briefPath = join(dir, 'BRIEF.md');
-  writeFileSync(briefPath, BRIEF);
-  const keys = writeKeys(dir, [`OPENAI_API_KEY=${KEY}`]);
-  const profilePath = writeProfile(dir, [ON, keysLine(keys)]);
-  const mine = { ...s, briefPath, profilePath };
-  const inputs = [
-    [briefPath, '--out is the brief itself: the answer would overwrite it'],
-    [profilePath, '--out is the profile itself: the answer would overwrite it'],
-    [keys, '--out is the keys file the profile names: the answer would overwrite it'],
-    // Written another way, it is the same file.
-    [`${dir}/made-up/../BRIEF.md`, '--out is the brief itself: the answer would overwrite it'],
-  ];
-  for (const [outPath, message] of inputs) {
-    const before = readFileSync(outPath, 'utf8');
-    // Whether or not the environment holds a key, and before one is looked up.
-    for (const env of [watched().env, MADE_UP]) {
-      const e = await refusal(call(mine, { text: true, outPath, env }));
-      assert.ok(e instanceof UsageError, message);
-      assert.equal(e.message, message);
+test('--out is never the brief, the profile or the keys file, with --text or without: the answer would take its place', async t => {
+  const s = await setup(t, openaiSays(fenced(fixture('calendar.json'))));
+  // Each mode, with the inputs of the run named as its --out may be named: text files with --text, .json
+  // files without. An earlier run's --out is removed just before the request, so each would be lost.
+  for (const [text, ext] of [[true, 'md'], [false, 'json']]) {
+    const mode = text ? 'with --text' : 'without --text';
+    const dir = fresh();
+    const briefPath = join(dir, `BRIEF.${ext}`);
+    writeFileSync(briefPath, BRIEF);
+    // A dotenv file made up by the test, never named like a credentials file.
+    const keys = join(dir, 'made-up', `fake-dotenv.${ext}`);
+    mkdirSync(dirname(keys), { recursive: true });
+    writeFileSync(keys, `OPENAI_API_KEY=${KEY}\n`);
+    const profilePath = join(dir, `PROFILE.${ext}`);
+    writeFileSync(profilePath, ['---', ON, keysLine(keys), '---', '', '# Project profile', ''].join('\n'));
+    const mine = { ...s, briefPath, profilePath };
+    const inputs = [
+      [briefPath, '--out is the brief itself: the answer would overwrite it'],
+      [profilePath, '--out is the profile itself: the answer would overwrite it'],
+      [keys, '--out is the keys file the profile names: the answer would overwrite it'],
+      // Written another way, it is the same file.
+      [`${dir}/made-up/../BRIEF.${ext}`, '--out is the brief itself: the answer would overwrite it'],
+    ];
+    for (const [outPath, message] of inputs) {
+      const before = readFileSync(outPath, 'utf8');
+      // Whether or not the environment holds a key, and before one is looked up.
+      for (const env of [watched().env, MADE_UP]) {
+        const e = await refusal(call(mine, { text, outPath, env }));
+        assert.ok(e instanceof UsageError, `${mode}: ${message}`);
+        assert.equal(e.message, message, mode);
+      }
+      const { env, looked } = watched();
+      await refusal(call(mine, { text, outPath, env }));
+      assert.deepEqual(looked, [], `${mode}: ${message}: no key is looked up`);
+      assert.equal(readFileSync(outPath, 'utf8') === before, true, `${mode}: ${message}: the file is as it was`);
     }
-    const { env, looked } = watched();
-    await refusal(call(mine, { text: true, outPath, env }));
-    assert.deepEqual(looked, [], `${message}: no key is looked up`);
-    assert.equal(readFileSync(outPath, 'utf8') === before, true, `${message}: the file is as it was`);
+    const flags = flagsOf({ ...mine, outPath: profilePath });
+    const r = await run(text ? ['--text', ...flags] : flags);
+    assert.equal(r.status, 2, mode);
+    assert.equal(r.stdout, '', mode);
+    assert.ok(r.stderr.startsWith('--out is the profile itself: the answer would overwrite it\n\nUsage: '), mode);
+    // It is usage: said before the brief is read, where the brief is missing too.
+    const early = await refusal(call({ ...mine, briefPath: join(dir, `NO-BRIEF.${ext}`) }, { text, outPath: profilePath, env: watched().env }));
+    assert.ok(early instanceof UsageError, mode);
+    assert.equal(early.message, '--out is the profile itself: the answer would overwrite it', mode);
+    // A file beside them is none of them, and the three are as they were once the run is done.
+    const kept = [briefPath, profilePath, keys].map(path => readFileSync(path, 'utf8'));
+    assert.equal((await call(mine, { text, outPath: join(dir, `ANSWER.${ext}`) })).ok, true, mode);
+    assert.equal([briefPath, profilePath, keys].every((path, i) => readFileSync(path, 'utf8') === kept[i]), true, `${mode}: an input of the run changed`);
   }
-  const r = await run(textFlags({ ...mine, outPath: profilePath }));
-  assert.equal(r.status, 2);
-  assert.equal(r.stdout, '');
-  assert.ok(r.stderr.startsWith('--out is the profile itself: the answer would overwrite it\n\nUsage: '));
-  // It is usage: said before the brief is read, where the brief is missing too.
-  const early = await refusal(call({ ...mine, briefPath: join(dir, 'NO-BRIEF.md') }, { text: true, outPath: profilePath, env: watched().env }));
-  assert.ok(early instanceof UsageError);
-  assert.equal(early.message, '--out is the profile itself: the answer would overwrite it');
-  assert.equal(s.server.requests.length, 0);
-  // The check is --text's own. Without --text nothing changes: --out is a .json file, which no input of a
-  // run is named as, and a brief that was named so is sent and its place taken by the proposal, as before.
-  const both = join(dir, 'a brief named as a proposal.json');
-  writeFileSync(both, BRIEF);
-  const proposalServer = await open(t, openaiSays(fenced(fixture('calendar.json'))));
-  const asBefore = await call({ ...mine, briefPath: both, outPath: both, endpoint: proposalServer.endpoint });
-  assert.equal(asBefore.ok, true);
-  assert.deepEqual(JSON.parse(proposalServer.requests[0].body).messages, [{ role: 'user', content: BRIEF }]);
-  assert.equal(readFileSync(both, 'utf8'), written(fixture('calendar.json')));
-  // A file beside them is none of them.
-  assert.equal((await call(mine, { text: true, outPath: join(dir, 'ANSWER.md') })).ok, true);
-  assert.equal(readFileSync(briefPath, 'utf8') === BRIEF, true, 'the brief is as it was');
+  // Nothing was sent but the two runs whose --out was a file of its own.
+  assert.equal(s.server.requests.length, 2);
 });
 
 test('the usage gives --text a form of its own, and says what the switch is for', async () => {
