@@ -1925,6 +1925,41 @@ describe('the in-page file, evaluated through a driver of its own', () => {
     assert.deepEqual(said(await evaluate(avatar(dot.replace('background', 'pointer-events: none; background')), [c('dot', 'in-viewport')])), [['dot', false, `cannot be told: it has pointer-events: none${asked}`]]);
   });
 
+  test('in-viewport: at a rounded corner the curve decides: what lies inside it, a pixel of play given, is never asked about', async () => {
+    const said = results => results.map(({ id, pass, message }) => [id, pass, message]);
+    const untold = id => [id, false, 'cannot be told: it has pointer-events: none, and the browser is asked by pointing at it'];
+    const one = async (body, id) => said(await evaluate(body, [c(id, 'in-viewport')]));
+    // No element here can be pointed at: one that passes was never asked about.
+    // A card whose padding is its radius, 123.33 by 46.39: its corner comes out 12.03 by 12.10 as drawn,
+    // and its one line starts 12 px in and 12 px down.
+    const fractional = line => `<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px"><div style="padding: 12px; border-radius: 12px; overflow: hidden"><p data-ux="line" ${line}>Room 2</p></div><div></div><div></div></div>`;
+    assert.deepEqual(await one(fractional('style="margin: 0; font: 16px/1.4 sans-serif; pointer-events: none"'), 'line'), [['line', true, '']]);
+    assert.deepEqual(await one(fractional('inert style="margin: 0; font: 16px/1.4 sans-serif"'), 'line'), [['line', true, '']]);
+    // A line 8 px in and 8 px down in a card rounded 12 px: inside the curve.
+    assert.deepEqual(await one('<div style="width: 300px; padding: 8px; border-radius: 12px; overflow: hidden"><p data-ux="flush" style="margin: 0; pointer-events: none">Room 2, free until 10:30</p></div>', 'flush'), [['flush', true, '']]);
+    // In a card rounded 12 px: along its top, far past its corners; and deep in a corner, where it is cut.
+    const card = inside => `<div style="position: relative; width: 300px; height: 100px; border-radius: 12px; overflow: hidden">${inside}</div>`;
+    assert.deepEqual(await one(card('<span data-ux="top" style="position: absolute; top: 0; left: 100px; width: 100px; height: 8px; pointer-events: none"></span>'), 'top'), [['top', true, '']]);
+    assert.deepEqual(await one(card('<span data-ux="deep" style="position: absolute; top: 0; right: 0; width: 4px; height: 4px; pointer-events: none"></span>'), 'deep'), [untold('deep')]);
+    // Each corner of a box rounded 40 px across and 20 px down. The point of an element nearest to the
+    // corner, a pixel in: from 4 px along and 10 px down it lies inside the curve (35² + 4 × 9² = 1549, to
+    // 1600), from 4 px along and 9 px down outside it (35² + 4 × 10² = 1625).
+    const oval = spans => `<div style="position: relative; width: 200px; height: 160px; border-radius: 40px / 20px; overflow: hidden">${spans}</div>`;
+    const span = (id, place) => `<span data-ux="${id}" style="position: absolute; ${place}; width: 6px; height: 6px; pointer-events: none"></span>`;
+    for (const [across, down] of [['left', 'top'], ['right', 'top'], ['right', 'bottom'], ['left', 'bottom']]) {
+      const results = await evaluate(oval(span('inside', `${across}: 4px; ${down}: 10px`) + span('outside', `${across}: 4px; ${down}: 9px`)), [c('inside', 'in-viewport'), c('outside', 'in-viewport')]);
+      assert.deepEqual(said(results), [['inside', true, ''], untold('outside')], `${down} ${across}`);
+    }
+    // On the curve is inside it: from 15 px along and 3 px down (24² + 4 × 16² = 1600).
+    assert.deepEqual(await one(oval(span('on', 'left: 15px; top: 3px')), 'on'), [['on', true, '']]);
+    // The nearest point is taken on the box's own edge: a line half a pixel over the corner of a box
+    // rounded 3 px starts, a pixel in, inside the curve.
+    assert.deepEqual(await one('<div style="margin: 10px; width: 100px; height: 100px; border-radius: 3px; overflow: hidden"><p data-ux="over" style="margin: -0.5px 0 0 -0.5px; width: 50px; height: 20px; pointer-events: none">x</p></div>', 'over'), [['over', true, '']]);
+    // A radius larger than the box is capped at it: in a box 200 by 100 rounded 999 px each corner's curve
+    // is taken as a quarter of an ellipse as large as the box, and what lies in the middle is inside all four.
+    assert.deepEqual(await one('<div style="position: relative; width: 200px; height: 100px; border-radius: 999px; overflow: hidden"><span data-ux="mid" style="position: absolute; top: 40px; left: 80px; width: 40px; height: 20px; pointer-events: none"></span></div>', 'mid'), [['mid', true, '']]);
+  });
+
   test('content-visibility on an inline box does nothing: a span hidden until found, or with content-visibility: hidden, is shown', async () => {
     const body = '<p data-ux="spans">Room <span data-ux="until" hidden="until-found">2</span> and <span data-ux="skips" style="content-visibility: hidden">Sala</span></p>';
     const results = await evaluate(body, [c('until', 'visible'), c('skips', 'visible'), c('until', 'absent'), c('skips', 'absent'), c('until', 'text', { equals: '2' }), c('skips', 'text', { equals: 'Sala' }), c('spans', 'text', { equals: 'Room 2 and Sala' })]);

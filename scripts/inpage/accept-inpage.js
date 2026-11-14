@@ -34,12 +34,12 @@
 //                before any scrolling, and inside the page's scroll bars), and nothing cuts it away. When
 //                its box lies inside every element it is written in that might cut it (an overflow other
 //                than visible, contain: paint, content-visibility other than visible, a clip-path, an
-//                <svg>; up to the body), none of them has a clip-path, and it reaches no rounded corner of
-//                one (the rectangle at the corner, as wide and as high as its radii), nothing can. Else the
-//                browser is asked, as scrolled now: it is pointed at five points of the box (the centres of
-//                its line boxes when it wraps), and a point where it finds the element not is cut away.
-//                Where pointing cannot tell (pointer-events: none, inert, outside an open modal dialog, out
-//                of the window on a scrolled page), it fails "cannot be told: …", never a guess.
+//                <svg>; up to the body), none of them has a clip-path, and it lies inside the curve of
+//                each rounded corner of one (a pixel of play given), nothing can. Else the browser is
+//                asked, as scrolled now: it is pointed at five points of the box (the centres of its line
+//                boxes when it wraps), and a point where it finds the element not is cut away. Where
+//                pointing cannot tell (pointer-events: none, inert, outside an open modal dialog, out of
+//                the window on a scrolled page), it fails "cannot be told: …", never a guess.
 //                An edge that passes a box by no more than one pixel is inside it.
 //                Measure at the top of the page: an element that sticks may be misjudged after a scroll.
 //   min-size     the one element's box is at least `minWidth` by `minHeight` CSS pixels
@@ -274,22 +274,28 @@
     return [across <= edge.width ? across : edge.width, down <= edge.height ? down : edge.height];
   }
 
-  // Whether a box reaches a rounded corner of an element: the rectangle at the corner, as wide as the
-  // corner's radius across and as high as its radius down. Rounding cuts nothing outside those four.
+  // Whether a rounded corner of an element may cut a box. Rounding cuts only what lies outside the corner's
+  // curve: an ellipse of the corner's radii about the point one radius in from the corner each way. The
+  // point of the box nearest to the corner is taken, TOLERANCE further in across and down: when it has
+  // reached that centre either way, or lies on or inside the curve, the corner cuts nothing of the box, for
+  // no point of it lies nearer to the corner.
   function atCorner(box, at) {
     var style = getComputedStyle(at);
     var edge = edgesOf(at);
+    // Each corner's radii, and how far in from it the box begins, across and down.
     return [
-      [style.borderTopLeftRadius, true, true],
-      [style.borderTopRightRadius, false, true],
-      [style.borderBottomRightRadius, false, false],
-      [style.borderBottomLeftRadius, true, false],
+      [style.borderTopLeftRadius, box.left - edge.left, box.top - edge.top],
+      [style.borderTopRightRadius, edge.right - box.right, box.top - edge.top],
+      [style.borderBottomRightRadius, edge.right - box.right, edge.bottom - box.bottom],
+      [style.borderBottomLeftRadius, box.left - edge.left, edge.bottom - box.bottom],
     ].some(function (corner) {
       var radii = radiiOf(corner[0], edge);
-      if (!(radii[0] > 0 && radii[1] > 0)) return false;
-      var left = corner[1] ? edge.left : edge.right - radii[0];
-      var top = corner[2] ? edge.top : edge.bottom - radii[1];
-      return box.left < left + radii[0] && box.right > left && box.top < top + radii[1] && box.bottom > top;
+      var rx = radii[0];
+      var ry = radii[1];
+      var x = Math.max(corner[1], 0) + TOLERANCE;
+      var y = Math.max(corner[2], 0) + TOLERANCE;
+      if (x >= rx || y >= ry) return false;
+      return (rx - x) * (rx - x) * ry * ry + (ry - y) * (ry - y) * rx * rx > rx * rx * ry * ry;
     });
   }
 
@@ -538,8 +544,8 @@
       if (x + box.width > width) outside.push('its right edge is at ' + two(x + box.width));
       if (y + box.height > height) outside.push('its bottom edge is at ' + two(y + box.height));
       var faults = outside.length === 0 ? [] : ['it is not inside the first viewport, ' + width + ' × ' + height + ': ' + outside.join(', ')];
-      // Clearly not cut: inside every box that might cut it, none of them with a clip-path, and at no
-      // rounded corner of one. Otherwise the browser is asked, when it can be.
+      // Clearly not cut: inside every box that might cut it, none of them with a clip-path, and inside
+      // the curve of every rounded corner of one. Otherwise the browser is asked, when it can be.
       var clips = mightClip(element);
       var outsideOf = clips.filter(function (at) {
         return !inside(box, at);
