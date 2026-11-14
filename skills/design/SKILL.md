@@ -158,6 +158,7 @@ node <kit root>/scripts/state.mjs route <package> <stage> <full|short|skipped> -
 
 - **`reopen` goes back.** Any stage may ask to, with its reason. The stage gets a new version, and every
   later output built from the old one turns stale: each is redone or re-confirmed, then stamped again.
+  A later stage that was awaiting him goes back in work, its question closed.
 - **`resize` grows the design.** The size only moves up: `references/routes.md`.
 - **`route` changes one stage's mode,** with the reason the state will keep.
 

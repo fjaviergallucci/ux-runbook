@@ -58,9 +58,9 @@ is built from the cast, the intent and the context. `<version>` is the version a
    node <kit root>/scripts/state.mjs begin <package> structure
    ```
 
-   After a round he rejected (`references/rounds.md`), `<package>/04-structure/` holds nothing but
-   `earlier/`: Structure starts clean from step 2, and only once `next` prints `structure`. A stage in
-   work goes on from the first step whose files are missing: step 4, until `CHOSEN.md` holds his yes.
+   After a round he rejected (`references/rounds.md`), `<package>/04-structure/` holds only `earlier/`:
+   Structure starts clean, from step 1, only once `next` prints `structure`. In work, it goes on from the
+   first step with a file missing: step 4, until `CHOSEN.md` holds his yes to every brief in the folder.
 2. **Read the cast sheet, and what its carry list names.** Copy the template to
    `<package>/04-structure/CHOSEN.md` and write `built-from`, unless the file is already there: then go
    on from what it holds.

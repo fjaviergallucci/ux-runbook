@@ -108,8 +108,8 @@ brief lists these under "Do not open":
 - `<package>/04-structure/CHOSEN.md`: from step 4 it names the seats that send the brief out;
 - every file of `<package>/04-structure/reads/` but its own, and `<package>/04-structure/earlier/`;
 - when a continuity maker is cast, today's screen, as a picture or as source: whoever has seen it can
-  tell which letter kept its layout. It is listed for every reader but a judge whose card reads
-  `current-screens`.
+  tell which letter kept its layout. It is listed for every reader. The usability judge's card reads
+  `current-screens`, but at Context: at Structure it is handed the options and nothing of today.
 
 ### `judge.usability`
 
