@@ -48,10 +48,11 @@ working from the same brief through other lenses. You never see their work, and 
    structure wagers, in one sentence. `cost` is what it is deliberately bad at. `absent` lists what is
    left out on purpose. Every structure buys something with something: a proposal with no cost is not
    finished.
-8. **Check it** before you return it. From the kit's root (the folder that holds `pool/`):
+8. **Check it** before you return it. From the kit's root — two folders above this card — and with
+   your file by its absolute path:
 
    ```
-   node --input-type=module -e "import { readFileSync } from 'node:fs'; import { validate } from './scripts/lib/walkthrough.mjs'; console.log(validate(JSON.parse(readFileSync(process.argv[1], 'utf8'))));" <your file>
+   node --input-type=module -e "import { readFileSync } from 'node:fs'; import { validate } from './scripts/lib/walkthrough.mjs'; console.log(validate(JSON.parse(readFileSync(process.argv[1], 'utf8'))));" <the absolute path of your file>
    ```
 
    `[]` means it is valid. Anything else names the fault and where it is.
@@ -61,13 +62,17 @@ working from the same brief through other lenses. You never see their work, and 
 One file: your proposal, as JSON in the walkthrough format, at the path your brief names. The format is in
 `kit/KIT-CONTRACT.md`, and the proposal is checked with `validate` (`scripts/lib/walkthrough.mjs`).
 
+### The walkthrough format, in short
+
 - The proposal: `name`, `bet`, `cost`, `absent` (a list), `hardest`, `firstIdea`, `screens` (a list).
 - A screen: `id`, `title`, `container` (`screen`, or `dialog` with `over` naming the screen it opens
   over), an optional `note`, and `items`.
-- An item is a role or a container. A role: `role` (heading, text, choice, input, action, list, status,
-  media, link or nav) and `text`; an optional `id` and `note`; `primary: true` on the one action the
-  screen is for; `options` on a choice (two or more), a list or a nav. A container: `container` (region,
-  group or expansion), a `label`, `items`, and `open` on an expansion.
+- An item is a role or a container. A role has `role` (`heading`, `text`, `choice`, `input`, `action`,
+  `list`, `status`, `media`, `link` or `nav`) and `text`. It may have an `id` and a `note`. `primary` is
+  true on the one action the screen is for. `options` belong to a choice (two or more), a list or a nav.
+- A container has `container` (`region`, `group` or `expansion`) and `items`. An expansion always has a
+  `label`, and may say it is `open`. A region or a group may have a `label`.
+- Who made it: `author`, `engine`, `track`, `model`, `source`. The conductor writes these. You do not.
 
 One screen, to show the shape:
 
@@ -78,17 +83,17 @@ One screen, to show the shape:
   { "role": "action", "text": "Book a walk-in", "primary": true } ] }
 ```
 
-Ids are lower-case words joined by hyphens. Do not add `author`, `engine`, `track`, `model` or `source`:
-the conductor tags the file. Your reply is short: the path, the proposal's name, what you assumed, and
-anything in the brief you did not follow, with why.
+Ids are lower-case words joined by hyphens. Your reply is short: the path, the proposal's name, what you
+assumed, and anything in the brief you did not follow, with why.
 
 ## Never
 
 - Never name a component (a card, a table, a tab bar, a dropdown, a sidebar) or a layout (a grid, two
   columns, a split view). You have roles and containers. What they cannot say goes in a `note`, as what
   she needs, not as how it looks.
-- Never open another proposal, the session's notes, or today's screen, as a picture or as source. The
-  one exception is a brief that casts you as the continuity maker and hands you today's screen.
+- Never open another proposal, the session's notes, or today's screen, as a picture or as source. Only
+  a brief lifts the blind on today's screen: the cast may name one describer the continuity maker, and
+  that one's brief says so and hands it the screen. If yours does not say so, you never see it.
 - Never return two proposals, or one with an alternative tucked into a note. One proposal, one bet.
 - Never show data or offer an action the brief does not say the product has. If your structure needs
   something that is not there, say so in `cost`.

@@ -2,12 +2,15 @@
 
 A seat in the pool is a card: one plain Markdown file that tells a fresh sub-agent its one job, what it
 may read and must never read, how it works and what it returns. A card is not an installed skill, so the
-pool can grow without adding to what every session loads. The conductor starts each seat from a brief
-that names its card, and the sub-agent reads the card first.
+pool can grow without adding to what every session loads.
+
+The conductor starts each seat from a brief. The brief names the seat's card by its absolute path and
+says to read it first. The card's first step then sends the seat back to its brief.
 
 This file is the contract every card keeps, the kit's and a project's own. `scripts/lib/card.mjs` checks
-it: `validateCard(text, { file })` returns every fault as one line, and an empty list for a valid card. A
-test holds this file and the checker to each other, so neither can say more than the other.
+what a machine can check of it: `validateCard(text, { file })` returns every fault as one line, and an
+empty list when it finds none. The rest is left to a reader. "What a machine checks, and what a reader
+must", below, says which is which.
 
 ## Where a card lives
 
@@ -91,6 +94,27 @@ them. Cast shows them, and the founder may change any of them. A seat that says 
 session's model and effort, or on its engine when that is a model or a tool. The reasons behind the
 suggestions, and the day they were last reviewed, are in `pool/MODELS.md`.
 
+## What a machine checks, and what a reader must
+
+The checker holds a card to its header (every key, every allowed value, the id against the file), to
+its sections (their names, their order, text under each) and to a judge's checks (two to six of them,
+and the table). A test holds the lists in this file to the checker's, so the two cannot drift apart.
+
+The checker reads these written forms, and no other:
+
+- A section's heading is `## Name`: two hashes, a space, the name, and nothing else on the line.
+- A core check is a list item that is not nested: `-`, `*`, `+`, `1.` or `1)`, a space, and the check.
+  It may be indented by up to three spaces.
+- A table row begins and ends with a pipe, as `| id | trigger | method |`. A cell of the header row may
+  be written with or without backticks. A row of dashes comes under the header row.
+- A `##` line inside a code fence is not a heading. A fence opens with three or more backticks or
+  tildes, and closes with at least as many of the same.
+
+Only a reader can check the rest: that the title and the opening lines say what the seat is; that the
+Method, with a brief, is enough for an agent that knows nothing else, and says what happens without the
+engine; that a trigger is something that can be seen in the artefact; that each Never is a real
+temptation; that Output names no file of the kit that is missing.
+
 ## The names in `reads` and `never-reads`
 
 The two lists hold short names for what a package and a project hold. These are the names the kit's cards
@@ -98,9 +122,9 @@ use. A card that needs another adds its row here.
 
 | Name | What it is |
 |---|---|
-| `brief` | The brief the seat was started from. Every seat reads it first. |
+| `brief` | The brief the seat was started from. Every seat has one. |
 | `walkthrough-format` | How a structure is written down: the roles and containers of `kit/KIT-CONTRACT.md`, and the rules `scripts/lib/walkthrough.mjs` checks. |
-| `source-screen` | The one screen, or the one answer in prose, that a transcriber is handed. |
+| `source-screen` | What a transcriber is handed: the screens of one concept, one or two, or one answer in prose. |
 | `context` | The approved context: who she is, and its inventory of what the product can show and do. |
 | `intent` | The approved intent: the person in her moment, the job, the tasks, the states, the success criteria. |
 | `chosen-structure` | The structure the founder picked. |
@@ -116,4 +140,5 @@ use. A card that needs another adds its row here.
 | `current-screens` | Today's interface: its screens, its source, its navigation. |
 | `sibling-surfaces` | The conventions of the product's other surfaces. |
 | `describers-brief` | The context brief the structure describers were given. |
+| `generator-prompt` | The prompt a screen generator kept beside its screen. |
 | `component-source` | The source of the project's real components. |

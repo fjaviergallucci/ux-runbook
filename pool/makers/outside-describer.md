@@ -7,7 +7,7 @@ cast-when: The project has turned an outside model on, and the design is worth o
 presets: []
 loaded-with: none
 reads: [brief]
-never-reads: [other-proposals, session-idea, current-screens, design-system]
+never-reads: [other-proposals, session-idea, current-screens, design-system, kit, sibling-surfaces]
 engine: model:any
 suggested-model: none
 suggested-effort: none
@@ -47,10 +47,13 @@ This card speaks to that session.
 6. **After the pick,** once the author map is open, write in the lessons file whether its proposal was
    picked. The seat is kept or dropped on that record, not on anyone's opinion of the model.
 
-At Look this seat sits only inside a fresh pass, and what it is sent is the fresh pass's brief. What
-comes back there is a concept as it came, not a proposal for the board, so the script will find no
-proposal in it and leave it in `<out>.raw.txt`. It is shown beside the system version. It is never
-handed off.
+**At Look** this seat sits only inside a fresh pass, and it chooses only the paint. The brief it is sent
+names the one screen the visual designer is drawing, and its state, and carries that screen's approved
+structure and strings. It asks for that screen, in that state, with those words exactly as written: no
+element added, none dropped, no string rewritten, no other screen. What comes back is a concept as it
+came, not a proposal for the board, so the script finds no proposal in it and leaves it in
+`<out>.raw.txt`. It is shown beside the system version, with anything it changed said beside it. It is
+never mended, and never handed off.
 
 **Without the engine** the seat is not cast. The Claude describers already do the job, and a stage never
 waits for this one.
@@ -67,7 +70,8 @@ At Look: the concept as it came, kept with the fresh pass in `06-look/`.
 ## Never
 
 - Never send anything but the approved brief: no other proposal, no idea of the session's, no picture
-  of today's screen, nothing of the design system.
+  of today's screen, nothing of the design system, of the shared kit, or of how the product's other
+  surfaces look.
 - Never turn the engine on yourself. `engines-on` is the founder's line in the profile.
 - Never mend, complete or improve an answer by hand. A valid one goes to the board as it is. An invalid
   one goes to a transcriber.

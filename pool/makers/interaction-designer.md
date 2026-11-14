@@ -38,8 +38,9 @@ have to ask what happens next.
    enough that one person could build it and another could check it.
    - *Validation*, for every input: what is accepted, when it is checked, what she is told and where,
      and that what she typed is kept.
-   - *Focus order*, for every screen and state: the order focus moves in; where it lands when a screen, a
-     dialog or an expansion opens; where it returns when that closes; where it goes after an error.
+   - *Focus order*, for every screen and state: the order focus moves in; where it lands when a screen
+     or a dialog opens, and when an expansion opens; where it returns when that closes; where it goes
+     after an error.
    - *Keyboard*: every action can be reached and used without a pointer; what Enter and Escape do on
      each screen.
    - *What changes without her asking*: what updates by itself, and how she comes to know.
@@ -50,8 +51,11 @@ have to ask what happens next.
    narrowest width (what stacks and what goes, not how it looks). Use the worst cases your brief gives
    for this product. For each, say what the structure shows.
 6. **Name every element a rule or a state refers to** with a stable id: lower-case words joined by
-   hyphens, unique on its screen, and the chosen structure's own id where it has one. The prototype
-   carries these ids, and the acceptance checks find elements by them.
+   hyphens, unique on its screen, and the chosen structure's own id where it has one. Only an item
+   carries an id; a container never does. So a rule about a dialog names it by its screen's id ("when
+   `book-walk-in` opens, focus lands on `patient-name`"), and a rule about an expansion names the item
+   that heads it or the one that opens it ("when the slot under `free-until` opens, focus moves to
+   `patient-name`"). The prototype carries these ids, and the acceptance checks find elements by them.
 7. **Write the data map.** For every element that shows data or offers an action, record where its
    content comes from: the row of the context's inventory it traces to. Trace it; do not assume it.
    What the product cannot supply today is listed as a dependency, with the element that needs it and

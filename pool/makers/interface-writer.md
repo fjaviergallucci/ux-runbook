@@ -48,16 +48,17 @@ card stands without it.
    in each language. Where she meets the product's own noun elsewhere, use that noun.
 7. **Write the why-line.** For every key, a note says how the languages stand to each other: `same` when
    they say the same thing the same way, and one line of what changed and why wherever they part (a
-   different example, another order, a longer line). It is never blank. Silence could mean either.
-8. **Count by tool.** Count the characters of every string with a tool, never by eye, and never state a
-   count you did not get from one. One string:
+   different example, another order, a longer line). When the product ships one language, the note
+   says what the line is for and what it must not be mistaken for. It is never blank.
+8. **Count what she sees, by tool.** Never count by eye, and never state a count you did not get from a
+   tool. A letter with its accent is one character, however it is stored:
 
    ```
-   node -e "console.log([...process.argv[1]].length)" "Reservar sala"
+   node -e "console.log([...new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(process.argv[1])].length)" "Café"
    ```
 
-   A string over its limit is rewritten. It is not abbreviated, and it is not left for the layout to
-   shrink.
+   That prints 4. A string over its limit is rewritten. It is not abbreviated, and it is not left for
+   the layout to shrink.
 9. **Read every line aloud, in its language.** If it sounds like a slogan, or like a sentence that came
    from another language, write what she would actually say.
 
