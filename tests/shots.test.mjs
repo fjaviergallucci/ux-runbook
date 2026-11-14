@@ -134,9 +134,12 @@ const inGroup = pgid =>
 const leftIn = async pgid => {
   for (let i = 0; i < 30 && inGroup(pgid) > 0; i++) await sleep(100);
   const left = inGroup(pgid);
-  try {
-    process.kill(-pgid, 'SIGKILL');
-  } catch {}
+  // Only a group that still has a process of its own: an emptied group's id may have been given again.
+  if (left > 0) {
+    try {
+      process.kill(-pgid, 'SIGKILL');
+    } catch {}
+  }
   return left;
 };
 

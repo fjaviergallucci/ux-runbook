@@ -20,7 +20,7 @@ test('marketplace lists ux from the repository root', () => {
 test('package runs on node 20 with one dependency', () => {
   const p = read('package.json');
   assert.equal(p.type, 'module');
-  assert.equal(p.engines.node, '>=20');
+  assert.equal(p.engines.node, '>=20.10');
   assert.deepEqual(Object.keys(p.dependencies), ['playwright-core']);
   assert.ok(!('devDependencies' in p), 'package.json has no devDependencies');
   assert.equal(p.scripts.test, 'node --test --test-concurrency=1 tests/*.test.mjs');

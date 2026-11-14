@@ -11,7 +11,6 @@ import { randomBytes } from 'node:crypto';
 import { basename, dirname, relative, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { chromium, errors as playwright } from 'playwright-core';
-import { UsageError } from './cli.mjs';
 
 // Every page is opened on a screen this high.
 export const HEIGHT = 900;
@@ -405,13 +404,3 @@ function answer(work, ms) {
 
 // Whether a close came back within CLOSE_MS; one that failed did come back.
 const closed = work => answer(work, CLOSE_MS).then(() => true, e => !(e instanceof NoAnswer));
-
-// readTimeout(flags) → the --timeout of a command line, a whole number of milliseconds from 1; TIMEOUT when
-// it is not given. Throws a UsageError.
-export function readTimeout(flags) {
-  if (!Object.hasOwn(flags, 'timeout')) return TIMEOUT;
-  if (!/^[1-9]\d*$/.test(flags.timeout) || !Number.isSafeInteger(Number(flags.timeout))) {
-    throw new UsageError(`--timeout must be a whole number of milliseconds from 1, as 30000; it is "${flags.timeout}"`);
-  }
-  return Number(flags.timeout);
-}

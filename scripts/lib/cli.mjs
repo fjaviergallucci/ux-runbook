@@ -41,6 +41,16 @@ export function parseArgs(argv, { flags: known = [], switches = [] } = {}) {
   return { help: false, positional, flags };
 }
 
+// readTimeout(flags) → the --timeout a command line gives, a whole number of milliseconds from 1, or
+// undefined when it gives none (the script's own default then holds). Throws a UsageError.
+export function readTimeout(flags) {
+  if (!Object.hasOwn(flags, 'timeout')) return undefined;
+  if (!/^[1-9]\d*$/.test(flags.timeout) || !Number.isSafeInteger(Number(flags.timeout))) {
+    throw new UsageError(`--timeout must be a whole number of milliseconds from 1, as 30000; it is "${flags.timeout}"`);
+  }
+  return Number(flags.timeout);
+}
+
 // isMain(import.meta.url) → true only in the file node was given (through a link too), never in a file it
 // imports: a script runs its command only then.
 export function isMain(url) {

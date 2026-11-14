@@ -1,7 +1,7 @@
 import { after, before, describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
-import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { dirname, join } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
@@ -82,10 +82,14 @@ const leftOf = async pids => {
   let left = 0;
   for (const pgid of pids) {
     for (let i = 0; i < 30 && inGroup(pgid) > 0; i++) await sleep(100);
-    left += inGroup(pgid);
-    try {
-      process.kill(-pgid, 'SIGKILL');
-    } catch {}
+    const still = inGroup(pgid);
+    left += still;
+    // Only a group that still has a process of its own: an emptied group's id may have been given again.
+    if (still > 0) {
+      try {
+        process.kill(-pgid, 'SIGKILL');
+      } catch {}
+    }
   }
   return left;
 };
@@ -197,11 +201,17 @@ test('contrast with min 21 on grey text fails, and reports the measured ratio in
 test('--root, --out and the acceptance file each in a folder whose name holds a space: the run works', () => {
   const dir = fresh('two words');
   const spaced = prototypeIn(join(dir, 'the prototype'));
-  const file = writeJson(dir, 'the checks.json', fixture());
+  // A page whose own name holds a space, in a folder whose name holds one.
+  mkdirSync(join(spaced, 'by state'));
+  cpSync(join(prototype, 'today-default-en.html'), join(spaced, 'by state', 'today default.html'));
+  cpSync(join(prototype, 'kit.css'), join(spaced, 'by state', 'kit.css'));
+  const data = fixture();
+  data.checks.push(check({ id: 'spaced-page', page: 'by state/today default.html', type: 'text', target: 'free-count', equals: '2 rooms free' }));
+  const file = writeJson(dir, 'the checks.json', data);
   const out = join(dir, 'the results', 'results.json');
   const r = run('prototype', file, '--root', spaced, '--out', out);
   assert.equal(r.status, 0, r.stderr);
-  assert.equal(r.stdout, `8 checks: 0 failed, 8 passed; results in ${out}\n`);
+  assert.equal(r.stdout, `9 checks: 0 failed, 9 passed; results in ${out}\n`);
   assert.ok(JSON.parse(readFileSync(out, 'utf8')).every(result => result.pass));
 });
 
@@ -449,9 +459,14 @@ test('each page is opened once for each width and theme its checks name, in one 
   ]);
 });
 
-test('a page that does not open, or that leaves, fails every check of its group with the page\'s fault; the other groups run', async () => {
+test('a page that is not there, or is not a file, fails every check of its group, saying which, and is never opened; a page that leaves fails its group; the other groups run', { skip: !UNIX && 'needs a shell script for Chrome' }, async () => {
   const dir = prototypeIn(fresh(), { 'leaves.html': '<p data-ux="free-count">2 rooms free</p>\n<script>location.href = "today-empty-en.html"</script>' });
+  // A folder would be opened as Chrome's listing of it, where nothing is found and an absent check passes.
+  mkdirSync(join(dir, 'states'));
+  symlinkSync('/dev/null', join(dir, 'null.html'));
   const checks = [
+    check({ id: 'folder', page: 'states', type: 'absent', target: 'book-action' }),
+    check({ id: 'device', page: 'null.html', type: 'count', target: 'room-', equals: 0 }),
     check({ id: 'missing-a', page: 'missing.html', type: 'visible', target: 'free-count' }),
     check({ id: 'fine', type: 'visible', target: 'free-count' }),
     check({ id: 'leaves-a', page: 'leaves.html', type: 'visible', target: 'free-count' }),
@@ -459,22 +474,39 @@ test('a page that does not open, or that leaves, fails every check of its group 
     check({ id: 'leaves-b', page: 'leaves.html', type: 'text', target: 'free-count', equals: '2 rooms free' }),
     check({ id: 'missing-other-width', page: 'missing.html', width: 1280, type: 'absent', target: 'book-action' }),
   ];
-  const { results } = await acceptPrototype({ design: 'today', checks }, { root: dir });
+  const log = join(dir, 'openings.log');
+  const r = spawnSync(process.execPath, ['--require', counting, cli, 'prototype', writeJson(dir, 'acceptance.json', { design: 'today', checks }), '--root', dir, '--out', join(dir, 'results.json')], { encoding: 'utf8', timeout: 60_000, env: { ...process.env, OPENINGS_LOG: log } });
+  assert.equal(r.status, 1, r.stderr);
+  const results = JSON.parse(readFileSync(join(dir, 'results.json'), 'utf8'));
   const found = byId(results);
   assert.deepEqual(results.map(result => result.id), checks.map(c => c.id));
-  for (const id of ['missing-a', 'missing-b', 'missing-other-width']) {
-    assert.equal(found[id].pass, false, id);
-    assert.equal(found[id].actual, null, id);
-    assert.match(found[id].message, /^the page did not open: net::ERR_FILE_NOT_FOUND/, id);
-  }
-  for (const id of ['leaves-a', 'leaves-b']) assert.deepEqual([found[id].pass, found[id].actual, found[id].message], [false, null, 'the page sent itself to today-empty-en.html'], id);
+  const says = id => [found[id].pass, found[id].actual, found[id].message];
+  assert.deepEqual(says('folder'), [false, null, 'cannot read the page states: it is a folder, not a file']);
+  assert.deepEqual(says('device'), [false, null, 'cannot read the page null.html: it is not a file']);
+  for (const id of ['missing-a', 'missing-b', 'missing-other-width']) assert.deepEqual(says(id), [false, null, 'cannot read the page missing.html: not found'], id);
+  for (const id of ['leaves-a', 'leaves-b']) assert.deepEqual(says(id), [false, null, 'the page sent itself to today-empty-en.html'], id);
   assert.equal(found.fine.pass, true);
+  // None of them was ever opened.
+  const opened = readFileSync(log, 'utf8').trim().split('\n').filter(line => line.startsWith('page ')).map(line => line.split(' ')[1]);
+  assert.deepEqual(opened, ['today-default-en.html', 'leaves.html']);
+});
+
+test('when no page of a run is a file, no browser is started', { skip: !UNIX && 'needs a shell script for Chrome' }, async () => {
+  const dir = fresh();
+  const chrome = countingChrome(dir);
+  mkdirSync(join(dir, 'states'));
+  const { results } = await acceptPrototype({ design: 'today', checks: [check({ id: 'a', page: 'states', type: 'visible', target: 'x' }), check({ id: 'b', page: 'gone.html', type: 'visible', target: 'x' })] }, { root: dir, chrome: chrome.file });
+  assert.deepEqual(results.map(result => result.message), ['cannot read the page states: it is a folder, not a file', 'cannot read the page gone.html: not found']);
+  assert.deepEqual(chrome.pids(), []);
 });
 
 // Faults put into the browsers a command starts, through Playwright's own objects. FAULT names one:
 //   dead-page  the browser is stopped, by its own process handle, as a page is asked of it, at the calls
 //              numbered in FAULT_AT (as "2,3"), counted over the whole run
 //   hang       page.close() never returns for the page named FAULT_PAGE
+//   leaves-as-checked  as the in-page file is evaluated in the page named FAULT_PAGE, the page has just
+//                      left for away/elsewhere.html
+//   unread-as-checked  the page named FAULT_PAGE can be read, and checked, and never read again
 const faults = join(root, 'browser-faults.cjs');
 writeFileSync(faults, [
   "const { chromium } = require('playwright-core');",
@@ -497,6 +529,10 @@ writeFileSync(faults, [
   "      if (fault === 'dead-page' && at(++pages)) await stopOwn();",
   '      const page = await newPage(...b);',
   "      if (fault === 'hang') { const close = page.close.bind(page); page.close = (...c) => (marked(page.url()) ? new Promise(() => {}) : close(...c)); }",
+  '      const evaluate = page.evaluate.bind(page);',
+  "      if (fault === 'leaves-as-checked') page.evaluate = async (...c) => { if (typeof c[0] === 'string' && marked(page.url())) { const landed = page.waitForEvent('framenavigated'); await evaluate(() => { location.href = 'away/elsewhere.html'; }); await landed; } return evaluate(...c); };",
+  "      let reads = 0;",
+  "      if (fault === 'unread-as-checked') page.evaluate = async (...c) => { if (marked(page.url()) && ++reads > 3) throw new Error('page.evaluate: the page did not say'); return evaluate(...c); };",
   '      return page;',
   '    };',
   '    return context;',
@@ -537,6 +573,24 @@ test('a page whose browser stops twice before it can be opened fails each of its
   assert.deepEqual([r.status, r.stderr], [0, 'warning: today-empty-en.html: the page would not close; its browser was stopped\n']);
   assert.ok(JSON.parse(readFileSync(out, 'utf8')).every(result => result.pass));
   assert.equal(left, 0);
+});
+
+test('a page that leaves while it is checked, or cannot be read once checked, fails each of its checks, saying so; the run goes on and leaves no browser', { skip: !UNIX && 'needs a shell script for Chrome' }, async () => {
+  for (const [fault, message] of [
+    ['leaves-as-checked', 'the page sent itself to away/elsewhere.html while it was being checked'],
+    ['unread-as-checked', 'the page could not be read again once checked: the page did not say'],
+  ]) {
+    const dir = prototypeIn(fresh());
+    mkdirSync(join(dir, 'away'));
+    writeFileSync(join(dir, 'away', 'elsewhere.html'), '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<title>Elsewhere</title>\n</head>\n<body>\n<p data-ux="empty-message">Elsewhere.</p>\n</body>\n</html>\n');
+    const chrome = countingChrome(dir);
+    const out = join(dir, 'results.json');
+    const r = await runFor(['--require', faults, cli, 'prototype', acceptanceFile, '--root', dir, '--out', out, '--chrome', chrome.file], 60_000, { FAULT: fault, FAULT_PAGE: 'today-empty-en.html' });
+    const left = await leftOf(chrome.pids());
+    assert.deepEqual([r.status, r.stderr], [1, `failed: empty-message-shown: ${message}\nfailed: no-booking-when-full: ${message}\n`], fault);
+    assert.deepEqual(JSON.parse(readFileSync(out, 'utf8')).map(result => result.pass), [false, false, true, true, true, true, true, true], fault);
+    assert.equal(left, 0, fault);
+  }
 });
 
 test('a page whose in-page function cannot be put in place, or gives no result, fails each of its checks; the run goes on', async () => {
@@ -605,6 +659,8 @@ test('a page that reports an error of its own (a stylesheet that did not load, a
     `failed: broken: ${THROWN}`,
     'failed: both: script error: no rooms; gone.css did not load: net::ERR_FILE_NOT_FOUND',
     'failed: leaves: the page sent itself to today-empty-en.html',
+    // What it reported is not the message of its checks, so it is a warning.
+    'warning: leaves.html: script error: on its way',
     '',
   ].join('\n'));
   const results = byId(JSON.parse(readFileSync(out, 'utf8')));
@@ -899,7 +955,7 @@ describe('the in-page file, evaluated through a driver of its own', () => {
     const context = await browser.newContext(contextOptions(390, 'light'));
     try {
       const page = await context.newPage();
-      await page.setContent('<main data-screen="today"><p data-ux="free-count" style="color: oklch(0.4 0 0)">2 rooms free</p><ul><li data-ux="room-1">Room 1</li></ul><button data-ux="book-action">Book</button></main>');
+      await page.setContent(`${STYLE}<main data-screen="today"><p data-ux="free-count" style="color: oklch(0.4 0 0)">2 rooms free</p><ul><li data-ux="room-1">Room 1</li></ul><button data-ux="book-action" style="width: 60px; height: 30px">Book</button></main>`);
       await page.evaluate(() => {
         window.mutations = 0;
         new MutationObserver(list => (window.mutations += list.length)).observe(document, { subtree: true, childList: true, attributes: true, characterData: true });
@@ -909,7 +965,17 @@ describe('the in-page file, evaluated through a driver of its own', () => {
       const types = ['visible', 'absent', 'in-viewport', 'contrast'].map(type => ({ id: type, type, target: 'free-count', screen: 'today', min: 3 }));
       types.push({ id: 'text', type: 'text', target: 'free-count', matches: 'rooms' }, { id: 'order', type: 'order', targets: ['free-count', 'book-action'] }, { id: 'min-size', type: 'min-size', target: 'book-action', minWidth: 1, minHeight: 1 }, { id: 'count', type: 'count', target: 'room-', equals: 1 });
       const results = await page.evaluate(checks => window.__uxAccept(checks), types);
-      assert.equal(results.length, 8);
+      assert.deepEqual(shown(results), [
+        ['visible', true, { width: 390, height: 18 }, ''],
+        ['absent', false, 1, 'data-ux="free-count" is rendered in data-screen="today"'],
+        ['in-viewport', true, { x: 0, y: 0, width: 390, height: 18 }, ''],
+        // oklch(0.4 0 0) is a grey of 72 in sRGB, on white.
+        ['contrast', true, 9.14, ''],
+        ['text', true, '2 rooms free', ''],
+        ['order', true, ['free-count', 'book-action'], ''],
+        ['min-size', true, { width: 60, height: 30 }, ''],
+        ['count', true, 1, ''],
+      ]);
       await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 50)));
       assert.equal(await page.evaluate(() => window.mutations), 0);
       assert.equal(await page.evaluate(() => document.documentElement.outerHTML), html);
@@ -1254,6 +1320,10 @@ describe('the in-page file, evaluated through a driver of its own', () => {
       ['room-', false, null, 'equals must be a whole number from 0'],
     ]);
   });
+});
+
+test('the fixture prototype carries the grey kit byte for byte', () => {
+  assert.ok(readFileSync(join(prototype, 'kit.css')).equals(readFileSync(join(here, '..', 'kit', 'grey', 'kit.css'))));
 });
 
 test('no product name appears in the acceptance scripts or the shared browser library', () => {

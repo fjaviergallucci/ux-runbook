@@ -14,9 +14,9 @@
 // --allow-errors; an unreadable input; an unwritable output; no Chrome) · 2 bad usage.
 import { mkdirSync, readdirSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { basename, extname, join, resolve } from 'node:path';
-import { CLOSE_MS, TIMEOUT, nameOf, readTimeout, visitPages } from './lib/browser.mjs';
+import { CLOSE_MS, TIMEOUT, nameOf, visitPages } from './lib/browser.mjs';
 import { ChromeError, findChrome } from './lib/chrome.mjs';
-import { UsageError, isMain, parseArgs } from './lib/cli.mjs';
+import { UsageError, isMain, parseArgs, readTimeout } from './lib/cli.mjs';
 import { reason } from './lib/json-file.mjs';
 
 export { CLOSE_MS, TIMEOUT, nameOf };

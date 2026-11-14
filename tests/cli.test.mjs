@@ -4,7 +4,8 @@ import { spawnSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { HELP, UsageError, isMain, parseArgs } from '../scripts/lib/cli.mjs';
+import * as browser from '../scripts/lib/browser.mjs';
+import { HELP, UsageError, isMain, parseArgs, readTimeout } from '../scripts/lib/cli.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const cliUrl = pathToFileURL(join(here, '..', 'scripts', 'lib', 'cli.mjs')).href;
@@ -91,4 +92,13 @@ test('isMain: true in the file node was given, even through a link; false in a f
   }
   r = node(join(dir, 'linked.mjs'));
   assert.deepEqual([r.status, r.stdout, r.stderr], [0, 'child false\nmain true\n', '']);
+});
+
+test('readTimeout reads --timeout as a whole number of milliseconds from 1, and gives nothing when it is not there; it is command-line parsing, not the browser library', () => {
+  assert.equal(readTimeout({}), undefined);
+  assert.equal(readTimeout({ timeout: '1500' }), 1500);
+  for (const value of ['0', '1.5', '2s', '-5', '99999999999999999999']) {
+    assert.throws(() => readTimeout({ timeout: value }), e => e instanceof UsageError && e.message === `--timeout must be a whole number of milliseconds from 1, as 30000; it is "${value}"`, value);
+  }
+  assert.ok(!('readTimeout' in browser), 'the browser library does not parse a command line');
 });

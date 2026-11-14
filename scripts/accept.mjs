@@ -15,9 +15,9 @@
 import { mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, posix } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { TIMEOUT, readTimeout, visitPages } from './lib/browser.mjs';
+import { TIMEOUT, visitPages } from './lib/browser.mjs';
 import { ChromeError, findChrome } from './lib/chrome.mjs';
-import { UsageError, isMain, parseArgs } from './lib/cli.mjs';
+import { UsageError, isMain, parseArgs, readTimeout } from './lib/cli.mjs';
 import { JsonFileError, readJsonFile, reason } from './lib/json-file.mjs';
 
 // The in-page file: plain browser JavaScript that defines window.__uxAccept.
@@ -197,6 +197,22 @@ export async function acceptPrototype(data, { root, chrome, timeout = TIMEOUT, a
     groups.get(run).get(file).push({ check, place });
   });
   const results = new Array(data.checks.length);
+  // Each check of a group gets what made(check, its place in the group) says of it.
+  const fill = (group, run, made) => {
+    group.forEach(({ check, place }, i) => {
+      results[place] = { id: check.id, ...made(check, i), criterion: check.criterion, state: check.state, page: check.page, width: check.width, theme: run.theme };
+    });
+  };
+  // A page that is not a file is never opened (a folder would be opened as its listing): every check of
+  // its group fails, saying which, before any browser starts.
+  for (const run of runs) {
+    run.files = run.files.filter(file => {
+      const group = groups.get(run).get(file);
+      const fault = notAPage(file, group[0].check.page);
+      if (fault) fill(group, run, () => ({ pass: false, actual: null, message: fault }));
+      return !fault;
+    });
+  }
   const errors = [];
   const said = new Set();
   const report = (page, message) => {
@@ -211,20 +227,30 @@ export async function acceptPrototype(data, { root, chrome, timeout = TIMEOUT, a
     // What the page reported fails its checks, after any fault of its own, unless errors are allowed.
     const reported = allowErrors || visit.lost ? '' : visit.reports.join('; ');
     const fault = visit.lost ? 'the browser stopped twice while opening this page' : visit.fault || reported;
-    group.forEach(({ check, place }, i) => {
-      const found = fault ? null : visit.value?.[i];
-      const made = fault
-        ? { pass: false, actual: null, message: fault }
-        : isObject(found) && found.id === check.id && typeof found.pass === 'boolean'
-          ? { pass: found.pass, actual: found.actual ?? null, message: String(found.message ?? '') }
-          : { pass: false, actual: null, message: 'the page gave no result for this check' };
-      results[place] = { id: check.id, ...made, criterion: check.criterion, state: check.state, page: check.page, width: check.width, theme: run.theme };
+    fill(group, run, (check, i) => {
+      if (fault) return { pass: false, actual: null, message: fault };
+      const found = visit.value?.[i];
+      if (isObject(found) && found.id === check.id && typeof found.pass === 'boolean') return { pass: found.pass, actual: found.actual ?? null, message: String(found.message ?? '') };
+      return { pass: false, actual: null, message: 'the page gave no result for this check' };
     });
     if (visit.lost) return;
-    if (allowErrors) for (const message of visit.reports) report(page, message);
+    // What the page reported is a warning when it is not already the message of its checks.
+    if (allowErrors || visit.fault) for (const message of visit.reports) report(page, message);
     if (visit.closing) report(page, visit.closing);
   });
   return { results, errors };
+}
+
+// Why a check's page cannot be opened, or null: it is not there, or is not a file.
+function notAPage(file, page) {
+  let stat;
+  try {
+    stat = statSync(file);
+  } catch (e) {
+    return `cannot read the page ${page}: ${reason(e)}`;
+  }
+  if (stat.isFile()) return null;
+  return `cannot read the page ${page}: ${stat.isDirectory() ? 'it is a folder, not a file' : 'it is not a file'}`;
 }
 
 function checkFolder(folder) {
