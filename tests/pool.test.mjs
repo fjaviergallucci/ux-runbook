@@ -981,10 +981,22 @@ test('a script, a kit file, a pool file or a test file named in the pool exists'
   }
 });
 
-test('a template, a skill or a reference file named in the pool exists (Task 12 makes templates/ live; Tasks 13 to 18, skills/ and reference/)', { todo: 'Task 12 writes the templates; Tasks 13 to 18 write the skills and the reference files' }, () => {
+// Live for all three folders. The pool names no skill and no reference file yet: one that Tasks 13 to 18 add
+// a name for must be written by then, or this fails.
+test('a template, a skill or a reference file named in the pool exists', () => {
+  const seen = new Set();
   for (const [file, text] of poolTexts()) {
-    for (const path of pathsUnder(LATER, text)) assert.ok(existsSync(at(path)), `${file} names ${path}, which is not in the kit`);
+    for (const path of pathsUnder(LATER, text)) {
+      seen.add(path);
+      assert.ok(existsSync(at(path)), `${file} names ${path}, which is not in the kit`);
+    }
   }
+  // What the seats return, and the files three makers write, each in the shape of its template.
+  const named = [
+    'templates/outputs/LEDGER.md', 'templates/outputs/TASK-READ.md', 'templates/package/05-detail/DETAIL.md', 'templates/package/05-detail/states.md',
+    'templates/package/05-detail/strings.json', 'templates/package/06-look/LOOK.md',
+  ];
+  for (const path of named) assert.ok(seen.has(path), `${path} is named, so the check reads what it should`);
 });
 
 // The walkthrough format as two cards say it, each under this heading, as a list.
@@ -1189,7 +1201,9 @@ test('no product name appears in what the kit ships', () => {
   const known = [
     'pool/CARD-FORMAT.md', 'pool/INDEX.md', 'pool/makers/visual-designer.md', 'pool/audiences/task-reader.md', 'pool/persons/first-timer.md',
     'scripts/lib/card.mjs', 'scripts/inpage/accept-inpage.js', 'kit/grey/kit.css',
-    'templates/outputs/decision.json', '.claude-plugin/plugin.json', '.claude-plugin/marketplace.json', 'tests/fixtures/proposals/calendar.json',
+    'templates/outputs/decision.json', 'templates/outputs/LEDGER.md', 'templates/package/00-frame.md', 'templates/package/04-structure/BRIEF.md',
+    'templates/package/05-detail/strings.json', 'templates/people/PROFILE-CARD.md', 'templates/project/PROFILE.md', 'templates/briefs/judge.md',
+    '.claude-plugin/plugin.json', '.claude-plugin/marketplace.json', 'tests/fixtures/proposals/calendar.json',
     'tests/fixtures/prototype/today-default-es.html', 'README.md', 'package.json',
   ];
   for (const expected of known) assert.ok(files.includes(expected), `${expected} is read`);

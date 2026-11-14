@@ -1,0 +1,14 @@
+{
+  "design": "today",
+  "checks": [
+    {
+      "id": "empty-message-shown",
+      "criterion": "When no room is free, she is told so, and when the next room frees up.",
+      "state": "empty",
+      "page": "today-empty-en.html",
+      "width": 390,
+      "type": "visible",
+      "target": "empty-message"
+    }
+  ]
+}

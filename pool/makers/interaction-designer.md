@@ -63,7 +63,9 @@ have to ask what happens next.
 
 ## Output
 
-Written into `05-detail/`, in the files your brief names:
+Written into `05-detail/`, in the files your brief names (the states table takes the shape of
+`templates/package/05-detail/states.md`; the rest goes under the headings of
+`templates/package/05-detail/DETAIL.md`):
 
 - the states table: screen, state, what she sees, what she can do, where the focus is;
 - the rules, under the five headings of step 4, each naming its elements by id;

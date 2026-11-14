@@ -64,9 +64,10 @@ card stands without it.
 
 ## Output
 
-The strings table, in `05-detail/`, in the file and the shape your brief names (`strings.json` when it
-names none). One entry for each key, holding: the string in every language; its limit, when it has one;
-where it appears (screen, element, state); and the why-line.
+The strings table, in `05-detail/`, in the file and the shape your brief names (`strings.json`, in the
+shape of `templates/package/05-detail/strings.json`, when it names none). One entry for each key,
+holding: the string in every language; its limit, when it has one; where it appears (screen, element,
+state); and the why-line.
 
 With it, two short lists, each of which may be empty: "Waiting for a fact" (a string that needs
 something you were not given, such as a limit, a name, or what an error means, with what is missing)

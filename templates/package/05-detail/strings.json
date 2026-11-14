@@ -1,0 +1,8 @@
+{
+  "{screen.element: one entry like this for each string, its key built from its screen and its element}": {
+    "{language code: one line like this for each language the product ships}": "{the string, written for this language and never from another}",
+    "max": null,
+    "where": "{screen · element id · state}",
+    "note": "{the why-line, never blank: same, or one line of what changed between the languages and why}"
+  }
+}

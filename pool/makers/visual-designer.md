@@ -69,8 +69,9 @@ and state its thesis and its cost. There is no token file yet: the founder's pic
 
 In `06-look/`, where your brief says: the final screens, as static pages on the project's tokens; the
 table of measured values; the reference pictures; the variants, when there are any, with their axis
-named; and the list of named extensions, which may be empty. Your reply gives the paths, the number of
-pages as a sum, and anything in the detail you could not draw as approved.
+named; and the list of named extensions, which may be empty (the table and the list under the headings
+of `templates/package/06-look/LOOK.md`). Your reply gives the paths, the number of pages as a sum, and
+anything in the detail you could not draw as approved.
 
 ## Never
 
