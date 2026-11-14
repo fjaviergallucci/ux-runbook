@@ -81,8 +81,9 @@ reply is its path, the ranking, and the stuck point that cost her most. The read
 
 ## Never
 
-- Never open the intent, her profile, the package, a maker's notes, a ledger or another read, even to
-  make sure of a task. A task you cannot follow is a stuck point: write it down.
+- Never open the intent, her profile, a maker's notes, a ledger or another read, even to make sure of a
+  task, and nothing in the package but the pictures you are handed. A task you cannot follow is a stuck
+  point: write it down.
 - Never invent a quote, a habit or a number for her, and never speak for real people: nobody may cite
   this read as what people like her think.
 - Never let a yes stand without the thing on the screen that earned it, and never score.

@@ -290,23 +290,42 @@ test('03-cast.md has a table for each stage from structure to acceptance, with m
 const BRIEFS = ['package/04-structure/BRIEF.md', 'package/04-structure/BRIEF-fresh.md'];
 // What a fresh maker is not given, each as a line would name it.
 const WITHHELD = [/design system/i, /\bkit\b/i, /sibling/i, /today[’']s (?:screens?|navigation|interface)|current screens?/i];
+const FRESH = BRIEFS[1];
+// The fresh brief holds two forms, each opened by a comment of one line. At Structure the filler deletes
+// the Look form, at Look the Structure form, and the comment of the one it keeps.
+const FORM = { structure: /^<!-- Structure form[^\n]*-->\n/m, look: /^<!-- Look form[^\n]*-->\n/m };
+const freshForms = () => {
+  const text = template(FRESH);
+  const from = text.search(FORM.structure);
+  const to = text.search(FORM.look);
+  assert.ok(from !== -1 && to > from, 'the Structure form is marked, then the Look form, which runs to the end');
+  const kept = (block, mark) => block.replace(mark, '').replace(/^\n/, '');
+  return {
+    shared: text.slice(0, from),
+    structure: text.slice(0, from) + kept(text.slice(from, to), FORM.structure).trimEnd() + '\n',
+    look: text.slice(0, from) + kept(text.slice(to), FORM.look),
+  };
+};
+// A brief as a describer is sent it: the fresh one in its Structure form.
+const brief = file => (file === FRESH ? freshForms().structure : template(file));
 
 test('both Structure briefs give the person, the job, the tasks and what the product can show and do, never the design', () => {
   for (const file of BRIEFS) {
-    const names = headings(template(file));
-    for (const name of ['The person', 'The job', 'The tasks', 'What the product can show and do', 'What to return']) {
+    const text = brief(file);
+    const names = headings(text);
+    for (const name of ['The person', 'The job', 'The tasks', 'The hardest state', 'What the product can show and do', 'What to return']) {
       assert.ok(names.includes(name), `${file}: ## ${name}`);
     }
     assert.deepEqual(names.slice(-2), ['How to work', 'What to return'], `${file}: the method, then the format, last`);
     // The method an outside model gets from nowhere else. No lens: a seat's own brief gives that.
-    const how = flat(section(template(file), 'How to work'));
+    const how = flat(section(text, 'How to work'));
     for (const step of [/no interface at all/i, /first idea[^.]*set it aside/i, /habit of the category/, /one way, whole/i, /real words she would read/, /worst rows/, /hardest state/]) {
       assert.match(how, step, `${file}: how to work`);
     }
-    assert.doesNotMatch(section(template(file), 'How to work'), /\blens\b/i, `${file}: no lens in the brief`);
-    assert.doesNotMatch(section(template(file), 'How to work'), BRACES, `${file}: the method is the brief's own, not an instruction to fill`);
+    assert.doesNotMatch(section(text, 'How to work'), /\blens\b/i, `${file}: no lens in the brief`);
+    assert.doesNotMatch(section(text, 'How to work'), BRACES, `${file}: the method is the brief's own, not an instruction to fill`);
     // True of both readers: an outside model has this page alone, a seat also has its card.
-    const opening = flat(template(file).slice(0, template(file).indexOf('\n## ')));
+    const opening = flat(text.slice(0, text.indexOf('\n## ')));
     assert.match(opening, /This page is the whole brief/, file);
     assert.doesNotMatch(opening, /Everything you are given/, file);
   }
@@ -314,24 +333,72 @@ test('both Structure briefs give the person, the job, the tasks and what the pro
   assert.ok(!headings(template(BRIEFS[0])).includes('What you are not given'));
 });
 
-test('BRIEF-fresh.md names what it withholds only under "## What you are not given"', () => {
-  const text = template(BRIEFS[1]);
+// Every line of a text outside its "## What you are not given" section names nothing a fresh maker is not given.
+const withholdsOnlyThere = (text, what) => {
   const withheld = section(text, 'What you are not given');
-  for (const thing of WITHHELD) assert.match(withheld, thing);
-  assert.match(flat(withheld), /what the product (?:does|can show and do)/, 'no knowledge of form, not of what the product does');
-  // Every other line, the file's own instructions included.
+  for (const thing of WITHHELD) assert.match(withheld, thing, what);
+  assert.match(flat(withheld), /what the product (?:does|can show and do)/, `${what}: no knowledge of form, not of what the product does`);
   const lines = text.split('\n');
   const from = lines.indexOf('## What you are not given');
   const length = withheld.split('\n').length + 1;
   const others = [...lines.slice(0, from), ...lines.slice(from + length)];
   assert.equal(others.length + length, lines.length);
-  for (const line of others) for (const thing of WITHHELD) assert.doesNotMatch(line, thing, `outside the section: ${line}`);
+  for (const line of others) for (const thing of WITHHELD) assert.doesNotMatch(line, thing, `${what}, outside the section: ${line}`);
+};
+
+test('BRIEF-fresh.md names what it withholds only under "## What you are not given", in the template and in each form', () => {
+  // The template whole, its own instructions and both forms included; then each form as it is sent.
+  withholdsOnlyThere(template(FRESH), 'the template');
+  const { structure, look } = freshForms();
+  withholdsOnlyThere(structure, 'the Structure form');
+  withholdsOnlyThere(look, 'the Look form');
+});
+
+test('BRIEF-fresh.md holds a Structure form and a Look form, and says which sections are whose', () => {
+  const text = template(FRESH);
+  const { shared, structure, look } = freshForms();
+  // Each form is opened by one comment, and the opening comment says what to keep at each stage.
+  for (const mark of Object.values(FORM)) assert.equal(text.split('\n').filter(line => mark.test(`${line}\n`)).length, 1);
+  const said = flat(text.match(/<!-- Template\.[\s\S]*?-->/)[0]);
+  assert.match(said, /two forms/);
+  assert.match(said, /At Structure, keep "The hardest state", "How to work" and "What to return"[^.]*delete "The one screen"/);
+  assert.match(said, /At Look, keep "The one screen"[^.]*delete "The hardest state", "How to work" and[^.]*"What to return"/);
+  assert.match(flat(text.match(FORM.structure)[0]), /At Look, delete all of it/);
+  assert.match(flat(text.match(FORM.look)[0]), /At Structure, delete all of it/);
+  // What both forms share says nothing of what is asked: the ask is the form's.
+  assert.deepEqual(headings(shared), ['The person', 'The job', 'The tasks', 'What the product can show and do', 'Language and device', 'What you are not given']);
+  assert.doesNotMatch(flat(shared.replace(/<!--[\s\S]*?-->/g, '')), /concept|propose|draw|screens that carry/i);
+  // The Structure form: the hardest state, the method, the format.
+  assert.deepEqual(headings(structure).slice(6), ['The hardest state', 'How to work', 'What to return']);
+  assert.match(flat(section(structure, 'How to work')), /a concept of your own: the one or two screens that carry the idea, never the whole flow/);
+  // The Look form: one approved screen, drawn as it is written, and only how it looks is chosen.
+  assert.deepEqual(headings(look).slice(6), ['The one screen', 'What to return']);
+  const screen = flat(section(look, 'The one screen'));
+  for (const said of [/its structure and its words are decided/i, /these words exactly as written/, /add no element, drop none, rewrite no string/, /no other screen/, /choose only how it looks/i]) {
+    assert.match(screen, said);
+  }
+  for (const given of [/\*\*The screen:\*\*/, /\*\*Its state:\*\*/, /\*\*Its items, in order, with their words:\*\*/]) assert.match(screen, given);
+  const returned = flat(section(look, 'What to return'));
+  assert.match(returned, /one self-contained page, and nothing else/);
+  // Nothing in it invites a redesign, and it carries nothing of the walkthrough format.
+  const sent = look.replace(/<!--[\s\S]*?-->/g, '');
+  for (const invitation of [/no interface/i, /another kind/i, /propose one way/i, /first idea/i, /set it aside/i, /concept of your own/i, /hardest state/i]) {
+    assert.doesNotMatch(sent, invitation, 'the Look form');
+  }
+  assert.ok(!look.includes(FORMAT) && !look.includes('```'), 'no format and no specimen at Look');
+  for (const word of ['firstIdea', 'absent', 'expansion', 'JSON']) assert.ok(!sent.includes(word), `the Look form holds "${word}"`);
+  // Either form, once its comment is gone, is one brief: no form mark left, and one thing to return.
+  for (const form of [structure, look]) {
+    assert.doesNotMatch(form, /<!-- (?:Structure|Look) form/);
+    assert.equal(headings(form).filter(name => name === 'What to return').length, 1);
+    assert.equal(headings(form).at(-1), 'What to return');
+  }
 });
 
 // The format as a brief gives it: the part of "## What to return" from its own heading on.
 const FORMAT = '### The walkthrough format';
 const formatIn = file => {
-  const returned = section(template(file), 'What to return');
+  const returned = section(brief(file), 'What to return');
   const from = returned.indexOf(`${FORMAT}\n`);
   assert.notEqual(from, -1, `${file}: ${FORMAT}`);
   return returned.slice(from);
@@ -374,7 +441,7 @@ const inOrderOf = (found, order) => order.filter(key => found.includes(key));
 
 test('each Structure brief gives the rules a writer can break, and asks for one JSON object and nothing else', () => {
   for (const file of BRIEFS) {
-    const returned = flat(section(template(file), 'What to return'));
+    const returned = flat(section(brief(file), 'What to return'));
     assert.match(returned, /one JSON object[^.]*nothing else/i, file);
     const rules = flat(exampleIn(formatIn(file)).words);
     assert.match(rules, /one primary action/i, file);
@@ -504,6 +571,22 @@ test('DETAIL.md holds the rules, the data map and the dependencies, and takes wh
   }
 });
 
+test('the instructions cut to two lines kept what a filler cannot do without', () => {
+  // The edges are the interaction designer's card's, all of them: the template lists none in part.
+  const edges = flat(section(template('package/05-detail/DETAIL.md'), 'Edge cases'));
+  assert.match(edges, /each of the edges your card names/);
+  assert.doesNotMatch(edges, /longest|two hundred|second press|narrowest/);
+  // The blind rules name the session's own idea among what the describers do not see (design § 12).
+  assert.match(flat(section(template('package/03-cast.md'), 'Blind rules')), /the describers[^.;]*each other[^.;]*the session's own idea[^.;]*today's screen/);
+  // The project sources keep the design's three examples.
+  const sources = flat(section(template('package/01-context.md'), 'Project sources'));
+  for (const example of [/the token files/, /the component source/, /the product-facts document/]) assert.match(sources, example);
+  assert.match(sources, /entry of the carry list/);
+  // What links a state's name across the states table, the prototype's pages and the checks survives filling.
+  const kept = flat(template('package/05-detail/states.md').replace(/<!--[\s\S]*?-->/g, '').replace(BRACES, ''));
+  assert.match(kept, /A state's name here is the one its pages and its acceptance checks use\./);
+});
+
 test('states.md is the states table as the interaction designer returns it', () => {
   const { head, rows } = tableOf(template('package/05-detail/states.md'), 'Screen');
   assert.deepEqual(head, ['Screen', 'State', 'What she sees', 'What she can do', 'Where the focus is']);
@@ -610,7 +693,7 @@ test('acceptance.json is a checks file accept.mjs takes, with one sample check o
   assert.deepEqual(validateAcceptance(data), []);
   assert.equal(data.checks.length, 1);
   const [check] = data.checks;
-  assert.deepEqual(Object.keys(check), ['id', 'criterion', 'state', 'page', 'width', 'type', 'target']);
+  assert.deepEqual(Object.keys(check), ['id', 'criterion', 'state', 'page', 'width', 'language', 'screen', 'type', 'target']);
   assert.equal(check.type, 'visible');
   // Its state is named as the states table shows a name, for a row of the intent's table, and its page
   // as the prototype names one: the screen, the state, the language.
@@ -618,7 +701,9 @@ test('acceptance.json is a checks file accept.mjs takes, with one sample check o
   assert.deepEqual(shown, [check.state], 'the name states.md gives as its example');
   const rows = tableOf(section(template('package/02-intent.md'), 'States'), 'State').rows.map(([name]) => name.toLowerCase());
   assert.equal(rows.filter(name => check.state.split('-').every(word => name.split(/[^a-z]+/).includes(word))).length, 1, 'one row of the intent\'s states');
-  assert.equal(check.page, `${data.design}-${check.state}-en.html`);
+  assert.equal(check.page, `${check.screen}-${check.state}-${check.language}.html`);
+  assert.notEqual(data.design, check.screen, 'a design is not its screen: the sample tells the two apart');
+  assert.ok(!check.page.includes(data.design));
   // The checker reads it: without its criterion the sample is refused.
   delete check.criterion;
   assert.equal(validateAcceptance(data).length, 1);
@@ -822,6 +907,8 @@ test('the audience brief hands the person, the tasks and pictures, and a profile
   for (const thing of [/package/, /handoff folder/, /ledger/, /source/]) assert.match(hidden, thing);
   // The pictures she is handed are in the package: all of it is closed to her but those.
   assert.match(hidden, /nothing in the package but the pictures listed above/);
+  // The card says the same of the package, whose pictures she is handed.
+  assert.match(flat(section(card('audiences/task-reader.md'), 'Never')), /nothing in the package but the pictures you are handed/);
   // Its title names the seat, and nothing of the design: a design's name can say what it means to do.
   assert.deepEqual(headings(text, 1), ['Brief · audience.task-reader']);
   assert.doesNotMatch(text, /the design['’]s name/);

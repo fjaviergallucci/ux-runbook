@@ -68,8 +68,8 @@ asked", with the reason, when they will not.}
 
 ## Project sources
 
-{The files of the project a later stage may open directly, one path to a line, with what each is. Each
-is also an entry of the carry list.}
+{The files a later stage may open directly, as the token files, the component source, the product-facts
+document: one path to a line, with what each is. Each is also an entry of the carry list.}
 
 ## Reviewed by the founder
 

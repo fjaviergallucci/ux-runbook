@@ -45,8 +45,8 @@ expansion opens; where it returns when that closes; where it goes after an error
 
 ## Edge cases
 
-{Screen by screen, what the structure shows at each edge: the longest name, the empty list and the
-list of two hundred, the slow and the failed answer, the second press, the narrowest width.}
+{Screen by screen, what the structure shows at each of the edges your card names, and at this product's
+worst cases.}
 
 ## Data map
 

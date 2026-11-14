@@ -52,8 +52,8 @@ skips.}
 
 ## Blind rules
 
-{Who does not see what in this design: the describers, each other and today's screen; the judges, the
-author map; the audience, the intent.}
+{Who does not see what in this design: the describers, each other, the session's own idea and today's
+screen; the judges, the author map; the audience, the intent.}
 
 {Any continuity maker cast to see the current layout, and why. "None".}
 

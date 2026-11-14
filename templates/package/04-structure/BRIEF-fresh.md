@@ -1,14 +1,14 @@
-<!-- Template. Keep the headings and all of "What you are not given", "How to work" and "What to
-     return", replace each {instruction in braces}, and delete this comment: the brief is sent whole,
-     and the founder reads it first. At Look it is this brief with one section more, "The one screen":
-     the screen being drawn, its state, and its approved items in order with their words exactly as
-     written. -->
+<!-- Template. Keep the headings and all of "What you are not given", replace each {instruction in
+     braces}, and delete this comment: the brief is sent whole, and the founder reads it first. It holds
+     two forms, each opened by a comment, and one of them is deleted, with both comments. At Structure,
+     keep "The hardest state", "How to work" and "What to return" with the format, and delete "The one
+     screen" and what follows it. At Look, keep "The one screen" and the "What to return" after it, and
+     delete "The hardest state", "How to work" and the first "What to return". -->
 
 # Fresh brief · {the design's name}
 
-You are asked for a concept of your own: the one or two screens that carry the idea, never the whole
-flow. You know what the product does, and nothing of how it looks. This page is the whole brief. A
-maker started from a card is also given its card.
+You know what the product does, and nothing of how it looks. This page is the whole brief, and what
+you are asked for is at its end. A maker started from a card is also given its card.
 
 ## The person
 
@@ -23,14 +23,10 @@ what she never does. Then what is true of her profession, where it bears on this
 
 {The tasks of the intent, each as where she starts and what she wants, in her words. Never the path.}
 
-## The hardest state
-
-{The one or two states the concept must be played through, as: the list is empty; it has two hundred rows.}
-
 ## What the product can show and do
 
 {The context's inventory, in the words she would read: the real labels, names and values, and the worst
-plausible rows. Nothing outside this list exists: a concept that needs more is asking for a dependency.}
+plausible rows. Nothing outside this list exists: whatever needs more is asking for a dependency.}
 
 ## Language and device
 
@@ -39,12 +35,21 @@ plausible rows. Nothing outside this list exists: a concept that needs more is a
 ## What you are not given
 
 The design system, the shared kit, today's screens and navigation, and the conventions of the product's
-sibling surfaces. They are held back on purpose: what exists is a bias, and this brief asks for a
-concept made without it. If any of them has reached you, stop and say so. What is held back is how
-things look and how they are arranged, never what the product does: invent nothing that is not under
-"What the product can show and do".
+sibling surfaces. They are held back on purpose: what exists is a bias, and this brief asks for work
+made without it. If any of them has reached you, stop and say so. What is held back is how things look
+and how they are arranged, never what the product does: invent nothing that is not under "What the
+product can show and do".
+
+<!-- Structure form: from here to the next comment. At Look, delete all of it. -->
+
+## The hardest state
+
+{The one or two states the concept must be played through, as: the list is empty; it has two hundred rows.}
 
 ## How to work
+
+You are asked for a concept of your own: the one or two screens that carry the idea, never the whole
+flow.
 
 - Ask first whether no interface at all would do the job: could the product simply do it, and say
   afterwards what it did?
@@ -143,3 +148,20 @@ a proposal that resembles it has copied it.
   ]
 }
 ```
+
+<!-- Look form: from here to the end. At Structure, delete all of it. -->
+
+## The one screen
+
+You are asked to draw one screen, in one state. Its structure and its words are decided. Draw it with
+these items, in this order, and these words exactly as written: add no element, drop none, rewrite no
+string, and draw no other screen. Choose only how it looks.
+
+- **The screen:** {its title, and what it is for, in one line}
+- **Its state:** {the state it is drawn in, and what she is shown in it}
+- **Its items, in order, with their words:** {the screen's approved structure, item by item, each with
+  its string exactly as approved}
+
+## What to return
+
+The screen as one self-contained page, and nothing else: no sentence before it and none after.
