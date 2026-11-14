@@ -21,7 +21,7 @@ above this title are the stamp of the session that designed it: they ask nothing
 |---|---|
 | `HANDOFF.md` | This page. Start here. |
 | `IMPLEMENTER-GUIDE.md` | How to turn a prototype into the project's own components. Read it before the first slice. |
-| `prototype/` | The picture of record: static pages on the project's real tokens, one for each screen, state, language and theme, with an index and reference pictures at each width. To translate into the project's components, never to paste. Every element that matters carries a stable id. |
+| `prototype/` | The picture of record: static pages on the project's real tokens, one for each screen, state and language, each serving every theme, with an index and reference pictures at each width and theme. To translate into the project's components, never to paste. Every element that matters carries a stable id. |
 | `SPEC.md` | For each surface: its job, its regions, every state, the rules, the data map, and what the product cannot supply yet. |
 | `strings.*` | Every string by key, in every language, final, with its limit and its why-line: {the file's name, in the format the project's translation layer takes}. |
 | `PARTS.md` | The token and the component each element uses, and anything new to the system. |
@@ -31,7 +31,7 @@ above this title are the stamp of the session that designed it: they ask nothing
 
 ## Context
 
-{The product in one sentence. Who this is for, and the moment she is in. Her one job here. Why now.
+{The product in one sentence; who this is for, and the moment she is in; her one job here; why now.
 Enough for someone who was not there, and no more.}
 
 ## Task
@@ -46,8 +46,10 @@ check of `acceptance.json` holds in the build, and the three files named at the 
 ## Verify
 
 {How the builder checks its own work before writing back: each state beside its reference picture, and
-the project's own gates, by the commands the project uses. The checks of `acceptance.json` are run on
-the build afterwards, by the stable ids, from the state map the builder writes.}
+the project's own gates, by the commands the project uses.}
+
+The checks of `acceptance.json` are run on your build afterwards, by the stable ids, from the state map
+you write.
 
 ## Constraints
 

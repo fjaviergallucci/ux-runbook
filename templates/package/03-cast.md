@@ -10,9 +10,11 @@ built-from: []
 
 # Cast · {the design's name}
 
-{One table for each stage still to run, one row for each seat: delete the table of a stage the route
-skips. Model and effort are the cards' suggestions, and he may change any of them: a seat whose card
-says `none` shows a dash, —. Each seat is explained in one line: what it catches, and what it costs.}
+Model and effort are the cards' suggestions, and he may change any of them: a seat whose card says
+`none` shows a dash, —.
+
+{One table for each stage still to run, one row for each seat. Delete the table of a stage the route
+skips.}
 
 ## Structure
 
@@ -50,9 +52,10 @@ says `none` shows a dash, —. Each seat is explained in one line: what it catch
 
 ## Blind rules
 
-{Who does not see what, in this design: the describers and each other, the session's own idea, today's
-screen; the judges and the author map; the audience and the intent. Name any continuity maker cast to
-see the current layout, and why.}
+{Who does not see what in this design: the describers, each other and today's screen; the judges, the
+author map; the audience, the intent.}
+
+{Any continuity maker cast to see the current layout, and why. "None".}
 
 ## Fresh pass
 

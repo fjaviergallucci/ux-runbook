@@ -146,6 +146,20 @@ test('every Markdown template says how it is read, and every template is plain t
   }
 });
 
+test('an instruction in braces is at most two lines: what the filler must put there, and no lesson', () => {
+  let read = 0;
+  for (const file of MARKDOWN) {
+    const text = template(file);
+    for (const { 0: instruction, index } of text.matchAll(BRACES)) {
+      read += 1;
+      const at = `${file}:${text.slice(0, index).split('\n').length}`;
+      assert.ok(instruction.split('\n').length <= 2, `${at} runs over ${instruction.split('\n').length} lines`);
+      assert.ok(instruction.length <= 210, `${at} is ${instruction.length} characters, more than two lines hold`);
+    }
+  }
+  assert.ok(read > 400, 'the instructions are read');
+});
+
 test('no template leaves a placeholder that is not an instruction, or anything that looks like a secret', () => {
   for (const file of ALL) {
     const text = template(file);
@@ -246,6 +260,9 @@ test('02-intent.md has the person, the job, the criteria, the tasks, the ten sta
   // The test of a criterion, ported from version 1.
   assert.match(flat(section(text, 'Success criteria')), /could two people disagree about whether it was met\? Then sharpen it/i);
   assert.match(flat(section(text, 'Tasks for the audience')), /[Nn]ever the path/);
+  // The optional read of the intent by the profile judge has its place, before the gate.
+  assert.deepEqual(names.slice(-3), ['What the readers found', 'Reviewed by the founder', 'Carry']);
+  assert.match(flat(section(text, 'What the readers found')), /[Oo]nly when[^.]*profile judge[^.]*cast/);
 });
 
 test('03-cast.md has a table for each stage from structure to acceptance, with model and effort as suggestions', () => {
@@ -280,8 +297,20 @@ test('both Structure briefs give the person, the job, the tasks and what the pro
     for (const name of ['The person', 'The job', 'The tasks', 'What the product can show and do', 'What to return']) {
       assert.ok(names.includes(name), `${file}: ## ${name}`);
     }
-    assert.equal(names.at(-1), 'What to return', `${file}: the format comes last`);
+    assert.deepEqual(names.slice(-2), ['How to work', 'What to return'], `${file}: the method, then the format, last`);
+    // The method an outside model gets from nowhere else. No lens: a seat's own brief gives that.
+    const how = flat(section(template(file), 'How to work'));
+    for (const step of [/no interface at all/i, /first idea[^.]*set it aside/i, /habit of the category/, /one way, whole/i, /real words she would read/, /worst rows/, /hardest state/]) {
+      assert.match(how, step, `${file}: how to work`);
+    }
+    assert.doesNotMatch(section(template(file), 'How to work'), /\blens\b/i, `${file}: no lens in the brief`);
+    assert.doesNotMatch(section(template(file), 'How to work'), BRACES, `${file}: the method is the brief's own, not an instruction to fill`);
+    // True of both readers: an outside model has this page alone, a seat also has its card.
+    const opening = flat(template(file).slice(0, template(file).indexOf('\n## ')));
+    assert.match(opening, /This page is the whole brief/, file);
+    assert.doesNotMatch(opening, /Everything you are given/, file);
   }
+  assert.match(flat(template(BRIEFS[0])), /A describer started from a card is also given its card and a lens/);
   assert.ok(!headings(template(BRIEFS[0])).includes('What you are not given'));
 });
 
@@ -332,12 +361,22 @@ test('each Structure brief carries the walkthrough format whole: every key, role
   assert.equal(formatIn(BRIEFS[0]), formatIn(BRIEFS[1]), 'the two briefs give the format in the same words');
 });
 
-test('each Structure brief gives the rules a writer can break, one valid example, and asks for one JSON object and nothing else', () => {
+// Every string a proposal holds, wherever it is: its own texts, and those of its screens and items.
+const stringsOf = value => {
+  if (typeof value === 'string') return [value];
+  if (Array.isArray(value)) return value.flatMap(stringsOf);
+  return value !== null && typeof value === 'object' ? Object.values(value).flatMap(stringsOf) : [];
+};
+// The items of a proposal in reading order, a container before what it holds.
+const itemsOf = holder => holder.items.flatMap(item => (item.items ? [item, ...itemsOf(item)] : [item]));
+const keysOf = objects => [...new Set(objects.flatMap(Object.keys))];
+const inOrderOf = (found, order) => order.filter(key => found.includes(key));
+
+test('each Structure brief gives the rules a writer can break, and asks for one JSON object and nothing else', () => {
   for (const file of BRIEFS) {
     const returned = flat(section(template(file), 'What to return'));
     assert.match(returned, /one JSON object[^.]*nothing else/i, file);
-    const { words, example } = exampleIn(formatIn(file));
-    const rules = flat(words);
+    const rules = flat(exampleIn(formatIn(file)).words);
     assert.match(rules, /one primary action/i, file);
     assert.match(rules, /expansion`? always has a `label`/, file);
     assert.match(rules, /`choice`[^.]*two[^.]*`list`[^.]*`nav`[^.]*one/, file);
@@ -345,19 +384,57 @@ test('each Structure brief gives the rules a writer can break, one valid example
     assert.match(rules, /`over`/, file);
     assert.match(rules, /lower-case words joined by hyphens/, file);
     assert.match(rules, /no (?:other )?key for/i, `${file}: nothing but the format's keys`);
-    // The example is read, not passed over: it is valid as written, and stops being so when it breaks a rule.
-    assert.deepEqual(validate(example), [], `${file}: the example`);
-    assert.ok(example.screens.some(screen => screen.container === 'dialog'), `${file}: the example shows a dialog`);
-    const items = example.screens.flatMap(function all(holder) {
-      return holder.items.flatMap(item => (item.items ? [item, ...all(item)] : [item]));
-    });
-    for (const container of CONTAINERS.filter(name => name !== 'group')) assert.ok(items.some(item => item.container === container), `${file}: the example shows a ${container}`);
-    for (const key of ['author', 'engine', 'track', 'model', 'source']) assert.ok(!Object.hasOwn(example, key), `${file}: the example leaves out ${key}`);
-    const broken = structuredClone(example);
-    broken.screens[0].title = broken.screens[1].title;
-    assert.equal(validate(broken).length, 1);
-    // The example is of the kit's own product, and says it is no suggestion.
-    assert.match(flat(formatIn(file)), /example[^.]*another product[^.]*not a suggestion/i, file);
+  }
+});
+
+test('each Structure brief shows a specimen of the syntax, never a design: every part once, named and not filled', () => {
+  // What a writer does not write: who made the proposal.
+  const WRITTEN_LATER = ['author', 'engine', 'track', 'model', 'source'];
+  // Words of the kit's own example product, and of any product: a specimen holds none.
+  const PRODUCT = /\b(?:rooms?|clinic|book(?:ing|ed|s)?|patients?|walk-ins?|desk|free|busy|today|calendar)\b/i;
+  for (const file of BRIEFS) {
+    const format = formatIn(file);
+    const { words, example: specimen } = exampleIn(format);
+    // It is valid as written, and stops being so when it breaks a rule: it is read, not passed over.
+    assert.deepEqual(validate(specimen), [], `${file}: the specimen`);
+    const twice = structuredClone(specimen);
+    twice.screens[1].title = twice.screens[0].title;
+    assert.equal(validate(twice).length, 1, `${file}: two screens with one title`);
+    const unlabelled = structuredClone(specimen);
+    delete itemsOf(unlabelled.screens.find(screen => itemsOf(screen).some(item => item.container === 'expansion'))).find(item => item.container === 'expansion').label;
+    assert.equal(validate(unlabelled).length, 1, `${file}: an expansion without its label`);
+    // Every key of every level, in the format's own order; who made it is left out, as the brief asks.
+    assert.deepEqual(Object.keys(specimen), KEYS.proposal.filter(key => !WRITTEN_LATER.includes(key)), `${file}: the proposal's keys`);
+    const items = specimen.screens.flatMap(itemsOf);
+    const roles = items.filter(item => Object.hasOwn(item, 'role'));
+    const containers = items.filter(item => Object.hasOwn(item, 'container'));
+    assert.deepEqual(keysOf(specimen.screens).sort(), [...KEYS.screen].sort(), `${file}: every key of a screen`);
+    assert.deepEqual(keysOf(roles).sort(), [...KEYS.role].sort(), `${file}: every key of a role`);
+    assert.deepEqual(keysOf(containers).sort(), [...KEYS.container].sort(), `${file}: every key of a container`);
+    for (const [objects, order] of [[specimen.screens, KEYS.screen], [roles, KEYS.role], [containers, KEYS.container]]) {
+      for (const object of objects) assert.deepEqual(Object.keys(object), inOrderOf(Object.keys(object), order), `${file}: keys in the format's order`);
+    }
+    // Every role and every container exactly once, in the format's order; a screen, and a dialog over it.
+    assert.deepEqual(roles.map(item => item.role), ROLES, `${file}: each role once`);
+    assert.deepEqual(containers.map(item => item.container), CONTAINERS, `${file}: each container once`);
+    assert.deepEqual(specimen.screens.map(screen => screen.container), ['screen', 'dialog'], file);
+    assert.equal(roles.filter(item => item.primary === true).length, 1, `${file}: one primary action`);
+    // Its words name the part and fill nothing: each is a phrase in brackets, or an id that says what it is.
+    const texts = stringsOf(specimen).filter(text => ![...ROLES, ...CONTAINERS, 'screen', 'dialog'].includes(text));
+    const ids = [...specimen.screens, ...roles].map(object => object.id).filter(Boolean);
+    assert.ok(ids.length >= 3 && ids.every(id => /^an?-(?:screen|dialog|item)$/.test(id)), `${file}: ids that name the part`);
+    for (const text of texts.filter(text => !ids.includes(text))) assert.match(text, /^\((?:an?|the|some|what|your|another) [^()]+\)$/, `${file}: "${text}" names a part`);
+    assert.equal(new Set(texts.filter(text => !ids.includes(text))).size, texts.filter(text => !ids.includes(text)).length, `${file}: no phrase twice`);
+    // Nothing of the kit's example product, or of any product.
+    const fence = format.slice(format.indexOf('```json'));
+    assert.doesNotMatch(fence, PRODUCT, `${file}: the specimen holds a word of a product`);
+    // One sentence above it says what it is.
+    const said = flat(words.trimEnd().split('\n\n').at(-1));
+    assert.match(said, /specimen/i, file);
+    assert.match(said, /every part once/i, file);
+    assert.match(said, /no meaningful arrangement/, file);
+    assert.match(said, /a proposal that resembles it has copied it/, file);
+    assert.doesNotMatch(flat(format), /not a suggestion|another product/, file);
   }
 });
 
@@ -365,7 +442,15 @@ test('CHOSEN.md writes the pick down exactly, with what was not chosen and what 
   const text = template('package/04-structure/CHOSEN.md');
   const names = headings(text);
   for (const name of ['The pick', 'The structure', 'Not chosen']) assert.ok(names.includes(name), `## ${name}`);
-  assert.match(flat(section(text, 'The pick')), /"a bit of each" is not a pick/i);
+  // His words at the pick are written once, in PICK.md: the pick points there, and the gate keeps only
+  // what he asked to change.
+  const pick = flat(section(text, 'The pick'));
+  assert.match(pick, /What he said at the pick is in `PICK\.md`[^.]*not repeated here/, 'the pick points at PICK.md');
+  assert.match(pick, /graft/);
+  assert.doesNotMatch(pick.replace(/What he said at the pick[^.]*\./, ''), /\bwords\b|\bsaid\b/, 'and asks for his words nowhere else');
+  const gate = flat(section(text, 'Reviewed by the founder'));
+  assert.match(gate, /asked to (?:be )?changed?/);
+  assert.doesNotMatch(gate, /\bwords\b|\bsaid\b/, 'the gate keeps what he asked to change, not his words again');
   assert.match(flat(text), /carried to Look/);
 });
 
@@ -375,6 +460,7 @@ test('outputs/PICK.md is sealed as the template leaves it, and opens the author 
   assert.equal(lines.length, 1, 'one line that begins "Pick:"');
   assert.match(lines[0], /^Pick: \{[^{}]+\}$/, 'the letter is an instruction until he picks');
   assert.match(flat(text), /words/, 'his words go under it');
+  assert.match(flat(section(text, 'In his words')), /"a bit of each" is not a pick/i);
   const run = join(tmp, 'pick');
   const board = join(run, 'board');
   const { letters } = mergeProposals(join(here, 'fixtures', 'proposals'), board, { seed: 1 });
@@ -482,6 +568,12 @@ test('HANDOFF.md is the entry: the brief shape, the slices, what is fixed, and w
   const rules = flat(section(text, 'Constraints'));
   for (const rule of [/keep every stable id/i, /build every state/i, /do not redesign/i]) assert.match(rules, rule);
   assert.match(flat(text), /never to paste/, 'the prototype is the picture of record, to translate');
+  // A page is a screen in a state and a language, and serves every theme: as Look makes them, and as a
+  // check names them, a page and a theme apart.
+  const pages = /one for each screen, state and language, each serving every theme/;
+  assert.match(flat(text), pages);
+  assert.match(flat(template('package/06-look/LOOK.md')), pages);
+  assert.doesNotMatch(flat(text), /state, language and theme/);
 });
 
 test('SPEC.md carries the data map and the dependencies forward', () => {
@@ -506,6 +598,8 @@ test('ACCEPTANCE.md names the eight check types and their parameters as the scri
   // The keys every check takes, and the ones that may be left out.
   const check = spans(section(text, 'A check'));
   for (const key of ['id', 'criterion', 'state', 'page', 'width', 'type', 'theme', 'language', 'screen', 'data-ux', 'data-screen']) assert.ok(check.includes(key), `a check's ${key}`);
+  // And the two keys of the file itself.
+  for (const key of ['design', 'checks']) assert.ok(check.includes(key), `the file's ${key}`);
   for (const name of ['Success criteria, as checks', 'States to drive', 'Measured values', 'Accessibility checks']) assert.ok(headings(text).includes(name), `## ${name}`);
   assert.match(flat(text), /against the prototype first/);
   assert.match(flat(text), /`acceptance\.json`[^.]*example[^.]*replace/i, 'the sample check is said to be one');
@@ -518,6 +612,13 @@ test('acceptance.json is a checks file accept.mjs takes, with one sample check o
   const [check] = data.checks;
   assert.deepEqual(Object.keys(check), ['id', 'criterion', 'state', 'page', 'width', 'type', 'target']);
   assert.equal(check.type, 'visible');
+  // Its state is named as the states table shows a name, for a row of the intent's table, and its page
+  // as the prototype names one: the screen, the state, the language.
+  const shown = spans(tableOf(template('package/05-detail/states.md'), 'Screen').rows[0][1]);
+  assert.deepEqual(shown, [check.state], 'the name states.md gives as its example');
+  const rows = tableOf(section(template('package/02-intent.md'), 'States'), 'State').rows.map(([name]) => name.toLowerCase());
+  assert.equal(rows.filter(name => check.state.split('-').every(word => name.split(/[^a-z]+/).includes(word))).length, 1, 'one row of the intent\'s states');
+  assert.equal(check.page, `${data.design}-${check.state}-en.html`);
   // The checker reads it: without its criterion the sample is refused.
   delete check.criterion;
   assert.equal(validateAcceptance(data).length, 1);
@@ -531,6 +632,9 @@ test('the handoff\'s decisions, parts and coverage hold what the builder needs a
   assert.ok(headings(parts).includes('Changes to the system'));
   const coverage = template('package/07-handoff/COVERAGE.md');
   for (const name of ['Seats', 'Checks not run', 'Findings']) assert.ok(headings(coverage).includes(name), `## ${name}`);
+  // Which checks ran, seat by seat: a builder cannot open the cast to find out.
+  assert.deepEqual(tableOf(section(coverage, 'Seats'), 'Stage').head, ['Stage', 'Seat', 'Loaded with', 'What it read', 'Checks run', 'Ran on', 'Verdict']);
+  assert.deepEqual(tableOf(section(coverage, 'Checks not run'), 'Seat').head, ['Seat', 'Check', 'Why it did not run']);
   assert.match(flat(coverage), /what became of it/i);
   // The folder stands alone: none of its files names a stage's file or folder of the package.
   for (const file of PACKAGE.filter(name => name.startsWith('07-handoff/') && name.endsWith('.md'))) {
@@ -716,6 +820,12 @@ test('the audience brief hands the person, the tasks and pictures, and a profile
   assert.match(hidden, /\bintent\b/);
   assert.match(hidden, /\bprofile\b/);
   for (const thing of [/package/, /handoff folder/, /ledger/, /source/]) assert.match(hidden, thing);
+  // The pictures she is handed are in the package: all of it is closed to her but those.
+  assert.match(hidden, /nothing in the package but the pictures listed above/);
+  // Its title names the seat, and nothing of the design: a design's name can say what it means to do.
+  assert.deepEqual(headings(text, 1), ['Brief · audience.task-reader']);
+  assert.doesNotMatch(text, /the design['’]s name/);
+  assert.doesNotMatch(headings(template('outputs/TASK-READ.md'), 1).join(), /design/, 'nor does the read she writes');
   const given = flat(section(text, 'Read, in this order'));
   assert.match(given, /traits/);
   assert.match(given, /every block that begins `So the interface must:`[^.]*taken out/);
@@ -758,11 +868,14 @@ test('outputs/LEDGER.md has the top line, the eight columns, and the three closi
   assert.match(findings.rows[0][5], /blocks · should · note/);
   assert.match(findings.rows[0][6], /what it is → what it should be/);
   const names = headings(text);
-  assert.deepEqual(names.slice(0, 4), ['Findings', 'Checks not run', 'Not looked at', 'On a re-read']);
+  // On a re-read, each earlier finding's mark comes before any new finding.
+  assert.deepEqual(names.slice(0, 4), ['On a re-read', 'Findings', 'Checks not run', 'Not looked at']);
   assert.deepEqual(tableOf(section(text, 'Checks not run'), 'Check').head, ['Check', 'What it looks for', 'Why it did not run']);
   const again = flat(section(text, 'On a re-read'));
   assert.match(again, /cold/);
   assert.match(again, /fixed · partly · still present/);
+  assert.match(again, /[Oo]n a first read[^.]*"first read"/, 'on a first read it holds one line');
+  assert.match(again, /findings below/, 'the findings come after it');
   // A judge reports. Nothing in the ledger has it approve or pass a design.
   assert.doesNotMatch(text, /\bapprov|(?<!fresh )\bpass(?:es|ed)?\b/i);
 });

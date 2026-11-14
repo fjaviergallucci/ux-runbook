@@ -26,8 +26,7 @@ built-from: []
 
 ## Route
 
-{The size sets each stage's mode, and `state init` records it. Change a stage only with `state route`,
-and give the reason here. The size only moves up.}
+{Each stage's mode, as the size sets it. A stage changed with `state route` has its reason here.}
 
 | Stage | Mode | Reason |
 |---|---|---|

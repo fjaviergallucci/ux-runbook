@@ -1,12 +1,14 @@
-<!-- Template. Keep the headings and all of "What to return", replace each {instruction in braces}, and
-     delete this comment: the brief is sent whole, the same to every describer, and the founder reads it
-     first. It gives context and never the design: no component, no layout, no idea of the session's. -->
+<!-- Template. Keep the headings and all of "How to work" and "What to return", replace each
+     {instruction in braces}, and delete this comment: the brief is sent whole, the same to every
+     describer, and the founder reads it first. It gives context and never the design: no component, no
+     layout, no idea of the session's. -->
 
 # Brief · {the design's name}
 
 You are asked to propose one way to solve this, as a walkthrough: screen by screen, what she sees, in
 order of importance, and what she can do. Others are working from this same brief. You will not see
-their work, and they will not see yours. Everything you are given is on this page.
+their work, and they will not see yours. This page is the whole brief. A describer started from a
+card is also given its card and a lens.
 
 ## The person
 
@@ -23,7 +25,7 @@ what she never does. Then what is true of her profession, where it bears on this
 
 ## The hardest state
 
-{The one or two states every proposal must be played through, as: nothing is free; two hundred rows.}
+{The one or two states every proposal must be played through, as: the list is empty; it has two hundred rows.}
 
 ## What the product can show and do
 
@@ -34,6 +36,16 @@ plausible rows. Nothing outside this list exists: a proposal that needs more is 
 
 {The language the walkthrough's words are written in; the device, with its primary width and its phone
 width.}
+
+## How to work
+
+- Ask first whether no interface at all would do the job: could the product simply do it, and say
+  afterwards what it did?
+- Write your first idea down and set it aside. It is the habit of the category: the screen every
+  product of this kind already has. Then look for an answer of another kind.
+- Propose one way, whole: not two, and not a blend.
+- Use the real words she would read, and the worst rows she would meet, as this page gives them.
+- Play the hardest state through it. If it breaks, change it, not the sentence that describes it.
 
 ## What to return
 
@@ -94,30 +106,33 @@ The rules a proposal is checked by. One that breaks any of them is refused:
 - These are all the keys. There is no key for layout, size, colour or position, and an unknown key is
   refused: proposals differ in order, in grouping, in what is present and in which container holds it.
 
-One proposal, to show the shape. The example is from another product and shows the format only: its
-structure is not a suggestion.
+A specimen of the syntax, not a proposal: it shows every part once, in no meaningful arrangement, and
+a proposal that resembles it has copied it.
 
 ```json
 {
-  "name": "Free rooms first",
-  "bet": "She asks what is free right now, so the free rooms come before everything else.",
-  "cost": "A busy room is harder to find: it is not where it was a minute ago.",
-  "absent": ["A filter for free rooms: the screen does the filtering"],
-  "hardest": "When nothing is free, the first region names the room that frees up soonest, and when.",
-  "firstIdea": "A calendar of the day; set aside because it answers when, and she asked which.",
+  "name": "(the proposal's name)",
+  "bet": "(the bet, in one sentence)",
+  "cost": "(what it is deliberately bad at)",
+  "absent": ["(a thing left out on purpose)"],
+  "hardest": "(what it shows in the hardest state)",
+  "firstIdea": "(your first idea, and why you set it aside)",
   "screens": [
-    { "id": "rooms", "title": "Rooms, right now", "container": "screen", "items": [
-      { "role": "status", "id": "free-count", "text": "2 rooms free now" },
-      { "container": "region", "label": "Free now", "items": [
-        { "role": "list", "text": "Free rooms", "options": ["Room 2, until 10:30", "Garden room, until 11:15"] },
-        { "role": "action", "id": "book", "text": "Book a walk-in", "primary": true } ] },
-      { "container": "expansion", "label": "Not free (3)", "items": [
-        { "role": "list", "text": "Busy or closed", "options": ["Room 1, until 10:00", "Room 3, being cleaned", "Gym, closed today"] } ] } ] },
-    { "id": "book-walk-in", "title": "Booking a walk-in", "container": "dialog", "over": "rooms", "items": [
-      { "role": "input", "text": "Patient name", "note": "The cursor starts here." },
-      { "role": "choice", "text": "How long?", "options": ["15 min", "30 min"] },
-      { "role": "action", "text": "Book", "primary": true },
-      { "role": "link", "text": "Cancel" } ] }
+    { "id": "a-screen", "title": "(a screen's title)", "container": "screen", "note": "(a note about this screen)", "items": [
+      { "role": "heading", "text": "(a heading)" },
+      { "role": "text", "text": "(some words she reads)" },
+      { "role": "choice", "text": "(a question)", "options": ["(an option)", "(another option)"] },
+      { "role": "input", "text": "(a field's label)" },
+      { "role": "action", "text": "(the main action)", "id": "an-item", "note": "(a note about this item)", "primary": true } ] },
+    { "id": "a-dialog", "title": "(a dialog's title)", "container": "dialog", "over": "a-screen", "items": [
+      { "container": "region", "label": "(a region's label)", "items": [
+        { "role": "list", "text": "(a list's caption)", "options": ["(a row)"] },
+        { "role": "status", "text": "(a status)" } ] },
+      { "container": "group", "label": "(a group's label)", "items": [
+        { "role": "media", "text": "(what a picture shows)" },
+        { "role": "link", "text": "(a link)" } ] },
+      { "container": "expansion", "label": "(an expansion's label)", "open": false, "items": [
+        { "role": "nav", "text": "(a nav's caption)", "options": ["(a place)"] } ] } ] }
   ]
 }
 ```

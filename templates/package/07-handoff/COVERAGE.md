@@ -7,9 +7,9 @@ Who read this design before it reached you, what they checked, and what became o
 
 ## Seats
 
-| Stage | Seat | Loaded with | What it read | Ran on | Verdict |
-|---|---|---|---|---|---|
-| {the stage} | {the seat's id} | {a profile, a person, or —} | {the artefact} | {the model, or the engine} | {in the seat's own words} |
+| Stage | Seat | Loaded with | What it read | Checks run | Ran on | Verdict |
+|---|---|---|---|---|---|---|
+| {the stage} | {the seat's id} | {a profile, a person, or —} | {the artefact} | {its core checks, and each optional check that ran, by id; — for a maker} | {the model, or the engine} | {in the seat's own words} |
 
 ## Checks not run
 

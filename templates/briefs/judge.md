@@ -7,13 +7,14 @@ Read your card first, whole, at its absolute path: `{/…/pool/judges/<name>.md,
 
 ## What you judge
 
-{The artefact, named by letter or by what it is, never by who made it: the options A to D · the
-prototype · the final screens · the handoff folder · the build. With the widths, the themes and the
-languages it comes in.}
+{The artefact, by letter or by what it is, never by who made it: the options A to D · the prototype ·
+the final screens · the handoff folder · the build. Its widths, themes and languages.}
 
-{Then what the card says its brief carries, and no more. At Context, where no intent exists yet: who
-she is and her tasks, in a few lines. A words judge: the founder's own lines, as he said them. A skill
-the project keeps for this seat, by its name, to load as its lens.}
+{Then what its card says its brief carries, and no more. Keep the lines that apply, filled:}
+
+- {At Context, where no intent exists yet: who she is and her tasks, in a few lines.}
+- {A words judge: the founder's own lines, as he said them.}
+- {A skill the project keeps for this seat, by its name, to load as its lens.}
 
 ## Checks
 

@@ -8,10 +8,22 @@
 {What was read: the artefact, by letter or by what it is, with its widths, themes and languages. A
 profile judge adds whose profile it read with, and that this is a read from a card.}
 
+## On a re-read
+
+{On a first read: the one line "first read", and no table. On a re-read: read the artefact cold and
+write the findings below first.}
+
+{Only then open this seat's earlier ledger and mark each of its findings: fixed · partly · still
+present. A cold finding that matches one becomes its mark, and is not written twice.}
+
+| Earlier # | The finding | Mark | What is seen now |
+|---|---|---|---|
+| {n} | {in one line} | {fixed · partly · still present} | {where, and what} |
+
 ## Findings
 
-{One row for each finding, the most severe first. Every row points at a place and offers a fix. A judge
-reports: the maker fixes, and the founder decides. "None", under the table, when there is nothing.}
+{One row for each finding, the most severe first, each pointing at a place and offering a fix. "None",
+under the table, when there is nothing.}
 
 | # | Check | Result | Where | Why it matters | Severity | Fix | Done when |
 |---|---|---|---|---|---|---|---|
@@ -30,20 +42,10 @@ reports: the maker fixes, and the founder decides. "None", under the table, when
 {What was handed over and not read, what could not be opened, and what belongs to another seat, named
 for that seat in one line.}
 
-## On a re-read
-
-{A re-read only: delete it on a first read. Read the artefact cold and write the findings above first.
-Only then open this seat's earlier ledger, and mark each of its findings: fixed · partly · still present.
-A cold finding that matches an earlier one becomes that finding's mark, and is not written twice.}
-
-| Earlier # | The finding | Mark | What is seen now |
-|---|---|---|---|
-| {n} | {in one line} | {fixed · partly · still present} | {where, and what} |
-
 ## Cannot tell
 
-{The profile judge only: delete it otherwise. Where the design depends on a trait the card marks
-unknown, no finding is written. It goes here: for the founder or a real professional, never the maker.}
+{The profile judge only: delete it otherwise. Each trait the card marks unknown that the design
+depends on: for the founder or a real professional, never for the maker.}
 
 | Trait | What the design assumes about it | Where |
 |---|---|---|

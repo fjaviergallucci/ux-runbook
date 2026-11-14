@@ -11,10 +11,6 @@ built-from: []
 
 # Detail · {the design's name}
 
-{The chosen structure, completed. The interaction designer writes `states.md` and the six sections from
-"Rules" to "What the structure cannot hold"; the interface writer writes `strings.json` and the two
-lists under "Strings"; the session writes the rest.}
-
 ## What is in this folder
 
 {The prototype's folder and its index page, with the number of pages as a sum: screens × states ×
@@ -49,9 +45,8 @@ expansion opens; where it returns when that closes; where it goes after an error
 
 ## Edge cases
 
-{Screen by screen, what the structure shows at: the longest plausible name, the empty list, the list of
-two hundred, the missing value, the slow answer, the failed answer, the second press, the screen left
-open while things changed, the return halfway through, the narrowest width.}
+{Screen by screen, what the structure shows at each edge: the longest name, the empty list and the
+list of two hundred, the slow and the failed answer, the second press, the narrowest width.}
 
 ## Data map
 
@@ -63,13 +58,12 @@ open while things changed, the return halfway through, the narrowest width.}
 
 ## Dependencies
 
-{What an element needs that the product cannot supply today: the element, and what is missing. Never
-invented, and never dropped quietly to hide the gap. "None".}
+{What an element needs that the product cannot supply today: the element, and what is missing. "None".}
 
 ## States the intent does not name
 
 {Each state met while detailing that the intent's table lacks: where it was met, and what the structure
-does today if nothing is decided. Whether it exists is the founder's call. "None".}
+does today if nothing is decided. "None".}
 
 ## What the structure cannot hold
 
@@ -77,9 +71,11 @@ does today if nothing is decided. Whether it exists is the founder's call. "None
 
 ## Strings
 
-{`strings.json` holds every string by its key: one line for each language, written for that language;
+`strings.json` holds every string by its key: one line for each language, written for that language;
 `max`, its limit in characters as she sees them, or null when the surface sets none; `where`, its
-screen, element and state; and `note`, its why-line, which is part of the table and travels with it.}
+screen, element and state; and `note`, its why-line, which is part of the table and travels with it.
+
+{The number of strings in each language.}
 
 ### Waiting for a fact
 
@@ -93,7 +89,7 @@ screen, element and state; and `note`, its why-line, which is part of the table 
 ## What the readers found
 
 {One line for each seat that read the prototype, with its verdict. Then each finding: fixed, or open
-with the reason. An open finding is on the decision page.}
+with the reason.}
 
 ## Reviewed by the founder
 

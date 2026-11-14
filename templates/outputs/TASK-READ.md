@@ -3,7 +3,7 @@
 <!-- Template. Keep the headings, the questions, and the line above, word for word; replace each
      {instruction in braces}; delete this comment. -->
 
-# Task read · {the design's name} · {the stage}
+# Task read · {the stage}
 
 - **Read by:** {her id, as `person.<name>`} · evidence: {her card's `evidence`} · {the primary seat, or the contrast seat}
 - **Shown:** {the options, by letter, or the one screen} · {the width} · {the language} · pictures only

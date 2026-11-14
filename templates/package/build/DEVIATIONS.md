@@ -3,8 +3,10 @@
 
 # Deviations · {the design's name}
 
-{Anything that could not be built as drawn. Each is written down, never hidden and never settled by
-redesigning: the founder decides each at Acceptance. "None" when the build is what was drawn.}
+What could not be built as drawn is written down here, never hidden and never settled by redesigning:
+the founder decides each at Acceptance.
+
+{One row for each thing that could not be built as drawn. "None" when the build is what was drawn.}
 
 | # | Where | As drawn | As built | Why |
 |---|---|---|---|---|

@@ -7,7 +7,7 @@
 state of the intent's table, none left out and none added.}
 
 {A state that cannot happen on a screen keeps its row, and reads "cannot occur", with why. Say what must
-be said, never the final words. A state's name here is the one its pages and its checks use.}
+be said, never the final words.}
 
 | Screen | State | What she sees | What she can do | Where the focus is |
 |---|---|---|---|---|

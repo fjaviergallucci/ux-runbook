@@ -61,12 +61,16 @@ them, for each language: the register it is written in, and how she is addressed
 
 ## How a browser check is run here
 
-{What a session does to look at a page of this project: the command or the script, what it must set
-(the width, the theme, reduced motion), and the account it uses, named by its role, with where its
-sign-in is kept. No password, token or key is ever written here.}
+{What a session does to look at a page of this project: the command or the script, and what it must
+set: the width, the theme, reduced motion.}
+
+{The account it uses, named by its role, with where its sign-in is kept.}
+
+No password, token or key is ever written here.
 
 ## Design system
 
 {Its documents, its token files and its component source, each by path, with its version. Which
-components make up the project kit. "None yet": then Look runs once as a direction first, and this
-section and `tokens` are written from the pick.}
+components make up the project kit.}
+
+{"None yet" while there is none: Look then runs once as a direction, and writes this section and `tokens`.}

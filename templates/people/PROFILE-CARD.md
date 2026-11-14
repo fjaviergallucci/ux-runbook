@@ -90,9 +90,9 @@ So the interface must: {One to three sentences someone can check.}
 
 ## Specialties
 
-{One `###` section for each specialty, named as a person's card names it in `specialty`. Under it, only
+One `###` section for each specialty, named as a person's card names it in `specialty`. Under it, only
 the characteristics it overrides or adds, each under a `####` heading with its four fields. Whatever a
-specialty does not mention is inherited from the base.}
+specialty does not mention is inherited from the base.
 
 ### Example, to delete: the front desk of a physiotherapy clinic
 
@@ -113,9 +113,9 @@ patient's name where someone at the counter can read it.
 
 ## Optional characteristics
 
-{A characteristic is defined only once it has a section of its own, with the four fields. Those listed
+A characteristic is defined only once it has a section of its own, with the four fields. Those listed
 here are not defined yet. When a design touches one, it is added as a `##` section above "Specialties",
-under the name given here, and its line here is deleted.}
+under the name given here, and its line here is deleted.
 
 - **Confidentiality and regulation** — what must stay private, and the rules that bind them.
 - **Delegation and hierarchy** — an assistant, a trainee, who answers for the work, who pays.

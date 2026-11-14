@@ -13,17 +13,17 @@ built-from: []
 
 ## The pick
 
-{The letter and the proposal's name, then the pick in his words, exactly.}
+What he said at the pick is in `PICK.md`, beside the board, and is not repeated here.
 
-{A graft is written as he said it, as "B, with A's status treatment": it is redrawn and read again once
-before it stands. "A bit of each" is not a pick. If he rejected them all, nothing is chosen: the input
-was wrong, and Intent or Context is reopened.}
+{The letter and the proposal's name. A graft, exactly as that file has it: it was redrawn and read
+again once before it stood.}
 
 ## The structure
 
-{The chosen proposal's file in this folder, which is its letter's on the board, or the redrawn one in
-`chosen/` after a graft, and its pictures. Then its screens in order, one line each: id · title · what
-it is for.}
+{The chosen proposal's file, which is its letter's on the board, or the redrawn one in `chosen/` after
+a graft, and its pictures.}
+
+{Its screens in order, one line each: id · title · what it is for.}
 
 ## What it is deliberately bad at
 
@@ -37,8 +37,8 @@ that is still open, with its seat: Detail closes it, or says why not.}
 
 ## Marked in the fresh gallery
 
-{What he marked in the gallery of fresh concepts, in his words, with the picture each mark is on. The
-marks are carried to Look. "No fresh pass", or "Nothing marked".}
+{What he marked in the gallery of fresh concepts, with the picture each mark is on: the marks are
+carried to Look. "No fresh pass", or "Nothing marked".}
 
 ## Not chosen
 
@@ -47,7 +47,7 @@ after the pick.}
 
 ## Reviewed by the founder
 
-{The words he picked with, as he said them, and anything he asked to be changed on the way to Detail.}
+{What he asked to be changed on the way to Detail. "Nothing".}
 
 <!-- The carry list is the last section: what the next stage may open besides this output. It holds
      entries only, one to a line: `- source:<path>` for a file of the project, and

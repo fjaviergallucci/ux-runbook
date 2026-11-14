@@ -4,8 +4,7 @@
 # Fixes · {the design's name}
 
 {One block for each deviation the founder wants fixed, written so that any session can take it knowing
-nothing else. Acceptance does not build: a fix the size of a correction is applied here only after his
-nod.}
+nothing else.}
 
 ## 1 · {the fix, named by what will be true when it is done}
 

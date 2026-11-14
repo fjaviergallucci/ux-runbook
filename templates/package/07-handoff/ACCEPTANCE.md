@@ -43,11 +43,13 @@ with what holding looks like: keyboard alone, a screen reader, text at 200%, red
 
 ## A check
 
-Each check in `acceptance.json` has an `id` of its own, the `criterion` it holds, in words, the `state`
-it is about, the `page` of `prototype/` that draws that state, a `width` in CSS pixels, and a `type`
-with that type's parameters. It may have a `theme`, light or dark (light when it has none), a
-`language` and a `screen`. An element is named by its `data-ux`. With `screen`, it is looked for only
-inside the one element whose `data-screen` is that screen.
+`acceptance.json` is one object with two keys: `design`, the design's name, and `checks`, the list.
+
+Each check has an `id` of its own, the `criterion` it holds, in words, the `state` it is about, the
+`page` of `prototype/` that draws that state, a `width` in CSS pixels, and a `type` with that type's
+parameters. It may have a `theme`, light or dark (light when it has none), a `language` and a `screen`.
+An element is named by its `data-ux`. With `screen`, it is looked for only inside the one element whose
+`data-screen` is that screen.
 
 ## The check types
 

@@ -3,9 +3,10 @@
 
 # State map · {the design's name}
 
-{One row for each state of the handoff's spec: how to put it on screen in the build. A row may name an
-address, a seed step, a network condition, and an account by its role with where its sign-in is kept.
-No password, token or key is ever written in this file.}
+A row may name an address, a seed step, a network condition, and an account by its role with where its
+sign-in is kept. No password, token or key is ever written in this file.
+
+{One row for each state of the handoff's spec: how to put it on screen in the build.}
 
 | Screen | State | How to reach it |
 |---|---|---|

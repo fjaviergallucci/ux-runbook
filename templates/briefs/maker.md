@@ -23,8 +23,7 @@ Read your card first, whole, at its absolute path: `{/…/pool/makers/<name>.md,
 ## Read, in this order
 
 {Only what the card's `reads` allows and this design gives it, each by its absolute path, with what it
-is. A describer gets the Structure brief and `kit/KIT-CONTRACT.md`, a fresh maker the fresh brief, and
-neither gets more: those briefs already say who she is.}
+is. A describer: the Structure brief and `kit/KIT-CONTRACT.md`. A fresh maker: the fresh brief alone.}
 
 1. {the absolute path} — {what it is}
 

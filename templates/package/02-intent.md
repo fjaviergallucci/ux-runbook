@@ -29,7 +29,7 @@ moment, in two or three sentences from the card: where she is, on what, what has
 ## Success criteria
 
 {Two or three testable sentences, each one checkable by looking at a screen. The test: could two people
-disagree about whether it was met? Then sharpen it. They become the acceptance checks.}
+disagree about whether it was met? Then sharpen it.}
 
 1. {as: "She can say which rooms are free now without scrolling, at phone width."}
 2. {…}
@@ -74,6 +74,11 @@ her words. Never the path, and never a criterion.}
 ## Constraints that will bite
 
 {Only those of the context that will shape this design, one line each.}
+
+## What the readers found
+
+{Only when the profile judge was cast to read the intent: its verdict, and each finding, fixed or open
+with the reason. "Not read" otherwise.}
 
 ## Reviewed by the founder
 

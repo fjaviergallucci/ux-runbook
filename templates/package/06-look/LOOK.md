@@ -12,21 +12,22 @@ built-from: []
 
 ## Mode
 
-{Inside the design system, or a direction: say which, and why. For a direction: each one's name, thesis
-and stated cost, the one he picked, the token file the pick became, and that the project's profile now
-points at it.}
+{Inside the design system, or a direction, and why.}
+
+{For a direction: each one's name, thesis and stated cost; the one he picked; the token file the pick
+became; that the project's profile now points at it.}
 
 ## What is in this folder
 
 {The final screens: static pages on the project's token file, one for each screen, state and language,
-each serving every theme and width, and their number as a sum. The reference pictures, at each width
-and theme. The token file, by its path and version.}
+each serving every theme and width. Their number, as a sum.}
+
+{The reference pictures, at each width and theme. The token file, by its path and version.}
 
 ## What the look decides
 
 {One line for each that this design settles: hierarchy · spacing · emphasis · density · what each width
-does · themes · motion, only when it was cast. The palette, the typefaces and the shapes of the parts
-are the system's; the structure, the states, the rules and the words are the detail's.}
+does · themes · motion, only when it was cast.}
 
 ## Measured values
 
@@ -52,12 +53,12 @@ whole, which is a change of direction for this surface. A fresh screen is never 
 ## Named extensions
 
 {What the system lacked, each as: its name; what it is, a token, a part or a pattern; its values beside
-the system's own; where it is used; what it costs. Each goes into the handoff's list of parts. "None".}
+the system's own; where it is used; what it costs. "None".}
 
 ## What the readers found
 
 {One line for each seat that read the final screens, with its verdict. Then each finding: fixed, or
-open with the reason. An open finding is on the decision page.}
+open with the reason.}
 
 ## Reviewed by the founder
 

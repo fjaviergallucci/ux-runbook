@@ -10,9 +10,8 @@ built-from: []
 
 # Context · {the design's name}
 
-{The one stage that reads the world: the project's code, documents, data and analytics. Whatever is
-taken from them is written here, with its source. Later stages read the package and the sources listed
-at the end, and nothing else.}
+{Whatever is taken from the project is written here, with its source: later stages read the package
+and the sources listed at the end, and nothing else.}
 
 ## The problem, and why now
 
@@ -30,9 +29,8 @@ project's pool is drafted here with every trait marked guess, corrected by the f
 
 ## What the product can show and do
 
-{The inventory the truth judge checks against, and all a design may show or offer: every piece of data,
-every action and every state that really exists. Data, never components. Say what is slow or sometimes
-missing.}
+{Every piece of data, every action and every state that really exists, as data and never as
+components, with what is slow or sometimes missing. The truth judge checks a design against this.}
 
 | Row | The product can show or do | Kind | Source |
 |---|---|---|---|
@@ -61,8 +59,8 @@ standing rules of the project's profile that apply here.}
 
 ## The founder's own words
 
-{Asked for here when the words will matter: one or two sentences as he would say them, verbatim. They go
-into the interface writer's brief as they are. "Not asked", with the reason, when they will not matter.}
+{One or two sentences as he would say them, verbatim, asked for when the words will matter. "Not
+asked", with the reason, when they will not.}
 
 ## Questions for the founder
 
@@ -70,8 +68,8 @@ into the interface writer's brief as they are. "Not asked", with the reason, whe
 
 ## Project sources
 
-{The files of the project a later stage may open directly: the token files, the component source, the
-product-facts document. One path to a line, with what it is. Each is also an entry of the carry list.}
+{The files of the project a later stage may open directly, one path to a line, with what each is. Each
+is also an entry of the carry list.}
 
 ## Reviewed by the founder
 

@@ -32,7 +32,7 @@ with what shows it.}
 ## What the readers found
 
 {One line for each judge that read pictures of the build, with its verdict. Then the audience's task
-read: its ranking, and the stuck point that cost her most. Pictures of a build are taken on test data.}
+read: its ranking, and the stuck point that cost her most.}
 
 ## Deviations accepted
 

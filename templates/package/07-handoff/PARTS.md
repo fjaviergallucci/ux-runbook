@@ -17,8 +17,8 @@ its version}
 
 ## Changes to the system
 
-{Anything new: a token, a part or a pattern the system lacks. Each is a change to the system, agreed as
-one and never slipped in. "None".}
+{Anything new, a token, a part or a pattern the system lacks: each is a change to the system, to be
+agreed as one. "None".}
 
 | Name | What it is | Its definition | Where it is used | What it costs |
 |---|---|---|---|---|
