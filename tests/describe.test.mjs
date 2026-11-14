@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { inspect } from 'node:util';
 import { DEFAULT_TIMEOUT, DescribeError, baseOf, describe } from '../scripts/describe.mjs';
@@ -134,12 +134,24 @@ const watched = () => {
 };
 // Nothing of the key, in any form inspect shows: message, stack, own properties, cause.
 const holdsKey = e => inspect(e, { showHidden: true, depth: Infinity }).includes(KEY);
-const filesIn = dir => (existsSync(dir) ? readdirSync(dir).sort() : []);
-// Whether any file anywhere under the folder holds one of the texts.
+// A FUSE mount (this checkout's NTFS one) keeps a file removed while some process holds it open for a moment
+// as .fuse_hidden…: no file a run made, so a listing of what a run left passes over it.
+const MOUNT_LEFTOVER = /^\.fuse_hidden/;
+const filesIn = dir => (existsSync(dir) ? readdirSync(dir).filter(name => !MOUNT_LEFTOVER.test(name)).sort() : []);
+// Whether any file anywhere under the folder holds one of the texts. Every file is read, a mount's leftover
+// too; only a leftover already gone by the time it is read is passed over.
 const anyFileHolds = (dir, ...texts) =>
   readdirSync(dir, { recursive: true }).some(name => {
     const path = join(dir, String(name));
-    return statSync(path).isFile() && texts.some(text => readFileSync(path, 'utf8').includes(text));
+    let content;
+    try {
+      if (!statSync(path).isFile()) return false;
+      content = readFileSync(path, 'utf8');
+    } catch (e) {
+      if (e.code === 'ENOENT' && MOUNT_LEFTOVER.test(basename(String(name)))) return false;
+      throw e;
+    }
+    return texts.some(text => content.includes(text));
   });
 // What the command says when an answer holds the key, and nothing of it is saved.
 const HELD = 'the answer held the key, so nothing of it was saved: no proposal and no raw file\n';
@@ -173,6 +185,20 @@ const flagsOf = (s, over = {}) => {
   const flags = { provider: 'openai', model: 'test-model', brief: s.briefPath, out: s.outPath, profile: s.profilePath, endpoint: s.endpoint, timeout: '10000', ...over };
   return Object.entries(flags).flatMap(([name, value]) => (value === null ? [] : [`--${name}`, value]));
 };
+
+// --- The tests' own helpers -------------------------------------------------------------------------
+
+test('a listing of what a run left passes over a mount’s hidden leftover, and over nothing else', () => {
+  const dir = fresh();
+  writeFileSync(join(dir, '.fuse_hidden0001'), 'a file the mount keeps for a moment');
+  assert.deepEqual(filesIn(dir), [], 'a folder holding only a leftover is empty');
+  writeFileSync(join(dir, 'model openai.json'), '{}');
+  writeFileSync(join(dir, 'a.fuse_hidden0002'), 'not a leftover: the name only holds the word');
+  assert.deepEqual(filesIn(dir), ['a.fuse_hidden0002', 'model openai.json'], 'a folder holding more is not');
+  // The check for the key still reads a leftover.
+  writeFileSync(join(dir, '.fuse_hidden0001'), `a leftover that held ${KEY}`);
+  assert.equal(anyFileHolds(dir, KEY), true, 'a leftover holding the key is found');
+});
 
 // --- The brief's seven -------------------------------------------------------------------------------
 
