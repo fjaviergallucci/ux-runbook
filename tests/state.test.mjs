@@ -303,13 +303,15 @@ test("stamp closes the open question of its own stage and leaves another stage's
   assert.match(p.page(), /## Open question\n\nNone\./);
 });
 
-test('reopen closes the open question only when it belongs to the reopened stage or one it marks stale', () => {
+test('reopen closes the open question of the reopened stage, of a stage it marks stale, and of a later stage that was awaiting', () => {
+  // A later stage never stamped, awaiting the founder: its output rested on the version reopened, so its question goes.
   const p = pkg();
   p.approve('frame', 'context', 'intent');
   p.write('cast');
   awaitFounder(p.dir, 'cast', { question: 'Which seats?', date: DAY });
-  assert.deepEqual(reopen(p.dir, 'context', { reason: 'r', date: DAY }).stale, ['intent']);
-  assert.deepEqual([p.state().question, p.state().questionStage], ['Which seats?', 'cast'], 'cast was never stamped');
+  assert.deepEqual(reopen(p.dir, 'context', { reason: 'r', date: DAY }), { version: 2, stale: ['intent'] });
+  assert.deepEqual([p.state().question, p.state().questionStage], [null, null]);
+  assert.match(p.page(), /## Open question\n\nNone\./);
 
   const q = pkg();
   q.approve('frame', 'context', 'intent');
@@ -326,6 +328,91 @@ test('reopen closes the open question only when it belongs to the reopened stage
   r.setState(state => Object.assign(state, { question: 'Still the right job?', questionStage: 'frame' }));
   reopen(r.dir, 'frame', { reason: 'r', date: DAY });
   assert.deepEqual([r.state().question, r.state().questionStage], [null, null]);
+});
+
+test('reopen takes a later stage out of awaiting: back in work since the day, its header draft, its body as it was', () => {
+  const p = pkg();
+  p.approve('frame', 'context', 'intent', 'cast');
+  p.write('structure');
+  awaitFounder(p.dir, 'structure', { question: 'Which structure?', date: DAY });
+  const { body } = p.read('structure');
+  assert.deepEqual(reopen(p.dir, 'intent', { reason: 'the job was stated wrong', date: '2026-11-14' }), { version: 2, stale: ['cast'] });
+  const { stages, question, questionStage } = p.state();
+  assert.deepEqual(stages.structure, { status: 'in-work', version: 1, approved: null, words: null, hash: null, builtFrom: null, since: '2026-11-14' });
+  assert.deepEqual([question, questionStage], [null, null]);
+  assert.deepEqual(p.read('structure'), { data: { stage: 'structure', version: 1, status: 'draft', approved: '', words: '', 'built-from': ['cast@1'] }, body });
+  assert.match(p.page(), /^\| structure \| full \| in-work \| 1 \| 2026-11-14 \| — \|/m);
+  assert.match(p.page(), /## Open question\n\nNone\./);
+  // Nothing else of the reopening changes: the reopened stage is next, and what was built on it is stale.
+  assert.equal(next(p.dir), 'intent');
+  assert.deepEqual([stages.intent.status, stages.intent.version, stages.cast.status, stages.context.status], ['in-work', 2, 'stale', 'approved']);
+  // With its output moved away, the stage is in work and owes none: validate has nothing to say of it.
+  unlinkSync(p.file('structure'));
+  assert.deepEqual(p.codes(), ['cast:stale-input']);
+  // And it can be begun, awaited and stamped again like any stage in work.
+  begin(p.dir, 'structure', { date: DAY });
+  assert.equal(p.state().stages.structure.status, 'in-work');
+});
+
+test('reopen takes out of awaiting every later stage that was, and only those: not an earlier one, not one in work or not started', () => {
+  // Two later stages awaiting, the question the second one's: both go back to work.
+  const p = pkg();
+  p.approve('frame', 'context');
+  p.write('intent');
+  awaitFounder(p.dir, 'intent', { question: 'Is this the one job?', date: DAY });
+  p.write('cast');
+  awaitFounder(p.dir, 'cast', { question: 'Which seats?', date: DAY });
+  begin(p.dir, 'structure', { date: DAY });
+  assert.deepEqual(reopen(p.dir, 'context', { reason: 'r', date: '2026-11-14' }).stale, []);
+  const after = p.state();
+  assert.deepEqual(STAGES.map(stage => after.stages[stage].status), ['approved', 'in-work', 'in-work', 'in-work', 'in-work', 'not-started', 'not-started', 'not-started', 'not-started']);
+  assert.deepEqual([after.stages.intent.since, after.stages.cast.since, after.stages.structure.since], ['2026-11-14', '2026-11-14', DAY]);
+  assert.deepEqual([p.read('intent').data.status, p.read('cast').data.status], ['draft', 'draft']);
+  assert.deepEqual([after.question, after.questionStage], [null, null]);
+
+  // An earlier stage awaiting keeps its status and its question; the later one awaiting goes back to work.
+  const q = pkg();
+  q.approve('frame', 'context', 'intent');
+  reopen(q.dir, 'context', { reason: 'r', date: DAY });
+  q.write('cast');
+  awaitFounder(q.dir, 'cast', { question: 'Which seats?', date: DAY });
+  q.write('context');
+  awaitFounder(q.dir, 'context', { question: 'Which angle?', date: DAY });
+  assert.equal(q.state().stages.intent.status, 'stale');
+  reopen(q.dir, 'intent', { reason: 'r', date: DAY });
+  const kept = q.state();
+  assert.deepEqual([kept.stages.context.status, kept.stages.cast.status], ['awaiting', 'in-work']);
+  assert.deepEqual([kept.question, kept.questionStage], ['Which angle?', 'context']);
+  assert.equal(q.read('context').data.status, 'awaiting');
+
+  // A later stage awaiting whose output cannot be read, or is gone, goes back to work all the same, the file left as it is.
+  const r = pkg();
+  r.approve('frame', 'context');
+  writeFileSync(r.file('intent'), '---\nstage: intent\n');
+  r.setState(state => {
+    Object.assign(state.stages.intent, { status: 'awaiting', since: DAY });
+    Object.assign(state.stages.cast, { status: 'awaiting', since: DAY });
+    Object.assign(state, { question: 'Which seats?', questionStage: 'cast' });
+  });
+  reopen(r.dir, 'context', { reason: 'r', date: DAY });
+  assert.equal(readFileSync(r.file('intent'), 'utf8'), '---\nstage: intent\n');
+  assert.ok(!existsSync(r.file('cast')));
+  assert.deepEqual([r.state().stages.intent.status, r.state().stages.cast.status, r.state().question], ['in-work', 'in-work', null]);
+});
+
+test("begin closes the open question of its own stage and leaves another stage's", () => {
+  const p = pkg();
+  p.write('frame');
+  p.write('context');
+  awaitFounder(p.dir, 'context', { question: 'Which angle?', date: DAY });
+  begin(p.dir, 'frame', { date: DAY });
+  assert.deepEqual([p.state().question, p.state().questionStage], ['Which angle?', 'context']);
+  begin(p.dir, 'context', { date: DAY });
+  assert.deepEqual([p.state().stages.context.status, p.state().question, p.state().questionStage], ['in-work', null, null]);
+  assert.match(p.page(), /## Open question\n\nNone\./);
+  // Awaited again, it asks again: the question is the new one.
+  awaitFounder(p.dir, 'context', { question: 'Which day?', date: DAY });
+  assert.deepEqual([p.state().question, p.state().questionStage], ['Which day?', 'context']);
 });
 
 // ---- stamp
@@ -973,9 +1060,10 @@ test('validate accepts a source: carry entry without resolving it', () => {
 test('validate: a stage awaiting, approved or stale without its output is missing-artefact; a stage in work is not', () => {
   const p = pkg();
   p.approve('frame', 'context', 'intent');
+  // The reopening comes first: a later stage awaiting when an earlier one is reopened goes back in work.
+  reopen(p.dir, 'context', { reason: 'r', date: DAY });
   p.write('cast');
   awaitFounder(p.dir, 'cast', { question: 'Which seats?', date: DAY });
-  reopen(p.dir, 'context', { reason: 'r', date: DAY });
   const { stages } = p.state();
   assert.deepEqual(['frame', 'context', 'intent', 'cast'].map(s => stages[s].status), ['approved', 'in-work', 'stale', 'awaiting']);
   for (const stage of ['frame', 'context', 'intent', 'cast']) unlinkSync(p.file(stage));
@@ -1232,6 +1320,9 @@ test('the CLI begin and await: 0 on success, 1 on a refusal, 2 on missing argume
   r = run('await', p.dir, 'frame', '--question', 'Is the job\nright?', '--date', DAY);
   assert.deepEqual([r.status, r.stdout], [0, 'frame awaits the founder\n']);
   assert.deepEqual([p.state().stages.frame.status, p.state().question], ['awaiting', 'Is the job right?']);
+  r = run('begin', p.dir, 'frame');
+  assert.deepEqual([r.status, r.stdout], [0, 'frame is in work\n']);
+  assert.deepEqual([p.state().stages.frame.status, p.state().question], ['in-work', null]);
   r = run('begin', p.dir, 'structure');
   assert.equal(r.status, 1);
   assert.match(r.stderr, /skipped/);

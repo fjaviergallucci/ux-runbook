@@ -98,15 +98,22 @@ export function init(pkgDir, { design, kind, foundation, size, date } = {}) {
 
 // The stage is in work since `date`. Its output may not exist yet; when it does, its header goes back to
 // draft. An approval it had before it went stale no longer stands; the hash and inputs stay, for stamp.
+// A question that was open for it is closed: a stage back in work is no longer in front of the founder.
 export function begin(pkgDir, stage, { date } = {}) {
   const state = load(pkgDir);
   requireStage(stage);
   requireDate(date);
   requireOpen(state, stage);
+  backInWork(pkgDir, state, stage, date);
+  closeQuestion(state, [stage]);
+  save(pkgDir, state);
+}
+
+// A stage goes back in work since `date`, its header, when its output can be read, back to draft.
+function backInWork(pkgDir, state, stage, date) {
   const art = readArtefact(pkgDir, stage);
   if (art && !art.error) writeArtefact(pkgDir, stage, { ...art.data, status: 'draft', approved: '', words: '' }, art.body);
   Object.assign(state.stages[stage], { status: 'in-work', approved: null, words: null, since: date });
-  save(pkgDir, state);
 }
 
 // The stage's output goes to the founder with the one open question (`await` is a reserved word).
@@ -156,7 +163,10 @@ export function stamp(pkgDir, stage, { words, date } = {}) {
   return { version };
 }
 
-// The stage gets a new version, in work, and everything built on the old one turns stale (§ 6).
+// The stage gets a new version, in work, and everything built on the old one turns stale (§ 6). A later
+// stage that was awaiting the founder rested on the version reopened, whether or not it was ever stamped:
+// the question put for it can no longer be answered as asked, so it goes back in work and its question is
+// closed. One the cascade marks stale is stale, and its question is closed with it.
 export function reopen(pkgDir, stage, { reason, date } = {}) {
   const state = load(pkgDir);
   requireStage(stage);
@@ -173,7 +183,9 @@ export function reopen(pkgDir, stage, { reason, date } = {}) {
   state.stages[stage] = entryOf('in-work', version);
   state.reasons[stage] = `reopened on ${date}: ${why}`;
   const stale = cascade(state, stage, `${stage} went to version ${version} on ${date}`);
-  closeQuestion(state, [stage, ...stale]);
+  const recalled = STAGES.slice(at(stage) + 1).filter(later => state.stages[later].status === 'awaiting');
+  for (const later of recalled) backInWork(pkgDir, state, later, date);
+  closeQuestion(state, [stage, ...stale, ...recalled]);
   save(pkgDir, state);
   return { version, stale };
 }
@@ -538,7 +550,8 @@ function question(state) {
   return state.questionStage ? `${state.questionStage}: ${asked}` : asked;
 }
 
-// The open question is closed when the stage it was put for is approved, reopened, skipped or marked stale.
+// The open question is closed when the stage it was put for is approved, reopened, skipped, marked stale,
+// begun again, or taken out of awaiting because an earlier stage was reopened.
 function closeQuestion(state, stages) {
   if (stages.includes(state.questionStage)) Object.assign(state, { question: null, questionStage: null });
 }

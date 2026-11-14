@@ -2977,11 +2977,14 @@ test('Structure runs as written: its own commands on the fixture proposals, the 
   mkdirSync(join(round, 'earlier', '1'), { recursive: true });
   for (const name of held) renameSync(join(round, name), join(round, 'earlier', '1', name));
   assert.deepEqual(readdirSync(round).filter(visible), ['earlier']);
-  // What the state shows meanwhile, as rounds.md says: the output is missing, the pick's question still stands, and the reopened stage is next.
+  // What the state shows meanwhile: the reopening took Structure out of awaiting and closed its question, so with its round
+  // moved it is a stage in work that owes no output yet. Only the stale cast is left to say, and the reopened stage is next.
   const meanwhile = exec(commandOf('state.mjs validate'));
   assert.deepEqual([meanwhile.status, meanwhile.stderr], [1, '']);
-  assert.match(meanwhile.stdout, /^structure: missing-artefact: structure is awaiting, but 04-structure\/CHOSEN\.md does not exist$/m);
-  assert.match(run(commandOf('state.mjs status')), /^## Open question\n\nstructure: Which structure goes on to Detail: A, B or C\?$/m);
+  assert.match(meanwhile.stdout, /^cast: stale-input: cast is stale: intent went to version 2 on \d{4}-\d\d-\d\d; redo it or re-confirm it, then stamp it\n$/);
+  const standing = run(commandOf('state.mjs status'));
+  assert.match(standing, /^## Open question\n\nNone\.$/m);
+  assert.match(standing, /^\| structure \| full \| in-work \| 1 \| \d{4}-\d\d-\d\d \| — \| `04-structure\/CHOSEN\.md` \| — \|$/m);
   assert.equal(run(commandOf('state.mjs next')), 'intent');
   // The reopened stage is approved anew and the stale cast stamped again, on the new intent. Then Structure is next, and starts clean.
   assert.match(run(`${STATE} stamp <package> intent --words "ahora sí"`), STAMPED('intent', 2));

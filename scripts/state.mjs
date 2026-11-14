@@ -13,7 +13,7 @@ and is never edited by hand.
 
   init <package> --design <name> --kind <kind> --foundation <foundation> --size <size> [--date <day>]
   begin <package> <stage> [--date <day>]
-      mark the stage in work since the day; its output need not exist yet
+      mark the stage in work since the day; its output need not exist yet; closes its open question
   await <package> <stage> --question "<the one question>" [--date <day>]
       mark the stage's output as awaiting the founder, with the one open question
   stamp <package> <stage> --words "<the founder's words>" [--date <day>]
@@ -21,7 +21,8 @@ and is never edited by hand.
       The output must be built from the stage before it on the route, and its carry list may only
       name stages it is built from. A stale stage redone with a different body gets a new version.
   reopen <package> <stage> --reason "<why>" [--date <day>]
-      give an approved or stale stage a new version; later stages stamped as built from it turn stale
+      give an approved or stale stage a new version; later stages stamped as built from it turn stale,
+      and a later stage awaiting the founder goes back in work, its question closed
   route <package> <stage> <${MODES.join('|')}> --reason "<why>" [--date <day>]
       route one stage full, short or skipped, with the reason; an approved stage whose mode changes
       turns stale, and an approved or awaiting stage cannot be skipped
