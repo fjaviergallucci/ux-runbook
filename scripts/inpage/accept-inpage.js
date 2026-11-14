@@ -34,11 +34,12 @@
 //                before any scrolling, and inside the page's scroll bars), and nothing cuts it away. When
 //                its box lies inside every element it is written in that might cut it (an overflow other
 //                than visible, contain: paint, content-visibility other than visible, a clip-path, an
-//                <svg>; up to the body) and none of them has a clip-path, nothing can. Else the browser is
-//                asked, as scrolled now: it is pointed at five points of the box (the centres of its line
-//                boxes when it wraps), and a point where it finds the element not is cut away. Where
-//                pointing cannot tell (pointer-events: none, inert, outside an open modal dialog, out of
-//                the window on a scrolled page), it fails "cannot be told: …", never a guess.
+//                <svg>; up to the body), none of them has a clip-path, and it reaches no rounded corner of
+//                one (the rectangle at the corner, as wide and as high as its radii), nothing can. Else the
+//                browser is asked, as scrolled now: it is pointed at five points of the box (the centres of
+//                its line boxes when it wraps), and a point where it finds the element not is cut away.
+//                Where pointing cannot tell (pointer-events: none, inert, outside an open modal dialog, out
+//                of the window on a scrolled page), it fails "cannot be told: …", never a guess.
 //                An edge that passes a box by no more than one pixel is inside it.
 //                Measure at the top of the page: an element that sticks may be misjudged after a scroll.
 //   min-size     the one element's box is at least `minWidth` by `minHeight` CSS pixels
@@ -242,17 +243,54 @@
     return found;
   }
 
-  // Whether a box lies inside an element's padding box (scroll bars aside, scaled as the element is drawn),
-  // an edge passing it by no more than TOLERANCE.
-  function inside(box, at) {
+  // An element's padding box (scroll bars aside, scaled as the element is drawn), with the size of its whole
+  // box as drawn and how far it is scaled each way.
+  function edgesOf(at) {
     var edge = at.getBoundingClientRect();
     var sx = at.offsetWidth > 0 ? edge.width / at.offsetWidth : 1;
     var sy = at.offsetHeight > 0 ? edge.height / at.offsetHeight : 1;
     var left = edge.left + at.clientLeft * sx;
     var top = edge.top + at.clientTop * sy;
-    var right = left + at.clientWidth * sx;
-    var bottom = top + at.clientHeight * sy;
-    return left - box.left <= TOLERANCE && box.right - right <= TOLERANCE && top - box.top <= TOLERANCE && box.bottom - bottom <= TOLERANCE;
+    return { left: left, top: top, right: left + at.clientWidth * sx, bottom: top + at.clientHeight * sy, width: edge.width, height: edge.height, sx: sx, sy: sy };
+  }
+
+  // Whether a box lies inside an element's padding box, an edge passing it by no more than TOLERANCE.
+  function inside(box, at) {
+    var edge = edgesOf(at);
+    return edge.left - box.left <= TOLERANCE && box.right - edge.right <= TOLERANCE && edge.top - box.top <= TOLERANCE && box.bottom - edge.bottom <= TOLERANCE;
+  }
+
+  // A corner's radii as drawn, across and down, from its computed value: one or two lengths in px or %
+  // (across, then down; one is both), a percentage being of the box's width across and of its height down,
+  // and neither more than the box. A value that cannot be read counts as the whole box: too much only asks
+  // the browser more often, too little is a wrong pass.
+  var RADIUS = /^([\d.]+)(px|%)(?: ([\d.]+)(px|%))?$/;
+  function radiiOf(value, edge) {
+    var read = RADIUS.exec(value);
+    if (!read) return [edge.width, edge.height];
+    var pair = read[3] !== undefined;
+    var across = Number(read[1]) * (read[2] === '%' ? edge.width / 100 : edge.sx);
+    var down = Number(pair ? read[3] : read[1]) * ((pair ? read[4] : read[2]) === '%' ? edge.height / 100 : edge.sy);
+    return [across <= edge.width ? across : edge.width, down <= edge.height ? down : edge.height];
+  }
+
+  // Whether a box reaches a rounded corner of an element: the rectangle at the corner, as wide as the
+  // corner's radius across and as high as its radius down. Rounding cuts nothing outside those four.
+  function atCorner(box, at) {
+    var style = getComputedStyle(at);
+    var edge = edgesOf(at);
+    return [
+      [style.borderTopLeftRadius, true, true],
+      [style.borderTopRightRadius, false, true],
+      [style.borderBottomRightRadius, false, false],
+      [style.borderBottomLeftRadius, true, false],
+    ].some(function (corner) {
+      var radii = radiiOf(corner[0], edge);
+      if (!(radii[0] > 0 && radii[1] > 0)) return false;
+      var left = corner[1] ? edge.left : edge.right - radii[0];
+      var top = corner[2] ? edge.top : edge.bottom - radii[1];
+      return box.left < left + radii[0] && box.right > left && box.top < top + radii[1] && box.bottom > top;
+    });
   }
 
   // The points of an element the browser is asked about: the centre of each of its first eight line boxes
@@ -500,14 +538,14 @@
       if (x + box.width > width) outside.push('its right edge is at ' + two(x + box.width));
       if (y + box.height > height) outside.push('its bottom edge is at ' + two(y + box.height));
       var faults = outside.length === 0 ? [] : ['it is not inside the first viewport, ' + width + ' × ' + height + ': ' + outside.join(', ')];
-      // Clearly not cut: inside every box that might cut it, and none of them with a clip-path. Otherwise
-      // the browser is asked, when it can be.
+      // Clearly not cut: inside every box that might cut it, none of them with a clip-path, and at no
+      // rounded corner of one. Otherwise the browser is asked, when it can be.
       var clips = mightClip(element);
       var outsideOf = clips.filter(function (at) {
         return !inside(box, at);
       });
       var clipped = clips.filter(function (at) {
-        return getComputedStyle(at).clipPath !== 'none';
+        return getComputedStyle(at).clipPath !== 'none' || atCorner(box, at);
       });
       if (outsideOf.length > 0 || clipped.length > 0) {
         var why = untellable(element, box);

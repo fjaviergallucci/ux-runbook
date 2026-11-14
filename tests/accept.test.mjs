@@ -1751,8 +1751,8 @@ describe('the in-page file, evaluated through a driver of its own', () => {
       ['<div class="scaled-card" style="scale: 0.95; overflow: hidden; width: 200px; height: 100px"><p data-ux="scaled-tail" style="position: absolute; top: 150px; margin: 0">tail</p></div>', 'scaled-tail', false, 'it is clipped by <div class="scaled-card">'],
       // content-visibility: auto cuts what overflows it.
       ['<div class="lazy" style="content-visibility: auto; height: 100px"><p data-ux="lazy-low" style="margin: 300px 0 0; height: 20px">low</p></div>', 'lazy-low', false, 'it is clipped by <div class="lazy">'],
-      // An <svg> cuts a label written outside it, and not one inside it.
-      ['<svg class="chart" width="100" height="50" style="margin-left: 100px; display: block"><text data-ux="label-out" x="-50" y="20">Label out</text></svg>', 'label-out', false, 'it is clipped by <svg class="chart">'],
+      // An <svg> cuts a label written outside it, and not one inside it: left inline, as it is written.
+      ['<svg class="chart" width="100" height="50" style="margin-left: 100px"><text data-ux="label-out" x="-50" y="20">Label out</text></svg>', 'label-out', false, 'it is clipped by <svg class="chart">'],
       ['<svg class="chart" width="100" height="50"><text data-ux="label-in" x="10" y="30">In</text></svg>', 'label-in', true, ''],
       // A clip-path cuts the absolute and the fixed element written in it, and what its own inset cuts.
       ['<div class="cp" style="clip-path: inset(0); width: 100px; height: 100px"><p data-ux="cp-absolute" style="position: absolute; top: 150px; margin: 0">a</p></div>', 'cp-absolute', false, 'it is clipped by <div class="cp">'],
@@ -1840,6 +1840,89 @@ describe('the in-page file, evaluated through a driver of its own', () => {
     // In a column two lines high that hides the rest, its third line is cut.
     const cut = body.replace('height: 300px; overflow: auto', 'height: 36px; overflow: hidden');
     assert.deepEqual((await evaluate(cut, [c('wrapped', 'in-viewport')])).map(({ pass, message }) => [pass, message]), [[false, 'it is clipped by <div class="column">']]);
+  });
+
+  test('in-viewport asks the browser where a box reaches a rounded corner of an element that might cut it, and nowhere else', async () => {
+    const said = results => results.map(({ id, pass, message }) => [id, pass, message]);
+    const asked = ', and the browser is asked by pointing at it';
+    // A round avatar 40 px across; and a card 300 px wide: a heading 48 px high flush with its top, what a
+    // case puts in it, and a footer 42 px high.
+    const avatar = (inside, radius = '50%') => `<div class="avatar" style="position: relative; width: 40px; height: 40px; border-radius: ${radius}; overflow: hidden; background: #cccccc">${inside}</div>`;
+    const dot = '<span data-ux="dot" style="position: absolute; top: 0; right: 0; width: 10px; height: 10px; background: #00aa00"></span>';
+    const photo = '<img data-ux="photo" alt="" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" style="display: block; width: 40px; height: 40px">';
+    const card = (inside = '', rounding = 'border-radius: 12px') => `<div class="card" style="position: relative; width: 300px; ${rounding}; overflow: hidden; background: #eeeeee"><h2 data-ux="card-head" style="margin: 0; padding: 12px 16px; font: 600 16px/24px sans-serif">Room 2</h2>${inside}<p style="margin: 0; padding: 12px 16px">Sala Jardín</p></div>`;
+    const middle = style => `<p data-ux="card-middle" style="margin: 0; padding: 0 16px; ${style}">Free until 10:30</p>`;
+    const badge = place => `<span data-ux="badge" style="position: absolute; ${place}; width: 4px; height: 4px; background: #cc0000"></span>`;
+    const cases = [
+      // A status dot at the top right of the avatar is cut away by its rounding; a photo that fills it is not.
+      [avatar(dot), 'dot', false, 'it is clipped by <div class="avatar">'],
+      [avatar(photo), 'photo', true, ''],
+      // The heading reaches both top corners of the card, and the browser finds it.
+      [card(), 'card-head', true, ''],
+      [card(middle('')), 'card-middle', true, ''],
+      // A badge far into a corner of the card is cut away: each corner, on a card rounded there alone.
+      [card(badge('top: 0; right: 0')), 'badge', false, 'it is clipped by <div class="card">'],
+      [card(badge('top: 0; left: 0'), 'border-top-left-radius: 12px'), 'badge', false, 'it is clipped by <div class="card">'],
+      [card(badge('top: 0; right: 0'), 'border-top-right-radius: 12px'), 'badge', false, 'it is clipped by <div class="card">'],
+      [card(badge('bottom: 0; right: 0'), 'border-bottom-right-radius: 12px'), 'badge', false, 'it is clipped by <div class="card">'],
+      [card(badge('bottom: 0; left: 0'), 'border-bottom-left-radius: 12px'), 'badge', false, 'it is clipped by <div class="card">'],
+      // A radius that cannot be read (here 20 px, as a sum) counts as the whole box.
+      [avatar(dot, 'calc(10px + 25%)'), 'dot', false, 'it is clipped by <div class="avatar">'],
+    ];
+    for (const [body, id, pass, message] of cases) {
+      const { results, painted } = await evaluateAndPoint(body, [c(id, 'in-viewport')]);
+      assert.deepEqual(said(results), [[id, pass, message]], body);
+      // What the function says is what the page paints at the element's centre.
+      assert.equal(painted[0], pass, `${id}: the page paints it at its centre: ${painted[0]}`);
+    }
+    // The line in the middle of the card reaches no corner: nothing can cut it, and the browser is not
+    // asked, which it could not be of an element that takes no pointer events.
+    assert.deepEqual(said(await evaluate(card(middle('pointer-events: none')), [c('card-middle', 'in-viewport')])), [['card-middle', true, '']]);
+    // Nor of one that lies between two corners and touches both: along the top, down the left side.
+    const between = card('<span data-ux="along-top" style="position: absolute; top: 0; left: 12px; right: 12px; height: 8px; pointer-events: none"></span><span data-ux="down-side" style="position: absolute; top: 12px; bottom: 12px; left: 0; width: 8px; pointer-events: none"></span>');
+    assert.deepEqual(said(await evaluate(between, [c('along-top', 'in-viewport'), c('down-side', 'in-viewport')])), [['along-top', true, ''], ['down-side', true, '']]);
+    // Nor for a box with square corners, half a pixel over one of them; a corner with no width is square.
+    const square = rounding => `<div style="margin: 10px; width: 100px; height: 100px; ${rounding}overflow: hidden"><p data-ux="square" style="margin: -0.5px 0 0 -0.5px; width: 50px; height: 20px; pointer-events: none">x</p></div>`;
+    assert.deepEqual(said(await evaluate(square(''), [c('square', 'in-viewport')])), [['square', true, '']]);
+    assert.deepEqual(said(await evaluate(square('border-radius: 0 / 5px; '), [c('square', 'in-viewport')])), [['square', true, '']]);
+    // A radius in percent, across then down: on a box 300 by 100, 50% / 20% rounds 150 px across and 20 px
+    // down at each corner. An element in the top band, 62 px along, is asked about, and its top is cut; one
+    // in the middle band is not asked about, though it lies within 60 px of the side.
+    const wide = '<div class="wide" style="position: relative; width: 300px; height: 100px; border-radius: 50% / 20%; overflow: hidden; background: #eeeeee"><span data-ux="in-band" style="position: absolute; top: 0; left: 62px; width: 20px; height: 20px; background: #cc0000"></span><span data-ux="in-middle" style="position: absolute; top: 40px; left: 10px; width: 40px; height: 20px; pointer-events: none">x</span></div>';
+    const context = await browser.newContext(contextOptions(390, 'light'));
+    try {
+      const page = await context.newPage();
+      await page.setContent(`<!doctype html><html lang="en"><head><meta charset="utf-8"><title>t</title>${STYLE}</head><body>${wide}</body></html>`);
+      await page.evaluate(source);
+      const results = await page.evaluate(checks => window.__uxAccept(checks), [c('in-band', 'in-viewport'), c('in-middle', 'in-viewport')]);
+      // The page's own answer at the five points: the centre, and the middle of each edge one pixel in.
+      const points = await page.evaluate(() => {
+        const element = document.querySelector('[data-ux="in-band"]');
+        const box = element.getBoundingClientRect();
+        const cx = box.left + box.width / 2;
+        const cy = box.top + box.height / 2;
+        return [[cx, cy], [cx, box.top + 1], [cx, box.bottom - 1], [box.left + 1, cy], [box.right - 1, cy]].map(([x, y]) => {
+          const at = document.elementFromPoint(x, y);
+          return at !== null && element.contains(at);
+        });
+      });
+      assert.deepEqual(points, [true, false, true, true, true]);
+      assert.equal(results[0].pass, points.every(Boolean));
+      assert.deepEqual(said(results), [
+        ['in-band', false, 'it is clipped by <div class="wide">'],
+        ['in-middle', true, ''],
+      ]);
+    } finally {
+      await context.close();
+    }
+    // A rounded box drawn at twice its size: its corners are twice as large. One element 44 px down its
+    // left side as drawn, one 44 px along its top, each cut where a corner of 80 px reaches and one of 40 px
+    // would not.
+    const scaled = '<div style="transform: scale(2); transform-origin: 0 0"><div class="twice" style="position: relative; width: 150px; height: 120px; border-radius: 40px; overflow: hidden; background: #eeeeee"><span data-ux="twice-down" style="position: absolute; top: 22px; left: 0; width: 4px; height: 4px; background: #cc0000"></span><span data-ux="twice-along" style="position: absolute; top: 0; left: 22px; width: 4px; height: 4px; background: #cc0000"></span></div></div>';
+    const twice = await evaluateAndPoint(scaled, [c('twice-down', 'in-viewport'), c('twice-along', 'in-viewport')]);
+    assert.deepEqual([said(twice.results), twice.painted], [[['twice-down', false, 'it is clipped by <div class="twice">'], ['twice-along', false, 'it is clipped by <div class="twice">']], [false, false]]);
+    // What cannot be asked near a corner cannot be told.
+    assert.deepEqual(said(await evaluate(avatar(dot.replace('background', 'pointer-events: none; background')), [c('dot', 'in-viewport')])), [['dot', false, `cannot be told: it has pointer-events: none${asked}`]]);
   });
 
   test('content-visibility on an inline box does nothing: a span hidden until found, or with content-visibility: hidden, is shown', async () => {
