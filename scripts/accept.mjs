@@ -8,8 +8,9 @@
 //     in-page file (`accept inpage` prints where it is) and calls window.__uxAccept(checks).
 //   - The results of either become one Markdown table with `accept report`.
 //
-// As a module: validateAcceptance(data) → string[]; acceptPrototype(data, { root, chrome, timeout }) →
-// { results, errors }; validateResults(data) → string[]; reportOf(lists) → Markdown.
+// As a module: validateAcceptance(data) → string[]; acceptPrototype(data, { root, chrome, timeout,
+// allowErrors }) → { results, errors }; validateResults(data, { joined }) → string[]; joinResults(data,
+// sources) → results; reportOf(lists, { notRun }) → Markdown.
 // As a command: see USAGE. Exit codes: 0 success · 1 a refusal, or a check that failed · 2 bad usage.
 import { mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, posix } from 'node:path';
@@ -152,23 +153,26 @@ const checking = (source, groups) => ({
   unread: 'the page could not be read again once checked',
 });
 
-// acceptPrototype(data, { root, chrome, timeout }) → { results, errors }.
-//   data     an acceptance file's content (see validateAcceptance)
-//   root     the prototype folder each check's page is in
-//   chrome   the Chrome to drive (lib/chrome.mjs finds one when not given)
-//   timeout  how long a page is given to load, to settle, and for each step on it, in milliseconds
+// acceptPrototype(data, { root, chrome, timeout, allowErrors }) → { results, errors }.
+//   data         an acceptance file's content (see validateAcceptance)
+//   root         the prototype folder each check's page is in
+//   chrome       the Chrome to drive (lib/chrome.mjs finds one when not given)
+//   timeout      how long a page is given to load, to settle, and for each step on it, in milliseconds
+//   allowErrors  true: what a page reports as it runs is a warning, not a failure (false when not given)
 // The checks are grouped by page, width and theme, and each group's page is opened once, through
 // lib/browser.mjs: one context for each width and theme, in the order they first appear, its pages in the
 // order they first appear. A page that does not open, does not settle, leaves for another document, or
-// cannot be checked fails every check of its group with that fault, and the run goes on.
+// cannot be checked fails every check of its group with that fault, and the run goes on. So does a page
+// that reports a script error, a console error or a resource that did not load, with what it reported,
+// unless allowErrors: a page measured without its stylesheet proves nothing.
 // results: one { id, pass, actual, message, criterion, state, page, width, theme } for each check, in the
-// file's order. errors: { page, message } for what a page reported as it ran (a script error, a console
-// error, a resource that did not load, a page that would not close), once a page whatever the width; they
-// do not decide whether a check passed.
+// file's order. errors: the warnings, { page, message }, once a page whatever the width: a page that would
+// not close (its checks were made), and with allowErrors what a page reported.
 // Throws a TypeError for bad options, an AcceptError or a ChromeError for a refusal; never for one page.
-export async function acceptPrototype(data, { root, chrome, timeout = TIMEOUT } = {}) {
+export async function acceptPrototype(data, { root, chrome, timeout = TIMEOUT, allowErrors = false } = {}) {
   if (typeof root !== 'string' || root === '') throw new TypeError(`root must be the path of a folder; it is ${JSON.stringify(root)}`);
   if (!Number.isSafeInteger(timeout) || timeout < 1) throw new TypeError(`timeout must be a whole number of milliseconds from 1; it is ${JSON.stringify(timeout)}`);
+  if (typeof allowErrors !== 'boolean') throw new TypeError(`allowErrors must be true or false; it is ${JSON.stringify(allowErrors)}`);
   const invalid = validateAcceptance(data);
   if (invalid.length > 0) throw new AcceptError(`the acceptance checks are not valid:\n${invalid.map(e => `  ${e}`).join('\n')}`);
   checkFolder(root);
@@ -204,7 +208,9 @@ export async function acceptPrototype(data, { root, chrome, timeout = TIMEOUT } 
   await visitPages(executablePath, runs, { timeout, act: checking(source, groups), Refusal: AcceptError }, (file, visit, run) => {
     const group = groups.get(run).get(file);
     const page = group[0].check.page;
-    const fault = visit.lost ? 'the browser stopped twice while opening this page' : visit.fault;
+    // What the page reported fails its checks, after any fault of its own, unless errors are allowed.
+    const reported = allowErrors || visit.lost ? '' : visit.reports.join('; ');
+    const fault = visit.lost ? 'the browser stopped twice while opening this page' : visit.fault || reported;
     group.forEach(({ check, place }, i) => {
       const found = fault ? null : visit.value?.[i];
       const made = fault
@@ -215,7 +221,7 @@ export async function acceptPrototype(data, { root, chrome, timeout = TIMEOUT } 
       results[place] = { id: check.id, ...made, criterion: check.criterion, state: check.state, page: check.page, width: check.width, theme: run.theme };
     });
     if (visit.lost) return;
-    for (const message of visit.reports) report(page, message);
+    if (allowErrors) for (const message of visit.reports) report(page, message);
     if (visit.closing) report(page, visit.closing);
   });
   return { results, errors };
@@ -231,9 +237,11 @@ function checkFolder(folder) {
   if (!stat.isDirectory()) throw new AcceptError(`cannot read ${folder}: it is a file, not a folder`);
 }
 
-// validateResults(data) → every fault of a results file, each as "<path>: <what>"; empty when it is a list
-// of results as acceptPrototype writes them (other keys beside those are let be).
-export function validateResults(data) {
+// validateResults(data, { joined }) → every fault of a results file, each as "<path>: <what>"; empty when it
+// is a list of results as acceptPrototype writes them (other keys beside those are let be). joined: the
+// results are to be joined to their checks (joinResults), so each needs no more than what
+// window.__uxAccept gives: id, pass, actual and message.
+export function validateResults(data, { joined = false } = {}) {
   if (!Array.isArray(data)) return ['$: must be a list of results'];
   const errors = [];
   data.forEach((result, i) => {
@@ -247,6 +255,7 @@ export function validateResults(data) {
     if (typeof result.pass !== 'boolean') fault('pass', 'must be true or false');
     if (!Object.hasOwn(result, 'actual')) fault('actual', 'is missing');
     if (typeof result.message !== 'string') fault('message', 'must be a string');
+    if (joined) return;
     if (!isText(result.criterion)) fault('criterion', 'must be a non-empty string');
     for (const key of ['state', 'page']) {
       if (typeof result[key] !== 'string') fault(key, 'must be a string');
@@ -257,22 +266,54 @@ export function validateResults(data) {
   return errors;
 }
 
-// The count line both the command and the report open with.
-const counts = results => {
-  const failed = results.filter(result => !result.pass).length;
-  return `${results.length} checks: ${failed} failed, ${results.length - failed} passed`;
+// joinResults(data, sources, name) → one result for each check of the acceptance file, in its order: the
+// id, pass, actual and message of its result, and the check's own criterion, state, page, width and theme
+// (light when not given), which win over any a result carries. A check with no result is not run: its pass
+// is null, its actual null, its message empty. sources: [{ file, results }], the results files read; name:
+// what the acceptance file is called in a refusal.
+// Throws an AcceptError for checks that are not valid, a result whose id no check has, and an id with two
+// results, in one file or across them.
+export function joinResults(data, sources, name = 'the acceptance checks') {
+  const invalid = validateAcceptance(data);
+  if (invalid.length > 0) throw new AcceptError(`the acceptance checks are not valid:\n${invalid.map(e => `  ${e}`).join('\n')}`);
+  const ids = new Set(data.checks.map(check => check.id));
+  const found = new Map();
+  for (const { file, results } of sources) {
+    for (const result of results) {
+      const id = JSON.stringify(result.id);
+      if (!ids.has(result.id)) throw new AcceptError(`${file} holds a result for ${id}, and ${name} has no check with that id`);
+      if (found.has(result.id)) throw new AcceptError(`${id} has two results: in ${found.get(result.id).file} and in ${file}`);
+      found.set(result.id, { file, result });
+    }
+  }
+  return data.checks.map(check => {
+    const result = found.get(check.id)?.result;
+    const made = result ? { pass: result.pass, actual: result.actual, message: result.message } : { pass: null, actual: null, message: '' };
+    return { id: check.id, ...made, criterion: check.criterion, state: check.state, page: check.page, width: check.width, theme: check.theme ?? 'light' };
+  });
+}
+
+// The count line both the command and the report open with; with notRun, the checks that have no result
+// (pass null) are counted too.
+const counts = (results, notRun = false) => {
+  const failed = results.filter(result => result.pass === false).length;
+  const passed = results.filter(result => result.pass === true).length;
+  return `${results.length} checks: ${failed} failed, ${notRun ? `${results.length - failed - passed} not run, ` : ''}${passed} passed`;
 };
 
 // A table cell: a | is escaped, a line break is a space.
 const cell = value => String(value).replace(/\r?\n|\r/g, ' ').replaceAll('|', '\\|');
 
-// reportOf(lists) → the Markdown report of one or more lists of results: the counts, then one table row per
-// check, the failed first, each in the order read, with its criterion beside it.
-export function reportOf(lists) {
+// reportOf(lists, { notRun }) → the Markdown report of one or more lists of results: the counts, then one
+// table row per check, the failed first, each in the order read, with its criterion beside it. notRun: the
+// results were joined to their checks (joinResults), and the checks with no result are counted, and listed
+// after the failed ones and before the passed.
+export function reportOf(lists, { notRun = false } = {}) {
   const results = lists.flat();
-  const rows = [...results.filter(result => !result.pass), ...results.filter(result => result.pass)].map(result =>
+  const order = [false, null, true];
+  const rows = order.flatMap(pass => results.filter(result => result.pass === pass)).map(result =>
     [
-      result.pass ? 'pass' : 'FAIL',
+      { false: 'FAIL', null: 'not run', true: 'pass' }[result.pass],
       result.id,
       result.criterion,
       result.state,
@@ -285,7 +326,7 @@ export function reportOf(lists) {
   );
   const line = cells => `| ${cells.join(' | ')} |`;
   return [
-    `${counts(results)}.`,
+    `${counts(results, notRun)}.`,
     '',
     line(['Result', 'Check', 'Criterion', 'State', 'Page', 'Width', 'Theme', 'Actual', 'Message']),
     line(new Array(9).fill('---')),
@@ -296,8 +337,8 @@ export function reportOf(lists) {
 
 // ---- the command line
 
-const USAGE = `Usage: node scripts/accept.mjs prototype <acceptance.json> --root <folder> --out <results.json> [--chrome <path>] [--timeout <ms>]
-       node scripts/accept.mjs report <results.json>... --out <file.md>
+const USAGE = `Usage: node scripts/accept.mjs prototype <acceptance.json> --root <folder> --out <results.json> [--chrome <path>] [--timeout <ms>] [--allow-errors]
+       node scripts/accept.mjs report <results.json>... --out <file.md> [--checks <acceptance.json>]
        node scripts/accept.mjs inpage
 
 Runs a handoff's machine-readable acceptance checks. Each check names a state, the prototype page that
@@ -310,11 +351,16 @@ by its data-ux id, or, with "screen", by its data-ux inside the element whose da
               { id, pass, actual, message, criterion, state, page, width, theme }. A check that cannot be
               made (its element missing, or there twice; a type the in-page file does not know) fails,
               saying why, and the run goes on; so do the checks of a page that does not open, does not
-              finish loading within the timeout, or leaves for another page. Prints each failed check, and
-              what a page reported as it ran (a script error, a resource that did not load) as a warning
-              that does not decide anything. Exits 1 when any check failed.
+              finish loading within the timeout, or leaves for another page, and of a page that reports
+              an error of its own as it runs (a script error, a console error, a resource that did not
+              load), unless --allow-errors. Prints each failed check, and each warning. Exits 1 when any
+              check failed.
   report      writes one Markdown table of the results files given: the counts first, then one row for
-              each check, the failed first, its criterion beside it.
+              each check, the failed first, its criterion beside it. With --checks, each result needs
+              only id, pass, actual and message, as window.__uxAccept gives them in a build, and is
+              joined to its check by id; a check with no result is listed as not run, after the failed
+              ones and before the passed, and counted. A result no check has, or two results for one
+              check, is a refusal. A check not run does not change the exit code.
   inpage      prints the absolute path of the in-page file, for a build's own session: evaluate its text
               in the page through the project's driver, then call window.__uxAccept(checks).
 
@@ -324,6 +370,9 @@ by its data-ux id, or, with "screen", by its data-ux inside the element whose da
                        /usr/bin/google-chrome, /usr/bin/chromium, and the macOS and Windows defaults
   --timeout <ms>       how long a page is given to load, to settle, and for each step on it, in
                        milliseconds; 30000 when not given
+  --allow-errors       a page's own errors are printed as warnings and do not fail its checks; a page
+                       that would not close is a warning either way
+  --checks <file>      the acceptance file the results of report are joined to
 
 The types, and the keys each takes:
   visible       target: exactly one element has it, and it is rendered (not display: none or opacity: 0,
@@ -345,9 +394,9 @@ output that cannot be written, no Chrome), or a check that failed · 2 bad usage
 `;
 
 const COMMANDS = Object.freeze({
-  prototype: { flags: ['root', 'out', 'chrome', 'timeout'] },
-  report: { flags: ['out'] },
-  inpage: { flags: [] },
+  prototype: { flags: ['root', 'out', 'chrome', 'timeout'], switches: ['allow-errors'] },
+  report: { flags: ['out', 'checks'], switches: [] },
+  inpage: { flags: [], switches: [] },
 });
 
 function readArgs(argv) {
@@ -357,7 +406,7 @@ function readArgs(argv) {
     if (parseArgs([command]).help) return { help: true };
     throw new UsageError(`unknown command ${JSON.stringify(command)}: it is prototype, report or inpage`);
   }
-  const args = parseArgs(rest, { flags: COMMANDS[command].flags });
+  const args = parseArgs(rest, COMMANDS[command]);
   if (args.help) return args;
   const { positional, flags } = args;
   if (command === 'inpage') {
@@ -369,8 +418,8 @@ function readArgs(argv) {
   for (const name of command === 'prototype' ? ['root', 'out'] : ['out']) {
     if (!Object.hasOwn(flags, name)) throw new UsageError(`--${name} is missing`);
   }
-  if (command === 'report') return { command, inputs: positional, out: flags.out };
-  return { command, input: positional[0], root: flags.root, out: flags.out, chrome: flags.chrome, timeout: readTimeout(flags) };
+  if (command === 'report') return { command, inputs: positional, out: flags.out, checks: flags.checks };
+  return { command, input: positional[0], root: flags.root, out: flags.out, chrome: flags.chrome, timeout: readTimeout(flags), allowErrors: flags['allow-errors'] === true };
 }
 
 // An output file whose folder is made, and that is no folder itself; checked before any work is done.
@@ -395,13 +444,19 @@ function write(out, text) {
   }
 }
 
-async function prototype({ input, root, out, chrome, timeout }) {
+// An acceptance file, read and valid; a refusal names the file.
+function readChecks(input) {
   const data = readJsonFile(input);
   const invalid = validateAcceptance(data);
   if (invalid.length > 0) throw new AcceptError(`${input} is not a valid acceptance file:\n${invalid.map(e => `  ${e}\n`).join('')}`.trimEnd());
+  return data;
+}
+
+async function prototype({ input, root, out, chrome, timeout, allowErrors }) {
+  const data = readChecks(input);
   checkFolder(root);
   readyToWrite(out);
-  const { results, errors } = await acceptPrototype(data, { root, chrome, timeout });
+  const { results, errors } = await acceptPrototype(data, { root, chrome, timeout, allowErrors });
   write(out, `${JSON.stringify(results, null, 2)}\n`);
   process.stdout.write(`${counts(results)}; results in ${out}\n`);
   const lines = results.filter(result => !result.pass).map(result => `failed: ${result.id}: ${result.message}\n`);
@@ -410,16 +465,18 @@ async function prototype({ input, root, out, chrome, timeout }) {
   if (results.some(result => !result.pass)) process.exitCode = 1;
 }
 
-function report({ inputs, out }) {
-  const lists = inputs.map(input => {
-    const data = readJsonFile(input);
-    const invalid = validateResults(data);
-    if (invalid.length > 0) throw new AcceptError(`${input} is not a list of results:\n${invalid.map(e => `  ${e}\n`).join('')}`.trimEnd());
-    return data;
+function report({ inputs, out, checks }) {
+  const data = checks === undefined ? null : readChecks(checks);
+  const sources = inputs.map(file => {
+    const results = readJsonFile(file);
+    const invalid = validateResults(results, { joined: data !== null });
+    if (invalid.length > 0) throw new AcceptError(`${file} is not a list of results:\n${invalid.map(e => `  ${e}\n`).join('')}`.trimEnd());
+    return { file, results };
   });
+  const lists = data === null ? sources.map(({ results }) => results) : [joinResults(data, sources, checks)];
   readyToWrite(out);
-  write(out, reportOf(lists));
-  process.stdout.write(`${counts(lists.flat())}; report in ${out}\n`);
+  write(out, reportOf(lists, { notRun: data !== null }));
+  process.stdout.write(`${counts(lists.flat(), data !== null)}; report in ${out}\n`);
 }
 
 async function main(argv) {

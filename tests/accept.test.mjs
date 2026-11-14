@@ -7,7 +7,7 @@ import { dirname, join } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
-import { AcceptError, INPAGE, acceptPrototype, reportOf, validateAcceptance, validateResults } from '../scripts/accept.mjs';
+import { AcceptError, INPAGE, acceptPrototype, joinResults, reportOf, validateAcceptance, validateResults } from '../scripts/accept.mjs';
 import { contextOptions } from '../scripts/lib/browser.mjs';
 import { findChrome } from '../scripts/lib/chrome.mjs';
 
@@ -528,6 +528,15 @@ test('a page whose browser stops twice before it can be opened fails each of its
   assert.ok(JSON.parse(readFileSync(out, 'utf8')).every(result => result.pass));
   assert.equal(pids.length, 2);
   assert.equal(left, 0);
+  // With --allow-errors, the same: a page that would not close is a warning either way.
+  dir = fresh();
+  chrome = countingChrome(dir);
+  out = join(dir, 'results.json');
+  r = await runFor(['--require', faults, cli, 'prototype', acceptanceFile, '--root', prototype, '--out', out, '--chrome', chrome.file, '--allow-errors'], 60_000, { FAULT: 'hang', FAULT_PAGE: 'today-empty-en.html' });
+  left = await leftOf(chrome.pids());
+  assert.deepEqual([r.status, r.stderr], [0, 'warning: today-empty-en.html: the page would not close; its browser was stopped\n']);
+  assert.ok(JSON.parse(readFileSync(out, 'utf8')).every(result => result.pass));
+  assert.equal(left, 0);
 });
 
 test('a page whose in-page function cannot be put in place, or gives no result, fails each of its checks; the run goes on', async () => {
@@ -556,23 +565,80 @@ test('a page whose in-page function cannot be put in place, or gives no result, 
   assert.equal(results[5].pass, true);
 });
 
-test('what a page reports as it runs (a script error, a stylesheet that did not load) is given beside the results, and is printed as a warning that leaves the exit code to the checks', () => {
-  const dir = prototypeIn(fresh(), { 'broken.html': '<p data-ux="free-count">2 rooms free</p>\n<script>throw new Error("the rooms did not load")</script>' });
-  writeFileSync(join(dir, 'unstyled.html'), whole('<p data-ux="free-count">2 rooms free</p>', '<link rel="stylesheet" href="missing.css">\n'));
-  const file = writeJson(dir, 'acceptance.json', {
-    design: 'today',
-    checks: [
-      check({ id: 'broken', page: 'broken.html', type: 'visible', target: 'free-count' }),
-      check({ id: 'unstyled', page: 'unstyled.html', type: 'visible', target: 'free-count' }),
-      check({ id: 'unstyled-wide', page: 'unstyled.html', width: 1280, type: 'visible', target: 'free-count' }),
-    ],
+// A prototype folder with three pages that report errors of their own as they run: a stylesheet that does
+// not load, a script that throws, and both; and an acceptance file with checks on them beside the fixture's.
+const erring = () => {
+  const dir = prototypeIn(fresh(), {
+    'broken.html': '<p data-ux="free-count">2 rooms free</p>\n<script>throw new Error("the rooms did not load")</script>',
   });
+  writeFileSync(join(dir, 'unstyled.html'), whole('<p data-ux="free-count">2 rooms free</p>', '<link rel="stylesheet" href="missing.css">\n'));
+  writeFileSync(join(dir, 'both.html'), whole('<p data-ux="free-count">2 rooms free</p>\n<script>throw new Error("no rooms")</script>', '<link rel="stylesheet" href="gone.css">\n'));
+  // It throws, and then leaves: its own fault is what is said.
+  writeFileSync(join(dir, 'leaves.html'), whole('<script>setTimeout(() => (location.href = "today-empty-en.html"), 0); throw new Error("on its way")</script>'));
+  const data = fixture();
+  data.checks.splice(
+    2,
+    0,
+    check({ id: 'unstyled', page: 'unstyled.html', type: 'visible', target: 'free-count' }),
+    check({ id: 'unstyled-count', page: 'unstyled.html', type: 'text', target: 'free-count', equals: '2 rooms free' }),
+    check({ id: 'unstyled-wide', page: 'unstyled.html', width: 1280, type: 'visible', target: 'free-count' }),
+    check({ id: 'broken', page: 'broken.html', type: 'visible', target: 'free-count' }),
+    check({ id: 'both', page: 'both.html', type: 'visible', target: 'free-count' }),
+    check({ id: 'leaves', page: 'leaves.html', type: 'visible', target: 'free-count' }),
+  );
+  return { dir, file: writeJson(dir, 'acceptance.json', data) };
+};
+const MISSING = 'missing.css did not load: net::ERR_FILE_NOT_FOUND';
+const THROWN = 'script error: the rooms did not load';
+
+test('a page that reports an error of its own (a stylesheet that did not load, a script that throws) fails every check of its group with what it reported, and exits 1; the other groups still run', () => {
+  const { dir, file } = erring();
   const out = join(dir, 'results.json');
   const r = run('prototype', file, '--root', dir, '--out', out);
-  assert.equal(r.status, 0, r.stderr);
-  // Said once a page, however many widths saw it.
-  assert.equal(r.stderr, 'warning: broken.html: script error: the rooms did not load\nwarning: unstyled.html: missing.css did not load: net::ERR_FILE_NOT_FOUND\n');
-  assert.ok(JSON.parse(readFileSync(out, 'utf8')).every(result => result.pass));
+  assert.equal(r.status, 1, r.stderr);
+  assert.equal(r.stdout, `14 checks: 6 failed, 8 passed; results in ${out}\n`);
+  // Each check of each group, with that page's own words; several are said together.
+  assert.equal(r.stderr, [
+    `failed: unstyled: ${MISSING}`,
+    `failed: unstyled-count: ${MISSING}`,
+    `failed: unstyled-wide: ${MISSING}`,
+    `failed: broken: ${THROWN}`,
+    'failed: both: script error: no rooms; gone.css did not load: net::ERR_FILE_NOT_FOUND',
+    'failed: leaves: the page sent itself to today-empty-en.html',
+    '',
+  ].join('\n'));
+  const results = byId(JSON.parse(readFileSync(out, 'utf8')));
+  assert.deepEqual([results.unstyled.pass, results.unstyled.actual, results.unstyled.message], [false, null, MISSING]);
+  for (const id of fixture().checks.map(c => c.id)) assert.equal(results[id].pass, true, id);
+});
+
+test('with --allow-errors, what a page reports is a warning, once a page, and its checks give their own results (exit 0 when they pass); the module takes it as allowErrors', async () => {
+  const { dir, file } = erring();
+  const out = join(dir, 'results.json');
+  const r = run('prototype', file, '--root', dir, '--out', out, '--allow-errors');
+  assert.equal(r.status, 1, r.stderr);
+  assert.equal(r.stdout, `14 checks: 1 failed, 13 passed; results in ${out}\n`);
+  // Said once a page, however many widths saw it; the page that left still failed, for leaving.
+  assert.equal(r.stderr, [
+    'failed: leaves: the page sent itself to today-empty-en.html',
+    `warning: unstyled.html: ${MISSING}`,
+    `warning: broken.html: ${THROWN}`,
+    'warning: both.html: script error: no rooms',
+    'warning: both.html: gone.css did not load: net::ERR_FILE_NOT_FOUND',
+    'warning: leaves.html: script error: on its way',
+    '',
+  ].join('\n'));
+  assert.equal(byId(JSON.parse(readFileSync(out, 'utf8')))['unstyled-count'].actual, '2 rooms free');
+  // Without the page that leaves, every check passes: exit 0.
+  const data = JSON.parse(readFileSync(file, 'utf8'));
+  const passing = writeJson(dir, 'passing.json', { ...data, checks: data.checks.filter(c => c.page !== 'leaves.html') });
+  const all = run('prototype', passing, '--root', dir, '--out', out, '--allow-errors');
+  assert.deepEqual([all.status, all.stdout], [0, `13 checks: 0 failed, 13 passed; results in ${out}\n`]);
+  data.checks = data.checks.filter(c => c.page === 'broken.html');
+  const allowed = await acceptPrototype(data, { root: dir, allowErrors: true });
+  assert.deepEqual([allowed.results[0].pass, allowed.errors], [true, [{ page: 'broken.html', message: THROWN }]]);
+  const refused = await acceptPrototype(data, { root: dir });
+  assert.deepEqual([refused.results[0].pass, refused.results[0].message, refused.errors], [false, THROWN, []]);
 });
 
 test('--timeout limits how long a page is given: its checks fail saying so, soon', async () => {
@@ -613,6 +679,10 @@ test('the CLI exits 2 for bad usage, with the usage, and makes nothing', () => {
     [['prototype', acceptanceFile, '--root', prototype], '--out is missing'],
     [['prototype', acceptanceFile, '--root', prototype, '--out', out, '--timeout', '0'], '--timeout must be a whole number of milliseconds from 1, as 30000; it is "0"'],
     [['prototype', acceptanceFile, '--root', prototype, '--out', out, '--widths', '390'], 'unknown flag --widths'],
+    [['prototype', acceptanceFile, '--root', prototype, '--out', out, '--allow-errors=yes'], '--allow-errors takes no value'],
+    [['prototype', acceptanceFile, '--root', prototype, '--out', out, '--checks', acceptanceFile], 'unknown flag --checks'],
+    [['report', acceptanceFile, '--out', out, '--checks'], '--checks needs a value'],
+    [['report', acceptanceFile, '--out', out, '--allow-errors'], 'unknown flag --allow-errors'],
     [['report', '--out', out], 'report takes at least one <results.json>'],
     [['report', acceptanceFile], '--out is missing'],
     [['report', acceptanceFile, '--out', out, '--root', prototype], 'unknown flag --root'],
@@ -661,6 +731,84 @@ test('report reads several results files into one table, failed first in the ord
   assert.ok(readFileSync(out, 'utf8').startsWith('4 checks: 2 failed, 2 passed.\n'));
   // The same, as a module.
   assert.equal(reportOf([[result('a', true)], [result('b', false)]]).split('\n')[0], '2 checks: 1 failed, 1 passed.');
+});
+
+// What window.__uxAccept gives in a build, and no more.
+const bare = (id, pass, actual = null, message = pass ? '' : 'no') => ({ id, pass, actual, message });
+
+test('report --checks joins results that carry only id, pass, actual and message to their checks; a check with no result is not run, listed after the failed and before the passed, and counted; exit 0', () => {
+  const dir = fresh('joined report');
+  const checksFile = writeJson(dir, 'the checks.json', fixture());
+  const build = writeJson(dir, 'build 390.json', [
+    bare('book-target-size', true, { width: 151.17, height: 44 }),
+    bare('count-in-spanish', false, '2 salas', 'the text is "2 salas", not "2 salas libres"'),
+    bare('empty-message-shown', true),
+    bare('two-free-rooms-listed', false, 3, '3 elements have a data-ux starting with "free-room-"; the check wants 2'),
+  ]);
+  // A result in the runner's whole shape: the check's own criterion, state, page, width and theme win.
+  const whole = writeJson(dir, 'build 1280.json', [
+    { ...bare('list-contrast-dark', true, 6.84), criterion: 'Another criterion.', state: 'other', page: 'https://build.example/today', width: 1024, theme: 'light' },
+    bare('count-then-list-then-book', true, ['free-count', 'room-list', 'book-action']),
+  ]);
+  const out = join(dir, 'report.md');
+  const r = run('report', build, whole, '--checks', checksFile, '--out', out);
+  assert.deepEqual([r.status, r.stderr], [0, '']);
+  assert.equal(r.stdout, `8 checks: 2 failed, 2 not run, 4 passed; report in ${out}\n`);
+  const c = byId(fixture().checks);
+  const row = (result, id, actual, message) => `| ${result} | ${id} | ${c[id].criterion} | ${c[id].state} | ${c[id].page} | ${c[id].width} | ${c[id].theme ?? 'light'} | ${actual} | ${message} |`;
+  assert.equal(readFileSync(out, 'utf8'), [
+    '8 checks: 2 failed, 2 not run, 4 passed.',
+    '',
+    '| Result | Check | Criterion | State | Page | Width | Theme | Actual | Message |',
+    '| --- | --- | --- | --- | --- | --- | --- | --- | --- |',
+    // Each part in the order of the checks file.
+    row('FAIL', 'count-in-spanish', '"2 salas"', 'the text is "2 salas", not "2 salas libres"'),
+    row('FAIL', 'two-free-rooms-listed', '3', '3 elements have a data-ux starting with "free-room-"; the check wants 2'),
+    row('not run', 'no-booking-when-full', '', ''),
+    row('not run', 'book-in-first-screen', '', ''),
+    row('pass', 'empty-message-shown', '', ''),
+    row('pass', 'count-then-list-then-book', '["free-count","room-list","book-action"]', ''),
+    row('pass', 'book-target-size', '{"width":151.17,"height":44}', ''),
+    row('pass', 'list-contrast-dark', '6.84', ''),
+    '',
+  ].join('\n'));
+  // The same, as a module.
+  const joined = joinResults(fixture(), [{ file: 'a.json', results: [bare('book-target-size', true)] }]);
+  assert.equal(joined.length, 8);
+  assert.deepEqual(joined[0], { id: 'empty-message-shown', pass: null, actual: null, message: '', criterion: c['empty-message-shown'].criterion, state: 'empty', page: 'today-empty-en.html', width: 390, theme: 'light' });
+  assert.equal(reportOf([joined], { notRun: true }).split('\n')[0], '8 checks: 0 failed, 7 not run, 1 passed.');
+});
+
+test('report --checks refuses with exit 1, writing nothing: a checks file that is not valid, a result no check has, an id with two results, a result without what __uxAccept gives', () => {
+  const dir = fresh();
+  const checksFile = writeJson(dir, 'checks.json', fixture());
+  const out = join(dir, 'not made', 'report.md');
+  const invalid = fixture();
+  invalid.checks[0].width = 0;
+  const badChecks = writeJson(dir, 'bad checks.json', invalid);
+  const a = writeJson(dir, 'a.json', [bare('book-target-size', true), bare('count-in-spanish', true)]);
+  const b = writeJson(dir, 'b.json', [bare('count-in-spanish', false)]);
+  const twice = writeJson(dir, 'twice.json', [bare('book-target-size', true), bare('book-target-size', false)]);
+  const ghost = writeJson(dir, 'ghost.json', [bare('book-target-size', true), bare('next-free-time', false)]);
+  const noPass = writeJson(dir, 'no pass.json', [{ id: 'book-target-size', actual: null, message: '' }]);
+  const cases = [
+    [[a, '--checks', badChecks], `${badChecks} is not a valid acceptance file:\n  $.checks[0].width: must be a whole number of CSS pixels from 1\n`],
+    [[a, '--checks', join(dir, 'missing.json')], `cannot read ${join(dir, 'missing.json')}: not found\n`],
+    [[ghost, '--checks', checksFile], `${ghost} holds a result for "next-free-time", and ${checksFile} has no check with that id\n`],
+    [[a, b, '--checks', checksFile], `"count-in-spanish" has two results: in ${a} and in ${b}\n`],
+    [[twice, '--checks', checksFile], `"book-target-size" has two results: in ${twice} and in ${twice}\n`],
+    [[noPass, '--checks', checksFile], `${noPass} is not a list of results:\n  $[0].pass: must be true or false\n`],
+    // Without --checks, the whole shape is asked, as before.
+    [[a], `${a} is not a list of results:\n${['0', '1'].flatMap(i => ['criterion: must be a non-empty string', 'state: must be a string', 'page: must be a string', 'width: must be a whole number from 1', 'theme: must be a string'].map(e => `  $[${i}].${e}\n`)).join('')}`],
+  ];
+  for (const [args, stderr] of cases) {
+    const r = run('report', ...args, '--out', out);
+    assert.deepEqual([r.status, r.stdout, r.stderr], [1, '', stderr], args.join(' '));
+  }
+  assert.ok(!existsSync(join(dir, 'not made')), 'nothing is made');
+  // What a bare result needs, and no more.
+  assert.deepEqual(validateResults([bare('a', true)], { joined: true }), []);
+  assert.deepEqual(validateResults([{ id: '', pass: 1, message: null }], { joined: true }), ['$[0].id: must be a non-empty string', '$[0].pass: must be true or false', '$[0].actual: is missing', '$[0].message: must be a string']);
 });
 
 test('report refuses with exit 1 a results file that is not a list of results, and writes nothing', () => {
@@ -1120,4 +1268,6 @@ test('an error of the module is an AcceptError, and options are checked', async 
   await assert.rejects(acceptPrototype({ design: 'today', checks: [] }, { root: prototype }), e => e instanceof AcceptError && e.message === 'the acceptance checks are not valid:\n  $.checks: must be a list of at least one check');
   await assert.rejects(acceptPrototype(fixture(), {}), e => e instanceof TypeError && /^root must be the path of a folder/.test(e.message));
   await assert.rejects(acceptPrototype(fixture(), { root: prototype, timeout: 0 }), e => e instanceof TypeError && /^timeout must be a whole number of milliseconds from 1/.test(e.message));
+  await assert.rejects(acceptPrototype(fixture(), { root: prototype, allowErrors: 'yes' }), e => e instanceof TypeError && e.message === 'allowErrors must be true or false; it is "yes"');
+  assert.throws(() => joinResults({ design: 'today', checks: [] }, []), e => e instanceof AcceptError && e.message === 'the acceptance checks are not valid:\n  $.checks: must be a list of at least one check');
 });

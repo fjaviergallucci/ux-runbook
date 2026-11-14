@@ -101,9 +101,8 @@
     return size.width + ' × ' + size.height;
   };
 
-  // Why an element is not rendered, or null when it is. display and opacity are its own and every
-  // element's it is in; visibility is passed down, so its own computed value says it, and a part shown
-  // again inside a hidden one is shown.
+  // Why an element is not rendered, or null when it is: display and opacity are looked for on it and on
+  // every element it is in, visibility on it alone.
   function unrendered(element) {
     if (!element.isConnected) return 'it is not in the document';
     for (var at = element; at; at = at.parentElement) {
@@ -111,6 +110,7 @@
       if (style.display === 'none') return 'display: none on ' + named(at);
       if (Number(style.opacity) === 0) return 'opacity: 0 on ' + named(at);
     }
+    // Not walked up: visibility is inherited, and a child set visible inside a hidden parent is painted.
     var visibility = getComputedStyle(element).visibility;
     if (visibility !== 'visible') return 'visibility: ' + visibility;
     var box = element.getBoundingClientRect();
