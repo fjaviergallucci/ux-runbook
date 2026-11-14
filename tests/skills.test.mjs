@@ -3,14 +3,16 @@
 // with the long form of anything in references/ beside it. Each rule is a function, proven first on samples
 // that exist nowhere else. Then each skill that is written is held to the rules, and each that waits for
 // its task is a `todo` naming the task: take its `waits` out of the table and its test is live.
-import { test } from 'node:test';
+import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse } from '../scripts/lib/frontmatter.mjs';
 import { MAP, PICK } from '../scripts/lib/merge.mjs';
 import { ARTEFACT, FOUNDATIONS, KINDS, SIZES, STAGES, routeFor } from '../scripts/lib/state.mjs';
+import { validate } from '../scripts/lib/walkthrough.mjs';
 
 const root = new URL('../', import.meta.url);
 const at = path => new URL(path, root);
@@ -18,14 +20,15 @@ const read = path => readFileSync(at(path), 'utf8');
 
 // ---- the eleven skills: each name, and its description word for word
 
-// `stage`: one of the nine stage skills, which have the six sections. `waits`: the task that writes it.
+// `stage`: one of the nine stage skills, which have the six sections. `sections`: a skill that is no stage
+// and has the six sections all the same, as its brief gives them. `waits`: the task that writes it.
 const SKILLS = Object.freeze([
   {
     name: 'design',
     description: 'Use when the user wants an interface designed, redesigned, adjusted or corrected (a screen, a flow, a page, a component), wants to resume or check a design package, or names a stage of the interface design pipeline. Start here: it holds the order of the stages, the state and the gates.',
   },
   {
-    name: 'setup', waits: 'Task 14',
+    name: 'setup', sections: true,
     description: 'Use when an interface design is about to start in a project that has no design profile, or when the user asks to set a project up for the interface design pipeline.',
   },
   {
@@ -66,7 +69,8 @@ const SKILLS = Object.freeze([
   },
 ]);
 
-// The six sections of a stage skill, in this order. A section of the skill's own may follow the last.
+// The six sections of a stage skill, and of setup, in this order. A section of the skill's own may follow
+// the last.
 const STAGE_SECTIONS = Object.freeze(['Question', 'Reads', 'Writes', 'Steps', 'Gate', 'Never']);
 // The sentence every skill carries, so that a session knows where the scripts are.
 const KIT_ROOT = "The kit's root is two directories above this skill's own folder; run a script as `node <kit root>/scripts/<name>.mjs`.";
@@ -336,13 +340,13 @@ function commandFaults(file, text, kit) {
 // The faults of one skill, each as one line; none when it keeps every rule. `files` is the skill's folder:
 // each file's text by its path from the folder. `kit` says whether a path from the kit's root exists, and
 // gives the usage a script prints, or null.
-function skillFaults({ name, description, stage = false }, files, kit) {
+function skillFaults({ name, description, stage = false, sections = false }, files, kit) {
   const text = files['SKILL.md'];
   if (text === undefined) return [`skills/${name}/SKILL.md is not written`];
   return [
     ...headerFaults(text, name, description),
     ...(lineCount(text) > MAX_LINES ? [`SKILL.md: it has ${lineCount(text)} lines, and a skill has ${MAX_LINES} at most: the long form goes in references/`] : []),
-    ...(stage ? sectionFaults(text, STAGE_SECTIONS) : []),
+    ...(stage || sections ? sectionFaults(text, STAGE_SECTIONS) : []),
     ...(flat(text).includes(KIT_ROOT) ? [] : [`SKILL.md: it says where the kit's root is, in these words: ${KIT_ROOT}`]),
     ...Object.entries(files).flatMap(([file, body]) => [
       ...pathFaults(file, body, files, kit),
@@ -497,11 +501,24 @@ test('a section of the skill\'s own goes after the six, never among them', () =>
   only(faults({ sections: [['Before you start', 'Read this.'], ...GOOD] }), /"## Before you start" comes before "## Never"/);
 });
 
-test('only a stage skill is held to the six sections', () => {
+test('a skill is held to the six sections when it is a stage skill, or when the table gives it them', () => {
   const own = [['The order', TEXTS.Steps], ['Never', TEXTS.Never]];
   assert.deepEqual(faults({ sections: own }, {}, { ...ROOMS, stage: false }), []);
   assert.deepEqual(faults({ sections: own }, {}, { name: ROOMS.name, description: ROOMS.description }), []);
+  assert.deepEqual(faults({ sections: own }, {}, { ...ROOMS, stage: false, sections: false }), []);
   assert.equal(faults({ sections: own }).length, 5);
+  // A skill that is no stage, and is given the six: held to each of them, to their order, and to nothing
+  // of its own among them, as a stage skill is.
+  const given = { name: ROOMS.name, description: ROOMS.description, sections: true };
+  assert.deepEqual(faults({}, {}, given), []);
+  assert.deepEqual(faults({ sections: [...GOOD, ['When the desk is closed', 'Nothing is listed.']] }, {}, given), []);
+  assert.equal(faults({ sections: own }, {}, given).length, 5);
+  for (const name of STAGE_SECTIONS) {
+    only(faults({ sections: GOOD.filter(([heading]) => heading !== name) }, {}, given), new RegExp(`^SKILL\\.md: "## ${name}" is missing$`));
+  }
+  only(faults({ sections: [GOOD[0], GOOD[2], GOOD[1], ...GOOD.slice(3)] }, {}, given), /its sections come in the order Question, Reads, Writes, Steps, Gate, Never, not Question, Writes, Reads/);
+  only(faults({ sections: [...GOOD.slice(0, 4), ['Notes', 'A note.'], ...GOOD.slice(4)] }, {}, given), /"## Notes" comes before "## Never"/);
+  only(faults({ sections: [...GOOD, ['Gate', 'And once more.']] }, {}, given), /"## Gate" is there 2 times/);
 });
 
 test('a skill carries the sentence about the kit\'s root, word for word', () => {
@@ -805,6 +822,9 @@ const folderOf = name => Object.fromEntries(filesUnder(`skills/${name}/`).map(fi
 test('the table holds the eleven skills: the conductor, setup, and one for each stage in the pipeline\'s order', () => {
   assert.deepEqual(SKILLS.map(skill => skill.name), ['design', 'setup', ...STAGES]);
   assert.deepEqual(SKILLS.filter(skill => skill.stage).map(skill => skill.name), STAGES);
+  // Setup is no stage and has the six sections too; the conductor alone has sections of its own.
+  assert.deepEqual(SKILLS.filter(skill => skill.sections).map(skill => skill.name), ['setup']);
+  assert.deepEqual(SKILLS.filter(skill => !skill.stage && !skill.sections).map(skill => skill.name), ['design']);
   for (const { name, description, waits } of SKILLS) {
     assert.match(description, /^Use when .+\.$/, name);
     // It is written in double quotes, so it holds none.
@@ -1238,4 +1258,310 @@ test('lessons.md: two files, both appended, the entry\'s shape, and the seats wh
   assert.match(text, /only what is true of the process on any project/);
   assert.match(text, /propose/);
   assert.match(text, /by an ordinary change/);
+});
+
+// ---- setup: what skills/setup was written to say
+
+const setup = () => read('skills/setup/SKILL.md');
+const projectKit = () => read('skills/setup/references/project-kit.md');
+// Every command setup and its reference give, as written, but the one in the sentence about the kit's root.
+const setupCommands = () => Object.values(folderOf('setup')).flatMap(commandsOf).filter(command => command !== 'node <kit root>/scripts/<name>.mjs');
+const setupRuns = script => setupCommands().filter(command => command.startsWith(`node <kit root>/scripts/${script}.mjs `));
+// The header keys of the project profile, as its template has them.
+const profileKeys = () => Object.keys(parse(read('templates/project/PROFILE.md')).data);
+const spansOf = text => [...text.matchAll(/`([^`\n]+)`/g)].map(([, span]) => span);
+// The rows of every table of a text, wherever it is indented.
+const rowsOf = text => text.split('\n').map(line => line.trim()).filter(line => line.startsWith('|')).map(cells);
+
+test('setup has the six sections and its one reference, pointed to from SKILL.md, and asks the question its brief gives', () => {
+  assert.deepEqual(headings(setup()), STAGE_SECTIONS);
+  assert.deepEqual(filesUnder('skills/setup/'), ['SKILL.md', 'references/project-kit.md']);
+  assert.ok(ownReferences(setup()).includes('references/project-kit.md'), 'SKILL.md points to references/project-kit.md');
+  assert.equal(new URL('../../', at('skills/setup/')).href, root.href);
+  assert.equal(section(setup(), 'Question').trim(), 'What must be true of this project before its first design?');
+  // It is run once for a project, by the conductor, in the conductor's words.
+  const opening = flat(setup().slice(0, setup().indexOf('\n## ')));
+  assert.match(opening, /once, before its first design/);
+  assert.match(opening, /Run it from the project's root\. `<packages>` is the folder that holds the project's packages: `design` at the project's root, unless the founder names another/);
+  assert.match(opening, /`<scratch>` is a folder you make outside the project/);
+});
+
+test('setup reads the project and the files of the kit it fills, and writes the profile, the lessons, the kit and the five pool folders', () => {
+  const reads = section(setup(), 'Reads');
+  for (const path of ['templates/project/PROFILE.md', 'templates/project/LESSONS.md', 'templates/people/PROFILE-CARD.md', 'kit/KIT-CONTRACT.md', 'kit/grey', 'pool/INDEX.md', 'pool/CARD-FORMAT.md']) {
+    assert.ok(kitPaths(reads).includes(path), `Reads names ${path}`);
+  }
+  assert.match(flat(reads), /the token files, the component source, its documents/);
+  assert.match(flat(reads), /\*\*Never\*\* a keys file, and never the environment\. A dotenv file, or any file of credentials, that you meet while reading the project is passed over, unopened/);
+  const writes = flat(section(setup(), 'Writes'));
+  for (const path of ['<packages>/PROFILE.md', '<packages>/LESSONS.md', '<packages>/kit/', '<packages>/pool/', '<packages>/pool/profiles/<name>.md', 'kit.css', 'parts.html', 'profiles/', 'persons/', 'makers/', 'judges/', 'audiences/']) {
+    assert.ok(writes.includes(`\`${path}\``), `Writes names ${path}`);
+  }
+  // What is not an output of setup is written outside the project.
+  assert.match(writes, /goes in `<scratch>`: never in the project/);
+  // No path of the project is written as a path of the kit: each is from <packages> or <scratch>.
+  for (const [file, text] of Object.entries(folderOf('setup'))) {
+    assert.doesNotMatch(text, /(?<![\w<>/.-])design\/(?:PROFILE|LESSONS|kit|pool)/, `${file}: a path of the project is written from <packages>`);
+  }
+});
+
+test('setup\'s steps come in the order of its brief: read, the profile, the questions, the kit, the stubs, the engine check', () => {
+  assert.deepEqual(boldSteps(section(setup(), 'Steps')), [
+    [1, 'See whether setup is due'],
+    [2, 'Read the project'],
+    [3, 'Start the project profile'],
+    [4, 'Ask the founder what you could not read'],
+    [5, 'Build the project kit'],
+    [6, 'Make the project\'s pool'],
+    [7, 'Check the engines, and record what each said'],
+    [8, 'Write the lessons file'],
+  ]);
+  const steps = flat(section(setup(), 'Steps'));
+  // A design system is read, never invented; a project without one says so.
+  assert.match(steps, /Find its design system: the token files, the folder of the component source, its documents/);
+  assert.match(steps, /you never guess a path or a fact/);
+  assert.match(steps, /\*\*When the project has no design system, say so\.\*\* `tokens` and `components` stay empty, "Design system" says "None yet", the project kit is the grey kit as it is, and Look will run once as a direction/);
+  assert.ok(flat(read('templates/project/PROFILE.md')).includes('"None yet" while there is none'), 'the template\'s own words for it');
+  // A setup that was left unfinished is picked up, and a finished one is not run again.
+  assert.match(steps, /If `<packages>\/PROFILE\.md` has a `## Reviewed by the founder` section, the project is set up: say so, and stop/);
+  assert.match(steps, /go on from the first step whose output is missing/);
+});
+
+test('setup asks only what it could not read, one question at a time, and an answer counts once it is in the project profile', () => {
+  const steps = flat(section(setup(), 'Steps'));
+  assert.match(steps, /One question at a time, each about one thing/);
+  assert.match(steps, /Write each answer into the project profile, in his words, before the next question: until it is written there, it does not count/);
+  assert.match(steps, /Skip a question the project has already answered/);
+  inOrder(steps, [
+    /1\. The product in one sentence/, /2\. The languages it ships/, /3\. His standing rules for interfaces/, /4\. The professions it serves/,
+    /5\. Whether a brief may be sent to an outside text model/, /6\. Only when the session lists a screen generator among its tools/,
+  ], 'the questions');
+  assert.match(flat(section(setup(), 'Never')), /\*\*Never ask two things at once,\*\* and never ask what the project already says/);
+});
+
+test('a key of the project profile that setup names is a key of the template, and the ones it fills by asking are all named', () => {
+  const keys = profileKeys();
+  for (const key of ['product', 'packages', 'kit', 'tokens', 'components', 'facts', 'languages', 'strings-format', 'browser-check', 'decisions-log', 'engines-on', 'openai-model', 'gemini-model', 'keys-file']) {
+    assert.ok(keys.includes(key), `${key} is a key of the template`);
+    assert.ok(spansOf(setup()).includes(key), `SKILL.md names ${key}`);
+  }
+  // A code span of lower-case words is a key of the template, a class of the kit, or one of these words.
+  const OTHER = ['design', 'engine', 'own', 'guess', 'answers', 'installed', 'listed', 'missing', 'off'];
+  for (const [file, text] of Object.entries(folderOf('setup'))) {
+    const wordy = spansOf(text).filter(span => /^[a-z]+(?:-[a-z]+)*$/.test(span) && !span.startsWith('ux-'));
+    assert.deepEqual(wordy.filter(span => !keys.includes(span) && !OTHER.includes(span)), [], `${file}: a span that reads as a key of the project profile, and is none`);
+  }
+  // The sections of the profile it names are the template's.
+  const sections = headings(parse(read('templates/project/PROFILE.md')).body);
+  for (const name of ['Standing rules', 'Design system']) {
+    assert.ok(sections.includes(name), `${name} is a section of the template`);
+    assert.ok(flat(setup()).includes(`"${name}"`), `SKILL.md names "${name}"`);
+  }
+  // The two sections setup adds are none of the template's.
+  for (const name of ['Engine check', 'Reviewed by the founder']) {
+    assert.ok(!sections.includes(name), name);
+    assert.ok(setup().includes(`\`## ${name}\``), `SKILL.md names ## ${name}`);
+  }
+});
+
+test('an outside engine is the founder\'s to turn on: setup writes it only on his yes, in its card\'s spelling, with the model id he gives', () => {
+  const steps = flat(section(setup(), 'Steps'));
+  assert.match(steps, /Say what a yes means: the brief leaves this machine/);
+  assert.match(steps, /\*\*Only on his yes\*\*, ask which provider, and add it to `engines-on` in its card's spelling: `model:openai`, `model:gemini`/);
+  assert.match(steps, /ask the model's id, and write it as he gives it: `openai-model`, `gemini-model`/);
+  assert.match(steps, /On his yes, add `tool:stitch` to `engines-on`/);
+  assert.match(steps, /`engines-on` stays `\[\]`/);
+  // The spellings are the card format's own, and the template's.
+  for (const text of [read('pool/CARD-FORMAT.md'), read('templates/project/PROFILE.md')]) assert.ok(text.includes('`model:openai`, `model:gemini`, `tool:stitch`'));
+  // The keys file is a path he gives, and the path is all setup has to do with it.
+  assert.match(steps, /a dotenv file outside the repository; if in a file, he gives its path, and you write the path as `keys-file` and do nothing else with it/);
+  assert.match(flat(section(setup(), 'Never')), /\*\*Never turn an engine on yourself\.\*\* `engines-on` holds what the founder said yes to/);
+});
+
+test('the engine check covers every engine a card of the kit names, each its own way, and is recorded in the project profile', () => {
+  const steps = section(setup(), 'Steps');
+  const check = flat(steps.slice(steps.indexOf('7. **Check the engines')));
+  // The engines the kit's cards name today, a skill by its kind.
+  const engines = ['makers', 'judges', 'audiences'].flatMap(shelf => filesUnder(`pool/${shelf}/`).map(file => parse(read(`pool/${shelf}/${file}`)).data.engine));
+  assert.deepEqual([...new Set(engines.map(engine => engine.replace(/^skill:.+$/, 'skill:<name>')))].sort(), ['model:any', 'own', 'skill:<name>', 'tool:stitch']);
+  assert.match(check, /Read the `engine` line of every card in the kit's `pool\/makers\/`, `pool\/judges\/` and `pool\/audiences\/`/);
+  assert.match(check, /An engine that is `own` needs no check/);
+  for (const engine of ['skill:<name>', 'model:any', 'tool:stitch']) assert.ok(check.includes(`- **\`${engine}\`.**`), `the check for ${engine}`);
+  assert.match(check, /- \*\*A browser,\*\*/);
+  // A skill is looked for, never run; a tool is looked for, and generates nothing.
+  assert.match(check, /Is that skill installed on this machine, under that name\?.*Do not run it/);
+  assert.match(check, /Is the tool among those the session lists\? That is the whole check: nothing is generated/);
+  // An outside model: one call that asks for text, with the project profile and nothing about a key.
+  assert.deepEqual(setupRuns('describe'), [
+    'node <kit root>/scripts/describe.mjs --text --provider <openai|gemini> --model <id> --brief <scratch>/engine-check.md --out <scratch>/engine-check.txt --profile <packages>/PROFILE.md --timeout 60000',
+  ]);
+  assert.match(check, /One call for each `model:` entry of `engines-on`.*with no entry, the engine is off and nothing is sent/);
+  assert.match(check, /The script reads the project profile and finds the key itself/);
+  assert.match(check, /Exit 0 and its one line \(the provider, the model, the characters, the seconds\) are the proof that the engine answers/);
+  assert.match(check, /then remove `<scratch>\/engine-check\.txt`/);
+  assert.match(check, /On a refusal, record what the script said, as it said it: it never shows a key/);
+  assert.match(check, /Do not look for the cause in a keys file or in the environment/);
+  // A browser: one run of the picture script on the kit's own specimen page.
+  assert.ok(setupRuns('shots').includes('node <kit root>/scripts/shots.mjs <kit root>/kit/grey/parts.html --out <scratch>/browser --widths 1280'));
+  assert.match(check, /The script starts its own browser and stops it/);
+  assert.match(check, /Record it in the project profile under `## Engine check`, after the template's sections: the day, then a table `\| Engine \| Used by \| Result \|`, one row for each engine/);
+  for (const result of ['answers', 'installed', 'listed', 'missing', 'off']) assert.ok(check.includes(`\`${result}\``), `the result ${result}`);
+  assert.match(check, /Frame reads this section/);
+});
+
+test('setup never touches a key: each thing it must never do with a key or a keys file is said in Never', () => {
+  const never = section(setup(), 'Never').split('\n').filter(line => line.startsWith('- '));
+  for (const line of never) assert.match(line, /^- \*\*Never [^*]+[.,]\*\*/, line);
+  const text = flat(section(setup(), 'Never'));
+  for (const rule of [
+    /\*\*Never open a keys file, and never list it\.\*\*/,
+    /You write the path into the project profile and do nothing else with it/,
+    /\*\*Never put a keys file's path, or a key, on a command line\.\*\*/,
+    /`scripts\/describe\.mjs` finds its key itself: pass it `--profile` and nothing about a key, and never pass `--endpoint`/,
+    /The shell is a command line too: write the path into the project profile with a file tool, never with a command/,
+    /\*\*Never ask for a key, never print one, and never write one\.\*\*/,
+    /Never print the environment/,
+  ]) assert.match(text, rule);
+  // Nothing in setup says by which name a key is found, or gives a way to hand one over.
+  for (const [file, body] of Object.entries(folderOf('setup'))) assert.doesNotMatch(body, /API_KEY|--keys?\b/, `${file}: no key, and no way to one`);
+  for (const command of setupCommands()) assert.doesNotMatch(command, /keys?\b|--endpoint/i, command);
+  // And the rest of what it must never do.
+  for (const rule of [
+    /\*\*Never invent a design system\.\*\*/, /\*\*Never copy a real component into the project kit,\*\* and never run the project's own toolchain/,
+    /\*\*Never invent a trait of a profession\.\*\*/, /\*\*Never stop a process by name or by pattern\.\*\* The machine is shared\. A browser is started only through the kit's scripts/,
+    /\*\*Never write a package, or anything outside `<packages>` and `<scratch>`\.\*\*/, /\*\*Never rewrite a project profile that the founder has reviewed\.\*\*/,
+  ]) assert.match(text, rule);
+});
+
+test('the gate: the founder corrects the project profile once, hears that the stubs are guesses, and his words are written into it', () => {
+  const gate = flat(section(setup(), 'Gate'));
+  assert.match(gate, /\*\*The founder corrects the project profile, once\.\*\*/);
+  assert.match(gate, /ask one question/);
+  assert.match(gate, /each stub of a profession's profile is a guess, and stays one until someone of that profession has been heard/);
+  assert.match(gate, /write `## Reviewed by the founder` as the last section: the day, what he corrected, and the words he approved it with/);
+  assert.match(gate, /An approval that is only in the chat is not one/);
+  assert.match(gate, /changed by the designs that change it \(a new direction, a new standing rule\), never rewritten from memory/);
+  assert.match(gate, /go back to the conductor: the first design starts at Frame/);
+});
+
+test('the project\'s pool is five folders, each with a one-line README; a stub is written from the template with every characteristic marked a guess', () => {
+  const steps = section(setup(), 'Steps');
+  const rows = rowsOf(steps).filter(row => /^`[a-z]+\/`$/.test(row[0]));
+  assert.deepEqual(rows.map(row => unspan(row[0])), ['profiles/', 'persons/', 'makers/', 'judges/', 'audiences/']);
+  for (const [folder, says] of rows) {
+    assert.match(says, /^[A-Z][^\n]*\.$/, `${folder}: one line`);
+    if (folder === '`profiles/`') assert.match(says, /written from `templates\/people\/PROFILE-CARD\.md` of the kit/);
+    else assert.match(says, /a card is written to (?:"The person card" in )?`pool\/CARD-FORMAT\.md` of the kit/, folder);
+  }
+  // The folders are the kit's own shelves, and the one for profiles.
+  for (const folder of ['persons', 'makers', 'judges', 'audiences']) assert.ok(existsSync(at(`pool/${folder}/`)), `the kit has pool/${folder}/`);
+  assert.ok(read('pool/CARD-FORMAT.md').includes('## The person card'));
+  const said = flat(steps);
+  assert.match(said, /one stub for each profession he named/);
+  assert.match(said, /from `templates\/people\/PROFILE-CARD\.md`: its id `profile\.<name>`, every heading and all four labels kept, the example specialty deleted/);
+  assert.match(said, /\*\*Mark the evidence of every characteristic `guess`\*\*: nobody of that profession has been heard/);
+  assert.match(said, /write "Not known yet\." where they said nothing/);
+  // The template's evidence field takes that word, and its id is written that way.
+  const card = read('templates/people/PROFILE-CARD.md');
+  assert.ok(card.includes('Evidence: {fact, with its source · guess · unknown}'));
+  assert.match(card, /^id: profile\./m);
+});
+
+test('in setup the word profile is the project profile, a profession\'s profile, an id, a path or a flag, as in the conductor', () => {
+  assert.deepEqual(Object.keys(folderOf('setup')), ['SKILL.md', 'references/project-kit.md'], 'both files of setup are read');
+  for (const [file, text] of Object.entries(folderOf('setup'))) {
+    const rest = flat(text)
+      .replace(/^--- name: setup description: "[^"]*" ---/, '')
+      .replace(/project profile|profession's profile|profile\.<name>|profiles\/|--profile|PROFILE\.md|PROFILE-CARD\.md/g, '');
+    assert.doesNotMatch(rest, /profile/i, `${file}: "profile" alone says neither the project profile nor a profession's profile`);
+  }
+});
+
+test('every command setup gives is one the kit takes: describe for text, shots, and render in its reference', () => {
+  const commands = setupCommands();
+  for (const command of commands) assert.match(command, /^node <kit root>\/scripts\/[a-z]+\.mjs /, command);
+  assert.deepEqual([...new Set(commands.map(command => /scripts\/([a-z]+)\.mjs/.exec(command)[1]))].sort(), ['describe', 'render', 'shots']);
+  assert.deepEqual(commandsOf(setup()).filter(command => command.includes('/render.mjs')), [], 'the drawing is the reference\'s');
+  // Each is a form its script's usage gives; the same words without what the form needs are not.
+  const takes = (script, given) => formsOf(KIT.usage(`scripts/${script}.mjs`)).some(form => mismatch(words(given), specOf(form)) === null);
+  for (const command of commands) {
+    const [, script, given] = /scripts\/([a-z]+)\.mjs (.+)$/.exec(command);
+    assert.ok(takes(script, given), command);
+  }
+  const [, engineCheck] = /describe\.mjs (.+)$/.exec(setupRuns('describe')[0]);
+  assert.ok(!takes('describe', engineCheck.replace(' --profile <packages>/PROFILE.md', '')), 'without --profile it is not taken');
+  assert.ok(!takes('describe', engineCheck.replace('--text ', '--text=yes ')), '--text takes no value');
+});
+
+test('project-kit.md: the tokens are one CSS file in the kit\'s own folder, with where they came from on its first line', () => {
+  const text = flat(projectKit());
+  assert.match(text, /You write it once, at setup, in `<packages>\/kit\/`, and it is rebuilt when the tokens change/);
+  // Why: the drawing script copies the stylesheets of the kit's folder, and nothing else.
+  assert.match(text, /`scripts\/render\.mjs` copies every `\.css` file that is directly in the kit's folder next to each page it draws, and nothing else/);
+  assert.match(flat(read('scripts/render.mjs')), /copies every stylesheet directly in <kit dir> \(each \.css file, kit\.css among them\) beside it/);
+  assert.match(text, /copy that file to `<packages>\/kit\/tokens\.css`/);
+  assert.match(text, /export them into one file of custom properties, `<packages>\/kit\/tokens\.css`/);
+  assert.match(text, /\*\*Its first line says where it came from\*\*: the source, by its path from the project's root, and the commit the source was read at/);
+  const first = linesOf(projectKit()).filter(({ fenced }) => fenced).map(({ line }) => line.trim()).find(line => line.startsWith('/*'));
+  assert.match(first, /^\/\* Copied from \S+\.css at [0-9a-f]{7}\. .*\*\/$/, 'the first line, as an example');
+  assert.match(text, /An export says `Exported from`/);
+  assert.match(text, /\*\*The copy goes stale when the tokens change\.\*\* Then it is copied or exported again, with the new commit on its first line/);
+  // The stylesheet imports it by relative name, as the contract allows.
+  assert.ok(linesOf(projectKit()).some(({ line, fenced }) => fenced && line.trim() === '@import "tokens.css";'));
+  assert.ok(read('kit/KIT-CONTRACT.md').includes('`@import "tokens.css";`'));
+  assert.match(text, /\*\*In the project profile:\*\* `tokens` is the project's own token file when it is plain CSS, and `<packages>\/kit\/tokens\.css` when you exported it/);
+});
+
+test('project-kit.md: each class of the contract is restyled on the project\'s tokens alone, none is added, and no component is copied', () => {
+  const text = flat(projectKit());
+  assert.match(text, /Copy `<kit root>\/kit\/grey\/kit\.css` and `<kit root>\/kit\/grey\/parts\.html` into `<packages>\/kit\/`/);
+  // Every class the contract lists is named, and no other.
+  const classes = [...section(read('kit/KIT-CONTRACT.md'), 'The classes').matchAll(/^- `(ux-[a-z]+(?:\.is-primary)?)`/gm)].map(([, name]) => name);
+  assert.equal(classes.length, 19);
+  const named = new Set(spansOf(projectKit()).filter(span => /^ux-/.test(span)));
+  assert.deepEqual(classes.filter(name => !named.has(name)), [], 'a class of the contract the reference leaves out');
+  assert.deepEqual([...named].filter(name => !classes.includes(name)), [], 'a class the contract does not have');
+  assert.match(text, /\*\*Only the project's tokens\.\*\*/);
+  assert.match(text, /\*\*No class renamed, dropped or added, and no markup changed\.\*\*/);
+  assert.match(text, /\*\*Each class is styled once,\*\*/);
+  assert.match(text, /\*\*You read the components, and copy none\.\*\*/);
+  assert.match(text, /never drawn through the project's own toolchain/);
+  // With no design system the kit is the grey kit, untouched.
+  assert.match(text, /\*\*A project with no design system gets the grey kit as it is\.\*\*/);
+  const never = flat(section(projectKit(), 'Never'));
+  for (const rule of [/Never import, copy or run a real component/, /Never link a token file outside `<packages>\/kit\/`/, /Never invent tokens for a project that has none/, /Never start or stop a browser yourself/]) assert.match(never, rule);
+});
+
+mkdirSync(fileURLToPath(at('tests/.tmp/')), { recursive: true });
+const scratchRoot = mkdtempSync(join(fileURLToPath(at('tests/.tmp/')), 'skills-'));
+after(() => rmSync(scratchRoot, { recursive: true, force: true }));
+
+test('project-kit.md: its specimen proposal is valid, and its drawing command draws it with a kit that imports its tokens, the tokens beside the page', () => {
+  const blocks = [...projectKit().matchAll(/```json\n([\s\S]*?)\n```/g)].map(([, json]) => json);
+  assert.equal(blocks.length, 1, 'one proposal is given');
+  const proposal = JSON.parse(blocks[0]);
+  assert.deepEqual(validate(proposal, { sealed: true }), []);
+  // A project kit as the reference builds it: the grey stylesheet, importing a token file of its own folder.
+  const packages = join(scratchRoot, 'a project', 'design');
+  const scratch = join(scratchRoot, 'a scratch folder');
+  mkdirSync(join(packages, 'kit'), { recursive: true });
+  mkdirSync(scratch, { recursive: true });
+  writeFileSync(join(packages, 'kit', 'kit.css'), `@import "tokens.css";\n${read('kit/grey/kit.css')}`);
+  writeFileSync(join(packages, 'kit', 'tokens.css'), '/* Copied from src/styles/tokens.css at 4f2a9c1. */\n:root { --color-action: #1f1f1f; }\n');
+  copyFileSync(at('kit/grey/parts.html'), join(packages, 'kit', 'parts.html'));
+  writeFileSync(join(scratch, 'kit-check.json'), blocks[0]);
+  // The command, word for word, with its three placeholders filled.
+  const [command] = setupRuns('render');
+  assert.equal(command, 'node <kit root>/scripts/render.mjs <scratch>/kit-check.json --kit <packages>/kit --out <scratch>/drawn/kit-check.html');
+  const fill = word => word.replace('<kit root>/', fileURLToPath(root)).replace('<scratch>', scratch).replace('<packages>', packages);
+  const run = spawnSync(process.execPath, words(command).slice(1).map(fill), { encoding: 'utf8' });
+  assert.deepEqual([run.status, run.stderr], [0, '']);
+  const drawn = readdirSync(join(scratch, 'drawn')).filter(name => !name.startsWith('.fuse_hidden')).sort();
+  assert.deepEqual(drawn, ['kit-check.html', 'kit.css', 'tokens.css']);
+  const page = readFileSync(join(scratch, 'drawn', 'kit-check.html'), 'utf8');
+  assert.match(page, /<link rel="stylesheet" href="kit\.css">/);
+  assert.match(page, /class="ux-action is-primary"/);
+  // Then the pictures: the specimen page and the drawn one, in one run of the picture script.
+  assert.ok(setupRuns('shots').includes('node <kit root>/scripts/shots.mjs <packages>/kit/parts.html <scratch>/drawn/kit-check.html --out <scratch>/pictures --widths 1280,390 --themes light,dark'));
+  assert.match(flat(projectKit()), /exits 1 and prints `error: <page>: <what>` when a stylesheet a page asks for does not load/);
 });
