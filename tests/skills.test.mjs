@@ -892,6 +892,8 @@ const conductor = () => read('skills/design/SKILL.md');
 const reference = name => read(`skills/design/references/${name}`);
 // Every command the conductor and its references give, as written.
 const conductorCommands = () => Object.values(folderOf('design')).flatMap(commandsOf);
+// When a project is setup's: the conductor and setup say it in the same words.
+const UNREVIEWED = 'no project profile, or one whose `## Reviewed by the founder` section is missing or holds none of his words';
 // The numbered steps of a text that open with a name in bold: each name, in order.
 const boldSteps = text => text.split('\n').map(line => /^(\d+)\. \*\*(.+?)\*\*/.exec(line)).filter(Boolean).map(([, n, name]) => [Number(n), name.replace(/\.$/, '')]);
 // A Markdown table row as its cells.
@@ -929,9 +931,11 @@ test('the conductor gives the nine stages in order, each with the skill to invok
   // A setup that stopped halfway leaves a project profile behind: the founder's review, not the file, says
   // that a project is set up.
   assert.ok(
-    before.includes(`When the project has no project profile, or one whose \`## Reviewed by the founder\` section is empty, invoke \`${plugin}:setup\` first`),
+    before.includes(`When the project has ${UNREVIEWED}, invoke \`${plugin}:setup\` first`),
     'setup first, when the project has no project profile, or one he never reviewed',
   );
+  // "Empty" alone let two cases through to Frame: a heading that is not there, and a line a session put under it.
+  assert.doesNotMatch(flat(conductor()), /section is empty/);
   assert.equal(headings(parse(read('templates/project/PROFILE.md')).body).at(-1), 'Reviewed by the founder', 'the section is the template\'s, and its last');
   assert.match(flat(order), /with the Skill tool/);
   assert.match(flat(order), /structure is chosen before look/i);
@@ -1288,7 +1292,8 @@ test('setup has the six sections and its one reference, pointed to from SKILL.md
   // It is run once for a project, by the conductor, in the conductor's words.
   const opening = flat(setup().slice(0, setup().indexOf('\n## ')));
   assert.match(opening, /once, before its first design/);
-  assert.match(opening, /The conductor \(`ux:design`\) sends you here when a project has no project profile, or one whose `## Reviewed by the founder` section is empty/);
+  assert.ok(opening.includes(`The conductor (\`ux:design\`) sends you here when a project has ${UNREVIEWED}.`), 'the conductor\'s own words for it');
+  assert.ok(flat(conductor()).includes(UNREVIEWED), 'the same words in the conductor');
   assert.match(opening, /Run it from the project's root\. `<packages>` is the folder that holds the project's packages: `design` at the project's root, unless the founder names another/);
   assert.match(opening, /`<scratch>` is a folder you make outside the project/);
 });
@@ -1330,7 +1335,7 @@ test('setup\'s steps come in the order of its brief: read, the profile, the ques
   assert.match(steps, /\*\*When the project has no design system, say so\.\*\* `tokens` and `components` stay empty, "Design system" says "None yet", the project kit is the grey kit as it is, and Look will run once as a direction/);
   assert.ok(flat(read('templates/project/PROFILE.md')).includes('"None yet" while there is none'), 'the template\'s own words for it');
   // A setup that was left unfinished is picked up, and a finished one is not run again.
-  assert.match(steps, /It is due when `<packages>\/PROFILE\.md` is missing, and when its `## Reviewed by the founder` section is empty: nothing under the heading, or only the template's instruction/);
+  assert.match(steps, /It is due when `<packages>\/PROFILE\.md` is missing, and when its `## Reviewed by the founder` section is missing or holds none of his words: no such heading, or under it nothing, the template's instruction, or a line that is not his/);
   assert.match(steps, /With his words there, the project is set up: say so, and stop/);
   assert.match(steps, /Without them, a setup was left unfinished: go on from the first step whose output is missing/);
   // Where the packages go is asked before anything is written there.
@@ -1397,14 +1402,16 @@ test('an outside engine is the founder\'s to turn on: setup writes it only on hi
   assert.match(steps, /\*\*Only on his yes\*\*, ask which provider, and add it to `engines-on` in its card's spelling: `model:openai`, `model:gemini`/);
   assert.match(steps, /ask the model's id, and write it as he gives it: `openai-model`, `gemini-model`/);
   assert.match(steps, /On his yes, add `tool:stitch` to `engines-on`/);
-  assert.match(steps, /Three things wait for him: `engines-on` stays `\[\]` until his yes; `keys-file` stays empty until he gives a path, and a credentials file you came across while reading the project is never opened and never written here; `## Reviewed by the founder` stays empty until the gate/);
+  assert.match(steps, /Three things wait for him: `engines-on` stays `\[\]` until his yes; `keys-file` stays empty until he gives a path, and a credentials file you came across while reading the project is never opened and never written here; and the last section, `## Reviewed by the founder`, stays empty until the gate/);
+  // The rule for an instruction nobody can answer would put a line of the session's under his heading.
+  inOrder(steps, [/an instruction in braces you cannot answer becomes "Not known yet\."/, /stays empty until the gate: the rule for an instruction you cannot answer does not apply to it, and nothing is written there before his words/], 'step 3');
   // The spellings are the card format's own, and the template's.
   for (const text of [read('pool/CARD-FORMAT.md'), read('templates/project/PROFILE.md')]) assert.ok(text.includes('`model:openai`, `model:gemini`, `tool:stitch`'));
   // The keys file is a path he gives, and the path is all setup has to do with it.
   assert.match(steps, /a dotenv file outside the repository; if in a file, he gives its path, and you write the path as `keys-file` and do nothing else with it/);
   assert.match(steps, /A path inside the repository is not taken: say so, and ask him for one outside it\. Comparing two paths opens nothing/);
   assert.match(read('templates/project/PROFILE.md'), /dotenv file \*\*outside the repository\*\*/, 'the template asks for one outside');
-  assert.match(flat(section(setup(), 'Never')), /\*\*Never turn an engine on yourself\.\*\* `engines-on` holds what the founder said yes to/);
+  assert.match(flat(section(setup(), 'Never')), /\*\*Never turn an engine on yourself\.\*\* `engines-on` holds what the founder said yes to, in his own answer, and nothing else\./);
 });
 
 test('the engine check covers every engine a card of the kit names, each its own way, and is recorded in the project profile', () => {
@@ -1459,7 +1466,7 @@ test('setup never touches a key: each thing it must never do with a key or a key
   for (const command of setupCommands()) assert.doesNotMatch(command, /keys?\b|--endpoint/i, command);
   // And the rest of what it must never do.
   for (const rule of [
-    /\*\*Never invent a design system\.\*\*/, /\*\*Never copy a real component into the project kit,\*\* and never run the project's own toolchain/,
+    /\*\*Never invent a design system\.\*\*/, /\*\*Never copy a real component into the project kit,\*\* and never run the project's own build or its components to draw the kit\./,
     /\*\*Never invent a trait of a profession\.\*\*/, /\*\*Never stop a process by name or by pattern\.\*\* The machine is shared\. A browser is started only through the kit's scripts/,
     /\*\*Never write a package, or anything outside `<packages>` and `<scratch>`\.\*\*/, /\*\*Never rewrite a project profile that the founder has reviewed\.\*\*/,
   ]) assert.match(text, rule);
@@ -1471,7 +1478,7 @@ test('the gate: the founder corrects the project profile once, hears that the st
   assert.match(gate, /ask one question/);
   assert.match(gate, /each stub of a profession's profile is a guess, and stays one until someone of that profession has been heard/);
   assert.match(gate, /write under `## Reviewed by the founder`, the last section: the day, what he corrected, and the words he approved it with/);
-  assert.match(gate, /An approval that is only in the chat is not one, and while that section is empty the project is not set up/);
+  assert.match(gate, /An approval that is only in the chat is not one, and until his words are there the project is not set up/);
   assert.match(gate, /changed by the designs that change it \(a new direction, a new standing rule\), never rewritten from memory/);
   assert.match(gate, /go back to the conductor: the first design starts at Frame/);
 });

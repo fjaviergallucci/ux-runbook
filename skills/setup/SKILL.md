@@ -7,16 +7,14 @@ description: "Use when an interface design is about to start in a project that h
 Every stage reads the project profile, so something has to write it first. You set one project up,
 once, before its first design: you write the project profile, build the project kit, make the project's
 pool, and check which engines answer. The conductor (`ux:design`) sends you here when a project has no
-project profile, or one whose `## Reviewed by the founder` section is empty. Its words are yours: the
-founder, the project profile, a profession's profile, a package, a seat, a card.
+project profile, or one whose `## Reviewed by the founder` section is missing or holds none of his
+words. Its words are yours: the founder, the project profile, a profession's profile, a package, a
+seat, a card. You design nothing here and decide nothing for him: you read, you ask, you write down.
 
 The kit's root is two directories above this skill's own folder; run a script as
 `node <kit root>/scripts/<name>.mjs`. Run it from the project's root. `<packages>` is the folder that
 holds the project's packages: `design` at the project's root, unless the founder names another.
-`<scratch>` is a folder you make outside the project, in the system's temporary folder, and remove when
-setup ends.
-
-You design nothing here, and you decide nothing for him. You read, you ask, and you write down.
+`<scratch>` is a folder you make outside the project, in the system's temporary folder, and remove last.
 
 ## Question
 
@@ -26,8 +24,7 @@ What must be true of this project before its first design?
 
 - **The project, as it is.** Its design system, where it has one: the token files, the component
   source, its documents. And the product's own documents: what the product does and what may be said
-  of it, the languages it ships and how its strings are kept, how a browser check is run, its decision
-  log.
+  of it, its languages and how their strings are kept, how a browser check is run, the decision log.
 - **Of the kit:** `templates/project/PROFILE.md` and `templates/project/LESSONS.md`, which you fill;
   `templates/people/PROFILE-CARD.md`, for a profession's profile; `kit/KIT-CONTRACT.md` and `kit/grey/`,
   for the project kit; `pool/INDEX.md` and each card's `engine` line, for the engine check, with
@@ -53,10 +50,10 @@ A file you write while working that is none of these goes in `<scratch>`: never 
 ## Steps
 
 1. **See whether setup is due.** It is due when `<packages>/PROFILE.md` is missing, and when its
-   `## Reviewed by the founder` section is empty: nothing under the heading, or only the template's
-   instruction. With his words there, the project is set up: say so, and stop. Without them, a setup
-   was left unfinished: go on from the first step whose output is missing, and ask nothing the project
-   profile already answers.
+   `## Reviewed by the founder` section is missing or holds none of his words: no such heading, or
+   under it nothing, the template's instruction, or a line that is not his. With his words there, the
+   project is set up: say so, and stop. Without them, a setup was left unfinished: go on from the
+   first step whose output is missing, and ask nothing the project profile already answers.
 2. **Read the project.** Find its design system: the token files, the folder of the component source,
    its documents. Find the document that says what the product does (`facts`), the languages and the
    format of their strings (`languages`, `strings-format`), how a browser check is run here
@@ -73,7 +70,8 @@ A file you write while working that is none of these goes in `<scratch>`: never 
    instruction in braces you cannot answer becomes "Not known yet." Three things wait for him:
    `engines-on` stays `[]` until his yes; `keys-file` stays empty until he gives a path, and a
    credentials file you came across while reading the project is never opened and never written here;
-   `## Reviewed by the founder` stays empty until the gate.
+   and the last section, `## Reviewed by the founder`, stays empty until the gate: the rule for an
+   instruction you cannot answer does not apply to it, and nothing is written there before his words.
 4. **Ask the founder what you could not read.** One question at a time, each about one thing. Write
    each answer into the project profile, in his words, before the next question: until it is written
    there, it does not count. Skip a question the project has already answered.
@@ -169,7 +167,7 @@ the project kit's parts, and ask one question: what is wrong or missing in it?
   profession has been heard.
 - When he has nothing more, write under `## Reviewed by the founder`, the last section: the day, what
   he corrected, and the words he approved it with. An approval that is only in the chat is not one,
-  and while that section is empty the project is not set up.
+  and until his words are there the project is not set up.
 
 After the gate the project profile is changed by the designs that change it (a new direction, a new
 standing rule), never rewritten from memory. Remove `<scratch>`, and go back to the conductor: the
@@ -186,14 +184,15 @@ first design starts at Frame.
 - **Never ask for a key, never print one, and never write one.** Not in the chat, not in the project
   profile, not in any file. Never print the environment. If he pastes a key into the chat, write it
   nowhere and tell him it has been shown, so it should be replaced.
-- **Never turn an engine on yourself.** `engines-on` holds what the founder said yes to, nothing else.
+- **Never turn an engine on yourself.** `engines-on` holds what the founder said yes to, in his own
+  answer, and nothing else.
 - **Never invent a design system.** A project that has none says so in its project profile, and gets
   the grey kit as it is.
-- **Never copy a real component into the project kit,** and never run the project's own toolchain.
+- **Never copy a real component into the project kit,** and never run the project's own build or its
+  components to draw the kit.
 - **Never invent a trait of a profession.** A stub says what was read or said, and is marked a guess.
 - **Never ask two things at once,** and never ask what the project already says.
 - **Never stop a process by name or by pattern.** The machine is shared. A browser is started only
   through the kit's scripts, which stop the one they started.
-- **Never write a package, or anything outside `<packages>` and `<scratch>`.** Frame makes the first
-  package.
+- **Never write a package, or anything outside `<packages>` and `<scratch>`.** Frame makes the first.
 - **Never rewrite a project profile that the founder has reviewed.**

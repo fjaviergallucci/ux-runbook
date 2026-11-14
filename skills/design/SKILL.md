@@ -46,7 +46,7 @@ When a request arrives, three questions say where you start:
 1. **Is the project set up?** A project is set up once, before its first design. The project profile
    is in the folder that holds its packages: `design/` at the project's root, unless the project chose
    another. When the project has no project profile, or one whose `## Reviewed by the founder` section
-   is empty, invoke `ux:setup` first.
+   is missing or holds none of his words, invoke `ux:setup` first.
 2. **Is there a package for this design already?** A folder of that packages folder, holding a
    `state.json`. Then you are resuming: go to "Resuming".
 3. **Otherwise it is a new design.** Invoke `ux:frame`.
