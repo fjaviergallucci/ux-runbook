@@ -8,8 +8,11 @@
 // inside the one element whose data-screen is that screen, and nowhere else. An element is named by its
 // data-ux. A shadow root is not searched. A screen element's own data-ux is not inside that screen.
 // Rendered means: not display: none or opacity: 0, on itself or on an element it is in; visibility:
-// visible; painted, as the browser's checkVisibility() says (where it has none: not inside a closed
-// <details> other than in its summary); and a box of some width and height.
+// visible; its content painted: not content-visibility: hidden (or hidden="until-found") on itself, and
+// as the browser's checkVisibility() says (where it has none: not inside a closed <details> other than in
+// its summary); and a box of some width and height. An element with display: contents has no box of its
+// own: its content is painted when that of the nearest element with a box is; visible, min-size and
+// in-viewport on it fail, saying so.
 // The types, and what each passes on:
 //   visible      exactly one element has the id, and it is rendered
 //   absent       no element has the id, or none that has it is rendered
@@ -17,12 +20,19 @@
 //                is matched by the regular expression `matches`: an input's or a textarea's value, a
 //                select's chosen options joined by ", ", else the text whose own element is rendered
 //                (its box aside), as written, whatever text-transform does
-//                A placeholder is not text.
+//                A placeholder is not text; a field that is not painted reads "".
 //                Two blocks with no white space between them read as joined.
+//                A container's text does not include the values of the fields inside it.
+//                A submit input with no value, and a date input, read their value, not what the browser
+//                draws.
 //   order        the elements named in `targets` come in that order in the document
 //   in-viewport  the one element is rendered, its whole box lies inside the first viewport (where it was
-//                before any scrolling, and inside the page's scroll bars), and inside every element it is
-//                in that clips what overflows it (other than the page's own), as each is scrolled now
+//                before any scrolling, and inside the page's scroll bars), and inside every box that clips
+//                it, as each is scrolled now: along its containing blocks (what holds an absolute or a
+//                fixed element, not merely what it is written in), each with a box that can clip and an
+//                overflow other than visible, or contain: paint; the page's own box only when its
+//                overflow is not the viewport's
+//                An element cut by a clipping box by no more than one pixel passes.
 //   min-size     the one element's box is at least `minWidth` by `minHeight` CSS pixels
 //   contrast     the one element's text colour against the nearest background behind it that is not
 //                transparent, translucent colours laid over what is behind them, down to the page's canvas
@@ -106,6 +116,9 @@
     return '<' + element.localName + (className ? ' class=' + quoted(className) : '') + '>';
   }
 
+  // How far, in CSS pixels, an edge may pass a clipping box: client sizes are whole numbers, boxes are not.
+  var TOLERANCE = 1;
+
   var sizeOf = function (box) {
     return { width: two(box.width), height: two(box.height) };
   };
@@ -122,14 +135,23 @@
     return null;
   }
 
-  // Why the browser does not paint an element that has a display, or null: as checkVisibility() says when
-  // it has it, else a closed <details>.
+  var hidesItsOwn = function (element) {
+    return (element.getAttribute('hidden') === 'until-found' ? 'hidden="until-found"' : 'content-visibility: hidden') + ' on ' + named(element);
+  };
+
+  // Why the browser does not paint an element's content, or null. An element with display: contents is
+  // asked of through the nearest element that has a box. An element whose own content-visibility is hidden
+  // paints its box and none of its content: not painted, since what a check is about is its content. Then
+  // as checkVisibility() says when the browser has it, else a closed <details>.
   function unpainted(element) {
+    var boxed = element;
+    while (boxed.parentElement && getComputedStyle(boxed).display === 'contents') boxed = boxed.parentElement;
+    if (getComputedStyle(boxed).contentVisibility === 'hidden') return hidesItsOwn(boxed);
     var closed = closedDetails(element);
-    if (typeof element.checkVisibility !== 'function') return closed && 'inside the closed ' + named(closed);
-    if (element.checkVisibility()) return null;
+    if (typeof boxed.checkVisibility !== 'function') return closed && 'inside the closed ' + named(closed);
+    if (boxed.checkVisibility()) return null;
     if (closed) return 'inside the closed ' + named(closed);
-    for (var at = element.parentElement; at; at = at.parentElement) {
+    for (var at = boxed.parentElement; at; at = at.parentElement) {
       if (at.getAttribute('hidden') === 'until-found') return 'hidden="until-found" on ' + named(at);
       if (getComputedStyle(at).contentVisibility === 'hidden') return 'content-visibility: hidden on ' + named(at);
     }
@@ -151,24 +173,28 @@
     return unpainted(element);
   }
 
-  // Why an element is not rendered, or null when it is: shown, and a box of some width and height.
+  var boxless = function (element) {
+    return getComputedStyle(element).display === 'contents';
+  };
+
+  // Why an element is not rendered, or null when it is: shown, and a box of some width and height. One with
+  // display: contents is rendered when its content is shown.
   function unrendered(element) {
     var why = unshown(element);
-    if (why !== null) return why;
+    if (why !== null || boxless(element)) return why;
     var box = element.getBoundingClientRect();
     if (!(box.width > 0 && box.height > 0)) return 'its box is ' + said(sizeOf(box));
     return null;
   }
 
   // What an element shows as text: a text field's value, a select's chosen options, else the text whose
-  // own element is shown. Throws a Miss for an input that shows no text.
+  // own element is shown; a field that is not shown, "". Throws a Miss for an input that shows no text.
   var NO_TEXT = ['checkbox', 'radio', 'file', 'hidden', 'range', 'color', 'image', 'password'];
   function shownText(element) {
-    if (element.localName === 'input') {
-      if (NO_TEXT.indexOf(element.type) !== -1) throw new Miss('an <input type="' + element.type + '"> shows no text');
-      return element.value;
-    }
-    if (element.localName === 'textarea') return element.value;
+    var field = element.localName === 'input' || element.localName === 'textarea' || element.localName === 'select';
+    if (element.localName === 'input' && NO_TEXT.indexOf(element.type) !== -1) throw new Miss('an <input type="' + element.type + '"> shows no text');
+    if (field && unshown(element) !== null) return '';
+    if (element.localName === 'input' || element.localName === 'textarea') return element.value;
     if (element.localName === 'select') {
       return Array.prototype.map.call(element.selectedOptions, function (option) {
         return option.text;
@@ -179,20 +205,54 @@
     var walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
     for (var node = walker.nextNode(); node; node = walker.nextNode()) {
       var parent = node.parentElement;
-      if (!seen.has(parent)) seen.set(parent, unshown(parent) === null);
+      // A textarea's own text is its first value, not what it shows: a field's value is not a container's.
+      if (!seen.has(parent)) seen.set(parent, parent.localName !== 'textarea' && unshown(parent) === null);
       if (seen.get(parent)) text += node.data;
     }
     return text;
   }
 
-  // The elements an element is in that clip what overflows them, other than the page's own (whose
-  // overflow is the viewport's), each with the axes it clips.
+  // Whether an element is the containing block of every element in it, fixed ones included.
+  var holdsAll = function (style) {
+    return (
+      style.transform !== 'none' ||
+      style.perspective !== 'none' ||
+      style.filter !== 'none' ||
+      (style.backdropFilter || 'none') !== 'none' ||
+      /\b(layout|paint|strict|content)\b/.test(style.contain) ||
+      (style.containerType || 'normal') !== 'normal' ||
+      /\b(transform|perspective|filter)\b/.test(style.willChange)
+    );
+  };
+
+  // The element whose box is an element's containing block, or null when that is the viewport or the
+  // page's first box: its parent, unless it is absolute (the nearest element that is positioned or holds
+  // all) or fixed (the nearest that holds all).
+  function blockOf(element) {
+    var position = getComputedStyle(element).position;
+    if (position !== 'absolute' && position !== 'fixed') return element.parentElement;
+    for (var at = element.parentElement; at; at = at.parentElement) {
+      var style = getComputedStyle(at);
+      if (holdsAll(style) || (position === 'absolute' && style.position !== 'static')) return at;
+    }
+    return null;
+  }
+
+  // The boxes that clip an element, along its containing blocks, each with the axes it clips: a box that
+  // can clip (not inline, not display: contents) with an overflow other than visible on an axis, or
+  // contain: paint on both. The page's first box never clips (its overflow is the viewport's); the body
+  // only when the page's own overflow is not visible.
   function clippers(element) {
     var found = [];
-    for (var at = element.parentElement; at && at !== document.body && at !== document.documentElement; at = at.parentElement) {
+    var root = getComputedStyle(document.documentElement);
+    var bodyClips = root.overflowX !== 'visible' || root.overflowY !== 'visible';
+    for (var at = blockOf(element); at && at !== document.documentElement; at = blockOf(at)) {
+      if (at === document.body && !bodyClips) continue;
       var style = getComputedStyle(at);
-      var x = style.overflowX !== 'visible';
-      var y = style.overflowY !== 'visible';
+      if (style.display === 'inline' || style.display === 'contents') continue;
+      var paint = /\b(paint|strict|content)\b/.test(style.contain);
+      var x = paint || style.overflowX !== 'visible';
+      var y = paint || style.overflowY !== 'visible';
       if (x || y) found.push({ element: at, x: x, y: y });
     }
     return found;
@@ -298,6 +358,9 @@
 
   // ---- the checks: each gives { pass, actual, message }, or throws a Miss
 
+  var noBox = function (element) {
+    return named(element) + ' has no box of its own (display: contents): name an element inside it';
+  };
   var passed = function (actual) {
     return { pass: true, actual: actual, message: '' };
   };
@@ -308,6 +371,7 @@
   var CHECKS = {
     visible: function (check, scope) {
       var element = one(scope, targetOf(check));
+      if (boxless(element)) return failed(null, noBox(element));
       var size = sizeOf(element.getBoundingClientRect());
       var why = unrendered(element);
       return why === null ? passed(size) : failed(size, 'not rendered: ' + why);
@@ -369,6 +433,7 @@
 
     'in-viewport': function (check, scope) {
       var element = one(scope, targetOf(check));
+      if (boxless(element)) return failed(null, noBox(element));
       var why = unrendered(element);
       if (why !== null) return failed(null, 'not rendered: ' + why);
       // A fixed element stays where it is whatever the scroll; any other is put back where it was before
@@ -388,13 +453,19 @@
       if (x + box.width > width) outside.push('its right edge is at ' + two(x + box.width));
       if (y + box.height > height) outside.push('its bottom edge is at ' + two(y + box.height));
       var faults = outside.length === 0 ? [] : ['it is not inside the first viewport, ' + width + ' × ' + height + ': ' + outside.join(', ')];
-      // Inside every element that clips it, as each is scrolled now: its padding box, scroll bars aside.
+      // Inside every box that clips it, as each is scrolled now: its padding box, scroll bars aside, given
+      // in whole pixels, so an edge may pass it by one; scaled as the box is drawn.
       clippers(element).forEach(function (clip) {
-        var edge = clip.element.getBoundingClientRect();
-        var left = edge.left + clip.element.clientLeft;
-        var top = edge.top + clip.element.clientTop;
-        var cut = (clip.x && (box.left < left || box.right > left + clip.element.clientWidth)) || (clip.y && (box.top < top || box.bottom > top + clip.element.clientHeight));
-        if (cut) faults.push('it is clipped by ' + named(clip.element));
+        var at = clip.element;
+        var edge = at.getBoundingClientRect();
+        var sx = at.offsetWidth > 0 ? edge.width / at.offsetWidth : 1;
+        var sy = at.offsetHeight > 0 ? edge.height / at.offsetHeight : 1;
+        var left = edge.left + at.clientLeft * sx;
+        var top = edge.top + at.clientTop * sy;
+        var right = left + at.clientWidth * sx;
+        var bottom = top + at.clientHeight * sy;
+        var cut = (clip.x && (left - box.left > TOLERANCE || box.right - right > TOLERANCE)) || (clip.y && (top - box.top > TOLERANCE || box.bottom - bottom > TOLERANCE));
+        if (cut) faults.push('it is clipped by ' + named(at));
       });
       if (faults.length === 0) return passed(actual);
       return failed(actual, faults.join('; '));
@@ -405,7 +476,9 @@
       ['minWidth', 'minHeight'].forEach(function (key) {
         if (typeof check[key] !== 'number' || !isFinite(check[key]) || check[key] <= 0) throw new Miss(key + ' must be a number above 0');
       });
-      var box = one(scope, id).getBoundingClientRect();
+      var element = one(scope, id);
+      if (boxless(element)) return failed(null, noBox(element));
+      var box = element.getBoundingClientRect();
       var size = sizeOf(box);
       if (box.width >= check.minWidth && box.height >= check.minHeight) return passed(size);
       return failed(size, 'its box is ' + said(size) + ', less than ' + check.minWidth + ' × ' + check.minHeight);
@@ -434,7 +507,7 @@
       if (n === check.equals) return passed(n);
       var unseen = all.length - n;
       var more = unseen === 0 ? '' : '; ' + unseen + (unseen === 1 ? ' more is there and not rendered' : ' more are there and not rendered');
-      return failed(n, n + ' rendered elements have a data-ux starting with ' + quoted(prefix) + '; the check wants ' + check.equals + more);
+      return failed(n, n + (n === 1 ? ' rendered element has' : ' rendered elements have') + ' a data-ux starting with ' + quoted(prefix) + '; the check wants ' + check.equals + more);
     },
   };
 

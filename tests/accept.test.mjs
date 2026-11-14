@@ -1553,6 +1553,165 @@ describe('the in-page file, evaluated through a driver of its own', () => {
       ['beyond', true, ''],
     ]);
   });
+
+  test('in-viewport follows the containing blocks: a box clips what it holds, with a pixel of play; what escapes it (an absolute or a fixed element it does not hold) is not clipped by it', async () => {
+    const said = results => results.map(({ id, pass, message }) => [id, pass, message]);
+    const head = '<style>p { margin: 0 } .clip { width: 100px; height: 100px; overflow: hidden }</style>';
+    const body = [
+      // Boxes in fractions of a pixel, their client sizes in whole ones.
+      '<div class="card-n" style="overflow: hidden; font: 16px/1.4 sans-serif"><p data-ux="line">Room 2, free until 10:30</p></div>',
+      '<div style="width: 200.3px; overflow: hidden"><p data-ux="wide-line">Sala Jardín</p></div>',
+      '<div style="display: grid; grid-template-columns: 1fr 1fr 1fr"><div style="overflow: hidden"><p data-ux="cell">Room 1</p></div><div></div><div></div></div>',
+      // An inline box clips nothing.
+      '<p><span style="overflow: hidden"><b data-ux="in-inline">Room 3</b></span></p>',
+      // Half a pixel over passes; a pixel and a half does not.
+      '<div style="height: 20px; overflow: hidden"><p data-ux="half-over" style="height: 20.5px">a</p></div>',
+      '<div class="over" style="height: 20px; overflow: hidden"><p data-ux="more-over" style="height: 21.5px">b</p></div>',
+      // contain: paint clips with overflow visible.
+      '<div class="painted" style="height: 100px; contain: paint"><p data-ux="painted-low" style="margin-top: 300px">low</p></div>',
+      // A box with display: contents has none to clip with.
+      '<div style="display: contents; overflow: hidden"><p data-ux="in-contents">Room 4</p></div>',
+    ].join('');
+    const ids = ['line', 'wide-line', 'cell', 'in-inline', 'half-over', 'more-over', 'painted-low', 'in-contents'];
+    assert.deepEqual(said(await evaluate(body, ids.map(id => c(id, 'in-viewport')), { head })), [
+      ['line', true, ''],
+      ['wide-line', true, ''],
+      ['cell', true, ''],
+      ['in-inline', true, ''],
+      ['half-over', true, ''],
+      ['more-over', false, 'it is clipped by <div class="over">'],
+      ['painted-low', false, 'it is clipped by <div class="painted">'],
+      ['in-contents', true, ''],
+    ]);
+    // An absolute and a fixed element in a static clipping box escape it; once the box is positioned it
+    // holds the absolute one, and once it holds all (a transform, and the like) it holds the fixed one.
+    const escaping = clip => `<div class="clip" style="${clip}"><p data-ux="absolute" style="position: absolute; top: 150px; left: 0">a</p><p data-ux="fixed" style="position: fixed; top: 150px; left: 0">f</p></div>`;
+    const both = [c('absolute', 'in-viewport'), c('fixed', 'in-viewport')];
+    const cut = id => [id, false, 'it is clipped by <div class="clip">'];
+    assert.deepEqual(said(await evaluate(escaping(''), both, { head })), [['absolute', true, ''], ['fixed', true, '']]);
+    assert.deepEqual(said(await evaluate(escaping('position: relative'), both, { head })), [cut('absolute'), ['fixed', true, '']]);
+    for (const holds of ['transform: translateX(0)', 'perspective: 100px', 'filter: blur(0)', 'backdrop-filter: blur(0)', 'contain: layout', 'contain: paint', 'contain: strict', 'contain: content', 'container-type: inline-size', 'will-change: transform', 'will-change: perspective', 'will-change: filter']) {
+      assert.deepEqual(said(await evaluate(escaping(holds), both, { head })), [cut('absolute'), cut('fixed')], holds);
+    }
+    // The walk goes on from the block it found: a box in between is passed over; the block's own block is not.
+    const chain = [
+      '<div class="clip outer" style="position: relative"><div class="between" style="width: 50px; height: 50px; overflow: hidden"><p data-ux="passed-over" style="position: absolute; top: 60px">p</p></div></div>',
+      '<div class="clip wrapping"><div style="position: relative; height: 20px"><p data-ux="by-its-block" style="position: absolute; top: 150px">w</p></div></div>',
+      // Its block escapes the clipping box in turn, so neither is clipped by it.
+      '<div style="position: relative"><div class="clip escaped"><div style="position: absolute; top: 150px; left: 0; width: 50px; height: 50px"><p data-ux="nested-escape" style="position: absolute; top: 0">n</p></div></div></div>',
+    ].join('');
+    assert.deepEqual(said(await evaluate(chain, [c('passed-over', 'in-viewport'), c('by-its-block', 'in-viewport'), c('nested-escape', 'in-viewport')], { head })), [
+      ['passed-over', true, ''],
+      ['by-its-block', false, 'it is clipped by <div class="clip wrapping">'],
+      ['nested-escape', true, ''],
+    ]);
+  });
+
+  test("in-viewport: the page's body clips only when the page's own overflow is not visible; a clipping box drawn scaled is measured as drawn", async () => {
+    const said = results => results.map(({ id, pass, message }) => [id, pass, message]);
+    const low = '<div style="height: 500px"></div><p data-ux="low" style="margin: 0; height: 20px">low</p>';
+    assert.deepEqual(said(await evaluate(low, [c('low', 'in-viewport')], { head: '<style>html { overflow: hidden } body { overflow: hidden; height: 100px }</style>' })), [['low', false, 'it is clipped by <body>']]);
+    assert.deepEqual(said(await evaluate(low, [c('low', 'in-viewport')], { head: '<style>body { overflow: hidden; height: 100px }</style>' })), [['low', true, '']]);
+    // The page's first box never clips: what is below the first viewport is said once, as that.
+    const far = '<div style="height: 1000px"></div><p data-ux="far" style="margin: 0; height: 20px">far</p>';
+    assert.deepEqual(said(await evaluate(far, [c('far', 'in-viewport')], { head: '<style>html { overflow: hidden }</style>' })), [['far', false, 'it is not inside the first viewport, 390 × 900: its bottom edge is at 1020']]);
+    const scaled = [
+      '<div style="transform: scale(0.5); transform-origin: 0 0"><div class="scaled" style="width: 600px; height: 200px; overflow: hidden"><p data-ux="drawn-in" style="margin: 0 0 0 500px; width: 90px">in</p><p data-ux="drawn-out" style="margin: 0 0 0 650px; width: 90px">out</p><p data-ux="drawn-below" style="margin: 250px 0 0; width: 90px">below</p></div></div>',
+      '<div style="zoom: 2"><div class="zoomed" style="width: 150px; height: 40px; overflow: hidden"><p data-ux="zoomed-in" style="margin: 0 0 0 100px; width: 40px; height: 10px">in</p><p data-ux="zoomed-out" style="margin: 0 0 0 140px; width: 40px; height: 10px">out</p></div></div>',
+    ].join('');
+    assert.deepEqual(said(await evaluate(scaled, ['drawn-in', 'drawn-out', 'drawn-below', 'zoomed-in', 'zoomed-out'].map(id => c(id, 'in-viewport')))), [
+      ['drawn-in', true, ''],
+      ['drawn-out', false, 'it is clipped by <div class="scaled">'],
+      ['drawn-below', false, 'it is clipped by <div class="scaled">'],
+      ['zoomed-in', true, ''],
+      ['zoomed-out', false, 'it is clipped by <div class="zoomed">'],
+    ]);
+  });
+
+  test('display: contents: its content is painted when that of the nearest element with a box is; it has no box of its own for visible, min-size and in-viewport', async () => {
+    const body = [
+      '<div style="display: grid; grid-template-columns: 1fr 1fr"><div data-ux="row-1" style="display: contents"><span>Room 1</span><span>free</span></div><div data-ux="row-2" style="display: contents"><span>Room 2</span><span>busy</span></div></div>',
+      '<p data-ux="greeting"><span style="display: contents">Hello</span> world</p>',
+      '<div style="display: none"><div data-ux="gone-1" style="display: contents"><span>x</span></div></div>',
+      '<div style="content-visibility: hidden"><div data-ux="skipped-1" style="display: contents"><span>y</span></div></div>',
+    ].join('');
+    const results = await evaluate(body, [
+      c('row-', 'count', { equals: 2 }),
+      c('greeting', 'text', { equals: 'Hello world' }),
+      c('gone-', 'count', { equals: 0 }),
+      c('skipped-', 'count', { equals: 0 }),
+      c('row-1', 'text', { equals: 'Room 1free' }),
+      c('row-1', 'visible'),
+      c('row-1', 'min-size', { minWidth: 1, minHeight: 1 }),
+      c('row-1', 'in-viewport'),
+      c('row-1', 'absent'),
+      c('gone-1', 'absent'),
+    ]);
+    const noBox = 'data-ux="row-1" has no box of its own (display: contents): name an element inside it';
+    assert.deepEqual(shown(results), [
+      ['row-', true, 2, ''],
+      ['greeting', true, 'Hello world', ''],
+      ['gone-', true, 0, ''],
+      ['skipped-', true, 0, ''],
+      ['row-1', true, 'Room 1free', ''],
+      ['row-1', false, null, noBox],
+      ['row-1', false, null, noBox],
+      ['row-1', false, null, noBox],
+      // Its content is shown: it is not absent.
+      ['row-1', false, 1, 'data-ux="row-1" is rendered'],
+      ['gone-1', true, 0, ''],
+    ]);
+  });
+
+  test('a field that is not painted reads ""; an element whose own content-visibility is hidden shows none of its content', async () => {
+    const body = [
+      '<input data-ux="hidden-field" value="Room 2" style="display: none">',
+      '<details><summary>Later</summary><input data-ux="closed-input" value="Room 3"><select data-ux="closed-select"><option selected>Sala Jardín</option></select><textarea data-ux="closed-note">Walk-in</textarea></details>',
+      '<input data-ux="shown-field" value="Room 4">',
+      '<p data-ux="until-found" hidden="until-found">Secret too</p>',
+      '<p data-ux="own-hidden" style="content-visibility: hidden; padding: 4px">Secret</p>',
+      '<div><p data-ux="slot-1">Room 1</p><p data-ux="slot-2" style="content-visibility: hidden">Room 2</p></div>',
+    ].join('');
+    const results = await evaluate(body, [
+      c('hidden-field', 'text', { equals: '' }),
+      c('closed-input', 'text', { equals: '' }),
+      c('closed-select', 'text', { equals: '' }),
+      c('closed-note', 'text', { equals: '' }),
+      c('shown-field', 'text', { equals: 'Room 4' }),
+      c('until-found', 'text', { equals: '' }),
+      c('own-hidden', 'text', { equals: '' }),
+      c('own-hidden', 'visible'),
+      c('until-found', 'visible'),
+      c('own-hidden', 'absent'),
+      c('until-found', 'absent'),
+      c('slot-', 'count', { equals: 2 }),
+    ]);
+    assert.deepEqual(shown(results), [
+      ['hidden-field', true, '', ''],
+      ['closed-input', true, '', ''],
+      ['closed-select', true, '', ''],
+      ['closed-note', true, '', ''],
+      ['shown-field', true, 'Room 4', ''],
+      ['until-found', true, '', ''],
+      ['own-hidden', true, '', ''],
+      ['own-hidden', false, { width: 390, height: 8 }, 'not rendered: content-visibility: hidden on data-ux="own-hidden"'],
+      ['until-found', false, { width: 390, height: 0 }, 'not rendered: hidden="until-found" on data-ux="until-found"'],
+      ['own-hidden', true, 0, ''],
+      ['until-found', true, 0, ''],
+      // One rendered element; the grammar agrees with the number.
+      ['slot-', false, 1, '1 rendered element has a data-ux starting with "slot-"; the check wants 2; 1 more is there and not rendered'],
+    ]);
+  });
+
+  test("a container's text leaves out the fields in it: a textarea's own text, typed over, is not a container's; a submit with no value and a date read their value", async () => {
+    const body = '<fieldset data-ux="patient"><legend>Patient</legend> <label>Note <textarea>first words</textarea></label></fieldset><input data-ux="send" type="submit"><input data-ux="when" type="date" value="2026-11-14">';
+    const typed = () => (document.querySelector('textarea').value = 'typed over');
+    assert.deepEqual(shown(await evaluate(body, [c('patient', 'text', { equals: 'Patient Note' }), c('send', 'text', { equals: '' }), c('when', 'text', { equals: '2026-11-14' })], { then: typed })), [
+      ['patient', true, 'Patient Note', ''],
+      ['send', true, '', ''],
+      ['when', true, '2026-11-14', ''],
+    ]);
+  });
 });
 
 test('the fixture prototype carries the grey kit byte for byte', () => {
