@@ -42,9 +42,10 @@ export class ShotsError extends Error {
 //           when not given)
 // One browser at a time, one context per width and theme. Everything is read and checked before Chrome
 // starts. Nothing waits without a limit, and nothing is tried without a count: a page that will not close,
-// or a browser that dies, is an error of that page, and the run goes on in a fresh browser; a browser that
-// stops before a page can be opened in it is replaced OPENINGS times for that page and STARTS times in a
-// row, no more; every browser the run started is gone when it ends, however it ends.
+// or a browser that dies, is an error of that page, and the run goes on in a fresh browser; a page whose
+// browser stops before it can be opened is opened OPENINGS times, no more, and no more than STARTS browsers
+// are started in a row with no page opened in any; every browser the run started is gone when it ends,
+// however it ends.
 // files: the pictures taken, in the order taken. overflow: { file, width } for each page wider than the
 // screen at a width, once whatever the theme. errors: { file, message } for each fault of a page, once
 // however many pictures saw it; no picture is kept of a page that did not open, did not settle, was no
