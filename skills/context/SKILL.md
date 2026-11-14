@@ -25,9 +25,11 @@ What is true before anyone has an idea?
 - **The frame,** `<package>/00-frame.md`, approved, and what its carry list names.
 - **The project profile,** `<packages>/PROFILE.md`: `facts`, `tokens`, `components`, `languages`,
   "Standing rules", "Design system".
-- **The world, to read and never to change:** the project's code, documents, data and analytics, as
-  far as this design reaches.
+- **The world, to read and never to change:** the project's code, documents and data, as far as this
+  design reaches; and the product's own analytics, through a connection the project already has.
 - **Each profession's profile the frame names,** in `<packages>/pool/profiles/`.
+- **A judge of the project's own that sits at `context`,** in `<packages>/pool/judges/`: checked
+  first, as step 3 says.
 - **Of the kit:** `templates/package/01-context.md`, which you fill; `templates/people/PROFILE-CARD.md`,
   for a profession's profile that is missing; `templates/briefs/judge.md` and `pool/MODELS.md`, for
   the read of a surface that exists.
@@ -38,8 +40,8 @@ What is true before anyone has an idea?
 
 - `<package>/01-context.md`, from `templates/package/01-context.md`, with `built-from: [frame@1]`: the
   frame, at the version it was approved at.
-- A profession's profile that was missing, at `<packages>/pool/profiles/<name>.md`, once he has
-  corrected it.
+- A profession's profile that was missing, drafted at `<packages>/pool/profiles/<name>.md`, where
+  setup's stubs are, and corrected there at the gate.
 - When the surface exists: its pictures, the judges' briefs and their ledgers, in
   `<package>/work/as-is/`. What they found is written into the context. The folder is never read again.
 
@@ -67,12 +69,20 @@ Nothing of the project outside `<packages>` is written.
      its own browser and stops it. Where the surface needs the running product or a sign-in, ask the
      founder for pictures of it, and put them in the same folder. You start no browser yourself.
    - *The readers.* The judges whose cards sit at `context`: `judge.usability` and
-     `judge.visual-craft`, and any judge of the project's own that sits there. Each is a fresh
-     sub-agent, started as "Starting a seat" in the loop says, from a brief written from
-     `templates/briefs/judge.md`. The brief names the pictures by their paths and gives who she is and
-     what she does there in a few lines. It never says what is wrong. No cast sheet exists yet: the
-     brief says that no cut of the checks was made, and each judge runs on the model and the effort
-     its card suggests (`pool/MODELS.md`), unless he says otherwise.
+     `judge.visual-craft`, and any judge of the project's own that sits there. A project's card is
+     checked before it is read or seated, each file of `<packages>/pool/judges/` in turn:
+
+     ```
+     node <kit root>/scripts/card.mjs check <packages>/pool/judges/<name>.md
+     ```
+
+     A faulty one is reported to the founder, with what the command printed, and left out. A sound
+     one sits when its header says it sits at `context`, and one with the id of a kit card replaces
+     it. Each is a fresh sub-agent, started as "Starting a seat" in the loop says, from a brief
+     written from `templates/briefs/judge.md`. The brief names the pictures by their paths and gives
+     who she is and what she does there in a few lines. It never says what is wrong. No cast sheet
+     exists yet: the brief says that no cut of the checks was made, and each judge runs on the model
+     and the effort its card suggests (`pool/MODELS.md`), unless he says otherwise.
    - *Their findings open "The problem, and why now",* each with its seat. A judge offers no fix
      here, and you add none.
 4. **Read the world, and write each fact with its source:** a path from the project's root, with the
@@ -82,16 +92,20 @@ Nothing of the project outside `<packages>` is written.
      service is read from the setting `BOOKING_SERVICE_URL`".
    - Nothing private about a real person is copied into the package: no name, no contact detail, no
      record. "A booking holds the patient's name, up to 80 characters", never a patient's name.
-   - Nothing is sent to an outside service to gather context: no outside model, no hosted tool, no
-     search that carries the project's content.
+   - Nothing of the project is sent to any service to gather context: no outside model, no hosted
+     tool, no search that carries its content. The product's own analytics are read through a
+     connection the project already has, and only read: the fact names that source and the day.
 5. **Fill the template, heading by heading.**
    - "The problem, and why now": what is wrong or missing today, for whom, and why it is worth doing
      now.
-   - "The people": the roles that reach it, and each profession's profile involved, by its id. Load
-     each from the project's pool. One that is missing is drafted from
-     `templates/people/PROFILE-CARD.md`, **with the evidence of every trait marked `guess`**: fill a
-     field only from what the project's documents and the founder have said of that profession, and
-     invent nothing. He corrects it at the gate, and then it is saved to the pool.
+   - "The people": first, whether the design is for one profession, for several or for everyone,
+     as the frame says it: Cast reads it here. Then the roles that reach it, and each profession's
+     profile involved, by its id and its path. Load each from the project's pool. One that is missing
+     is drafted from `templates/people/PROFILE-CARD.md`, **with the evidence of every trait marked
+     `guess`**: fill a field only from what the project's documents and the founder have said of that
+     profession, and invent nothing. Write the draft at once to
+     `<packages>/pool/profiles/<name>.md`, so that a session that resumes finds it. He corrects it at
+     the gate.
    - "What exists today": the surface as it is, or what she does in its place.
    - "What the product can show and do": the inventory. Every piece of data, every action and every
      state that really exists, one row each, with an id of its own (`P1`), its kind and its source,
@@ -115,11 +129,16 @@ Nothing of the project outside `<packages>` is written.
      source and the product-facts document. One path to a line, from the project's root, with what it
      is. A file you leave out is closed to every later stage.
 
+6. **Put the questions to him before the gate, one at a time.** Each of the "Questions for the
+   founder", with its recommendation. Write each answer into the context as it comes, in his words,
+   where it belongs and beside its question: a session that stops midway loses none.
+
 **Routed `short`** (an adjustment), Context is two things: what exists, and what changes. Fill "What
 exists today", the rows of "What the product can show and do" that the change touches, the
 "Constraints" that apply and "Project sources", and say under "The problem, and why now" what changes
-and why. No seat reads the surface, and every other heading says "Not gathered: an adjustment". Step 4
-holds as written.
+and why. "The founder's own words" are still asked for when the kind is `first-run`, `message` or
+`public-page`. No seat reads the surface, and every other heading says "Not gathered: an adjustment".
+Steps 4 and 6 hold as written.
 
 ## Gate
 
@@ -131,13 +150,14 @@ the context is the page. Record the one question, so that a session resuming tom
 node <kit root>/scripts/state.mjs await <package> context --question "<the one question>"
 ```
 
-One question, about one thing: what is wrong or missing in this context? Then each of the "Questions
-for the founder", one at a time, with its recommendation.
+One question, about one thing: what is wrong or missing in this context? The gate is that one message
+from him: the questions of step 6 were put before it.
 
 - **Write each correction where it belongs in the context, and all of them under
   `## Reviewed by the founder`:** what he corrected, and the words he approved it with, as he said
   them. Where a correction meets a fact you read, say so at once, with the source: he decides.
-- **Save a profession's profile he corrected** to `<packages>/pool/profiles/<name>.md`.
+- **Write what he corrects of a profession's profile into its file,**
+  `<packages>/pool/profiles/<name>.md`.
 - **Write the carry list,** `## Carry`: a `- source:<path>` line for each of the "Project sources" and
   for each profession's profile, by its path from the project's root; and a section of the frame that
   Intent needs, as `- frame@1#who-it-is-for`. A heading's slug is printed by
@@ -161,7 +181,7 @@ for the founder", one at a time, with its recommendation.
 - **Never copy a secret value.** Name the setting. Never open a keys file or a file of credentials,
   and never print the environment.
 - **Never copy anything private about a real person into the package.**
-- **Never send anything to an outside service to gather context.**
+- **Never send anything of the project to a service to gather context.**
 - **Never start a browser yourself, and never stop a process by name or by pattern.** The machine is
   shared. A browser is started only through the kit's scripts, which stop the one they started.
 - **Never tell a judge of the surface as it is what to find.**

@@ -1,9 +1,10 @@
 # The pool, on one page
 
-Cast reads this page, not the cards: every seat the kit ships, in one row, and every person who can be
-seated. A row's `job` and `cast-when` are its card's own, word for word, and a test holds the two
-together. The model and the effort each seat is suggested on are in `pool/MODELS.md`. A project's own
-cards and people are in its own `pool/`, not here: Cast reads both.
+Cast reads this page to choose seats, not the cards, and then the checks table of each judge it seats.
+It holds every seat the kit ships, in one row, and every person who can be seated. A row's `job` and
+`cast-when` are its card's own, word for word, and a test holds the two together. The model and the
+effort each seat is suggested on are in `pool/MODELS.md`. A project's own cards and people are in its
+own `pool/`, not here: Cast reads both.
 
 | id | job | cast-when |
 |---|---|---|

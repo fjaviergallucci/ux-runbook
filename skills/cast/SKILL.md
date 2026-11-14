@@ -23,10 +23,10 @@ Who makes, who judges with which checks, who plays the user?
 ## Reads
 
 - **The intent,** `<package>/02-intent.md`, approved, and exactly what its carry list names.
-- **The state:** `node <kit root>/scripts/state.mjs status <package>` prints the kind, the size and
-  the route. You cast the stages still to run, and no other.
-- **The project profile,** `<packages>/PROFILE.md`: `pinned`, `banned`, `engines-on`, `openai-model`,
-  `gemini-model`, and the `## Engine check` section. Nothing else of its header is Cast's.
+- **The state:** `node <kit root>/scripts/state.mjs status <package>` prints the kind, the
+  foundation, the size and the route. You cast the stages still to run, and no other.
+- **The project profile,** `<packages>/PROFILE.md`: `packages`, `pinned`, `banned`, `engines-on`,
+  `openai-model`, `gemini-model`, and the `## Engine check` section.
 - **The kit's pool, on one page:** `pool/INDEX.md`, every seat and every person in a row. You choose
   from the index, not from the cards. With it: `pool/MODELS.md`, the model and the effort each seat is
   suggested on, and `references/presets.md`, the default cast.
@@ -72,15 +72,19 @@ here". The table of a stage the route skips is deleted.
    card replaces it for this project, and the cast sheet says so** on that seat's line. The same holds
    for a person.
 5. **Start from the preset** for this kind and size, in `references/presets.md`: each seat at the
-   stages its row gives, then what the page adds by rule. Add each seat the project profile lists
-   under `pinned`. Take out each one under `banned`, and name it under "Left out". A seat sits only at
-   a stage its card sits at (the page's table of the seats has the kit's), and only at a stage the
-   route runs.
-6. **Load each seat that is loaded.** `judge.profile` sits once for each profession's profile, loaded
-   with it: `profile.<name>`. `audience.task-reader` sits once for each person it is seated as,
-   `person.<name>`: the primary person, the one the intent names, and, where the preset seats a
-   second, a contrast person the makers are not briefed on, from the project's people or the kit's
-   five.
+   stages its row gives, then what the page adds by rule. A stage the route runs that the row leaves
+   empty is cast from the surface row for that stage. Add each seat the project profile lists under
+   `pinned`. Take out each one under `banned`, and name it under "Left out": only the truth judge on
+   a public page is not the project's to ban, and you tell the founder when the two meet. A seat sits
+   only at a stage its card sits at (the page's table of the seats has the kit's), and only at a
+   stage the route runs.
+6. **Load each seat that is loaded.** Whether the design is for one profession, for several or for
+   everyone is in "The people" of the context, with each profession's profile by its path: the
+   intent carries it on, as `- context@1#the-people`. `judge.profile` sits once for each profession's
+   profile the preset seats, loaded with it: `profile.<name>`. `audience.task-reader` sits once for
+   each person it is seated as, `person.<name>`: the primary person, the one the intent names, and,
+   where the preset seats a second, a contrast person the makers are not briefed on, from the
+   project's people or the kit's five.
 7. **Make the first cut of each judge's optional checks,** from the `## Optional checks` table of its
    card. A check is on when the intent says its trigger will be there, and off otherwise, with the
    reason. The core checks always run, and are not listed. The judge tests every trigger again on the
@@ -120,10 +124,13 @@ here". The table of a stage the route skips is deleted.
       maker, as its row of the last table says.
     - "Cost": the number of agents each stage starts, with makers, judges and audiences counted
       apart, and the total. Count the rows, one for each instance. An outside describer is a call the
-      session makes, not an agent: say so beside the count.
+      session makes, not an agent, and a transcriber that stands by counts only when it runs: say so
+      beside the count.
 
-**Routed `short`** (an adjustment), the cast is the adjustment row of the preset and no more: one
-maker and one or two judges, no audience and no fresh pass. Steps 3, 8 and 9 hold as written.
+**Routed `short`** (an adjustment), the cast is the adjustment row of the preset, with the project's
+`pinned` seats added and its `banned` ones taken out, and the truth judge on a public page: one maker
+and one or two judges besides, no audience and no fresh pass. Steps 3, 5, 7, 8, 9, 10 and 11 hold as
+written.
 
 ## Gate
 
@@ -145,8 +152,9 @@ One question, about one thing: which seat, check, model or effort would you chan
 - **Write the carry list,** `## Carry`: what Structure and the stages after it may open besides the
   cast sheet. A `- intent@1#<slug>` line for each section of the intent but "What the readers found"
   and the two last. The `- context@1#<slug>` and `- source:<path>` lines of the intent's own carry
-  list, as they are. And a `- source:<path>` line for each card and each person of the project's own
-  that sits: a card of the kit is found in the kit, by its id. A heading's slug is printed by
+  list, as they are. And a `- source:<path>` line for each profession's profile that is loaded into
+  a seat, and for each card and each person of the project's own that sits: a card of the kit is
+  found in the kit, by its id. A heading's slug is printed by
   `node <kit root>/scripts/state.mjs slug "<heading text>"`.
 - **Stamp it,** in the words he approved it with:
 

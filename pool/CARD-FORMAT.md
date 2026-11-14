@@ -20,6 +20,8 @@ must", below, says which is which.
 
 The name is lower-case words joined by hyphens. A project keeps cards of its own in its own `pool/`, in
 the same three folders, under the same rules. A project card with the same id as a kit card replaces it.
+A project's own card or person is checked, before it is cast, with
+`node <kit root>/scripts/card.mjs check <file>`.
 
 A fourth folder holds people, not seats: a person is `pool/persons/<name>.md`, and her card has a format
 of its own, in "The person card" at the end of this file.

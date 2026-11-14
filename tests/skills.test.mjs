@@ -1521,7 +1521,9 @@ test('in setup the word profile is the project profile, a profession\'s profile,
 test('every command setup gives is one the kit takes: describe for text, shots, and render in its reference', () => {
   const commands = setupCommands();
   for (const command of commands) assert.match(command, /^node <kit root>\/scripts\/[a-z]+\.mjs /, command);
-  assert.deepEqual([...new Set(commands.map(command => /scripts\/([a-z]+)\.mjs/.exec(command)[1]))].sort(), ['describe', 'render', 'shots']);
+  // The check is named in the README lines of the project's pool, not run by setup.
+  assert.deepEqual([...new Set(commands.map(command => /scripts\/([a-z]+)\.mjs/.exec(command)[1]))].sort(), ['card', 'describe', 'render', 'shots']);
+  assert.deepEqual([...new Set(commands.filter(command => command.includes('/card.mjs')))], ['node <kit root>/scripts/card.mjs check <file>']);
   assert.deepEqual(commandsOf(setup()).filter(command => command.includes('/render.mjs')), [], 'the drawing is the reference\'s');
   // Each is a form its script's usage gives; the same words without what the form needs are not.
   const takes = (script, given) => formsOf(KIT.usage(`scripts/${script}.mjs`)).some(form => mismatch(words(given), specOf(form)) === null);
@@ -1673,7 +1675,8 @@ test('each opening stage reads the output of the stage before it and what its ca
   assert.match(reads, /\*\*Not the project's code, its screens or its data\.\*\* Reading the world is Context's/);
   // The kind, the size and the route are the state's to say: Context has them in the frame, Intent and Cast ask.
   assert.match(flat(section(stageSkill('intent'), 'Reads')), /\*\*The state:\*\* `node <kit root>\/scripts\/state\.mjs status <package>` prints the kind, and whether Intent is routed full or short/);
-  assert.match(flat(section(stageSkill('cast'), 'Reads')), /\*\*The state:\*\* `node <kit root>\/scripts\/state\.mjs status <package>` prints the kind, the size and the route\. You cast the stages still to run, and no other/);
+  assert.match(flat(section(stageSkill('cast'), 'Reads')), /\*\*The state:\*\* `node <kit root>\/scripts\/state\.mjs status <package>` prints the kind, the foundation, the size and the route\. You cast the stages still to run, and no other/);
+  assert.doesNotMatch(flat(section(stageSkill('cast'), 'Reads')), /Nothing else of its header/);
   assert.match(KIT.usage('scripts/state.mjs'), /status <package>\s+prints STATE\.md as generated from state\.json/);
   // Intent and Cast read the package, never the world again.
   assert.match(flat(section(stageSkill('intent'), 'Reads')), /\*\*Not the world\.\*\* Context read it\. What the intent needs and the context lacks is missing from the package: say so, and ask to go back, as the conductor's "Resuming" says/);
@@ -1681,7 +1684,7 @@ test('each opening stage reads the output of the stage before it and what its ca
   // Each names the project profile by its path, and what it takes from it is a key or a section of the template.
   const keys = profileKeys();
   const sections = headings(parse(read('templates/project/PROFILE.md')).body);
-  for (const [name, taken] of Object.entries({ frame: ['pinned', 'banned'], context: ['facts', 'tokens', 'components', 'languages'], cast: ['pinned', 'banned', 'engines-on', 'openai-model', 'gemini-model'] })) {
+  for (const [name, taken] of Object.entries({ frame: ['pinned', 'banned'], context: ['facts', 'tokens', 'components', 'languages'], cast: ['packages', 'pinned', 'banned', 'engines-on', 'openai-model', 'gemini-model'] })) {
     const said = section(stageSkill(name), 'Reads');
     assert.ok(said.includes('`<packages>/PROFILE.md`'), name);
     for (const key of taken) assert.ok(keys.includes(key) && spansOf(said).includes(key), `${name}: ${key}`);
@@ -1725,7 +1728,7 @@ test('each opening stage writes its output from its template: built from the sta
 
 test('every command an opening stage gives is one its script takes, on its own stage, and none reaches for an outside engine or a key', () => {
   const VERBS = { frame: ['begin', 'init', 'route', 'stamp', 'status'], context: ['await', 'begin', 'slug', 'stamp'], intent: ['await', 'begin', 'slug', 'stamp', 'status'], cast: ['await', 'begin', 'slug', 'stamp', 'status'] };
-  const OTHER = { frame: [], context: ['shots'], intent: ['card'], cast: ['card'] };
+  const OTHER = { frame: [], context: ['card', 'shots'], intent: ['card'], cast: ['card'] };
   for (const name of OPENING) {
     const commands = stageCommands(name);
     for (const command of commands) {
@@ -1743,6 +1746,8 @@ test('every command an opening stage gives is one its script takes, on its own s
     for (const [file, text] of Object.entries(folderOf(name))) assert.doesNotMatch(text, /API_KEY|--keys?\b|--endpoint|describe\.mjs|keys-file/, `${name}/${file}: no key, no keys file, and no outside model run from here`);
   }
   assert.ok(stageCommands('frame').includes('node <kit root>/scripts/state.mjs init <package> --design <name> --kind <kind> --foundation <foundation> --size <size>'));
+  // A project's own judge is checked by the stage that would seat it, before Cast as at Cast.
+  for (const name of ['context', 'intent']) assert.ok(stageCommands(name).includes('node <kit root>/scripts/card.mjs check <packages>/pool/judges/<name>.md'), `${name}: a project's judge is checked`);
   assert.ok(stageCommands('frame').includes('node <kit root>/scripts/state.mjs route <package> <stage> <full|short|skipped> --reason "<why>"'));
   // The rule refuses something real: the same words without what the form needs are not taken.
   for (const [script, wrong] of [
@@ -1773,6 +1778,9 @@ test('at each gate there is one question, and his answer is written under "Revie
   }
   assert.match(flat(reference('loop.md')), /A stage that is awaiting the founder\.\*\* Its output is already in front of him, and `begin` would put it back in work/);
   assert.match(flat(reference('loop.md')), /so that a session resuming tomorrow asks the same one/);
+  // The loop says the same of these four gates: the output is what he reads, and the page is for any other decision.
+  assert.match(flat(section(reference('loop.md'), '7. The decision page')), /^ At a stage whose gate is an approval of its own output \(Frame, Context, Intent, Cast\), that output is what he reads, and no page is built\. Any other decision goes to the founder as one page, built from a small data file:/);
+  assert.deepEqual(OPENING, STAGES.slice(0, 4));
   // The questions, each about one thing.
   for (const [name, question] of Object.entries({ frame: 'is this the right frame for it?', context: 'what is wrong or missing in this context?', intent: 'do you approve this intent?', cast: 'which seat, check, model or effort would you change?' })) {
     assert.ok(flat(section(stageSkill(name), 'Gate')).includes(`bout one thing: ${question}`), `${name}: ${question}`);
@@ -1827,7 +1835,9 @@ test('frame: one exchange, the three values and the route, who it is for, and th
   assert.match(steps, /It is `no-system` while the project profile says "None yet" under "Design system"/);
   assert.match(steps, /\*Size:\* why this size, and not the one below it/);
   assert.match(steps, /Where the request and the project profile do not settle a value, say that it is your reading: he corrects it in his answer/);
-  assert.match(steps, /the mode of each stage, from "The route of each size"\. Change the mode of one stage only with a reason he can read/);
+  assert.match(steps, /the mode of each stage, from "The route of each size"\. Change the mode of one stage only with a reason he can read: an adjustment that changes the structure runs Structure, and one that changes nothing she can see skips Look/);
+  assert.match(flat(presets()), /When it touches nothing she can see, Frame routes Look `skipped`, with the reason, and nobody is cast there/);
+  assert.ok(takenBy('state', 'route <package> look skipped --reason "<why>"'));
   // One profession, several, or everyone.
   assert.match(steps, /\*\*Say who it is for:\*\* one profession, several, or everyone\. Name each profession by the id of its profession's profile, as `profile\.front-desk-coordinator`\. Say which have a file in the project's pool, and which Context will have to draft/);
   // The provisional cast is the preset, with the project's own pinned and banned seats.
@@ -1864,7 +1874,8 @@ test('frame: the package is made on his yes, with the three values he agreed, an
   ]) assert.ok(never.includes(rule), rule);
   // A half-framed package is picked up, and init is not run twice.
   const steps = flat(section(text, 'Steps'));
-  assert.match(steps, /It is, unless the conductor sent you to a package that exists: a folder with a `state\.json`, whose next stage is `frame`\. That design was left half framed\. Its three values are in the state already: do not run `init` again/);
+  assert.match(steps, /It is, unless the conductor sent you to a package that exists: a folder with a `state\.json`, whose next stage is `frame`\. That design was left half framed\. Its three values are in the state already: do not run `init` again\. Go through steps 3 to 6, put the frame to him again with the three values as they stand, and write the request from his answer, never from the chat\. Then go on from "Write `00-frame\.md`", under "Gate"/);
+  assert.match(gate, /- \*\*Write `00-frame\.md`\.\*\*/);
   // A correction: one line, and the rest is the conductor's.
   assert.match(steps, /\*\*Sized `correction`, Frame is one line:\*\* the request, the three values and the route\. Steps 4 to 6 are not run: a correction casts no seat\. He confirms the line, and it is written where the template's first instruction stands/);
   assert.match(steps, /What follows a correction's frame is in `skills\/design\/references\/routes\.md`, under "A correction"/);
@@ -1883,7 +1894,8 @@ test('context: the one stage that reads the world, every fact with its source, a
   assert.match(steps, /\*\*Read the world, and write each fact with its source:\*\* a path from the project's root, with the name or the line in the file; an address; or a date, with who said it\. A fact with no source is not written: it becomes one of the "Questions for the founder"/);
   assert.match(steps, /A fact about configuration names the setting, never a secret value/);
   assert.match(steps, /Nothing private about a real person is copied into the package: no name, no contact detail, no record/);
-  assert.match(steps, /Nothing is sent to an outside service to gather context: no outside model, no hosted tool, no search that carries the project's content/);
+  assert.match(steps, /Nothing of the project is sent to any service to gather context: no outside model, no hosted tool, no search that carries its content\. The product's own analytics are read through a connection the project already has, and only read: the fact names that source and the day/);
+  assert.match(flat(section(text, 'Reads')), /the project's code, documents and data, as far as this design reaches; and the product's own analytics, through a connection the project already has/);
   // A keys file is passed over, in setup's own words.
   const PASSED = '**Never** a keys file, and never the environment. A dotenv file, or any file of credentials, that you meet while reading the project is passed over, unopened.';
   assert.ok(flat(section(text, 'Reads')).includes(PASSED));
@@ -1891,7 +1903,7 @@ test('context: the one stage that reads the world, every fact with its source, a
   const never = nevers(text);
   for (const rule of [
     'Never write a fact without its source', 'Never copy a secret value', 'Never copy anything private about a real person into the package',
-    'Never send anything to an outside service to gather context',
+    'Never send anything of the project to a service to gather context',
     'Never invent a trait of a profession', 'Never write the inventory as components', 'Never settle for one angle', 'Never change the project',
   ]) assert.ok(never.includes(rule), rule);
   assert.match(flat(section(text, 'Never')), /Name the setting\. Never open a keys file or a file of credentials, and never print the environment/);
@@ -1917,6 +1929,12 @@ test('context: a surface that exists is read as it is first, from pictures the k
   assert.deepEqual(proseSpans(read3).filter(isSeat).sort(), sitting);
   assert.match(asIs, /The judges whose cards sit at `context`: `judge\.usability` and `judge\.visual-craft`, and any judge of the project's own that sits there/);
   assert.match(asIs, /Each is a fresh sub-agent, started as "Starting a seat" in the loop says, from a brief written from `templates\/briefs\/judge\.md`/);
+  // A project's own judge is checked before it is read or seated, a faulty one reported and left out.
+  inOrder(asIs, [
+    /A project's card is checked before it is read or seated, each file of `<packages>\/pool\/judges\/` in turn:/, /card\.mjs check <packages>\/pool\/judges\/<name>\.md/,
+    /A faulty one is reported to the founder, with what the command printed, and left out\. A sound one sits when its header says it sits at `context`, and one with the id of a kit card replaces it\./, /Each is a fresh sub-agent/,
+  ], 'a project\'s judge is checked before it is seated');
+  assert.match(flat(section(text, 'Reads')), /\*\*A judge of the project's own that sits at `context`,\*\* in `<packages>\/pool\/judges\/`: checked first, as step 3 says/);
   assert.ok(reference('loop.md').includes('\n### Starting a seat\n'));
   assert.ok(read('templates/briefs/judge.md').includes('At Context, where no intent exists yet: who she is and her tasks, in a few lines.'));
   assert.match(asIs, /The brief names the pictures by their paths and gives who she is and what she does there in a few lines\. It never says what is wrong/);
@@ -1944,21 +1962,29 @@ test('context: the inventory, at least three angles, the founder\'s own words, t
   assert.match(steps, /Otherwise "Not asked", with the reason/);
   assert.match(steps, /"Project sources": the files a later stage may open directly, as the token files, the component source and the product-facts document\. One path to a line, from the project's root, with what it is\. A file you leave out is closed to every later stage/);
   // A profession's profile that is missing is drafted, every trait a guess, corrected by him, then saved.
-  assert.match(steps, /One that is missing is drafted from `templates\/people\/PROFILE-CARD\.md`, \*\*with the evidence of every trait marked `guess`\*\*: fill a field only from what the project's documents and the founder have said of that profession, and invent nothing\. He corrects it at the gate, and then it is saved to the pool/);
+  assert.match(steps, /One that is missing is drafted from `templates\/people\/PROFILE-CARD\.md`, \*\*with the evidence of every trait marked `guess`\*\*: fill a field only from what the project's documents and the founder have said of that profession, and invent nothing\. Write the draft at once to `<packages>\/pool\/profiles\/<name>\.md`, so that a session that resumes finds it\. He corrects it at the gate/);
+  // Who it is for is copied from the frame into the section Cast will read, with each profession's profile by its path.
+  assert.match(steps, /"The people": first, whether the design is for one profession, for several or for everyone, as the frame says it: Cast reads it here\. Then the roles that reach it, and each profession's profile involved, by its id and its path/);
+  assert.match(flat(outputOf('frame')), /One profile, several, or everyone/);
   assert.ok(read('templates/people/PROFILE-CARD.md').includes('Evidence: {fact, with its source · guess · unknown}'));
-  assert.match(flat(section(text, 'Writes')), /A profession's profile that was missing, at `<packages>\/pool\/profiles\/<name>\.md`, once he has corrected it/);
+  assert.match(flat(section(text, 'Writes')), /A profession's profile that was missing, drafted at `<packages>\/pool\/profiles\/<name>\.md`, where setup's stubs are, and corrected there at the gate/);
+  assert.match(flat(setup()), /A stub is one file for one profession, as `<packages>\/pool\/profiles\/front-desk-coordinator\.md`/);
   const gate = flat(section(text, 'Gate'));
   assert.match(gate, /Put `01-context\.md` in front of him, whole, with any profession's profile you drafted, and say which of its traits are guesses/);
-  assert.match(gate, /Then each of the "Questions for the founder", one at a time, with its recommendation/);
+  // The questions are put before the gate, one at a time, each answer written as it comes: the gate is one message.
+  assert.deepEqual(boldSteps(section(text, 'Steps')).at(-1), [6, 'Put the questions to him before the gate, one at a time']);
+  assert.match(steps, /Each of the "Questions for the founder", with its recommendation\. Write each answer into the context as it comes, in his words, where it belongs and beside its question: a session that stops midway loses none/);
+  assert.match(gate, /what is wrong or missing in this context\? The gate is that one message from him: the questions of step 6 were put before it/);
+  assert.doesNotMatch(gate, /one at a time/);
   assert.match(gate, /\*\*Write each correction where it belongs in the context, and all of them under `## Reviewed by the founder`:\*\* what he corrected, and the words he approved it with, as he said them\. Where a correction meets a fact you read, say so at once, with the source: he decides/);
-  assert.match(gate, /\*\*Save a profession's profile he corrected\*\* to `<packages>\/pool\/profiles\/<name>\.md`/);
+  assert.match(gate, /\*\*Write what he corrects of a profession's profile into its file,\*\* `<packages>\/pool\/profiles\/<name>\.md`/);
   // What it carries: the sources, each profession's profile, and a section of the frame by its slug.
   assert.match(gate, /a `- source:<path>` line for each of the "Project sources" and for each profession's profile, by its path from the project's root; and a section of the frame that Intent needs, as `- frame@1#who-it-is-for`/);
   assert.ok(headings(outputOf('frame')).map(slug).includes('who-it-is-for'));
   // The short form is what the route's table says of an adjustment.
   assert.match(steps, /\*\*Routed `short`\*\* \(an adjustment\), Context is two things: what exists, and what changes/);
   assert.match(flat(reference('routes.md')), /a short Context \(what exists, what changes\)/);
-  assert.match(steps, /No seat reads the surface, and every other heading says "Not gathered: an adjustment"\. Step 4 holds as written/);
+  assert.match(steps, /"The founder's own words" are still asked for when the kind is `first-run`, `message` or `public-page`\. No seat reads the surface, and every other heading says "Not gathered: an adjustment"\. Steps 4 and 6 hold as written/);
 });
 
 test('intent: written from the corrected context and nothing else, with her card on top of her profession\'s profile, checked before it is used', () => {
@@ -1983,10 +2009,13 @@ test('intent: written from the corrected context and nothing else, with her card
   assert.ok(flat(read('pool/CARD-FORMAT.md')).includes(BAR));
   // Checked with the command, before the page is filled.
   assert.ok(stageCommands('intent').includes('node <kit root>/scripts/card.mjs check <packages>/pool/persons/<name>.md'));
-  inOrder(steps, [/Write her card, on top of her profession's profile/, /Then check it, and mend each fault the command prints until it prints `ok`/, /card\.mjs check <packages>\/pool\/persons\/<name>\.md/, /Fill the template, heading by heading/], 'the card is checked before the page is filled');
+  inOrder(steps, [/Write her card, on top of her profession's profile/, /Then check it, as you check a card of hers that you reuse, and mend each fault the command prints until it prints `ok`/, /card\.mjs check <packages>\/pool\/persons\/<name>\.md/, /Fill the template, heading by heading/], 'the card is checked before the page is filled');
   assert.match(KIT.usage('scripts/card.mjs'), /"<file>: ok" when the card is sound/);
   assert.ok(nevers(text).includes('Never go on with a card the checker refuses'));
   assert.match(flat(section(text, 'Writes')), /Her card, at `<packages>\/pool\/persons\/<name>\.md`, from `templates\/people\/PERSON-CARD\.md`/);
+  // A card that is reused is checked again, by the same command.
+  assert.match(flat(section(text, 'Reads')), /a person already written for this surface and this moment is used, not written again, once her card is checked again, as step 3 says/);
+  assert.match(steps, /Then check it, as you check a card of hers that you reuse, and mend each fault the command prints until it prints `ok`/);
   assert.match(flat(section(text, 'Writes')), /A flow gets the page for the whole, then a short `### <surface>` under each heading that differs from one surface to the next/);
 });
 
@@ -2014,6 +2043,9 @@ test('intent: the success-criteria test, tasks as a starting situation and a goa
   assert.ok(kitCards()['judge.profile']['sits-at'].includes('intent'));
   assert.match(read5, /Offer it when the design is for one profession or several: it costs one agent for each\. On his yes, start one `judge\.profile` for each profession's profile, each a fresh sub-agent, started as "Starting a seat" in the loop says, from a brief written from `templates\/briefs\/judge\.md`/);
   assert.match(read5, /it answers one thing: is the job stated as this profession would state it\?/);
+  // A profile judge of the project's own replaces the kit's, and is checked before it is seated.
+  assert.match(read5, /A card of the project's own with that id replaces the kit's, and is checked before it is seated, with `node <kit root>\/scripts\/card\.mjs check <packages>\/pool\/judges\/<name>\.md`: a faulty one is reported to the founder, with what the command printed, and left out/);
+  assert.match(flat(section(text, 'Reads')), /\*\*A profile judge of the project's own,\*\* in `<packages>\/pool\/judges\/`, if it is to read the intent: checked first, as step 5 says/);
   assert.match(read5, /No cast sheet exists yet: the brief says that no cut of the checks was made, and the judge runs on the model and the effort its card suggests \(`pool\/MODELS\.md`\), unless he says otherwise/);
   assert.match(read5, /What it marks `blocks` you mend, since the intent is yours to write, and a fresh judge reads it once more: one fix round, one re-read/);
   assert.match(read5, /Then write its verdict under "What the readers found", and each finding, fixed or open with the reason\. Its brief and its ledger stay in the package's `work\/` folder/);
@@ -2059,13 +2091,17 @@ test('cast: a project\'s own cards are checked before one is read, a faulty one 
   const reads = flat(section(text, 'Reads'));
   assert.match(reads, /\*\*The kit's pool, on one page:\*\* `pool\/INDEX\.md`, every seat and every person in a row\. You choose from the index, not from the cards/);
   assert.match(reads, /\*\*The project's pool,\*\* `<packages>\/pool\/`: its own cards in `makers\/`, `judges\/` and `audiences\/`, its people in `persons\/`, each profession's profile in `profiles\/`\. Checked first: step 3/);
-  assert.match(flat(read('pool/INDEX.md')), /Cast reads this page, not the cards/);
+  assert.match(flat(read('pool/INDEX.md')), /Cast reads this page to choose seats, not the cards, and then the checks table of each judge it seats/);
   assert.match(steps, /\*\*Lay the two pools side by side\.\*\* The kit's seats and people are the rows of `pool\/INDEX\.md`\. The project's are its sound cards: read each one's header/);
   assert.match(steps, /\*\*A project card with the same id as a kit card replaces it for this project, and the cast sheet says so\*\* on that seat's line\. The same holds for a person/);
   assert.ok(read('pool/CARD-FORMAT.md').includes('A project card with the same id as a kit card replaces it.'));
+  // The format and the README of each folder of a project's pool name the check.
+  assert.match(flat(read('pool/CARD-FORMAT.md')), /A project's own card or person is checked, before it is cast, with `node <kit root>\/scripts\/card\.mjs check <file>`\./);
+  const readmes = rowsOf(section(setup(), 'Steps')).filter(row => /^`[a-z]+\/`$/.test(row[0]));
+  assert.deepEqual(readmes.filter(([, says]) => says.endsWith(', and checked with `node <kit root>/scripts/card.mjs check <file>`.')).map(([folder]) => unspan(folder)), ['persons/', 'makers/', 'judges/', 'audiences/']);
   inOrder(steps, [/Check the project's own cards before you read one/, /card\.mjs check <file>\.\.\./, /Lay the two pools side by side/, /Start from the preset/], 'the check comes before the cards are read');
   // The preset, then the project's pinned and banned seats; a seat sits only where its card sits and the route runs.
-  assert.match(steps, /\*\*Start from the preset\*\* for this kind and size, in `references\/presets\.md`: each seat at the stages its row gives, then what the page adds by rule\. Add each seat the project profile lists under `pinned`\. Take out each one under `banned`, and name it under "Left out"/);
+  assert.match(steps, /\*\*Start from the preset\*\* for this kind and size, in `references\/presets\.md`: each seat at the stages its row gives, then what the page adds by rule\. A stage the route runs that the row leaves empty is cast from the surface row for that stage\. Add each seat the project profile lists under `pinned`\. Take out each one under `banned`, and name it under "Left out": only the truth judge on a public page is not the project's to ban, and you tell the founder when the two meet/);
   assert.match(steps, /A seat sits only at a stage its card sits at \(the page's table of the seats has the kit's\), and only at a stage the route runs/);
   assert.ok(nevers(text).includes('Never cast a seat at a stage its card does not sit at'));
   assert.ok(nevers(text).includes('Never choose from the cards'));
@@ -2098,7 +2134,15 @@ test('cast: each seat explained in one line, the checks on and off, the fresh pa
   const steps = flat(section(text, 'Steps'));
   assert.match(steps, /\*\*Say why each seat is here, in one line: what it catches, and what it costs\.\*\*/);
   // Who is loaded with what.
-  assert.match(steps, /`judge\.profile` sits once for each profession's profile, loaded with it: `profile\.<name>`\. `audience\.task-reader` sits once for each person it is seated as, `person\.<name>`: the primary person, the one the intent names, and, where the preset seats a second, a contrast person the makers are not briefed on, from the project's people or the kit's five/);
+  assert.match(steps, /`judge\.profile` sits once for each profession's profile the preset seats, loaded with it: `profile\.<name>`\. `audience\.task-reader` sits once for each person it is seated as, `person\.<name>`: the primary person, the one the intent names, and, where the preset seats a second, a contrast person the makers are not briefed on, from the project's people or the kit's five/);
+  // Who it is for reaches Cast through the context's section, which the intent carries on: each link.
+  assert.match(steps, /\*\*Load each seat that is loaded\.\*\* Whether the design is for one profession, for several or for everyone is in "The people" of the context, with each profession's profile by its path: the intent carries it on, as `- context@1#the-people`/);
+  assert.equal(slug('The people'), 'the-people');
+  assert.ok(headings(outputOf('context')).includes('The people'));
+  assert.match(flat(section(stageSkill('context'), 'Steps')), /"The people": first, whether the design is for one profession, for several or for everyone, as the frame says it: Cast reads it here/);
+  assert.match(flat(section(stageSkill('intent'), 'Gate')), /a later stage is written from: its "The people",/);
+  assert.match(flat(section(presets(), 'Added by rule')), /when the context's people section says the experience is for one profession or for several/);
+  for (const file of Object.values(folderOf('cast'))) assert.doesNotMatch(flat(file), /when Frame says|the frame says/i, 'Cast cannot read the frame');
   assert.deepEqual(['judge.profile', 'audience.task-reader'].map(id => kitCards()[id]['loaded-with']), ['profile', 'person']);
   // The checks: Cast makes the first cut from the card's table, and the judge tests every trigger again.
   assert.match(steps, /\*\*Make the first cut of each judge's optional checks,\*\* from the `## Optional checks` table of its card\. A check is on when the intent says its trigger will be there, and off otherwise, with the reason\. The core checks always run, and are not listed/);
@@ -2114,9 +2158,16 @@ test('cast: each seat explained in one line, the checks on and off, the fresh pa
   assert.match(steps, /An engine the project has not turned on is never used/);
   assert.match(flat(reference('fresh-pass.md')), /You never add one yourself\. It costs agents, and it is his to ask for/);
   assert.ok(nevers(text).includes('Never add a fresh pass yourself'));
-  assert.match(steps, /"Cost": the number of agents each stage starts, with makers, judges and audiences counted apart, and the total\. Count the rows, one for each instance\. An outside describer is a call the session makes, not an agent/);
+  assert.match(steps, /"Cost": the number of agents each stage starts, with makers, judges and audiences counted apart, and the total\. Count the rows, one for each instance\. An outside describer is a call the session makes, not an agent, and a transcriber that stands by counts only when it runs: say so beside the count/);
   assert.match(flat(read('pool/makers/outside-describer.md')), /No sub-agent sits in this seat: the conducting session runs it with a script/);
-  assert.match(steps, /\*\*Routed `short`\*\* \(an adjustment\), the cast is the adjustment row of the preset and no more: one maker and one or two judges, no audience and no fresh pass\. Steps 3, 8 and 9 hold as written/);
+  // The short form: the adjustment row, the project's pinned and banned seats as at every size, and the truth judge on a public page.
+  assert.match(steps, /\*\*Routed `short`\*\* \(an adjustment\), the cast is the adjustment row of the preset, with the project's `pinned` seats added and its `banned` ones taken out, and the truth judge on a public page: one maker and one or two judges besides, no audience and no fresh pass\. Steps 3, 5, 7, 8, 9, 10 and 11 hold as written/);
+  assert.doesNotMatch(steps, /and no more/);
+  const held = boldSteps(section(text, 'Steps'));
+  assert.deepEqual([3, 5, 7, 8, 9, 10, 11].map(n => held.find(([number]) => number === n)[1]), [
+    'Check the project\'s own cards before you read one', 'Start from the preset', 'Make the first cut of each judge\'s optional checks,', 'Write each seat\'s engine, and turn none on',
+    'Show each seat\'s suggested model and effort, as its card has them', 'Say why each seat is here, in one line: what it catches, and what it costs', 'Fill the rest of the sheet',
+  ]);
   assert.match(flat(reference('routes.md')), /a preset cast of one or two judges/);
   // The gate: he edits by exception, and after it nothing leaves the sheet in silence.
   const gate = flat(section(text, 'Gate'));
@@ -2125,7 +2176,7 @@ test('cast: each seat explained in one line, the checks on and off, the fresh pa
   assert.match(gate, /\*\*After the gate the sheet is his\.\*\* A later stage may add a seat or a check when the artefact calls for it, and says so\. Nothing is removed silently: a seat on the approved sheet sits, or he is told why it cannot, and the sheet changes with his yes/);
   // What it carries on: the intent, section by section, and what the intent itself carried.
   assert.match(gate, /A `- intent@1#<slug>` line for each section of the intent but "What the readers found" and the two last\. The `- context@1#<slug>` and `- source:<path>` lines of the intent's own carry list, as they are/);
-  assert.match(gate, /And a `- source:<path>` line for each card and each person of the project's own that sits: a card of the kit is found in the kit, by its id/);
+  assert.match(gate, /And a `- source:<path>` line for each profession's profile that is loaded into a seat, and for each card and each person of the project's own that sits: a card of the kit is found in the kit, by its id/);
 });
 
 // The default cast, as the plan fixes it: the three rows, word for word.
@@ -2186,8 +2237,16 @@ test('presets.md: the default cast by size, word for word, and every seat it nam
 test('presets.md: what is added by rule, how the table is read, and what a seat does without its engine', () => {
   const text = presets();
   const byRule = flat(section(text, 'Added by rule'));
-  assert.match(byRule, /At any size from a surface up:/);
-  assert.match(byRule, /`judge\.profile`, once for each profession's profile, when Frame says the experience is for one profession or for several\. When it is for everyone, and the project keeps more than one profession's profile, two contrasting ones sit: the least comfortable with technology, and the one with the highest stakes\. Never all of them/);
+  // The truth judge sits on a public page at every size (the design sets no limit); the other lines keep "from a surface up".
+  inOrder(byRule, [
+    /At every size, an adjustment's short cast included:/, /`judge\.truth` always sits on a public page, at each stage of the route its card sits at\. It is never left out there/,
+    /At any size from a surface up:/, /`judge\.profile`, once for each profession's profile/, /`judge\.words` gets its own question/,
+  ], 'added by rule');
+  assert.equal(kitCards()['judge.truth']['cast-when'], 'The design shows data or offers actions the product must really have, and always when it is a public page.');
+  assert.match(byRule, /`judge\.profile`, once for each profession's profile, when the context's people section says the experience is for one profession or for several\. When it says everyone, the project's own sit: with one profession's profile in the project's pool, its judge; with two or more, two contrasting ones, the least comfortable with technology and the one with the highest stakes\. Never all of them/);
+  // The project's pinned and banned seats, at every size, and the one seat a project cannot ban.
+  const intro = flat(text.slice(0, text.indexOf('\n## ')));
+  assert.match(intro, /On top of it, at every size, the project's `pinned` seats always sit and its `banned` seats never do, with one exception: a project cannot ban the truth judge on a public page, and Cast tells the founder when the two meet/);
   assert.match(byRule, /It reads at Structure, at Detail, which is its main read, and at Acceptance; at Look only when a criterion that fires is about legibility or about where she uses it/);
   assert.match(byRule, /`judge\.truth` always sits on a public page/);
   assert.match(byRule, /`judge\.words` gets its own question to the founder when the kind is `first-run`, `message` or `public-page`/);
@@ -2208,7 +2267,15 @@ test('presets.md: what is added by rule, how the table is read, and what a seat 
   assert.ok(bySize.includes(`the four the structure describer's card gives: ${lenses.join(', ')}`));
   assert.match(bySize, /Three describers take three of them, chosen for this design, and a fourth describer takes the fourth\. Each describer's line of the cast sheet names its lens/);
   assert.match(bySize, /At Structure it sits twice: as the primary person, the one the intent names, and as one contrast person the makers are not briefed on\. Where the table says only "task reader", it sits once, as the primary person/);
-  assert.match(bySize, /\*\*Only if visual:\*\* an adjustment seats the visual designer and the system fidelity judge at Look when the change can be seen, and nobody there when it cannot/);
+  assert.match(bySize, /\*\*Only if visual:\*\* an adjustment seats the visual designer and the system fidelity judge at Look when the change can be seen\. When it touches nothing she can see, Frame routes Look `skipped`, with the reason, and nobody is cast there/);
+  // A stage the route runs and the row leaves empty: the surface row's cell, as for an adjustment that changes the structure.
+  assert.match(bySize, /\*\*A stage the route runs that the size's row leaves empty is cast from the surface row for that stage:\*\* an adjustment routed to run Structure gets the Structure cell of the surface row/);
+  const [, , ...sized] = tableRows(section(text, 'By size'));
+  const cellOf = (size, stage) => sized.find(([sizes]) => sizes.split(', ').includes(size))[['structure', 'detail', 'look', 'handoff', 'acceptance'].indexOf(stage) + 1];
+  assert.equal(cellOf('adjustment', 'structure'), '—');
+  assert.equal(routeFor('adjustment').structure, 'skipped');
+  assert.match(cellOf('surface', 'structure'), /^3 structure describers/);
+  assert.deepEqual(['detail', 'look', 'handoff', 'acceptance'].filter(stage => cellOf('adjustment', stage) === '—'), [], 'no other stage an adjustment runs is left empty');
   assert.match(bySize, /\*\*The judges that read it before:\*\* at Acceptance, an adjustment is read by the judges that read it at Detail and at Look/);
   // A direction is the visual designer's, as its card says; with no design system Look opens the same way.
   assert.match(bySize, /\*\*Direction:\*\* three directions, each drawn by one `maker\.visual-designer` cast for a direction, each with a lens of its own\. He picks one, and then Look is cast as for a surface/);
@@ -2286,6 +2353,21 @@ test('the four opening stages run as written: each state and card command with i
 
   // Context: begun, awaiting with its one question, and stamped carrying a section of the frame by its slug.
   assert.equal(run(commandOf('context', 'state.mjs begin')), 'context is in work');
+  // A judge of the project's own is checked by the command Context gives, and by the one Intent gives: sound, then faulty.
+  const judge = ['---', 'id: judge.booking-truth', 'shelf: judge', 'job: Is every room shown one the clinic has?', 'sits-at: [context, detail]', 'cast-when: The design shows rooms.',
+    'presets: []', 'loaded-with: none', 'reads: [brief, pictures]', 'never-reads: [maker-notes, author-map, other-ledgers]', 'engine: own', 'suggested-model: opus', 'suggested-effort: high',
+    'verified: 2026-11-14', '---', '# Booking truth', '', 'A judge of this clinic\'s own.', '', '## Core checks', '', '1. Every room shown exists.', '2. Every free room can be booked.', '',
+    '## Optional checks', '', '| id | trigger | method |', '|---|---|---|', '', '## Method', '', 'Read the pictures, room by room.', '', '## Output', '', 'One ledger.', '',
+    '## Never', '', '- Never list a room the clinic does not have.', '', '## Borrowed', '', 'Nothing.', ''].join('\n');
+  writeFileSync(join(pool, 'judges', 'booking-truth.md'), judge);
+  for (const name of ['context', 'intent']) {
+    assert.equal(run(commandOf(name, 'card.mjs check <packages>/pool/judges'), { '<name>': 'booking-truth' }), 'design/pool/judges/booking-truth.md: ok', name);
+  }
+  writeFileSync(join(pool, 'judges', 'desk-privacy.md'), judge.replace('verified: 2026-11-14\n', ''));
+  const faulty = exec(commandOf('context', 'card.mjs check <packages>/pool/judges'), { '<name>': 'desk-privacy' });
+  assert.deepEqual([faulty.status, faulty.stderr], [1, '']);
+  assert.match(faulty.stdout, /^design\/pool\/judges\/desk-privacy\.md: header: "id" names "booking-truth"/);
+  rmSync(join(pool, 'judges', 'desk-privacy.md'));
   const [, frameLine] = /as `(- frame@1#[a-z-]+)`/.exec(flat(section(stageSkill('context'), 'Gate')));
   assert.equal(frameLine, `- frame@1#${slugOf('context', 'Who it is for')}`);
   write('context', [SOURCE, profileLine, frameLine]);
@@ -2297,11 +2379,12 @@ test('the four opening stages run as written: each state and card command with i
     '## The moment', '', 'She is alone at the front desk, and the phone is ringing.', '', '## The job', '', 'Find the caller a free room before he rings off.', '',
     '## What she never does', '', '- Read a help page with someone waiting.', '', '## The check', '', 'Would she know what to press first?', ''].join('\n');
   writeFileSync(join(pool, 'persons', 'desk-cover.md'), person);
-  assert.equal(run(commandOf('intent', 'card.mjs check'), { '<name>': 'desk-cover' }), 'design/pool/persons/desk-cover.md: ok');
+  assert.equal(run(commandOf('intent', 'card.mjs check <packages>/pool/persons'), { '<name>': 'desk-cover' }), 'design/pool/persons/desk-cover.md: ok');
   assert.equal(run(commandOf('intent', 'state.mjs begin')), 'intent is in work');
   const [, carried] = /a later stage is written from: its ((?:"[^"]+"(?:, | and )?)+)\./.exec(flat(section(stageSkill('intent'), 'Gate')));
   const contextLines = [...carried.matchAll(/"([^"]+)"/g)].map(([, heading]) => `- context@1#${slugOf('intent', heading)}`);
   assert.equal(contextLines.length, 4);
+  assert.ok(contextLines.includes('- context@1#the-people'), 'who it is for goes on to Cast');
   const sources = ['- source:design/pool/persons/desk-cover.md', SOURCE];
   write('intent', [...sources, ...contextLines]);
   assert.equal(run(commandOf('intent', 'state.mjs await')), 'intent awaits the founder');
@@ -2311,6 +2394,7 @@ test('the four opening stages run as written: each state and card command with i
   const files = ['makers', 'judges', 'audiences', 'persons'].flatMap(folder => readdirSync(join(pool, folder)).sort().map(file => `design/pool/${folder}/${file}`));
   assert.deepEqual(run(commandOf('cast', 'card.mjs check'), {}, files).split('\n'), [
     ...['makers', 'judges', 'audiences', 'persons'].map(folder => `design/pool/${folder}/README.md: passed over: a README.md is never a card`), 'design/pool/persons/desk-cover.md: ok',
+    'design/pool/judges/booking-truth.md: ok',
   ].sort((a, b) => files.indexOf(a.split(': ')[0]) - files.indexOf(b.split(': ')[0])));
   assert.equal(run(commandOf('cast', 'state.mjs begin')), 'cast is in work');
   assert.match(run(commandOf('cast', 'state.mjs status')), /^- Kind: working-surface\n- Foundation: new-surface\n- Size: surface$/m);
@@ -2323,7 +2407,8 @@ test('the four opening stages run as written: each state and card command with i
   assert.equal(refused.stderr.trimEnd().split('\n').length, 1 + contextLines.length, refused.stderr);
   assert.match(refused.stderr, /^cast cannot be stamped:\n- "- context@1#the-people" names context, which cast is not built from; add it to built-from\n/);
   assert.equal(builtFrom('cast'), '[intent@1, context@1]');
-  write('cast', [...intentLines, ...contextLines, ...sources]);
+  // With a line for a profession's profile loaded into a seat, and one for the project's own judge that sits.
+  write('cast', [...intentLines, ...contextLines, ...sources, profileLine, '- source:design/pool/judges/booking-truth.md']);
   assert.equal(run(commandOf('cast', 'state.mjs await')), 'cast awaits the founder');
   assert.match(run(commandOf('cast', 'state.mjs stamp')), STAMPED('cast'));
 

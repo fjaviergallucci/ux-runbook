@@ -108,10 +108,10 @@ A file you write while working that is none of these goes in `<scratch>`: never 
    | Folder | Its `README.md` says |
    |---|---|
    | `profiles/` | One file for each profession this product serves, written from `templates/people/PROFILE-CARD.md` of the kit. |
-   | `persons/` | The people this product is designed for, each of a profession that has its file in `profiles/`: a card is written to "The person card" in `pool/CARD-FORMAT.md` of the kit. |
-   | `makers/` | This project's own makers: a card is written to `pool/CARD-FORMAT.md` of the kit. |
-   | `judges/` | This project's own judges: a card is written to `pool/CARD-FORMAT.md` of the kit. |
-   | `audiences/` | This project's own audiences: a card is written to `pool/CARD-FORMAT.md` of the kit. |
+   | `persons/` | The people this product is designed for, each of a profession that has its file in `profiles/`: a card is written to "The person card" in `pool/CARD-FORMAT.md` of the kit, and checked with `node <kit root>/scripts/card.mjs check <file>`. |
+   | `makers/` | This project's own makers: a card is written to `pool/CARD-FORMAT.md` of the kit, and checked with `node <kit root>/scripts/card.mjs check <file>`. |
+   | `judges/` | This project's own judges: a card is written to `pool/CARD-FORMAT.md` of the kit, and checked with `node <kit root>/scripts/card.mjs check <file>`. |
+   | `audiences/` | This project's own audiences: a card is written to `pool/CARD-FORMAT.md` of the kit, and checked with `node <kit root>/scripts/card.mjs check <file>`. |
 
    A stub is one file for one profession, as `<packages>/pool/profiles/front-desk-coordinator.md`,
    written from `templates/people/PROFILE-CARD.md`: its id `profile.<name>`, every heading and all four

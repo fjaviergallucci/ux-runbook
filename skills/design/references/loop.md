@@ -149,7 +149,9 @@ A gate is one of two kinds, and the stage's skill says which.
 
 ## 7. The decision page
 
-A decision goes to the founder as one page, built from a small data file:
+At a stage whose gate is an approval of its own output (Frame, Context, Intent, Cast), that output is
+what he reads, and no page is built. Any other decision goes to the founder as one page, built from a
+small data file:
 
 ```
 node <kit root>/scripts/page.mjs <decision.json> --out <decision.html>

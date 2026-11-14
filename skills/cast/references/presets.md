@@ -2,7 +2,9 @@
 
 Cast starts from this page, and Frame reads it for the provisional cast. It says who sits by default,
 by size; who is added by rule; and what each seat's card says of it. It is a starting point, never the
-cast: the project's `pinned` and `banned` seats come on top, and the founder edits by exception.
+cast: the founder edits by exception. On top of it, at every size, the project's `pinned` seats always
+sit and its `banned` seats never do, with one exception: a project cannot ban the truth judge on a
+public page, and Cast tells the founder when the two meet.
 
 ## By size
 
@@ -25,25 +27,33 @@ How to read it:
   as the primary person, the one the intent names, and as one contrast person the makers are not
   briefed on. Where the table says only "task reader", it sits once, as the primary person.
 - **Only if visual:** an adjustment seats the visual designer and the system fidelity judge at Look
-  when the change can be seen, and nobody there when it cannot.
+  when the change can be seen. When it touches nothing she can see, Frame routes Look `skipped`, with
+  the reason, and nobody is cast there.
 - **The judges that read it before:** at Acceptance, an adjustment is read by the judges that read it
   at Detail and at Look.
 - **Direction:** three directions, each drawn by one `maker.visual-designer` cast for a direction, each
   with a lens of its own. He picks one, and then Look is cast as for a surface. Where the foundation
   is `no-system`, Look opens the same way whatever the size, from a surface up
   (`skills/design/references/routes.md`).
-- A stage the route skips has no cast, and its cell is not used.
+- **A stage the route runs that the size's row leaves empty is cast from the surface row for that
+  stage:** an adjustment routed to run Structure gets the Structure cell of the surface row. A stage
+  the route skips has no cast, and its cell is not used.
 
 ## Added by rule
 
+At every size, an adjustment's short cast included:
+
+- `judge.truth` always sits on a public page, at each stage of the route its card sits at. It is
+  never left out there.
+
 At any size from a surface up:
 
-- `judge.profile`, once for each profession's profile, when Frame says the experience is for one
-  profession or for several. When it is for everyone, and the project keeps more than one profession's
-  profile, two contrasting ones sit: the least comfortable with technology, and the one with the
-  highest stakes. Never all of them. It reads at Structure, at Detail, which is its main read, and at
-  Acceptance; at Look only when a criterion that fires is about legibility or about where she uses it.
-- `judge.truth` always sits on a public page: it is never left out there.
+- `judge.profile`, once for each profession's profile, when the context's people section says the
+  experience is for one profession or for several. When it says everyone, the project's own sit: with
+  one profession's profile in the project's pool, its judge; with two or more, two contrasting ones,
+  the least comfortable with technology and the one with the highest stakes. Never all of them. It
+  reads at Structure, at Detail, which is its main read, and at Acceptance; at Look only when a
+  criterion that fires is about legibility or about where she uses it.
 - `judge.words` gets its own question to the founder when the kind is `first-run`, `message` or
   `public-page`. For those kinds the words get their own review: its line of the cast sheet says that
   its read is put to him as a question of its own, apart from the rest of the stage.

@@ -47,8 +47,9 @@ Steps 1 to 6 write nothing: the package is made at the gate, on his yes.
 
 1. **See whether the design is new.** It is, unless the conductor sent you to a package that exists:
    a folder with a `state.json`, whose next stage is `frame`. That design was left half framed. Its
-   three values are in the state already: do not run `init` again, and go on from the first thing
-   under "Gate" that is missing.
+   three values are in the state already: do not run `init` again. Go through steps 3 to 6, put the
+   frame to him again with the three values as they stand, and write the request from his answer,
+   never from the chat. Then go on from "Write `00-frame.md`", under "Gate".
 2. **Name the kind, the foundation and the size,** each from its table in
    `skills/design/references/routes.md`, each with one line of why.
    - *Kind:* what the interface is for. One of the kit's five, or a kind the project profile adds.
@@ -60,8 +61,8 @@ Steps 1 to 6 write nothing: the package is made at the gate, on his yes.
    corrects it in his answer. As: "a screen that shows the front desk which rooms are free right now"
    is a `working-surface`, on `new-surface`, sized `surface`.
 3. **Read the route off the size:** the mode of each stage, from "The route of each size". Change the
-   mode of one stage only with a reason he can read, as an adjustment that changes the structure runs
-   Structure.
+   mode of one stage only with a reason he can read: an adjustment that changes the structure runs
+   Structure, and one that changes nothing she can see skips Look.
 4. **Say who it is for:** one profession, several, or everyone. Name each profession by the id of its
    profession's profile, as `profile.front-desk-coordinator`. Say which have a file in the project's
    pool, and which Context will have to draft.
