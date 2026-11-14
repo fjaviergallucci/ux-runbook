@@ -22,7 +22,7 @@ has passed and the founder says so. Everything is local to this machine.
 
 ## What is done
 
-Tasks 0–15 are complete: implemented, reviewed by an independent reviewer, fixed, re-reviewed.
+Tasks 0–16 are complete: implemented, reviewed by an independent reviewer, fixed, re-reviewed.
 
 | Task | What | Commits |
 |---|---|---|
@@ -42,8 +42,9 @@ Tasks 0–15 are complete: implemented, reviewed by an independent reviewer, fix
 | 13 | The conductor skill, and the tests every skill must pass | `1c347fd..67f23ff` |
 | 14 | Setup skill; `describe --text` | `b8dd5f6..b799d2f` |
 | 15 | Frame, Context, Intent, Cast skills; `scripts/card.mjs check` | `aa6fc81..189f58c` |
+| 16 | Structure skill; `state.mjs reopen` closes later questions | `f5fce0c..b578460` |
 
-Last full test run (at `189f58c`): 725 tests — 719 pass, 1 skipped, 5 `todo`. The skipped test cannot run
+Last full test run (at `371e3fd`): 738 tests — 733 pass, 1 skipped, 4 `todo`. The skipped test cannot run
 on this machine's NTFS mount. Each `todo` is a stage skill not yet written; a skill's tests go live in the
 task that writes it. Run the suite with `npm test` (about three minutes; it runs one test file at a time).
 
@@ -51,8 +52,7 @@ task that writes it. Run the suite with `npm test` (about three minutes; it runs
 
 | Step | What | State |
 |---|---|---|
-| Task 16 | Structure skill | **next** — see the last lines of `docs/build-log/progress.md` for whether it has started; rulings written |
-| Task 17 | Detail and Look skills | not started; rulings written |
+| Task 17 | Detail and Look skills | **next** — see the last lines of `docs/build-log/progress.md` for whether it has started; rulings written |
 | Task 18 | Handoff and Acceptance skills; `reference/IMPLEMENTER-GUIDE.md`, `ANTI-PATTERNS.md` | not started; rulings written |
 | Task 19 | `LESSONS.md`, `README.md`, nine evaluation cases | not started; rulings written. **Step 5 (running the paid evaluation suite) is the controller's own**, not a sub-agent's |
 | Task 20 | The dry run of the whole pipeline on a fictional project | not started. **Run by the controller** |
@@ -112,7 +112,7 @@ implemented on the most capable model and reviewed on Opus. The reviewer is neve
 
 `docs/build-log/` is a committed copy of the build's working folder, taken at the date above:
 
-- `progress.md` — **the ledger**: every step, every ruling (R1–R140), every deferred minor, every parked
+- `progress.md` — **the ledger**: every step, every ruling (R1–R141), every deferred minor, every parked
   finding, in order. Search it for `Ruling R`, `minor (deferred)`, `parked`, `NOTE for Task`.
 - `task-N-brief.md` — the plan's section for that task, as extracted.
 - `task-N-rulings.md` — the controller's rulings for that task. **Those for Tasks 15–19 are ready to hand
@@ -172,7 +172,7 @@ are local. To push by hand, from the worktree: `git push -u origin` followed by 
 
 ## What a review of a skill must check above all
 
-It caught real faults in Tasks 13, 14 and 15: every command against its script's `--help`; every path;
+It caught real faults in Tasks 13 to 16: every command against its script's `--help`; every path;
 every template section a skill names; that what one stage records reaches the stage that needs it (the
 stamp refuses a carry line for a stage that is not in `built-from`); that no step lets the conducting
 session make, judge or decide; that nothing leads a session to a key or turns an outside engine on without
