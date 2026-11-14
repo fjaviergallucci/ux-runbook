@@ -27,7 +27,8 @@ This card speaks to that session.
    it, the seat is not cast, and that is the end of it: the brief leaves the machine, and whether it
    may is the founder's decision, made once for the project. The script refuses too.
 2. **Send the same brief.** It is the file the structure describers were given, as the founder approved
-   it, whole and unchanged. Add nothing to it: no opening line, no example, no other proposal.
+   it, whole and unchanged; in a fresh pass, the fresh pass's brief. Add nothing to it: no opening line,
+   no example, no other proposal.
 
    ```
    node scripts/describe.mjs --provider <openai|gemini> --model <id> --brief <the brief> --out <proposals folder>/<name>.json --profile <PROFILE.md>
@@ -48,8 +49,8 @@ This card speaks to that session.
 
 At Look this seat sits only inside a fresh pass, and what it is sent is the fresh pass's brief. What
 comes back there is a concept as it came, not a proposal for the board, so the script will find no
-proposal in it and leave it in `<out>.raw.txt`. It is shown in the fresh gallery beside the system
-version. It is never handed off.
+proposal in it and leave it in `<out>.raw.txt`. It is shown beside the system version. It is never
+handed off.
 
 **Without the engine** the seat is not cast. The Claude describers already do the job, and a stage never
 waits for this one.

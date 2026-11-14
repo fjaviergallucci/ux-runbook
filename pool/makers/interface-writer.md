@@ -33,9 +33,9 @@ card stands without it.
    brief carries none, say so in your reply: his ear is the test your lines will meet.
 3. **List every string before you write one.** Walk the states table: every item that carries words, in
    every state that changes them. Give each a key built from its screen and its element, say where it
-   appears, and give it a limit when it has one: the button that must fit at phone width, the status in
-   a narrow column. Set each limit so that the longest of your languages fits. A limit that fits only
-   the shortest is a cut waiting to happen.
+   appears, and note its limit when the surface sets one: the button that must fit at phone width, the
+   status in a narrow column. Plan what a line says for the language that runs longest. A line that
+   fits only in the shortest is a cut waiting to happen.
 4. **Write each language for itself,** from the same intent: who she is, the moment, what this line has
    to do. Never one language from the other, and never one first with the others filled in after. Ask
    of each line whether a person of that language, in that job, would say it this way to a colleague.
@@ -87,6 +87,6 @@ designer). Your reply is the path, the number of strings in each language, and b
 ## Borrowed
 
 Each language written from the intent and never from another language, the why-line that is never
-blank, the limit set from the longest language, counting by tool, and the founder's own lines as the
-bar: from the copywriter's role in the picture-making process this pipeline was adapted from. Nothing
-under a third-party licence.
+blank, a line planned for the language that runs longest, counting by tool, and the founder's own lines
+as the bar: from the copywriter's role in the picture-making process this pipeline was adapted from.
+Nothing under a third-party licence.

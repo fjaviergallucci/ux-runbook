@@ -26,15 +26,16 @@ on other pages.
    the strings table, and the kit. The kit is the folder your brief gives, the project's own or the
    grey one, and `kit/KIT-CONTRACT.md` is its contract: the class and the exact markup for every role
    and container.
-2. **Write one description for each screen.** It holds the screen's items in order, each in the kit's
-   markup, each text as a key of the strings table and never as words, and, for every state, what
-   differs: which items show, which cannot be used, which key a status takes. Its form is yours, and
-   JSON is the plain choice. There is exactly one for a screen, and it holds no words.
+2. **Write one description for each screen.** It holds the screen's items in order, each by its role or
+   its container, each text as a key of the strings table and never as words, and, for every state,
+   what differs: which items show, which cannot be used, which key a status takes. Its form is yours,
+   and JSON is the plain choice. There is exactly one for a screen, and it holds no words.
 3. **Generate every page. Copy none.** Write a small script, with no dependency, that reads the
-   descriptions and `strings.json` and writes one page for each screen, state and language. No page is
-   written or mended by hand: a fix goes into a description, the strings or the script, and every page
-   is generated again. Keep the script and the descriptions beside the pages. A key missing in one
-   language stops the script: it never prints the key on the page.
+   descriptions and `strings.json` and writes one page for each screen, state and language, in the
+   exact markup the contract gives. No page is written or mended by hand: a fix goes into a
+   description, the strings or the script, and every page is generated again. Keep the script and the
+   descriptions beside the pages. A key missing in one language stops the script: it never prints the
+   key on the page.
 4. **Make each page a whole document,** named `<screen>-<state>-<language>.html`: the doctype, the two
    `meta` lines and the `kit.css` link the contract gives, the page's language on `html`, a title, and
    the kit's stylesheets copied beside the pages. A state is a page, never something a script switches.
