@@ -130,7 +130,7 @@ use. A card that needs another adds its row here.
 | `context` | The approved context: who she is, and its inventory of what the product can show and do. |
 | `intent` | The approved intent: the person in her moment, the job, the tasks, the states, the success criteria. |
 | `chosen-structure` | The structure the founder picked. |
-| `states-and-rules` | What the interaction designer wrote: the states table, the rules, the edge cases. |
+| `states-and-rules` | What the interaction designer wrote: the states table, the rules, the edge cases, the data map and the dependencies. |
 | `strings` | The strings table: every string, in every language. |
 | `prototype` | The plain prototype: its pages, and the stable ids on them. |
 | `kit` | The shared kit, the project's or the grey one: its stylesheets, its parts and its contract. |
@@ -144,3 +144,16 @@ use. A card that needs another adds its row here.
 | `describers-brief` | The context brief the structure describers were given. |
 | `generator-prompt` | The prompt a screen generator kept beside its screen. |
 | `component-source` | The source of the project's real components. |
+| `options` | The structure proposals as merged for the board: each drawn in the same kit and named by a letter, with nothing saying who made which. |
+| `final-screens` | What Look made: the finished screens as static pages on the project's tokens, with the table of measured values and the list of named extensions. |
+| `pictures` | Screenshots of an artefact (today's interface, the options, the prototype, the final screens or the build) at each width and in each theme. |
+| `handoff-folder` | The handoff folder, whole: the only thing the implementing session is given. |
+| `build` | The built interface at Acceptance: what the builder wrote back (what was built and where, how to reach each state, what deviates), the files it built or changed, pictures of each state, and the results of the acceptance checks run in it. |
+| `package` | The design's package apart from the handoff folder: every stage's folder, with all the stages wrote. |
+| `profile` | A profession's profile card: its base, and the section for the specialty the design serves. |
+| `product-facts` | The project's own record of what the product does and what may be said of it, where it keeps one. |
+| `earlier-ledger` | The same seat's ledger from an earlier read of the same artefact, handed over on a re-read. |
+| `maker-notes` | What a maker said about its work and not as part of it: its reasons, its reply, what it assumed, what it set aside. |
+| `author-map` | The record of which maker, engine or model made which option or artefact. |
+| `other-ledgers` | Another judge's ledger on the same artefact. |
+| `task-reads` | What an audience wrote after trying a task: where it got stuck. |

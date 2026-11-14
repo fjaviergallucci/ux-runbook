@@ -531,6 +531,41 @@ test('the eight maker cards hold the decisions they were written to', () => {
   }
 });
 
+// The plan's table for the judges, as the controller ruled it: the stages, what each is loaded with, the
+// engine, the suggested model and effort.
+const JUDGES = {
+  'judge.usability': [['context', 'structure', 'detail', 'acceptance'], 'none', 'own', 'opus', 'high'],
+  'judge.truth': [['structure', 'detail', 'look', 'acceptance'], 'none', 'own', 'opus', 'high'],
+  'judge.words': [['detail', 'acceptance'], 'none', 'own', 'opus', 'high'],
+  'judge.accessibility': [['detail', 'look', 'acceptance'], 'none', 'own', 'opus', 'high'],
+  'judge.visual-craft': [['context', 'look', 'acceptance'], 'none', 'skill:design-audit:design-audit', 'opus', 'high'],
+  'judge.system-fidelity': [['look', 'acceptance'], 'none', 'own', 'opus', 'medium'],
+  'judge.profile': [['intent', 'structure', 'detail', 'look', 'acceptance'], 'profile', 'own', 'opus', 'high'],
+  'judge.cold-implementer': [['handoff'], 'none', 'own', 'opus', 'high'],
+};
+const judges = cards.filter(card => card.file.startsWith('judges/'));
+
+test('the eight judge cards hold the decisions they were written to', () => {
+  assert.deepEqual(judges.map(card => card.data.id).sort(), Object.keys(JUDGES).sort());
+  for (const { data } of judges) {
+    const [stages, loaded, engine, model, effort] = JUDGES[data.id];
+    assert.deepEqual(
+      [data['sits-at'], data['loaded-with'], data.engine, data['suggested-model'], data['suggested-effort']],
+      [stages, loaded, engine, model, effort],
+      data.id,
+    );
+  }
+});
+
+test('every judge is blind to the makers\' notes, the author map and the other judges\' ledgers', () => {
+  assert.ok(judges.length > 0, 'the pool holds judges');
+  for (const { file, data } of judges) {
+    for (const name of ['maker-notes', 'author-map', 'other-ledgers']) {
+      assert.ok(data['never-reads']?.includes(name), `pool/${file} must have "${name}" in never-reads`);
+    }
+  }
+});
+
 test('the outside describer never mentions a key', () => {
   const { text } = cards.find(card => card.data.id === 'maker.outside-describer');
   assert.doesNotMatch(text, /\bkeys?\b|secret|credential|password/i);
@@ -620,13 +655,16 @@ test('the command a describer or a transcriber checks its proposal with runs fro
   }
 });
 
-test('the interface writer counts what a reader sees, not how it is stored', () => {
-  const { text } = cards.find(card => card.data.id === 'maker.interface-writer');
-  const { script } = scriptIn(text, 'node -e "');
-  const count = string => node(['-e', script, string]).stdout.trim();
-  assert.equal(count('Caf\u00e9'), '4', 'one code point for the accented letter');
-  assert.equal(count('Cafe\u0301'), '4', 'two code points for it');
-  assert.equal(count('Reservar sala'), '13');
+test('the interface writer and the words judge count what a reader sees, not how it is stored', () => {
+  for (const id of ['maker.interface-writer', 'judge.words']) {
+    const card = cards.find(({ data }) => data.id === id);
+    assert.ok(card, `${id} is in the pool`);
+    const { script } = scriptIn(card.text, 'node -e "');
+    const count = string => node(['-e', script, string]).stdout.trim();
+    assert.equal(count('Caf\u00e9'), '4', `${id}: one code point for the accented letter`);
+    assert.equal(count('Cafe\u0301'), '4', `${id}: two code points for it`);
+    assert.equal(count('Reservar sala'), '13', id);
+  }
 });
 
 test('pool/MODELS.md is dated, says these are suggestions, and has every seat as its card suggests it', () => {

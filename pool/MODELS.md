@@ -44,3 +44,11 @@ When that order changes, the table changes with it. The four reasons do not.
 | `maker.interface-writer` | `fable` | `high` | Words the founder approves, written for each language. |
 | `maker.prototype-builder` | `opus` | `medium` | Careful building to a specification that is already decided. |
 | `maker.visual-designer` | `fable` | `high` | It makes the screens of record, which the founder picks or approves. |
+| `judge.usability` | `opus` | `high` | Reason 2: what it reads was mostly made on `fable`, so it takes the next most capable. High effort, because its verdict opens or closes a stage. |
+| `judge.truth` | `opus` | `high` | Reason 2. Careful tracing, where one missed row misleads her. |
+| `judge.words` | `opus` | `high` | Reason 2. An ear for each language, on lines another model wrote. |
+| `judge.accessibility` | `opus` | `high` | Reason 2. Judgement and measurement together. |
+| `judge.visual-craft` | `opus` | `high` | Reason 2. The one seat that judges how it looks: a different eye from the designer's. |
+| `judge.system-fidelity` | `opus` | `medium` | Reason 2. A comparison against a source that is read, with little to decide. |
+| `judge.profile` | `opus` | `high` | Reason 2. Every finding is reasoned from a trait of the profession. |
+| `judge.cold-implementer` | `opus` | `high` | Reason 2. It has to notice what is missing, which is harder than checking what is there. |
