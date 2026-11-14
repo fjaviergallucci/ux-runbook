@@ -17,8 +17,9 @@ a maker, not a judge, not you. So the work is kept cheap, and blind.
    continuity maker the cast names, who sees the current layout.
 5. **Letters by shuffle.** The merge gives each proposal a letter. The map of who made which stays
    sealed until he has picked.
-6. **Judges and audiences read by letter.** A judge is handed the board folder and nothing above it; an
-   audience is handed the pictures only.
+6. **Judges and audiences read by letter.** Of `04-structure/`, a judge is handed the board folder and
+   nothing else; an audience is handed the pictures only. What else a seat's brief template lists comes
+   from the approved stages, as `references/loop.md` says.
 7. **Nothing is shortlisted before he picks, and nothing is detailed.** Every valid proposal reaches the
    board. You drop none, mend none and rank none ahead of him.
 
@@ -94,10 +95,11 @@ package; `<proposals dir>` is the folder the makers write into, `04-structure/pr
    node <kit root>/scripts/shots.mjs <board dir> --out <board dir> --widths <w,w...>
    ```
 7. **The readers.** The judges and the audiences the cast names, each a fresh sub-agent. They read by
-   letter. A judge is handed the board folder and nothing above it: its letters, pages and pictures. An
-   audience is handed the pictures only, each by its path. Their briefs list four things under "Do not
-   open": the package's `work/` folder, where the makers' briefs are, the map, the pick and the
-   proposals folder.
+   letter. Of `04-structure/`, a judge is handed the board folder and nothing else: its letters, pages
+   and pictures. An audience is handed the pictures only, each by its path. What else a seat's brief
+   template lists comes from the approved stages. Their briefs list four things under "Do not open":
+   the package's `work/` folder, where the makers' briefs are, the map, the pick and the proposals
+   folder.
 8. **The decision page.** The options by letter, one line for each seat that read them, one
    recommendation, one question:
 
@@ -133,7 +135,8 @@ package; `<proposals dir>` is the folder the makers write into, `04-structure/pr
   merge refuses while a map or a pick lies beside the board folder. What is set aside is moved, into
   `04-structure/earlier/<n>/`: `1` the first time, `2` the next. The pick is the record of his words,
   and the board is what he saw. Where the script's refusal says to delete, move. Nothing in `earlier/`
-  is ever an input.
+  is ever an input to a stage or a seat. A lessons entry may read it, since what was set aside and why
+  is part of what a design taught.
   - **A round he rejected moves whole.** When he picks none and Intent or Context is reopened,
     everything in `04-structure/` other than `earlier/` is moved together, before the new round starts:
     the briefs, the proposals folder, the board, the map, the pick, the pictures, the reads, the

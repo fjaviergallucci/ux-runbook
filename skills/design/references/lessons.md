@@ -28,7 +28,9 @@ model each ran on, and it is what prunes the pool and corrects the model suggest
 dropped on this record. Where an outside model or a fresh maker sat, say whether what it made was picked.
 
 Write the entry from the package (its decisions, its ledgers, its cast sheet, its state), never from
-what you remember of the chat. A number you name is counted by a tool first.
+what you remember of the chat. A number you name is counted by a tool first. Where a round was set
+aside, it lies in `04-structure/earlier/`. Nothing in `earlier/` is ever an input to a stage or a seat,
+but a lessons entry may read it, since what was set aside and why is part of what a design taught.
 
 ## The kit's lessons
 

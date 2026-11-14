@@ -124,33 +124,44 @@ const SEPARATORS = Object.freeze(['&&', '||', '|', ';']);
 const PROMPTS = Object.freeze(['$', '%', '>']);
 // A setting of the environment, written before the command it is for: NAME=value.
 const isAssignment = word => /^[A-Za-z_]\w*=/.test(word);
-// A redirection ends a command too: `>`, `>>` or `2>`, alone or with its target against it, and `<` alone.
-const isRedirection = word => word === '<' || /^2?>/.test(word);
+// What may stand between the start of a command and its `node`: a program that runs another, or the
+// parenthesis that opens a command of its own. `timeout` takes its time first.
+const WRAPPERS = Object.freeze(['env', 'time', 'exec', 'npx', '(', '$(']);
+// A parenthesis outside double quotes is a word of its own, so that `(node …)` and `x=$(node …)` are read.
+const apart = line => line.split(/("[^"]*")/).map((part, i) => (i % 2 ? part : part.replace(/\$\(|[()]/g, ' $& '))).join('');
+// A redirection ends a command too: `>` or `>>`, alone or after a digit or `&`, with its target against it
+// or not, and `<` alone.
+const isRedirection = word => word === '<' || /^(?:[0-9]|&)?>/.test(word);
 // The kit's scripts folder, as a word of a command names it: `scripts/` where a path starts, or after
 // nothing but `./`, `../` or a <placeholder>. In `tests/scripts/x.mjs` and `myscripts/x.mjs` it is another
 // folder's, and an absolute path is not judged.
 const KIT_SCRIPTS = /(?<![\w./-])(?:(?:\.{1,2}|<[^<>]*>)\/)*scripts\//;
 // The commands a text gives that run a script of the kit, from each line of its code fences and then from
 // each of its code spans. A command starts at the word `node`, where a shell would start one: at the start of
-// the line, after a prompt (`$ node …`), after the command before it (`cd … && node …`), or after a setting of
-// the environment (`UX_CHROME=… node …`). So a line of prose in a fence, or a comment, is not a command. It
-// runs to the end, or to what ends a command in a shell, a redirection among them, and it is one of the kit's
-// when a word of it names the kit's scripts folder: `node --version` is not the kit's to check. A command
-// stays on one line: one that a backslash carries on is read as far as the backslash, and refused. In a
-// table row a bar is written `\|`, and is read as the bar it stands for.
+// the line, after a prompt (`$ node …`), after the command before it (`cd … && node …`), after a setting of
+// the environment (`UX_CHROME=… node …`), or after a program that runs it (`env … node …`, `time node …`,
+// `timeout 60 node …`, `pnpm exec node …`, `npx node …`, `x=$(node …)`). So a line of prose in a fence, or a
+// comment, is not a command. It runs to the end, or to what ends a command in a shell, a redirection or a
+// closing parenthesis among them, and it is one of the kit's when a word of it names the kit's scripts
+// folder: `node --version` is not the kit's to check. A command stays on one line: one that a backslash
+// carries on is read as far as the backslash, and refused. In a table row a bar is written `\|`, and is read
+// as the bar it stands for.
 function commandsOf(text) {
   const lines = linesOf(text);
   const prose = lines.filter(({ fenced }) => !fenced).map(({ line }) => (/^\s*\|/.test(line) ? line.replace(/\\\|/g, '|') : line)).join('\n');
   const code = [...lines.filter(({ fenced }) => fenced).map(({ line }) => line), ...[...prose.matchAll(/`([^`]+)`/g)].map(([, span]) => span)];
   return code.flatMap(line => {
-    const all = words(line);
+    const all = words(apart(line));
     const found = [];
     for (let from = all.indexOf('node'); from !== -1; from = all.indexOf('node', from + 1)) {
-      // What leads up to it: settings of the environment, and before them nothing, a prompt, or another command's end.
+      // What leads up to it: settings of the environment, and before them nothing, a prompt, another command's
+      // end, or a program that runs it.
       let lead = from;
       while (lead > 0 && isAssignment(all[lead - 1])) lead--;
-      if (lead > 0 && !SEPARATORS.includes(all[lead - 1]) && !(lead === 1 && PROMPTS.includes(all[0]))) continue;
-      const end = all.findIndex((word, i) => i > from && (SEPARATORS.includes(word) || isRedirection(word)));
+      const before = all[lead - 1];
+      const starts = lead === 0 || SEPARATORS.includes(before) || WRAPPERS.includes(before) || all[lead - 2] === 'timeout' || (lead === 1 && PROMPTS.includes(before));
+      if (!starts) continue;
+      const end = all.findIndex((word, i) => i > from && (SEPARATORS.includes(word) || isRedirection(word) || word === ')'));
       const command = all.slice(from, end === -1 ? undefined : end);
       if (command.some(word => KIT_SCRIPTS.test(word))) found.push(command.join(' '));
     }
@@ -394,6 +405,11 @@ const setSection = (name, text) => GOOD.map(([heading, body]) => [heading, headi
 // The sample with one more line of its Steps: a sentence, or a command in a code span.
 const withStep = line => faults({ sections: setSection('Steps', `${TEXTS.Steps}\n3. ${line}`) });
 const withCommand = command => withStep(`Then \`${command}\`.`);
+// The ways a command may be run by another program, or inside a command of its own.
+const WRAPPED = Object.freeze([
+  command => `env UX_CHROME=/usr/bin/chromium ${command}`, command => `env ${command}`, command => `time ${command}`, command => `timeout 60 ${command}`,
+  command => `pnpm exec ${command}`, command => `npx ${command}`, command => `(${command})`, command => `stage=$(${command})`,
+]);
 // The same, with other files beside the SKILL.md.
 const withStepAnd = (line, others) => faults({ sections: setSection('Steps', `${TEXTS.Steps}\n3. ${line}`) }, others);
 
@@ -592,6 +608,9 @@ test('the commands of a text are those that run a script of the kit, in its code
   ]);
   assert.deepEqual(words('node <kit root>/scripts/rooms.mjs <plan.json> < <package>/answers.txt'), ['node', '<kit root>/scripts/rooms.mjs', '<plan.json>', '<', '<package>/answers.txt']);
   assert.deepEqual(words('sort < rooms.txt > sorted.txt'), ['sort', '<', 'rooms.txt', '>', 'sorted.txt']);
+  // A parenthesis is a word of its own, but not inside double quotes, where it is part of what is said.
+  assert.deepEqual(words(apart('open=$(node x) && (node y --by "the one (who opens)")')), ['open=', '$(', 'node', 'x', ')', '&&', '(', 'node', 'y', '--by', '"the one (who opens)"', ')']);
+  assert.deepEqual(commandsOf('Run `node <kit root>/scripts/desk.mjs open <desk> --by "the one (who opens)"`.'), ['node <kit root>/scripts/desk.mjs open <desk> --by "the one (who opens)"']);
 });
 
 test('a command starts where a shell would start one, and ends where a shell would end it', () => {
@@ -600,14 +619,17 @@ test('a command starts where a shell would start one, and ends where a shell wou
   // It starts at the start of the line, after a prompt, after the command before it, or after a setting of the environment.
   for (const line of [CLOSED, `$ ${CLOSED}`, `% ${CLOSED}`, `> ${CLOSED}`, `cd <project> && ${CLOSED}`, `ls ; ${CLOSED}`, `ls | ${CLOSED}`, `ls || ${CLOSED}`,
     `UX_FLOOR=2 ${CLOSED}`, `UX_FLOOR=2 UX_WING=east ${CLOSED}`, `$ UX_FLOOR=2 ${CLOSED}`, `cd <project> && UX_FLOOR=2 ${CLOSED}`]) assert.deepEqual(fence(line), [CLOSED], line);
+  // Or after a program that runs it, and inside the parentheses that make a command of their own.
+  for (const line of [`env ${CLOSED}`, `env UX_FLOOR=2 ${CLOSED}`, `time ${CLOSED}`, `pnpm exec ${CLOSED}`, `timeout 60 ${CLOSED}`, `npx ${CLOSED}`, `$ time env UX_FLOOR=2 ${CLOSED}`,
+    `(${CLOSED})`, `( ${CLOSED} )`, `stage=$(${CLOSED})`, `(cd <project> && ${CLOSED}) | tee closed.txt`]) assert.deepEqual(fence(line), [CLOSED], line);
   // Anywhere else the word is a word: a line of prose in a fence, a comment, a word after another.
   for (const line of [
     'Every node in the tree is a screen; see scripts/ for how.', '// node scripts/ are the kit\'s', '# node scripts/desk.mjs closed <desk>', 'echo node scripts/desk.mjs',
     'then $ node scripts/desk.mjs closed <desk>', 'ls > node scripts/desk.mjs', 'floor=2 then node scripts/desk.mjs closed <desk>',
-    '--floor=2 node scripts/desk.mjs closed <desk>',
+    '--floor=2 node scripts/desk.mjs closed <desk>', 'sleep 60 node scripts/desk.mjs closed <desk>', 'timeout node scripts/desk.mjs closed <desk>',
   ]) assert.deepEqual(fence(line), [], line);
   // It ends at a redirection, alone or with its target against it, as at the next command.
-  for (const tail of ['> <package>/closed.txt', '>> <package>/closed.txt', '2> errors.txt', '2>/dev/null', '>/dev/null', '2>&1', '< answers.txt', '| tee closed.txt']) {
+  for (const tail of ['> <package>/closed.txt', '>> <package>/closed.txt', '2> errors.txt', '2>/dev/null', '>/dev/null', '2>&1', '&>/dev/null', '&> all.txt', '1><package>/closed.txt', '< answers.txt', '| tee closed.txt']) {
     assert.deepEqual(fence(`${CLOSED} ${tail}`), [CLOSED], tail);
   }
   // It is the kit's when it names the kit's scripts folder: where a path starts, or after only ./, ../ or a placeholder.
@@ -661,6 +683,10 @@ test('a command that runs a script of the kit is written as its usage gives it',
     'UX_FLOOR=2 node <kit root>/scripts/desk.mjs closed <desk>',
     // A script of another folder is not the kit's.
     'node tests/scripts/desk.mjs shut <desk>',
+    // Whatever runs it, the command is read.
+    ...WRAPPED.map(wrap => wrap('node <kit root>/scripts/desk.mjs closed <desk>')),
+    'node <kit root>/scripts/desk.mjs closed <desk> &>/dev/null',
+    'node <kit root>/scripts/desk.mjs closed <desk> 1><package>/closed.txt',
     // A name left to fill in has no usage to be held to, and another program's command is not the kit's to check.
     'node <kit root>/scripts/<name>.mjs --help',
     'node --version',
@@ -692,6 +718,9 @@ test('a command that runs a script of the kit is written as its usage gives it',
   refused('cd <project> && node <kit root>/scripts/desk.mjs shut <desk>', /`node <kit root>\/scripts\/desk\.mjs shut <desk>` is not as/);
   refused('UX_FLOOR=2 node <kit root>/scripts/desk.mjs shut <desk>', /`node <kit root>\/scripts\/desk\.mjs shut <desk>` is not as/);
   refused('node <kit root>/scripts/desk.mjs shut <desk> > <package>/closed.txt', /`node <kit root>\/scripts\/desk\.mjs shut <desk>` is not as/);
+  for (const wrap of WRAPPED) refused(wrap('node <kit root>/scripts/desk.mjs shut <desk>'), /^SKILL\.md: `node <kit root>\/scripts\/desk\.mjs shut <desk>` is not as scripts\/desk\.mjs takes it/);
+  refused('node <kit root>/scripts/desk.mjs shut <desk> &>/dev/null', /`node <kit root>\/scripts\/desk\.mjs shut <desk>` is not as/);
+  refused('node <kit root>/scripts/desk.mjs shut <desk> 1><package>/closed.txt', /`node <kit root>\/scripts\/desk\.mjs shut <desk>` is not as/);
   refused('node <kit root>/scripts/desk.mjs closed <desk> && node <kit root>/scripts/desk.mjs lock <desk>', /`node <kit root>\/scripts\/desk\.mjs lock <desk>` is not as/, /--now is missing/);
   // In a table a bar is written \|; anywhere else the backslash is part of the word.
   assert.deepEqual(withStep('See:\n\n| When | Command |\n|---|---|\n| Two at the desk | `node <kit root>/scripts/desk.mjs staff <desk> <one\\|two\\|none>` |'), []);
@@ -1086,8 +1115,8 @@ test('blind.md: the map and the pick sit beside the board; a judge is handed the
   for (const path of [`04-structure/${MAP}`, `04-structure/${PICK}`, '04-structure/board/']) assert.ok(blind.includes(`\`${path}\``), path);
   assert.doesNotMatch(blind, /board\/(?:MAP|PICK)/);
   assert.match(text, /beside the board(?: folder)?, never (?:inside|in) it/);
-  assert.match(text, /A judge is handed the board folder and nothing above it; an audience is handed the pictures only/);
-  assert.doesNotMatch(text, /board folder only/);
+  assert.match(text, /Of `04-structure\/`, a judge is handed the board folder and nothing else; an audience is handed the pictures only/);
+  assert.doesNotMatch(text, /board folder only|nothing above it/);
   // An audience's own brief gives it pictures, and pictures only.
   assert.ok(flat(read('templates/briefs/audience.md')).includes('The pictures, and pictures only'));
   assert.match(text, /`Pick: <letter \| none>`/);
@@ -1113,13 +1142,17 @@ test('blind.md: the order, from the brief to the map', () => {
   inOrder(commands.join('\n'), [/scripts\/describe\.mjs --provider/, /scripts\/merge\.mjs <proposals dir> --out <board dir>$/m, /scripts\/render\.mjs /, /scripts\/shots\.mjs /, /scripts\/page\.mjs /, /scripts\/merge\.mjs open <board dir>$/m], 'the commands of the order');
   // The readers of step 7 are handed the board, and told what beside it they do not open.
   const readers = flat(order.slice(order.indexOf('7. **The readers.**'), order.indexOf('8. **The decision page.**')));
-  assert.match(readers, /A judge is handed the board folder and nothing above it: its letters, pages and pictures\. An audience is handed the pictures only, each by its path/);
+  assert.match(readers, /Of `04-structure\/`, a judge is handed the board folder and nothing else: its letters, pages and pictures\. An audience is handed the pictures only, each by its path/);
+  assert.match(readers, /What else a seat's brief template lists comes from the approved stages/);
   assert.match(readers, /list four things under "Do not open": the package's `work\/` folder, where the makers' briefs are, the map, the pick and the proposals folder/);
   // The kit every letter is drawn in is the project's kit folder, in the rule and in the step.
   assert.match(flat(order), /`<kit dir>` is always the project's kit folder, the one the project profile names/);
   // The rules of the table, as rules.
   const rules = flat(section(reference('blind.md'), 'The rules'));
-  for (const rule of [/one shared kit/, /grey kit/, /the founder reads it first/, /(?:do not|never) see each other/, /continuity maker/, /by letter/, /Nothing is (?:shortlisted|detailed)/, /sealed/, /A judge is handed the board folder and nothing above it; an audience is handed the pictures only/]) assert.match(rules, rule);
+  for (const rule of [/one shared kit/, /grey kit/, /the founder reads it first/, /(?:do not|never) see each other/, /continuity maker/, /by letter/, /Nothing is (?:shortlisted|detailed)/, /sealed/, /Of `04-structure\/`, a judge is handed the board folder and nothing else; an audience is handed the pictures only/]) assert.match(rules, rule);
+  // What a judge is handed from outside the board is its brief template's to say, and the loop's.
+  assert.match(rules, /What else a seat's brief template lists comes from the approved stages, as `references\/loop\.md` says/);
+  assert.match(flat(reference('loop.md')), /A seat is handed what its brief template gives it, and no more/);
   assert.match(rules, /the project's kit folder, the one the project profile names\. Setup writes it in every project, and where the project has no design system it holds the grey kit \(`kit\/grey\/`\) unchanged/);
 });
 
@@ -1141,7 +1174,15 @@ test('blind.md: nothing is deleted; a rejected round moves whole into earlier/, 
   assert.match(sealed, /the merge refuses while a map or a pick lies beside the board folder/);
   assert.match(sealed, /What is set aside is moved, into `04-structure\/earlier\/<n>\/`: `1` the first time, `2` the next/);
   assert.match(sealed, /Where the script's refusal says to delete, move/);
-  assert.match(sealed, /Nothing in `earlier\/` is ever an input/);
+  // Not to a stage, and not to a seat: the lessons may read it, and both references say so in the same words.
+  const EARLIER = /Nothing in `earlier\/` is ever an input to a stage or a seat/;
+  assert.match(sealed, EARLIER);
+  assert.match(sealed, /A lessons entry may read it, since what was set aside and why is part of what a design taught/);
+  const lessons = flat(reference('lessons.md'));
+  assert.match(lessons, EARLIER);
+  assert.match(lessons, /Where a round was set aside, it lies in `04-structure\/earlier\/`/);
+  assert.match(lessons, /but a lessons entry may read it, since what was set aside and why is part of what a design taught/);
+  for (const text of Object.values(folderOf('design'))) assert.doesNotMatch(flat(text), /is ever an input(?! to a stage or a seat)/);
   // A round he rejected: everything, the proposals among it, so that the next merge does not deal them again.
   assert.match(sealed, /\*\*A round he rejected moves whole\.\*\* When he picks none and Intent or Context is reopened, everything in `04-structure\/` other than `earlier\/` is moved together, before the new round starts: the briefs, the proposals folder, the board, the map, the pick, the pictures, the reads, the decision page/);
   assert.match(sealed, /Intent or Context is reopened, and the round moves whole/);
