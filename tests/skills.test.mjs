@@ -2519,21 +2519,23 @@ test('structure: it reads the cast sheet and what its carry list names, and writ
   assert.match(flat(writes), /Everything below is in `<package>\/04-structure\/`, and the seats' briefs in `<package>\/work\/`/);
   const rows = tableRows(writes).slice(2);
   assert.deepEqual(rows.flatMap(([first]) => spansOf(first)), ['BRIEF.md', 'BRIEF-fresh.md', 'proposals/', 'fresh/', 'board/', MAP, PICK, 'reads/', 'decision.json', 'decision.html', 'chosen/', 'earlier/', 'CHOSEN.md']);
-  assert.deepEqual(kitPaths(writes).sort(), ['templates/outputs/LEDGER.md', 'templates/outputs/PICK.md', 'templates/outputs/TASK-READ.md', 'templates/outputs/decision.json',
+  assert.deepEqual(kitPaths(writes).filter(path => path.startsWith('templates/')).sort(), ['templates/outputs/LEDGER.md', 'templates/outputs/PICK.md', 'templates/outputs/TASK-READ.md', 'templates/outputs/decision.json',
     'templates/package/04-structure/BRIEF-fresh.md', 'templates/package/04-structure/BRIEF.md', `templates/package/${ARTEFACT.structure}`]);
   assert.deepEqual(filesUnder('templates/package/04-structure/'), ['BRIEF-fresh.md', 'BRIEF.md', 'CHOSEN.md']);
   // The output carries sections of the cast, the intent and the context on, so it is built from all three.
-  assert.match(flat(writes), /The output is built from the cast, the intent and the context, each at the version it was approved at/);
-  assert.match(writes, /`CHOSEN\.md` \| the stage's output, with `built-from: \[cast@1, intent@1, context@1\]`/);
+  assert.match(flat(writes), /The output is built from the cast, the intent and the context\. `<version>` is the version a stage stands at, as `node <kit root>\/scripts\/state\.mjs status <package>` prints it: after a rejected round it is not 1/);
+  assert.match(writes, /`CHOSEN\.md` \| the stage's output, with `built-from: \[cast@<version>, intent@<version>, context@<version>\]`/);
+  // No version is written as a number: after a rejected round a remembered 1 is wrong.
+  for (const [file, body] of Object.entries(folderOf('structure'))) assert.doesNotMatch(body, /\b(?:frame|context|intent|cast)@\d/, file);
   assert.match(flat(stepOf(section(text, 'Steps'), 'Read the cast sheet')), /Copy the template to `<package>\/04-structure\/CHOSEN\.md` and write `built-from`, unless the file is already there: then go on from what it holds\./);
-  // At the gate every heading of the template is filled, and none the template lacks.
+  // At the gate the output is filled heading by heading, as its template says, and the headings the skill names are the template's.
   const gate = flat(section(text, 'Gate'));
-  const fill = gate.slice(gate.indexOf('**Fill `CHOSEN.md`,**'), gate.indexOf('**Write the carry list,**'));
-  const filled = [...fill.matchAll(/"([A-Z][^"]+)"|`## ([^`]+)`/g)].map(([, quoted, spanned]) => quoted ?? spanned).filter(name => name !== 'Nothing');
-  assert.deepEqual([...filled, 'Carry'], headings(outputOf('structure')));
+  assert.match(gate, /\*\*Fill `CHOSEN\.md`,\*\* heading by heading, as its template says: from `PICK\.md`, the picked letter's file, the reads and, for "Not chosen", the map\. "Marked in the fresh gallery" holds his marks, in his words, each with its picture/);
+  for (const heading of ['Not chosen', 'Marked in the fresh gallery', 'Reviewed by the founder', 'Carry']) assert.ok(headings(outputOf('structure')).includes(heading), heading);
+  assert.equal([...outputOf('structure').matchAll(/^\{/gm)].length >= headings(outputOf('structure')).length - 1, true, 'the template says what goes under each heading');
   inOrder(gate, [/Under `## Reviewed by the founder`, after his yes to the brief: what he asked to be changed on the way to Detail, as he said it, or "Nothing"/, /\*\*Write the carry list,\*\* `## Carry`: the lines of the cast sheet's own carry list, as they are/,
-    /a `- cast@1#<slug>` line for the table of each stage still to run, for "Blind rules" and for "Fresh pass"/, /a `- source:<path>` line, from the project's root, for the chosen proposal's file, for each of its pictures and for `PICK\.md`/,
-    /\*\*Stamp it,\*\* in the words he picked with/, /state\.mjs stamp <package> structure --words/, /Then append the decision to the package's `DECISIONS\.md`, and ask the state what is next, as step 9 of the loop says/], 'the gate, after the pick');
+    /a `- cast@<version>#<slug>` line for the table of each stage still to run, for "Blind rules" and for "Fresh pass"/, /a `- source:<path>` line, from the project's root, for the chosen proposal's file, for each of its pictures, for `PICK\.md`, and for the picture of each mark he made in the fresh gallery/,
+    /\*\*Stamp it,\*\* in the words he picked with/, /state\.mjs stamp <package> structure --words/, /Then append the decision to the package's `DECISIONS\.md`, his gallery marks with it as he said them, and ask the state what is next, as step 9 of the loop says/], 'the gate, after the pick');
 });
 
 test('structure: the map and the pick sit beside the board and never in it, and the board holds the letters, the pages and the pictures', () => {
@@ -2546,7 +2548,6 @@ test('structure: the map and the pick sit beside the board and never in it, and 
   const drawn = stepOf(steps, 'Merge, draw, photograph');
   assert.match(drawn, /writes the map to `<package>\/04-structure\/MAP\.sealed\.json`: beside the board, never in it/);
   assert.match(drawn, /The board holds the letters' files, the drawn pages with the kit's stylesheets, and the pictures: nothing else is ever put in it/);
-  assert.match(drawn, /From here on an option is its letter, to you as to everyone/);
   // The pictures are taken into the board, where the conductor puts them, and the decision page is built beside it.
   const commands = stageCommands('structure');
   assert.ok(commands.includes('node <kit root>/scripts/shots.mjs <package>/04-structure/board --out <package>/04-structure/board --widths <primary>,<phone>'));
@@ -2573,8 +2574,7 @@ test('structure: a judge is handed the board folder, an audience the pictures on
   assert.match(readers, new RegExp(`Of \`<package>/04-structure/\`, ${HANDS.source}, each by its path`));
   // The four things the conductor has every reader's brief list, then what Structure adds to them.
   assert.match(flat(reference('blind.md')), /list four things under "Do not open": the package's `work\/` folder, where the makers' briefs are, the map, the pick and the proposals folder/);
-  assert.match(readers, /Every reader's brief lists under "Do not open": `<package>\/work\/`, where the makers' briefs are, `<package>\/04-structure\/MAP\.sealed\.json`, `<package>\/04-structure\/PICK\.md` and `<package>\/04-structure\/proposals\/`; then `<package>\/04-structure\/fresh\/`, the two briefs and every other reader's file/);
-  assert.match(readers, /What else each is handed, from the approved stages, is in `references\/seats\.md`/);
+  assert.match(readers, /Every reader's brief lists under "Do not open" the map, the pick, the proposals folder and the makers' files, then `CHOSEN\.md`, the cast sheet and, where a continuity maker is cast, today's screen: the whole list, and what else each is handed from the approved stages, is in `references\/seats\.md`/);
   assert.ok(nevers(text).includes('Never hand a reader the folder above the board'));
   assert.ok(nevers(text).includes('Never say who made a letter'));
 
@@ -2589,8 +2589,17 @@ test('structure: a judge is handed the board folder, an audience the pictures on
   // What every reader's brief lists, said once for them all.
   const common = flat(section(seats, 'The readers').split('\n### ')[0]);
   for (const path of ['<package>/work/', `<package>/04-structure/${MAP}`, `<package>/04-structure/${PICK}`, '<package>/04-structure/proposals/', '<package>/04-structure/fresh/', '<package>/04-structure/BRIEF.md',
-    '<package>/04-structure/BRIEF-fresh.md', '<package>/04-structure/earlier/']) assert.ok(common.includes(`\`${path}\``), path);
+    '<package>/04-structure/BRIEF-fresh.md', '<package>/04-structure/earlier/', '<package>/03-cast.md', '<package>/04-structure/CHOSEN.md']) assert.ok(common.includes(`\`${path}\``), path);
   assert.match(common, /the judges in one message, so that no ledger exists while another judge reads, then the audiences\. They read by letter/);
+  // What the cast sheet and the output would tell a reader, and today's screen where one maker saw it.
+  assert.match(common, /`<package>\/03-cast\.md`, the cast sheet: it holds each maker's lens and engine; - `<package>\/04-structure\/CHOSEN\.md`: from step 4 it names the seats that send the brief out/);
+  assert.match(common, /when a continuity maker is cast, today's screen, as a picture or as source: whoever has seen it can tell which letter kept its layout\. It is listed for every reader but a judge whose card reads `current-screens`/);
+  assert.deepEqual(Object.values(cards).filter(card => card.shelf !== 'maker' && card.reads.includes('current-screens')).map(card => card.id), ['judge.usability']);
+  // A proposal's file is named for its seat's line on the cast sheet, so that the opened map tells two describers apart.
+  assert.match(flat(section(seats, 'The makers')), /`<name>`, in `<package>\/04-structure\/proposals\/<name>\.json`, is the seat's line on the cast sheet, made unique: `describer-fewest-steps`, `describer-guided`, `outside-openai`, `fresh-generator`\. No two files share one\. The name is what the map prints for a letter once it is opened/);
+  // The project's kit is wherever the project profile says it is.
+  assert.match(leads(subsection(seats, '`maker.screen-generator`'))['Do not open'], /the project's kit, `<kit dir>`, and the kit's own/);
+  for (const [file, body] of Object.entries(folderOf('structure'))) assert.doesNotMatch(body, /<packages>\/kit/, file);
 
   for (const [id, card] of Object.entries(cards)) {
     const part = subsection(seats, `\`${id}\``);
@@ -2656,7 +2665,7 @@ test('structure: every command is one its script takes, in the order of the stag
   // The commands of SKILL.md's code fences, in the order the stage runs them: the map is opened last but for the stamp.
   assert.deepEqual(linesOf(text).filter(({ fenced }) => fenced).map(({ line }) => line.trim()), [
     'node <kit root>/scripts/state.mjs begin <package> structure',
-    'node <kit root>/scripts/describe.mjs --provider <openai|gemini> --model <id> --brief <package>/04-structure/BRIEF.md --out <package>/04-structure/proposals/<name>.json --profile <packages>/PROFILE.md',
+    'node <kit root>/scripts/describe.mjs --provider <openai|gemini> --model <id> --brief <package>/04-structure/<brief> --out <package>/04-structure/proposals/<name>.json --profile <packages>/PROFILE.md',
     'node <kit root>/scripts/merge.mjs <package>/04-structure/proposals --out <package>/04-structure/board',
     'node <kit root>/scripts/render.mjs <package>/04-structure/board/<letter>.json --kit <kit dir> --out <package>/04-structure/board/<letter>.html --letter <letter>',
     'node <kit root>/scripts/shots.mjs <package>/04-structure/board --out <package>/04-structure/board --widths <primary>,<phone>',
@@ -2677,7 +2686,7 @@ test('structure: every command is one its script takes, in the order of the stag
   assert.doesNotMatch(section(text, 'Steps'), /merge\.mjs open/);
   assert.equal(commands.filter(command => command.includes('merge.mjs open')).length, 1);
   inOrder(flat(section(text, 'Gate')), [/state\.mjs await <package> structure/, /\*\*Stop: you do not pick, and you go no further without his words\.\*\*/, /\*\*Write `<package>\/04-structure\/PICK\.md`,\*\*/,
-    /\*\*Only now may the map be opened,\*\* after a graft's re-read, and only this way/, /refuses until `PICK\.md` holds his pick/, /merge\.mjs open <package>\/04-structure\/board/, /"Not chosen": each other letter, with who made it, from the map/,
+    /\*\*Only now may the map be opened,\*\* after a graft's re-read, and only this way/, /refuses until `PICK\.md` holds his pick/, /merge\.mjs open <package>\/04-structure\/board/, /for "Not chosen", the map/,
     /state\.mjs stamp <package> structure/], 'the gate');
   assert.ok(nevers(text).includes('Never open, print, search or copy the map before `PICK.md` holds his pick'));
   // The rule refuses something real: the same words without what the form needs, or with what no skill passes, are not taken.
@@ -2717,7 +2726,7 @@ test('structure: two stops, the brief before anything is sent and the pick befor
   const before = steps.slice(0, steps.search(/^4\. \*\*/m));
   assert.deepEqual(commandsOf(before), ['node <kit root>/scripts/state.mjs begin <package> structure']);
   assert.doesNotMatch(before, /sub-agent|Start/);
-  assert.match(stepOf(steps, 'Begin'), /A stage already in work goes on from the first step whose files are missing: step 4, until `CHOSEN\.md` holds his yes\. A board is never merged twice/);
+  assert.match(stepOf(steps, 'Begin'), /A stage in work goes on from the first step whose files are missing: step 4, until `CHOSEN\.md` holds his yes\./);
   // The second stop: one page, one question, and nothing goes on without his words.
   const gate = flat(section(text, 'Gate'));
   inOrder(gate, [/^ \*\*He picks, from pictures\.\*\* Put `<package>\/04-structure\/decision\.html` in front of him\. Record the one question, so that a session resuming tomorrow asks the same/, /state\.mjs await <package> structure --question/,
@@ -2743,12 +2752,15 @@ test('structure: makers start in one message on what the cast sheet names, a pro
   assert.match(makers, /Each `maker\.structure-describer` has the lens its line names, a different one each, and writes one proposal, `<package>\/04-structure\/proposals\/<name>\.json`/);
   assert.match(makers, /With a fresh pass, its makers answer the fresh brief, and a `maker\.transcriber` writes each fresh concept into the format/);
   // The outside describer: a script, five flags, and three ways an answer can come.
-  assert.match(makers, /An outside describer is no sub-agent: you run it, once for each of its lines, with these five flags and nothing else, since the script finds its key itself/);
-  assert.match(makers, /A valid answer is a proposal like any other\. One that is not in the format leaves `<name>\.json\.raw\.txt` where the proposal would be, for a `maker\.transcriber`\. A refusal is reported to the founder as the script words it, and you go on with the seats you have/);
+  assert.match(makers, /`<name>` is its line of the cast sheet, made unique, as `describer-fewest-steps` or `outside-openai`/);
+  assert.match(makers, /An outside describer is no sub-agent: you run it, once for each of its lines, on the brief he approved for that line, `<brief>`, which is `BRIEF\.md` or, in a fresh pass, `BRIEF-fresh\.md`\. These five flags and nothing else, since the script finds its key itself/);
+  assert.match(makers, /What comes back is a proposal like any other, an answer that is not in the format, or a refusal, which is reported to the founder as the script words it: `references\/seats\.md` says what follows/);
   assert.match(KIT.usage('scripts/describe.mjs'), /kept as it came in\n<file\.json>\.raw\.txt/);
   const outside = leads(subsection(structureRef('seats.md'), '`maker.outside-describer`'));
-  assert.match(outside.Handed, /^the brief he approved, whole and unchanged: `<package>\/04-structure\/BRIEF\.md`, or `<package>\/04-structure\/BRIEF-fresh\.md` for a line that belongs to a fresh pass, which is then what `--brief` names\. The script sends that one file\. Add nothing to it/);
-  assert.match(outside.Writes, /The script has written `engine` and `model` into it: add `track`, and nothing else/);
+  assert.match(outside.Handed, /^the brief he approved, whole and unchanged: `<package>\/04-structure\/BRIEF\.md`, or `<package>\/04-structure\/BRIEF-fresh\.md` for a line that belongs to a fresh pass\. That file is the `<brief>` of the command\. The script sends that one file\. Add nothing to it/);
+  // One truth in both files: the script writes the engine of an outside answer, and the session its track.
+  assert.match(outside.Writes, /The script has written `engine` and `model` into it, so of the two keys of step 6 you add `track` alone/);
+  assert.match(KIT.usage('scripts/describe.mjs'), /"engine": "model:<provider>" and "model": "<id>"/);
   assert.match(outside['An answer that is not in the format'], /leaves `<name>\.json\.raw\.txt` in the proposals folder, and the script exits 1 and says why\. Start one `maker\.transcriber` on that file\. You never write it into the format yourself/);
   assert.match(outside['A refusal leaves nothing'], /^Tell the founder what the script printed, as it printed it\. Try once more only after a timeout\. Never look for the reason in a file of keys or in the environment\. Then go on with the seats you have: the decision page says this seat did not answer/);
   const never = flat(section(text, 'Never'));
@@ -2756,26 +2768,30 @@ test('structure: makers start in one message on what the cast sheet names, a pro
   assert.match(never, /or any flag but the five of step 5\. Never open, list or name a file of keys, and never print the environment/);
   // A proposal is tagged, checked by its maker and again by the merge, sent back once, then left out and said so: never repaired.
   const tag = stepOf(steps, 'Tag each proposal, and mend none');
-  assert.match(tag, /Add two keys to each file, and touch nothing else: `track`, `system` or, for a fresh concept, `fresh`; and `engine`, as its seat's line of the cast sheet has it/);
+  assert.match(tag, /Each file gets two keys, and nothing else is touched: `track`, `system` or, for a fresh concept, `fresh`; and `engine`, as its seat's line of the cast sheet has it, unless the outside script has written it already/);
   assert.match(tag, /Each maker checks its file with the command its card gives, and the merge holds every file to `validate` again: while one fails it writes nothing, and prints the file and the fault/);
   for (const file of ['pool/makers/structure-describer.md', 'pool/makers/transcriber.md']) assert.match(read(file), /\*\*Check it\*\* before you return it/, file);
   assert.match(KIT.usage('scripts/merge.mjs'), /Every\nproposal must be valid, or nothing is written/);
   assert.match(tag, /That proposal goes back to its maker once, a fresh sub-agent in the same seat\. One that fails again is moved to `<package>\/04-structure\/proposals\/left-out\/`, and the decision page says so\. You repair none: that would make you a maker/);
   assert.match(KIT.usage('scripts/merge.mjs'), /sub-folders\nare not read/);
   // A shared machine: one command after another, three browser-driving at most, and no process stopped by name.
-  assert.match(stepOf(steps, 'Merge, draw, photograph'), /Run the render once for each letter, then the shots once, at the two widths of the brief\..*Never more than three browser-driving commands or seats at once\./);
+  assert.match(stepOf(steps, 'Merge, draw, photograph'), /Render once for each letter, then the shots once, at the brief's two widths\..*Never more than three browser-driving commands or seats at once\./);
   assert.match(flat(structureRef('seats.md')), /The makers are started in one message, after his yes to the brief and never before\. Those that drive a browser, the screen generators, are started three at a time at most\. A proposal the merge refuses goes back once: to a fresh sub-agent in the same seat, with the same brief, its own file and the fault as the merge printed it/);
-  assert.match(never, /\*\*Never stop a process by name or by pattern,\*\* and never start a browser yourself/);
+  assert.match(never, /\*\*Never stop a process by name or by pattern,\*\* or start a browser other than through the kit's scripts/);
 });
 
 test('structure: the decision is one page: every letter, one line for each seat, one recommendation, one question, and a fresh gallery beneath and apart', () => {
   const text = stageSkill('structure');
   const page = stepOf(section(text, 'Steps'), 'Build the decision page');
   assert.match(page, /Write `<package>\/04-structure\/decision\.json` in the shape of `templates\/outputs\/decision\.json`: the options by letter, one line for each seat that read them, one recommendation, one question/);
-  assert.match(page, /Its identity is the design's name, kind and size, as `node <kit root>\/scripts\/state\.mjs status <package>` prints them/);
+  assert.match(page, /Its identity is the design's name, kind and size, as `status` prints them/);
+  // The one recommendation is seen to come from the readers: it rests on the reads, by letter, and names the seats it rests on.
+  assert.match(page, /The recommendation rests on the reads, by letter, and its one sentence of reason names the seats it rests on: never what you think of a letter, or know of its maker/);
+  assert.match(flat(reference('loop.md')), /You recommend, and never decide: one option, one sentence, resting on the reads/);
+  assert.match(flat(reference('blind.md')), /Your recommendation rests on the reads, by letter/);
   assert.match(page, /Every letter of the board is an option: the `name` in its file is the title, its `bet` the line, and its pictures are named from the page, the phone width first, as `board\/A-390-light\.png`/);
   assert.match(page, /A proposal left out, and a seat that did not answer or was held back, is one line under `findings`, by seat, never by letter/);
-  assert.match(page, /With a fresh pass, its `gallery` sits beneath the options, labelled as fresh and never mixed into them: each screen as it came, by its picture in `fresh\/`, never saying which letter holds its structure/);
+  assert.match(page, /With a fresh pass, its `gallery` sits beneath the options, labelled as fresh and never mixed into them: the screens as they came, from `fresh\/`, none saying which letter holds its structure/);
   // Each key it names is one the page takes, and the template is a Structure page: stage 5 of 9, a gallery, one question.
   const sample = JSON.parse(read('templates/outputs/decision.json'));
   for (const key of ['identity', 'options', 'gallery', 'seats', 'recommendation', 'question']) assert.ok(Object.hasOwn(sample, key), key);
@@ -2783,14 +2799,14 @@ test('structure: the decision is one page: every letter, one line for each seat,
   assert.deepEqual([sample.identity.stage, sample.identity.of], [STAGES.indexOf('structure') + 1, STAGES.length]);
   assert.deepEqual(Object.keys(sample.options[0]), ['letter', 'title', 'line', 'images']);
   assert.match(KIT.usage('scripts/shots.mjs'), /named <name>-<width>-<theme>\.png/);
-  assert.match(flat(section(text, 'Never')), /\*\*Never pick, and never go on without his words\.\*\* You recommend one letter, in one sentence/);
+  assert.match(flat(section(text, 'Never')), /\*\*Never pick, and never go on without his words\.\*\* Your one recommendation rests on the reads alone/);
   assert.match(flat(section(text, 'Never')), /\*\*Never shortlist, rank or drop\.\*\* Every valid proposal reaches the board, and every letter him/);
 });
 
 test('rounds.md: a graft is redrawn once and read again once, a rejected round moves whole and Structure starts clean, and a board made again takes its letters with it', () => {
   const text = stageSkill('structure');
   const rounds = structureRef('rounds.md');
-  assert.deepEqual(headings(rounds), ['A pick with a graft', 'A round he rejected', 'A board made again within a round']);
+  assert.deepEqual(headings(rounds), ['A pick with a graft', 'A round he rejected', 'A board made again within a round', 'A fresh pass he asks for at the decision page']);
   const top = flat(rounds.slice(0, rounds.indexOf('\n## ')));
   assert.match(top, /what is set aside is moved and never deleted, into `<package>\/04-structure\/earlier\/<n>\/`: `1` the first time, `2` the next/);
   // In the conductor's words: nothing set aside is ever an input.
@@ -2806,7 +2822,9 @@ test('rounds.md: a graft is redrawn once and read again once, a rejected round m
   assert.deepEqual(commandsOf(graft), ['node <kit root>/scripts/render.mjs <package>/04-structure/chosen/chosen.json --kit <kit dir> --out <package>/04-structure/chosen/chosen.html --letter <letter>',
     'node <kit root>/scripts/shots.mjs <package>/04-structure/chosen --out <package>/04-structure/chosen --widths <primary>,<phone>']);
   assert.match(flat(graft), /A judge is handed `<package>\/04-structure\/chosen\/` in place of the board folder, and its seat's earlier ledger to open only after it has read cold, as step 6 of the loop says\. An audience is handed the new pictures only/);
-  assert.match(flat(graft), /the map is still sealed while they read/);
+  // The re-read has a file of its own, never its seat's first read, and does not open the page that sums up the other seats.
+  assert.match(flat(graft), /Each writes a file of its own, beside its seat's first read and never over it: that file's name with `-reread` before `\.md`, as `<package>\/04-structure\/reads\/<seat>-reread\.md`/);
+  assert.match(flat(graft), /What they do not open is what the board's readers did not \(`references\/seats\.md`\), and with it `<package>\/04-structure\/decision\.html` and `<package>\/04-structure\/decision\.json`, which by now sum up what the other seats said\. The map is still sealed while they read/);
   assert.match(flat(graft), /Nothing is redrawn a second time/);
   assert.match(flat(graft), /The render refuses a file that is not a valid proposal, and prints the fault: the file goes back to that maker once\. You do not mend it/);
 
@@ -2816,22 +2834,36 @@ test('rounds.md: a graft is redrawn once and read again once, a rejected round m
   inOrder(rejected, [/1\. \*\*Write `<package>\/04-structure\/PICK\.md`:\*\* the line `Pick: none`/, /2\. \*\*Write the rejection into the package's `DECISIONS\.md`,\*\* as a new entry, in his words/,
     /What he marked in a fresh gallery is his words too, and survives the round: write each mark there with the rejection, as he said it/, /Look's fresh pass reads his marks from `DECISIONS\.md`, never from `earlier\/`/,
     /3\. \*\*Reopen the stage,\*\* with his yes\. `<stage>` is `intent` or `context`/, /state\.mjs reopen <package> <stage> --reason "<why>"/,
+    /The reopening takes Structure out of awaiting and closes the pick's question: it was asked of a board that no longer stands\. Structure is in work again, and nothing is left to put to him/,
     /4\. \*\*Move the round whole\.\*\* Everything in `<package>\/04-structure\/` other than `earlier\/` goes together into `<package>\/04-structure\/earlier\/<n>\/`: the briefs, the proposals folder, the board, the map, the pick, the pictures, the reads, the decision page and its data, `fresh\/`, `chosen\/` and `CHOSEN\.md`/,
-    /So no proposal of this round can reach the next board/, /5\. \*\*Say what the state shows meanwhile\.\*\* Structure stays awaiting, and its output has moved/, /state\.mjs validate <package>` prints a `structure: missing-artefact` line, and `status` still shows the pick's question/,
-    /do not put that question again/, /6\. \*\*When Structure comes round again,\*\*/, /it starts clean, from step 1 of the skill/, /state\.mjs begin <package> structure/,
+    /So no proposal of this round can reach the next board/, /5\. \*\*Go to the stage the state names, and leave Structure alone until it names Structure\.\*\*/, /state\.mjs next <package>` prints the reopened stage/,
+    /state\.mjs validate <package>` has nothing to say of Structure, which is in work and owes no output yet\. The script would let you begin it now\. Do not: a brief written before Intent or Context is approved again is written from what he rejected/,
+    /6\. \*\*When `next` prints `structure`,\*\*/, /Structure starts clean, from step 1 of the skill/, /state\.mjs begin <package> structure/,
     /Copy a fresh `CHOSEN\.md` and the brief templates from `templates\/package\/04-structure\/`/, /Write a new brief from the new intent: he reads it before anything is sent, as he read the first/], 'a rejected round');
   // The conductor lists what moves in the same words, and the skill sends the session here for both.
   assert.match(flat(reference('blind.md')), /everything in `04-structure\/` other than `earlier\/` is moved together, before the new round starts: the briefs, the proposals folder, the board, the map, the pick, the pictures, the reads, the decision page/);
-  assert.match(flat(section(text, 'Gate')), /\*\*`Pick: none` reopens Intent or Context:\*\* no further proposals are asked for against the same brief, and the round moves whole\. Both are in `references\/rounds\.md`/);
-  assert.match(stepOf(section(text, 'Steps'), 'Begin'), /One awaiting stage is begun again: one whose `<package>\/04-structure\/` holds nothing but `earlier\/`, a round he rejected \(`references\/rounds\.md`\)/);
+  assert.match(flat(section(text, 'Gate')), /\*\*`Pick: none` reopens Intent or Context:\*\* no further proposals are asked for against the same brief, and the round moves whole\. \*\*A fresh pass he asks for before he picks\*\* is made, and the board with it, before he is asked again\. All three are in `references\/rounds\.md`/);
+  assert.match(stepOf(section(text, 'Steps'), 'Begin'), /After a round he rejected \(`references\/rounds\.md`\), `<package>\/04-structure\/` holds nothing but `earlier\/`: Structure starts clean from step 2, and only once `next` prints `structure`/);
   assert.match(flat(section(text, 'Never')), /\*\*Never delete a board or a round, and never merge a sealed board again\.\*\* What is set aside is moved/);
 
   // A board made again within a round: his yes first, then the board and everything that speaks of its letters.
   const again = flat(section(rounds, 'A board made again within a round'));
-  inOrder(again, [/The next merge deals the letters anew, so whatever speaks of the old letters goes with them/, /1\. \*\*Tell the founder first,\*\* and move nothing without his yes/,
+  inOrder(again, [/The next merge deals the letters anew, so whatever speaks of the old letters goes with them/, /1\. \*\*Tell the founder first,\*\* and move nothing without his yes\. If the decision page was already in front of him, put the stage back in work with the `begin` of step 1 of the skill: that closes its question, which is asked again on the new board/,
     /2\. \*\*Move together\*\* into `<package>\/04-structure\/earlier\/<n>\/`: the board, the map, the pick if one was begun, the reads, and the decision page with its data\. The briefs, the proposals folder and `fresh\/` stay/,
     /3\. \*\*Go on from step 6 of the skill:\*\* tag, merge, draw, photograph, then readers who have read no earlier board/, /The merge refuses while a map or a pick lies beside the board folder: where its refusal says to delete, move/], 'a board made again');
   assert.match(KIT.usage('scripts/merge.mjs'), /delete it and its map on purpose/);
+
+  // A fresh pass he asks for at the decision page: recorded, its brief read by him at its own stop, then the board made again before he picks.
+  const asked = flat(section(rounds, 'A fresh pass he asks for at the decision page'));
+  assert.match(flat(reference('fresh-pass.md')), /The founder can ask for one at any decision page/);
+  inOrder(asked, [/he may still ask for one at the decision page, before he picks \(`skills\/design\/references\/fresh-pass\.md`\)\. You never add one yourself/,
+    /1\. \*\*Record his asking\.\*\* Write what he said, as he said it, under `## Reviewed by the founder` of `CHOSEN\.md`, with the makers it will run with: a `maker\.screen-generator`, and an outside describer only where `engines-on` of the project profile lists its provider\. No engine is turned on for it/,
+    /Then put the stage back in work, with the `begin` of step 1 of the skill: the pick's question is closed, and is asked again on the new board/,
+    /2\. \*\*Write the fresh brief, and stop,\*\* as steps 3 and 4 of the skill say, for `<package>\/04-structure\/BRIEF-fresh\.md`: he reads it whole, hears which seats would send it off this machine, and nothing is sent before his yes is written beside his asking/,
+    /3\. \*\*The fresh makers run, and their concepts are transcribed and tagged,\*\* as steps 5 and 6 say/, /one `maker\.transcriber` for each concept, its proposal tagged `fresh`/,
+    /4\. \*\*The board is made again within the round,\*\* as the section above says\. His asking is his yes to it: the board, the map, the pick if one was begun, the reads and the decision page with its data move together into `<package>\/04-structure\/earlier\/<n>\/`/,
+    /Then steps 7 to 9 of the skill: every proposal merged anew, readers who have read no earlier board, and the gallery beneath the options/, /5\. \*\*Only then is he asked to pick,\*\* at the gate, on the new board/], 'a fresh pass he asks for');
+  assert.match(flat(reference('blind.md')), /\*\*A board made again within a round\*\* \(a proposal arrived late\) moves with its map and its pick, and with what was written about its letters, the reads and the decision page/);
 });
 
 test('Structure runs as written: its own commands on the fixture proposals, the board and what lies beside it, the map shut until a pick is written, and a rejected round moved whole', () => {
@@ -2887,7 +2919,14 @@ test('Structure runs as written: its own commands on the fixture proposals, the 
   // Step 1 and step 2: begun, and the output copied from its template with the built-from the skill gives.
   assert.equal(run(commandOf('state.mjs begin')), 'structure is in work');
   const [, builtFrom] = /`built-from: (\[[^\]]*\])`/.exec(section(stageSkill('structure'), 'Writes'));
-  write('structure', builtFrom);
+  assert.equal(builtFrom, '[cast@<version>, intent@<version>, context@<version>]');
+  // `<version>` is the version each stage stands at, read from what `status` prints, as the skill says: never a remembered one.
+  const standingAt = () => {
+    const page = run(commandOf('state.mjs status'));
+    return builtFrom.replace(/([a-z]+)@<version>/g, (_, stage) => `${stage}@${new RegExp(`^\\| ${stage} \\| \\w+ \\| [\\w-]+ \\| (\\d+) \\|`, 'm').exec(page)[1]}`);
+  };
+  assert.equal(standingAt(), '[cast@1, intent@1, context@1]');
+  write('structure', standingAt());
   // Step 5 and step 6: three proposals come in, and each is tagged with its track and its engine, nothing else touched.
   const FIXTURES = ['calendar', 'free-first', 'unified-list'];
   const LETTERS = ['A', 'B', 'C'];
@@ -2947,7 +2986,7 @@ test('Structure runs as written: its own commands on the fixture proposals, the 
   // Step 9: the page is built beside the board from the letters' own names and bets, with the pictures named from the page,
   // the phone width first, and the fresh gallery beneath the options. Then the one question is recorded.
   const decide = () => {
-    mkdirSync(join(round, 'fresh'));
+    mkdirSync(join(round, 'fresh'), { recursive: true });
     writeFileSync(join(round, 'fresh', 'today-1.png'), '');
     const sample = JSON.parse(read('templates/outputs/decision.json'));
     assert.deepEqual(sample.gallery.items[0].images, ['fresh/today-1.png']);
@@ -2999,10 +3038,24 @@ test('Structure runs as written: its own commands on the fixture proposals, the 
   assert.match(empty.stderr, /^cannot read \S.*proposals: /);
 
   // The new round, to the pick: a fresh output on the versions that now stand, new proposals, a new board beside the old round.
-  write('structure', '[cast@2, intent@2, context@1]');
+  assert.equal(standingAt(), '[cast@2, intent@2, context@1]', 'after a rejected round the versions are not 1');
+  write('structure', standingAt());
   propose();
   board();
   decide();
+  // He asks for a fresh pass at the decision page. The stage goes back in work, which closes the pick's question; the merge
+  // refuses while the old map lies beside the board; the board, the map and the decision page move together into earlier/2;
+  // and the board is made again, and read and put in front of him again, before he is asked to pick.
+  assert.equal(run(commandOf('state.mjs begin')), 'structure is in work');
+  assert.match(run(commandOf('state.mjs status')), /^## Open question\n\nNone\.$/m);
+  const beside = exec(commandOf('merge.mjs <package>'));
+  assert.deepEqual([beside.status, beside.stdout], [1, '']);
+  mkdirSync(join(round, 'earlier', '2'));
+  const again = ['board', MAP, 'decision.html', 'decision.json'];
+  for (const name of again) renameSync(join(round, name), join(round, 'earlier', '2', name));
+  board();
+  decide();
+  assert.match(run(commandOf('state.mjs status')), /^## Open question\n\nstructure: Which structure goes on to Detail: A, B or C\?$/m);
   // He picks B, with a graft. Redrawn in chosen/, under the picked letter, it leaves the board as it was, and the map opens.
   pick('B', 'La B, con el estado de la A.');
   mkdirSync(join(round, 'chosen'));
@@ -3024,18 +3077,20 @@ test('Structure runs as written: its own commands on the fixture proposals, the 
   // The carry list the skill gives: the cast sheet's own lines, the tables of the stages still to run with "Blind rules" and
   // "Fresh pass", and the chosen file, its pictures and the pick. Built from the cast alone, the stamp refuses it.
   const carry = [...castCarry(2), ...['Detail', 'Look', 'Handoff', 'Acceptance', 'Blind rules', 'Fresh pass'].map(heading => `- cast@2#${slugOf(heading)}`),
-    '- source:design/today/04-structure/chosen/chosen.json', '- source:design/today/04-structure/chosen/chosen-390-light.png', '- source:design/today/04-structure/chosen/chosen-1280-light.png', `- source:design/today/04-structure/${PICK}`];
+    '- source:design/today/04-structure/chosen/chosen.json', '- source:design/today/04-structure/chosen/chosen-390-light.png', '- source:design/today/04-structure/chosen/chosen-1280-light.png', `- source:design/today/04-structure/${PICK}`,
+    '- source:design/today/04-structure/fresh/today-1.png'];
   assert.ok(carry.includes('- cast@2#blind-rules') && carry.includes('- cast@2#fresh-pass'));
   write('structure', '[cast@2]', carry);
   const refused = exec(commandOf('state.mjs stamp'));
   assert.deepEqual([refused.status, refused.stdout], [1, '']);
   assert.match(refused.stderr, /^structure cannot be stamped:\n- "- intent@2#the-one-job" names intent, which structure is not built from; add it to built-from\n- "- context@1#the-people" names context, which structure is not built from; add it to built-from\n$/);
-  write('structure', '[cast@2, intent@2, context@1]', carry);
+  write('structure', standingAt(), carry);
   assert.match(run(commandOf('state.mjs stamp')), STAMPED('structure', 1));
   // The package stands: nothing stale, no question left open, Detail next, and the rejected round whole where it was moved.
   assert.equal(run(commandOf('state.mjs validate')), 'ok');
   assert.equal(run(commandOf('state.mjs next')), 'detail');
   assert.doesNotMatch(run(commandOf('state.mjs status')), /Which structure goes on/);
   assert.deepEqual(readdirSync(join(round, 'earlier', '1')).filter(visible).sort(), held);
+  assert.deepEqual(readdirSync(join(round, 'earlier', '2')).filter(visible).sort(), [...again].sort());
   assert.deepEqual(parse(readFileSync(join(round, 'CHOSEN.md'), 'utf8')).data['built-from'], ['cast@2', 'intent@2', 'context@1']);
 });

@@ -35,7 +35,8 @@ Which way of solving it?
 ## Writes
 
 Everything below is in `<package>/04-structure/`, and the seats' briefs in `<package>/work/`. The output
-is built from the cast, the intent and the context, each at the version it was approved at.
+is built from the cast, the intent and the context. `<version>` is the version a stage stands at, as
+`node <kit root>/scripts/state.mjs status <package>` prints it: after a rejected round it is not 1.
 
 | File or folder | What it holds | From |
 |---|---|---|
@@ -46,7 +47,7 @@ is built from the cast, the intent and the context, each at the version it was a
 | `reads/` | one ledger or one task read for each reader | `templates/outputs/LEDGER.md`, `templates/outputs/TASK-READ.md` |
 | `decision.json`, `decision.html` | the decision page, and its data | `templates/outputs/decision.json` |
 | `chosen/`, `earlier/` | a pick redrawn after a graft; what was set aside | `references/rounds.md` |
-| `CHOSEN.md` | the stage's output, with `built-from: [cast@1, intent@1, context@1]` | `templates/package/04-structure/CHOSEN.md` |
+| `CHOSEN.md` | the stage's output, with `built-from: [cast@<version>, intent@<version>, context@<version>]` | `templates/package/04-structure/CHOSEN.md` |
 
 ## Steps
 
@@ -57,9 +58,9 @@ is built from the cast, the intent and the context, each at the version it was a
    node <kit root>/scripts/state.mjs begin <package> structure
    ```
 
-   One awaiting stage is begun again: one whose `<package>/04-structure/` holds nothing but `earlier/`,
-   a round he rejected (`references/rounds.md`). A stage already in work goes on from the first step
-   whose files are missing: step 4, until `CHOSEN.md` holds his yes. A board is never merged twice.
+   After a round he rejected (`references/rounds.md`), `<package>/04-structure/` holds nothing but
+   `earlier/`: Structure starts clean from step 2, and only once `next` prints `structure`. A stage in
+   work goes on from the first step whose files are missing: step 4, until `CHOSEN.md` holds his yes.
 2. **Read the cast sheet, and what its carry list names.** Copy the template to
    `<package>/04-structure/CHOSEN.md` and write `built-from`, unless the file is already there: then go
    on from what it holds.
@@ -81,25 +82,27 @@ is built from the cast, the intent and the context, each at the version it was a
    session's model, and you enforce none. Its brief is written from `templates/briefs/maker.md`, and
    hands it what `references/seats.md` gives its seat, and no more. Each `maker.structure-describer`
    has the lens its line names, a different one each, and writes one proposal,
-   `<package>/04-structure/proposals/<name>.json`. With a fresh pass, its makers answer the fresh
-   brief, and a `maker.transcriber` writes each fresh concept into the format. An outside describer is
-   no sub-agent: you run it, once for each of its lines, with these five flags and nothing else, since
-   the script finds its key itself:
+   `<package>/04-structure/proposals/<name>.json`: `<name>` is its line of the cast sheet, made
+   unique, as `describer-fewest-steps` or `outside-openai`. With a fresh pass, its makers answer the
+   fresh brief, and a `maker.transcriber` writes each fresh concept into the format. An outside
+   describer is no sub-agent: you run it, once for each of its lines, on the brief he approved for
+   that line, `<brief>`, which is `BRIEF.md` or, in a fresh pass, `BRIEF-fresh.md`. These five flags
+   and nothing else, since the script finds its key itself:
 
    ```
-   node <kit root>/scripts/describe.mjs --provider <openai|gemini> --model <id> --brief <package>/04-structure/BRIEF.md --out <package>/04-structure/proposals/<name>.json --profile <packages>/PROFILE.md
+   node <kit root>/scripts/describe.mjs --provider <openai|gemini> --model <id> --brief <package>/04-structure/<brief> --out <package>/04-structure/proposals/<name>.json --profile <packages>/PROFILE.md
    ```
 
-   A valid answer is a proposal like any other. One that is not in the format leaves
-   `<name>.json.raw.txt` where the proposal would be, for a `maker.transcriber`. A refusal is reported
-   to the founder as the script words it, and you go on with the seats you have.
-6. **Tag each proposal, and mend none.** Add two keys to each file, and touch nothing else: `track`,
-   `system` or, for a fresh concept, `fresh`; and `engine`, as its seat's line of the cast sheet has it.
-   Each maker checks its file with the command its card gives, and the merge holds every file to
-   `validate` again: while one fails it writes nothing, and prints the file and the fault. That
-   proposal goes back to its maker once, a fresh sub-agent in the same seat. One that fails again is
-   moved to `<package>/04-structure/proposals/left-out/`, and the decision page says so. You repair
-   none: that would make you a maker.
+   What comes back is a proposal like any other, an answer that is not in the format, or a refusal,
+   which is reported to the founder as the script words it: `references/seats.md` says what follows.
+6. **Tag each proposal, and mend none.** Each file gets two keys, and nothing else is touched: `track`,
+   `system` or, for a fresh concept, `fresh`; and `engine`, as its seat's line of the cast sheet has
+   it, unless the outside script has written it already. Each maker checks its file with the command
+   its card gives, and the merge holds every file to `validate` again: while one fails it writes
+   nothing, and prints the file and the fault. That proposal goes back to its maker once, a fresh
+   sub-agent in the same seat. One that fails again is moved to
+   `<package>/04-structure/proposals/left-out/`, and the decision page says so. You repair none: that
+   would make you a maker.
 7. **Merge, draw, photograph, one command after another.** Once every proposal is in:
 
    ```
@@ -109,27 +112,26 @@ is built from the cast, the intent and the context, each at the version it was a
    ```
 
    The merge prints the letters, and writes the map to `<package>/04-structure/MAP.sealed.json`: beside
-   the board, never in it. Run the render once for each letter, then the shots once, at the two widths
-   of the brief. The board holds the letters' files, the drawn pages with the kit's stylesheets, and
-   the pictures: nothing else is ever put in it. From here on an option is its letter, to you as to
-   everyone. Never more than three browser-driving commands or seats at once.
+   the board, never in it. Render once for each letter, then the shots once, at the brief's two widths.
+   The board holds the letters' files, the drawn pages with the kit's stylesheets, and the pictures:
+   nothing else is ever put in it. Never more than three browser-driving commands or seats at once.
 8. **Start the readers, by letter.** The judges and the audiences of the cast sheet's "Structure"
    table, each a fresh sub-agent: the judges in one message, then the audiences. Of
    `<package>/04-structure/`, a judge is handed the board folder and nothing else; an audience is handed
-   the pictures only, each by its path. What else each is handed, from the approved stages, is in
-   `references/seats.md`. Every reader's brief lists under "Do not open": `<package>/work/`, where the
-   makers' briefs are, `<package>/04-structure/MAP.sealed.json`, `<package>/04-structure/PICK.md` and
-   `<package>/04-structure/proposals/`; then `<package>/04-structure/fresh/`, the two briefs and every
-   other reader's file. Each writes one file in `<package>/04-structure/reads/`.
+   the pictures only, each by its path. Every reader's brief lists under "Do not open" the map, the
+   pick, the proposals folder and the makers' files, then `CHOSEN.md`, the cast sheet and, where a
+   continuity maker is cast, today's screen: the whole list, and what else each is handed from the
+   approved stages, is in `references/seats.md`. Each writes one file in `<package>/04-structure/reads/`.
 9. **Build the decision page.** Write `<package>/04-structure/decision.json` in the shape of
    `templates/outputs/decision.json`: the options by letter, one line for each seat that read them, one
-   recommendation, one question. Its identity is the design's name, kind and size, as
-   `node <kit root>/scripts/state.mjs status <package>` prints them. Every letter of the board is an
-   option: the `name` in its file is the title, its `bet` the line, and its pictures are named from the
-   page, the phone width first, as `board/A-390-light.png`. A proposal left out, and a seat that did
-   not answer or was held back, is one line under `findings`, by seat, never by letter. With a fresh
-   pass, its `gallery` sits beneath the options, labelled as fresh and never mixed into them: each
-   screen as it came, by its picture in `fresh/`, never saying which letter holds its structure.
+   recommendation, one question. Its identity is the design's name, kind and size, as `status` prints
+   them. Every letter of the board is an option: the `name` in its file is the title, its `bet` the
+   line, and its pictures are named from the page, the phone width first, as `board/A-390-light.png`.
+   The recommendation rests on the reads, by letter, and its one sentence of reason names the seats
+   it rests on: never what you think of a letter, or know of its maker. A proposal left out, and a
+   seat that did not answer or was held back, is one line under `findings`, by seat, never by letter.
+   With a fresh pass, its `gallery` sits beneath the options, labelled as fresh and never mixed into
+   them: the screens as they came, from `fresh/`, none saying which letter holds its structure.
 
    ```
    node <kit root>/scripts/page.mjs <package>/04-structure/decision.json --out <package>/04-structure/decision.html
@@ -153,32 +155,31 @@ no further without his words.**
   bit of each" is not a pick: say so, and ask him for one letter.
 - **A pick with a graft is redrawn once and read again once,** in `<package>/04-structure/chosen/`,
   never in the board. **`Pick: none` reopens Intent or Context:** no further proposals are asked for
-  against the same brief, and the round moves whole. Both are in `references/rounds.md`.
+  against the same brief, and the round moves whole. **A fresh pass he asks for before he picks**
+  is made, and the board with it, before he is asked again. All three are in `references/rounds.md`.
 - **Only now may the map be opened,** after a graft's re-read, and only this way. The command prints
   each letter with its source file, its track and its engine, and refuses until `PICK.md` holds his pick:
 
   ```
   node <kit root>/scripts/merge.mjs open <package>/04-structure/board
   ```
-- **Fill `CHOSEN.md`,** heading by heading. "The pick", "The structure" and "What it is deliberately
-  bad at": from `PICK.md` and the picked letter's file. "What the readers found": one line for each
-  seat, then each finding on the picked letter that is still open. "Marked in the fresh gallery": his
-  marks, each with its picture. "Not chosen": each other letter, with who made it, from the map.
-  Under `## Reviewed by the founder`, after his yes to the brief: what he asked to be changed on the
-  way to Detail, as he said it, or "Nothing".
+- **Fill `CHOSEN.md`,** heading by heading, as its template says: from `PICK.md`, the picked letter's
+  file, the reads and, for "Not chosen", the map. "Marked in the fresh gallery" holds his marks, in
+  his words, each with its picture. Under `## Reviewed by the founder`, after his yes to the brief:
+  what he asked to be changed on the way to Detail, as he said it, or "Nothing".
 - **Write the carry list,** `## Carry`: the lines of the cast sheet's own carry list, as they are; a
-  `- cast@1#<slug>` line for the table of each stage still to run, for "Blind rules" and for "Fresh
-  pass"; and a `- source:<path>` line, from the project's root, for the chosen proposal's file, for
-  each of its pictures and for `PICK.md`. A heading's slug is printed by
-  `node <kit root>/scripts/state.mjs slug "<heading text>"`.
+  `- cast@<version>#<slug>` line for the table of each stage still to run, for "Blind rules" and for
+  "Fresh pass"; and a `- source:<path>` line, from the project's root, for the chosen proposal's
+  file, for each of its pictures, for `PICK.md`, and for the picture of each mark he made in the
+  fresh gallery. A heading's slug is printed by `node <kit root>/scripts/state.mjs slug "<heading text>"`.
 - **Stamp it,** in the words he picked with:
 
   ```
   node <kit root>/scripts/state.mjs stamp <package> structure --words "<the founder's words>"
   ```
 
-  Then append the decision to the package's `DECISIONS.md`, and ask the state what is next, as step 9
-  of the loop says.
+  Then append the decision to the package's `DECISIONS.md`, his gallery marks with it as he said
+  them, and ask the state what is next, as step 9 of the loop says.
 
 ## Never
 
@@ -188,13 +189,12 @@ no further without his words.**
   open, list or name a file of keys, and never print the environment.
 - **Never mend, complete or improve a proposal.** Not a label, not a missing key.
 - **Never shortlist, rank or drop.** Every valid proposal reaches the board, and every letter him.
-- **Never pick, and never go on without his words.** You recommend one letter, in one sentence.
-- **Never say who made a letter,** in a brief, on the decision page or in the chat, and never work it
-  out by setting a letter beside a proposal. "Not chosen", after the pick, is the one place.
+- **Never pick, and never go on without his words.** Your one recommendation rests on the reads alone.
+- **Never say who made a letter,** nor work it out: "Not chosen", after the pick, is the one place.
 - **Never open, print, search or copy the map before `PICK.md` holds his pick,** with any tool.
 - **Never hand a reader the folder above the board,** or any file that says who made what.
 - **Never put a decision page, a fresh screen or a graft in the board.**
 - **Never delete a board or a round, and never merge a sealed board again.** What is set aside is moved.
 - **Never put a design in a brief.** Not "a list of rooms, a Book button on each row": a fact about her.
-- **Never stop a process by name or by pattern,** and never start a browser yourself.
+- **Never stop a process by name or by pattern,** or start a browser other than through the kit's scripts.
 - **Never ask two things at once.**

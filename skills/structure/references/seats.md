@@ -17,6 +17,11 @@ a browser, the screen generators, are started three at a time at most. A proposa
 goes back once: to a fresh sub-agent in the same seat, with the same brief, its own file and the
 fault as the merge printed it.
 
+`<name>`, in `<package>/04-structure/proposals/<name>.json`, is the seat's line on the cast sheet,
+made unique: `describer-fewest-steps`, `describer-guided`, `outside-openai`, `fresh-generator`. No
+two files share one. The name is what the map prints for a letter once it is opened, so it must tell
+two describers on the same engine apart; until then it is read by nobody but you.
+
 ### `maker.structure-describer`
 
 - **Its brief,** from `templates/briefs/maker.md`, gives its lens, as its line of the cast sheet names
@@ -36,14 +41,15 @@ names this seat, with the provider and the model id of that line. Its card,
 `pool/makers/outside-describer.md`, speaks to you: read it before the first run.
 
 - **Handed:** the brief he approved, whole and unchanged: `<package>/04-structure/BRIEF.md`, or
-  `<package>/04-structure/BRIEF-fresh.md` for a line that belongs to a fresh pass, which is then
-  what `--brief` names. The script sends that one file. Add nothing to it: no opening line, no
+  `<package>/04-structure/BRIEF-fresh.md` for a line that belongs to a fresh pass. That file is the
+  `<brief>` of the command. The script sends that one file. Add nothing to it: no opening line, no
   example.
 - **Do not open:** nothing else can reach it, since nothing else is sent: no other proposal, no idea
   of yours, nothing of today's screen, of the design system, of the project's kit or of the sibling
   surfaces. Keep all of it out of the brief.
 - **Writes:** `<package>/04-structure/proposals/<name>.json`, when the answer is one valid proposal.
-  The script has written `engine` and `model` into it: add `track`, and nothing else.
+  The script has written `engine` and `model` into it, so of the two keys of step 6 you add `track`
+  alone.
 - **An answer that is not in the format** leaves `<name>.json.raw.txt` in the proposals folder, and
   the script exits 1 and says why. Start one `maker.transcriber` on that file. You never write it
   into the format yourself.
@@ -60,7 +66,7 @@ answers the fresh brief, the one brief that asks for screens as they came, and n
 
 - **Handed:** `<package>/04-structure/BRIEF-fresh.md`, alone. Its brief names the folder it writes
   into.
-- **Do not open:** the design system and its tokens; the project's kit, `<packages>/kit`, and the
+- **Do not open:** the design system and its tokens; the project's kit, `<kit dir>`, and the
   kit's own; today's screens and the sibling surfaces, as pictures or as source;
   `<package>/04-structure/proposals/`; `<package>/work/`; everything else in the package. Its brief
   holds no idea of yours. If any of this reaches the seat, its work is no longer fresh: say so, and
@@ -98,7 +104,12 @@ brief lists these under "Do not open":
 - `<package>/04-structure/fresh/`, `<package>/04-structure/BRIEF.md` and
   `<package>/04-structure/BRIEF-fresh.md`: the makers' too, and a screen as it came would tell a
   reader where a letter came from;
-- every file of `<package>/04-structure/reads/` but its own, and `<package>/04-structure/earlier/`.
+- `<package>/03-cast.md`, the cast sheet: it holds each maker's lens and engine;
+- `<package>/04-structure/CHOSEN.md`: from step 4 it names the seats that send the brief out;
+- every file of `<package>/04-structure/reads/` but its own, and `<package>/04-structure/earlier/`;
+- when a continuity maker is cast, today's screen, as a picture or as source: whoever has seen it can
+  tell which letter kept its layout. It is listed for every reader but a judge whose card reads
+  `current-screens`.
 
 ### `judge.usability`
 

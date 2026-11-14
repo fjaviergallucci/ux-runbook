@@ -1,6 +1,6 @@
-# After the pick: a graft, a round he rejected, a board made again
+# After the pick: a graft, a round he rejected, a board made again, a fresh pass he asks for
 
-Three things can follow a board besides a plain pick. In each, what is set aside is moved and never
+Four things can follow a board besides a plain pick. In each, what is set aside is moved and never
 deleted, into `<package>/04-structure/earlier/<n>/`: `1` the first time, `2` the next. Nothing in
 `earlier/` is ever an input to a stage or a seat: not its brief, not a proposal, not a read. The
 conductor says the same, in `skills/design/references/blind.md`.
@@ -29,8 +29,12 @@ He picked one letter and named what to take from another, as "B, with A's status
 3. **It is read again once.** Each seat that read the board reads the redrawn pick, as a fresh
    sub-agent. A judge is handed `<package>/04-structure/chosen/` in place of the board folder, and
    its seat's earlier ledger to open only after it has read cold, as step 6 of the loop says. An
-   audience is handed the new pictures only. What they do not open is what the board's readers did
-   not (`references/seats.md`), and the map is still sealed while they read.
+   audience is handed the new pictures only. Each writes a file of its own, beside its seat's first
+   read and never over it: that file's name with `-reread` before `.md`, as
+   `<package>/04-structure/reads/<seat>-reread.md`. What they do not open is what the board's
+   readers did not (`references/seats.md`), and with it `<package>/04-structure/decision.html` and
+   `<package>/04-structure/decision.json`, which by now sum up what the other seats said. The map is
+   still sealed while they read.
 4. **Once means once.** What the re-read finds is written under "What the readers found" in
    `CHOSEN.md`, open, for Detail to close, and he hears it before the stamp. Nothing is redrawn a
    second time. If he then wants another letter, that is a new pick: `PICK.md` is written again, in
@@ -56,17 +60,20 @@ against the same brief. Intent or Context is reopened, and the round moves whole
    ```
    node <kit root>/scripts/state.mjs reopen <package> <stage> --reason "<why>"
    ```
+
+   The reopening takes Structure out of awaiting and closes the pick's question: it was asked of a
+   board that no longer stands. Structure is in work again, and nothing is left to put to him.
 4. **Move the round whole.** Everything in `<package>/04-structure/` other than `earlier/` goes
    together into `<package>/04-structure/earlier/<n>/`: the briefs, the proposals folder, the board,
    the map, the pick, the pictures, the reads, the decision page and its data, `fresh/`, `chosen/`
    and `CHOSEN.md`. So no proposal of this round can reach the next board.
-5. **Say what the state shows meanwhile.** Structure stays awaiting, and its output has moved. Until
-   Structure is begun again, `node <kit root>/scripts/state.mjs validate <package>` prints a
-   `structure: missing-artefact` line, and `status` still shows the pick's question. Both belong to
-   the rejected round: tell the founder so, and do not put that question again. Then go to the stage
-   that `node <kit root>/scripts/state.mjs next <package>` names.
-6. **When Structure comes round again,** the reopened stage approved anew and each stale stage after
-   it stamped again, it starts clean, from step 1 of the skill:
+5. **Go to the stage the state names, and leave Structure alone until it names Structure.**
+   `node <kit root>/scripts/state.mjs next <package>` prints the reopened stage, and
+   `node <kit root>/scripts/state.mjs validate <package>` has nothing to say of Structure, which is
+   in work and owes no output yet. The script would let you begin it now. Do not: a brief written
+   before Intent or Context is approved again is written from what he rejected.
+6. **When `next` prints `structure`,** the reopened stage approved anew and each stale stage after
+   it stamped again, Structure starts clean, from step 1 of the skill:
 
    ```
    node <kit root>/scripts/state.mjs begin <package> structure
@@ -81,10 +88,37 @@ against the same brief. Intent or Context is reopened, and the round moves whole
 A proposal arrived late, or one was withdrawn, after the merge and before the pick. The next merge
 deals the letters anew, so whatever speaks of the old letters goes with them.
 
-1. **Tell the founder first,** and move nothing without his yes.
+1. **Tell the founder first,** and move nothing without his yes. If the decision page was already in
+   front of him, put the stage back in work with the `begin` of step 1 of the skill: that closes its
+   question, which is asked again on the new board.
 2. **Move together** into `<package>/04-structure/earlier/<n>/`: the board, the map, the pick if one
    was begun, the reads, and the decision page with its data. The briefs, the proposals folder and
    `fresh/` stay: it is the same round, and the same brief.
 3. **Go on from step 6 of the skill:** tag, merge, draw, photograph, then readers who have read no
    earlier board. The merge refuses while a map or a pick lies beside the board folder: where its
    refusal says to delete, move.
+
+## A fresh pass he asks for at the decision page
+
+The cast sheet says whether a fresh pass runs at Structure, and he may still ask for one at the
+decision page, before he picks (`skills/design/references/fresh-pass.md`). You never add one
+yourself. When he asks, the board he is looking at is not the one he will pick from.
+
+1. **Record his asking.** Write what he said, as he said it, under `## Reviewed by the founder` of
+   `CHOSEN.md`, with the makers it will run with: a `maker.screen-generator`, and an outside
+   describer only where `engines-on` of the project profile lists its provider. No engine is turned
+   on for it. A seat the cast sheet has no line for runs on the model and the effort its card
+   suggests, unless he says otherwise. Then put the stage back in work, with the `begin` of step 1
+   of the skill: the pick's question is closed, and is asked again on the new board.
+2. **Write the fresh brief, and stop,** as steps 3 and 4 of the skill say, for
+   `<package>/04-structure/BRIEF-fresh.md`: he reads it whole, hears which seats would send it off
+   this machine, and nothing is sent before his yes is written beside his asking.
+3. **The fresh makers run, and their concepts are transcribed and tagged,** as steps 5 and 6 say:
+   each screen as it came in `<package>/04-structure/fresh/`, one `maker.transcriber` for each
+   concept, its proposal tagged `fresh`.
+4. **The board is made again within the round,** as the section above says. His asking is his yes
+   to it: the board, the map, the pick if one was begun, the reads and the decision page with its
+   data move together into `<package>/04-structure/earlier/<n>/`. Then steps 7 to 9 of the skill:
+   every proposal merged anew, readers who have read no earlier board, and the gallery beneath the
+   options.
+5. **Only then is he asked to pick,** at the gate, on the new board.
