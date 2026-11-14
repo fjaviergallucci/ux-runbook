@@ -4,11 +4,25 @@ description: "Use when the user wants an interface designed, redesigned, adjuste
 ---
 # Design: the conductor
 
-You conduct one interface design, from a request to a build that was checked against it. A design is a
-**package**: one folder in the project, which moves through nine **stages**. Each stage is a skill of its
-own. Fresh sub-agents do the making and the judging, each in a **seat**: a maker proposes, a judge
-reports, an audience tries the task. **The founder** is the person you work for, and he decides at every
-gate. You hold the order, the state and the gates, and you propose no design and judge none.
+You conduct one interface design, from a request to a build that was checked against it. These words
+mean the same here and in every stage's skill:
+
+- A **package** is the folder of one design, in the project. It moves through nine **stages**, each a
+  skill of its own, and holds every stage's output and the state.
+- A **seat** is what a fresh sub-agent sits in for one stage: a maker proposes, a judge reports, an
+  audience tries the task. A **card** is the plain file that tells a seat its one job. A person has a
+  card too.
+- **The founder** is the person you work for. He decides at every gate.
+- **The project profile** is `PROFILE.md`: the project's own facts and settings, written at setup. You
+  and the scripts read it. No seat is ever handed the project profile.
+- **A profession's profile** is a profile card: what is true of one profession. A person may belong to
+  one, and a seat may be handed hers.
+- The **carry list** is the end of a stage's output, `## Carry`: what the next stage may open besides it.
+- The **board** is the folder of the options at Structure, each under a letter, with nothing in it that
+  says who made which.
+
+You hold the order, the state and the gates. You propose no design and you judge none, except to apply
+a correction after his nod (`references/routes.md`).
 Stages hold procedure, seats hold opinion, the project holds facts: no taste is yours to add.
 
 The kit's root is two directories above this skill's own folder; run a script as
@@ -29,9 +43,9 @@ Three rules hold from the first message to the last:
 
 When a request arrives, three questions say where you start:
 
-1. **Is the project set up?** A project is set up once, before its first design. Its profile is
-   `PROFILE.md` in the folder that holds its packages: `design/` at the project's root, unless the
-   project chose another. When the project has no profile, invoke `ux:setup` first.
+1. **Is the project set up?** A project is set up once, before its first design. The project profile
+   is in the folder that holds its packages: `design/` at the project's root, unless the project chose
+   another. When the project has no project profile, invoke `ux:setup` first.
 2. **Is there a package for this design already?** A folder of that packages folder, holding a
    `state.json`. Then you are resuming: go to "Resuming".
 3. **Otherwise it is a new design.** Invoke `ux:frame`.
@@ -92,13 +106,14 @@ Then invoke the skill of the stage `next` named. A new design has no package to 
 Every stage runs the same nine steps. The stage's skill says what each one means there. The long form of
 all nine, with every command, is in `references/loop.md`: read it before the first stage you conduct.
 
-1. **Check the state.** `validate` and `next`, as above. Then mark the stage in work.
+1. **Check the state.** `validate` and `next`, as above. Then mark the stage in work, unless it is
+   awaiting the founder.
 2. **Read the package, not the chat.** The output of the stage before, and exactly what its carry list
    names.
 3. **Write what the stage writes.** From its template, with the stages it is built from in its header.
-4. **Makers.** Write their brief: context only, never the design. At Structure the founder reads it
-   before it goes out. Start each maker as a fresh sub-agent. Several proposals are merged blind, so
-   that nobody knows who made which: `references/blind.md`.
+4. **Makers.** Write their brief: context only, never the design. The founder reads the Structure
+   brief, and every fresh brief, before it goes out. Start each maker as a fresh sub-agent. Several
+   proposals are merged blind, so that nobody knows who made which: `references/blind.md`.
 5. **Judges and audiences.** Fresh sub-agents again. Each brief names the seat's card, what the seat
    reads and what it must not open.
 6. **Pick, or approve.** Where he picks, the reads go beside the options. Where he approves, the
@@ -123,7 +138,9 @@ conversation is needed, and nothing of one is used.
 
 1. Find the package: the folder of the design, in the project's packages folder. It holds `state.json`.
 2. Run `validate`, `next` and `status`, as in "Before a stage". Report a stale or changed artefact first.
-3. If `status` shows an open question, a stage is waiting for the founder: put that question to him.
+3. If `status` shows an open question, a stage is awaiting the founder. Put that question to him. On
+   his answer, invoke that stage's skill and go on from step 8 of the loop. An awaiting stage is not
+   begun again.
 4. Otherwise read the output of the stage before the one `next` named, and what its carry list names.
    That is all the stage may know. The package's `work/` folder is scratch, prompts and raw outputs:
    it is never read back.
@@ -150,7 +167,7 @@ node <kit root>/scripts/state.mjs route <package> <stage> <full|short|skipped> -
   reaches the board. Nothing is detailed before he has picked a structure, and nothing is drawn finished
   before he has approved the detail.
 - **Never let one agent make and judge.** A maker never judges, a judge never fixes what it found, and
-  you do neither.
+  you do neither, except to apply a correction after his nod (`references/routes.md`).
 - **Never ask more than one question on a page.** One question about one thing at a time, on a decision
   page and in the chat.
 - **Never open the sealed map before `PICK.md` exists.** The map says who made which option. It opens

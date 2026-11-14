@@ -105,21 +105,40 @@ const lineCount = text => (text === '' ? 0 : text.replace(/\n$/, '').split('\n')
 const named = text => NAMES.some(name => name.test(text));
 
 // A path of the kit, as a text names it: one of the kit's folders and what is in it, wherever it is written:
-// in a sentence, in a code span, or in a command after the kit's root. A path that follows another folder
-// (`<packages>/kit/kit.css`, `design/pool/persons`, an absolute path) starts elsewhere and is the project's.
+// in a sentence, in a code span, in a code fence, or in a command after the kit's root. A bare `kit/…`,
+// `pool/…`, `templates/…`, `scripts/…`, `reference/…` or `skills/…` is always the kit's, and must exist. A
+// path of the project is written from its packages folder or its package, as `<packages>/kit/kit.css` or
+// `<package>/04-structure/board`: what follows another folder is passed over, as an absolute path is.
 // A placeholder ends a path: `pool/makers/<name>.md` names `pool/makers`.
 const KIT_PATH = new RegExp(`(?:(?<=<kit root>/)|(?<=(?<![\\w.-])\\./)|(?<![\\w/.-]))(?:${KIT_FOLDERS.join('|')})/(?:[\\w.-]*\\w(?:/[\\w.-]*\\w)*)?`, 'g');
 const kitPaths = text => [...new Set([...text.matchAll(KIT_PATH)].map(([path]) => path.replace(/\/$/, '')))];
-// A file of the skill's own references, as one of its files names it.
-const ownReferences = text => [...new Set([...text.matchAll(/(?<![\w/.-])references\/[\w.-]*\w/g)].map(([path]) => path))];
+// A file of the skill's own references, or a folder of them, as one of its files names it.
+const ownReferences = text => [...new Set([...text.matchAll(/(?<![\w/.-])references\/[\w.-]*\w(?:\/[\w.-]*\w)*/g)].map(([path]) => path))];
 
 // The words of a command: a quoted string or a <placeholder> is part of one word, spaces and all.
 const words = line => line.match(/(?:"[^"]*"|<[^>]*>|[^\s"<]+)+/g) ?? [];
-// The commands a text gives: each line of a code fence, and each code span, that starts with `node`.
+// What ends a command on a line of shell: the command after it, or a pipe.
+const SEPARATORS = Object.freeze(['&&', '||', '|', ';']);
+// The commands a text gives that run a script of the kit, from each line of its code fences and then from
+// each of its code spans. A command starts at the word `node` and runs to the end, or to what ends a command
+// in a shell, and it is one of the kit's when a word of it names something under scripts/. So a prompt before
+// it (`$ node …`) and a command before it (`cd … && node …`) are passed over, and `node --version` is not the
+// kit's to check. A command stays on one line: one that a backslash carries on is read as far as the
+// backslash, and refused. In a table row a bar is written `\|`, and is read as the bar it stands for.
 function commandsOf(text) {
   const lines = linesOf(text);
-  const spans = [...lines.filter(({ fenced }) => !fenced).map(({ line }) => line).join('\n').matchAll(/`([^`]+)`/g)].map(([, span]) => span);
-  return [...lines.filter(({ fenced }) => fenced).map(({ line }) => line), ...spans].map(line => flat(line).trim()).filter(line => /^node /.test(line));
+  const prose = lines.filter(({ fenced }) => !fenced).map(({ line }) => (/^\s*\|/.test(line) ? line.replace(/\\\|/g, '|') : line)).join('\n');
+  const code = [...lines.filter(({ fenced }) => fenced).map(({ line }) => line), ...[...prose.matchAll(/`([^`]+)`/g)].map(([, span]) => span)];
+  return code.flatMap(line => {
+    const all = words(line);
+    const found = [];
+    for (let from = all.indexOf('node'); from !== -1; from = all.indexOf('node', from + 1)) {
+      const end = all.findIndex((word, i) => i > from && SEPARATORS.includes(word));
+      const command = all.slice(from, end === -1 ? undefined : end);
+      if (command.some(word => word.includes('scripts/'))) found.push(command.join(' '));
+    }
+    return found;
+  });
 }
 
 // ---- a script's usage, as its --help prints it
@@ -233,29 +252,36 @@ function sectionFaults(text, wanted) {
     .map(name => `SKILL.md: "## ${name}" comes before "## ${last}"; a section of the skill's own goes after it`);
 }
 
-// Every path of the kit a file names is in the kit, and every reference of its own is in its folder.
+// Every path of the kit a file names is in the kit, and every reference of its own is in its folder: a
+// file of the folder, or a folder that holds one.
 function pathFaults(file, text, files, kit) {
+  const held = path => Object.keys(files).some(name => name === path || name.startsWith(`${path}/`));
   return [
-    ...kitPaths(text).filter(path => !kit.exists(path)).map(path => `${file}: names ${path}, which is not in the kit`),
-    ...ownReferences(text).filter(path => !Object.hasOwn(files, path)).map(path => `${file}: names ${path}, which is not in the skill's folder`),
+    ...kitPaths(text).filter(path => !kit.exists(path))
+      .map(path => `${file}: names ${path}, which is not in the kit; a path of the project is written <packages>/… or <package>/…`),
+    ...ownReferences(text).filter(path => !held(path)).map(path => `${file}: names ${path}, which is not in the skill's folder`),
   ];
 }
 
-// Every command that runs a script of the kit runs it from the kit's root, in a form its usage gives.
+// Every command that runs a script of the kit is written `node <kit root>/scripts/<name>.mjs …`, on one line,
+// in a form the script's usage gives. The script may be in quotes.
 function commandFaults(file, text, kit) {
   const faults = [];
   for (const command of commandsOf(text)) {
     const [, first = '', ...given] = words(command);
-    const run = /^(.*?)scripts\/([\w-]+\.mjs)$/.exec(first);
-    // Not a script of the kit: another program's command, or the sentence's own <name>.mjs.
-    if (!run) continue;
-    const script = `scripts/${run[2]}`;
     const say = what => faults.push(`${file}: \`${command}\` ${what}`);
-    if (run[1] !== '<kit root>/') {
-      say(`is run as node <kit root>/${script}: a session is not in the kit's folder`);
+    const run = /^<kit root>\/scripts\/(<[^>]+>|[\w-]+)\.mjs$/.exec(first.replace(/^(["'])(.*)\1$/, '$2'));
+    if (!run) {
+      say('runs a script of the kit, which is written node <kit root>/scripts/<name>.mjs: a session is in the project, not in the kit');
       continue;
     }
-    // A script that is not there is the path rule's to say.
+    const script = `scripts/${run[1]}.mjs`;
+    if (given.at(-1) === '\\') {
+      say('runs on to the next line, and a command stays on one line');
+      continue;
+    }
+    // A script that is not there is the path rule's to say; a name left to fill in, as in the sentence about
+    // the kit's root, is no script and has no usage to be held to.
     if (!kit.exists(script)) continue;
     const help = kit.usage(script);
     const forms = help === null ? [] : formsOf(help);
@@ -327,7 +353,7 @@ const SAMPLE_USAGE = Object.freeze({
   ].join('\n'),
   'scripts/silent.mjs': 'Draws a plan of the floor, and has no usage.\nSome run it as node scripts/silent.mjs <plan.json>',
 });
-const SAMPLE_PATHS = Object.freeze(['scripts', 'scripts/rooms.mjs', 'scripts/desk.mjs', 'scripts/silent.mjs', 'pool', 'pool/INDEX.md', 'pool/makers', 'templates/briefs/maker.md', 'kit/grey', 'scripts/lib/walkthrough.mjs']);
+const SAMPLE_PATHS = Object.freeze(['scripts', 'scripts/rooms.mjs', 'scripts/desk.mjs', 'scripts/silent.mjs', 'scripts/lib/walkthrough.mjs', 'pool', 'pool/INDEX.md', 'pool/makers', 'templates/briefs/maker.md', 'kit', 'kit/grey']);
 const SAMPLE_KIT = Object.freeze({ exists: path => SAMPLE_PATHS.includes(path), usage: script => SAMPLE_USAGE[script] ?? null });
 
 const TEXTS = Object.freeze({
@@ -351,6 +377,8 @@ const setSection = (name, text) => GOOD.map(([heading, body]) => [heading, headi
 // The sample with one more line of its Steps: a sentence, or a command in a code span.
 const withStep = line => faults({ sections: setSection('Steps', `${TEXTS.Steps}\n3. ${line}`) });
 const withCommand = command => withStep(`Then \`${command}\`.`);
+// The same, with other files beside the SKILL.md.
+const withStepAnd = (line, others) => faults({ sections: setSection('Steps', `${TEXTS.Steps}\n3. ${line}`) }, others);
 
 // Exactly one fault, saying everything in `patterns`.
 function only(found, ...patterns) {
@@ -446,7 +474,9 @@ test('only a stage skill is held to the six sections', () => {
 test('a skill carries the sentence about the kit\'s root, word for word', () => {
   only(faults({ opening: 'The scripts are in the kit.' }), /^SKILL\.md: it says where the kit's root is, in these words: The kit's root is two directories above/);
   only(faults({ opening: KIT_ROOT.replace('two directories', 'two folders') }), /in these words/);
-  only(faults({ opening: KIT_ROOT.replace('<kit root>', '<kit>') }), /in these words/);
+  only(faults({ opening: KIT_ROOT.replace('run a script', 'run each script') }), /in these words/);
+  // Another name for the kit's root is also a command written another way: both faults.
+  assert.equal(faults({ opening: KIT_ROOT.replace('<kit root>', '<kit>') }).length, 2);
   // It is the skill's to say, not a reference's.
   only(faults({ opening: 'See the reference.' }, { 'references/free.md': `${REFERENCE}\n${KIT_ROOT}\n` }), /in these words/);
 });
@@ -469,33 +499,76 @@ test('the paths of the kit a text names are found wherever they are written', ()
 });
 
 test('every path of the kit a skill names exists, in SKILL.md and in each of its references', () => {
-  only(withStep('Read `templates/briefs/usher.md`.'), /^SKILL\.md: names templates\/briefs\/usher\.md, which is not in the kit$/);
-  only(faults({}, { 'references/free.md': 'See `pool/judges/room-truth.md`.' }), /^references\/free\.md: names pool\/judges\/room-truth\.md, which is not in the kit$/);
+  only(withStep('Read `templates/briefs/usher.md`.'), /^SKILL\.md: names templates\/briefs\/usher\.md, which is not in the kit; a path of the project is written <packages>\/… or <package>\/…$/);
+  only(faults({}, { 'references/free.md': 'See `pool/judges/room-truth.md`.' }), /^references\/free\.md: names pool\/judges\/room-truth\.md, which is not in the kit/);
   // A folder is a path too, and so is a script named in a command.
-  only(withStep('The lessons are in `reference/`.'), /^SKILL\.md: names reference, which is not in the kit$/);
+  only(withStep('The lessons are in `reference/`.'), /^SKILL\.md: names reference, which is not in the kit/);
   only(withStep('Read the cards in `pool/ushers/<name>.md`.'), /names pool\/ushers, which/);
-  only(withCommand('node <kit root>/scripts/floor.mjs <plan.json>'), /^SKILL\.md: names scripts\/floor\.mjs, which is not in the kit$/);
+  only(withCommand('node <kit root>/scripts/floor.mjs <plan.json>'), /^SKILL\.md: names scripts\/floor\.mjs, which is not in the kit/);
   // Named twice in one file, it is one fault; named in two files, one for each.
   only(withStep('Read `templates/briefs/usher.md`, and again templates/briefs/usher.md.'), /usher/);
   assert.equal(faults({ sections: setSection('Reads', '`kit/blue/kit.css`') }, { 'references/free.md': '`kit/blue/kit.css`' }).length, 2);
-  // What the project holds is not looked for in the kit.
-  assert.deepEqual(withStep('Her kit is `<packages>/kit/kit.css`, her people in `design/pool/persons/`.'), []);
 });
 
-test('a reference a skill points to is in its own folder', () => {
+test('a path of the project is written from its packages folder or its package, and is not looked for in the kit', () => {
+  const tree = lines => ({ 'references/free.md': `What setup writes:\n\n\`\`\`\n${lines.join('\n')}\n\`\`\`\n` });
+  assert.deepEqual(faults({}, tree(['<packages>/kit/kit.css', '<packages>/pool/profiles/front-desk.md', '<package>/04-structure/board/'])), []);
+  assert.deepEqual(withStep('Her kit is `<packages>/kit/kit.css`, her people in `design/pool/persons/`.'), []);
+  // Written bare, the same paths are the kit's, on a line of a code fence as anywhere, and the fault says how to write them.
+  const bare = faults({}, tree(['kit/kit.css', 'pool/profiles/front-desk.md']));
+  assert.deepEqual(bare.map(fault => fault.replace(/^references\/free\.md: names (\S+), which is not in the kit; a path of the project is written <packages>\/… or <package>\/…$/, '$1')), ['kit/kit.css', 'pool/profiles/front-desk.md']);
+  // A tree drawn by indenting is read line by line, and a line cannot say whose folder it is: a bare `kit/` is
+  // the kit's own, which is there. Only a path written whole is known for the project's.
+  assert.deepEqual(faults({}, tree(['<packages>/', '  kit/', '    kit.css'])), []);
+  only(faults({}, tree(['<packages>/', '  kit/kit.css'])), /^references\/free\.md: names kit\/kit\.css, which is not in the kit; a path of the project is written/);
+});
+
+test('a reference a skill points to is in its own folder, or in a folder of it', () => {
   only(withStep('See `references/booked.md`.'), /^SKILL\.md: names references\/booked\.md, which is not in the skill's folder$/);
   only(faults({}, { 'references/free.md': 'See also `references/booked.md`.' }), /^references\/free\.md: names references\/booked\.md/);
   assert.deepEqual(faults({}, { 'references/free.md': 'See also `references/booked.md`.', 'references/booked.md': 'Booked rooms.' }), []);
   only(skillFaults(ROOMS, { 'SKILL.md': skillText() }, SAMPLE_KIT), /names references\/free\.md, which is not in the skill's folder/);
+  // A reference may sit in a folder of its own: the file is named whole, and so may its folder be.
+  const nested = { 'references/floors/ground.md': 'The ground floor.' };
+  assert.deepEqual(ownReferences('See `references/floors/ground.md`, the others in `references/floors/`, and `references/free.md`.'), ['references/floors/ground.md', 'references/floors', 'references/free.md']);
+  assert.deepEqual(withStepAnd('See `references/floors/ground.md`; the other floors are in `references/floors/`.', nested), []);
+  only(withStepAnd('See `references/floors/first.md`.', nested), /^SKILL\.md: names references\/floors\/first\.md, which is not in the skill's folder$/);
+  only(withStep('See `references/floors/ground.md`.'), /names references\/floors\/ground\.md, which is not in the skill's folder$/);
+  // The start of a name is not a folder.
+  only(withStepAnd('See `references/floor`.', nested), /names references\/floor, which is not in the skill's folder$/);
+  only(withStepAnd('See `references/fre`.', nested), /names references\/fre, which/);
 });
 
-test('the commands of a text are its code spans and fence lines that start with node', () => {
+test('the commands of a text are those that run a script of the kit, in its code fences and its code spans', () => {
   const text = [
     'Run `node <kit root>/scripts/rooms.mjs free <day> --floor <n>`, then, with the plan, `node <kit root>/scripts/rooms.mjs',
-    '<plan.json>`. Not `scripts/rooms.mjs`, not `nodes`, not `then node scripts/rooms.mjs`, not node scripts/rooms.mjs said in a sentence.',
-    '', '```', '   node  <kit root>/scripts/desk.mjs closed <desk>', 'ls', '```',
+    '<plan.json>`. Not `scripts/rooms.mjs`, not `nodes scripts/rooms.mjs`, not `node --version`, not node scripts/rooms.mjs said in a sentence.',
+    '',
+    '| When | Command |', '|---|---|', '| Two at the desk | `node <kit root>/scripts/desk.mjs staff <desk> <one\\|two\\|none>` |',
+    '',
+    '```',
+    '   node  <kit root>/scripts/desk.mjs closed <desk>',
+    'ls scripts/',
+    '$ node "<kit root>/scripts/desk.mjs" closed <desk>',
+    'cd <project> && node ./scripts/rooms.mjs <plan.json> | tee plan.log',
+    'node --version && node scripts/desk.mjs closed <desk> ; node <kit root>/scripts/desk.mjs lock <desk> --now || exit 1',
+    'node <kit root>/scripts/rooms.mjs free <day> \\',
+    '  --floor <n>',
+    '```',
   ].join('\n');
-  assert.deepEqual(commandsOf(text), ['node <kit root>/scripts/desk.mjs closed <desk>', 'node <kit root>/scripts/rooms.mjs free <day> --floor <n>', 'node <kit root>/scripts/rooms.mjs <plan.json>']);
+  assert.deepEqual(commandsOf(text), [
+    'node <kit root>/scripts/desk.mjs closed <desk>',
+    'node "<kit root>/scripts/desk.mjs" closed <desk>',
+    'node ./scripts/rooms.mjs <plan.json>',
+    'node scripts/desk.mjs closed <desk>',
+    'node <kit root>/scripts/desk.mjs lock <desk> --now',
+    'node <kit root>/scripts/rooms.mjs free <day> \\',
+    'node <kit root>/scripts/rooms.mjs free <day> --floor <n>',
+    'node <kit root>/scripts/rooms.mjs <plan.json>',
+    'node <kit root>/scripts/desk.mjs staff <desk> <one|two|none>',
+  ]);
+  // Outside a table row, a backslash before a bar stays as written.
+  assert.deepEqual(commandsOf('Run `node <kit root>/scripts/desk.mjs staff <desk> <one\\|two\\|none>`.'), ['node <kit root>/scripts/desk.mjs staff <desk> <one\\|two\\|none>']);
   assert.deepEqual(words('node <kit root>/scripts/desk.mjs open <the desk>/front --by "the one who opens" --date=2026-11-14'), [
     'node', '<kit root>/scripts/desk.mjs', 'open', '<the desk>/front', '--by', '"the one who opens"', '--date=2026-11-14',
   ]);
@@ -531,9 +604,14 @@ test('a command that runs a script of the kit is written as its usage gives it',
     'node <kit root>/scripts/desk.mjs staff <desk> <one|two|none>',
     'node <kit root>/scripts/desk.mjs staff <desk> two',
     'node <kit root>/scripts/desk.mjs closed <desk>',
-    // Another program's command is not the kit's to check.
+    // The script may be in quotes, a prompt or another command may come before it, and another may follow.
+    'node "<kit root>/scripts/desk.mjs" closed <desk>',
+    "node '<kit root>/scripts/desk.mjs' closed <desk>",
+    '$ node <kit root>/scripts/desk.mjs closed <desk>',
+    'cd <project> && node <kit root>/scripts/desk.mjs closed <desk> && node <kit root>/scripts/desk.mjs lock <desk> --now',
+    // A name left to fill in has no usage to be held to, and another program's command is not the kit's to check.
+    'node <kit root>/scripts/<name>.mjs --help',
     'node --version',
-    'node --input-type=module -e "import { validate } from \'./scripts/lib/walkthrough.mjs\';" <the absolute path of your file>',
   ]) assert.deepEqual(withCommand(command), [], command);
 
   const refused = (command, ...patterns) => only(withCommand(command), /^SKILL\.md: `node /, ...patterns);
@@ -556,12 +634,35 @@ test('a command that runs a script of the kit is written as its usage gives it',
   refused('node <kit root>/scripts/desk.mjs staff <desk>', /<one\|two\|none> is missing \(staff <desk> <one\|two\|none> \[--seed <n>\]\)$/);
   refused('node <kit root>/scripts/desk.mjs closed', /<desk> is missing \(closed <desk>\)$/);
   refused('node <kit root>/scripts/desk.mjs closed <desk> --by "<who>"', /--by is not a flag of it \(closed <desk>\)$/);
+  // However it is led up to, a wrong command is read, and refused.
+  refused('node "<kit root>/scripts/desk.mjs" shut <desk>', /^SKILL\.md: `node "<kit root>\/scripts\/desk\.mjs" shut <desk>` is not as scripts\/desk\.mjs takes it/);
+  refused('$ node <kit root>/scripts/desk.mjs shut <desk>', /^SKILL\.md: `node <kit root>\/scripts\/desk\.mjs shut <desk>` is not as/);
+  refused('cd <project> && node <kit root>/scripts/desk.mjs shut <desk>', /`node <kit root>\/scripts\/desk\.mjs shut <desk>` is not as/);
+  refused('node <kit root>/scripts/desk.mjs closed <desk> && node <kit root>/scripts/desk.mjs lock <desk>', /`node <kit root>\/scripts\/desk\.mjs lock <desk>` is not as/, /--now is missing/);
+  // In a table a bar is written \|; anywhere else the backslash is part of the word.
+  assert.deepEqual(withStep('See:\n\n| When | Command |\n|---|---|\n| Two at the desk | `node <kit root>/scripts/desk.mjs staff <desk> <one\\|two\\|none>` |'), []);
+  refused('node <kit root>/scripts/desk.mjs staff <desk> <one\\|two\\|none>', /is where <one\|two\|none> goes/);
 });
 
-test('a command runs a script from the kit\'s root, and never passes what no skill passes', () => {
-  for (const command of ['node scripts/rooms.mjs free <day> --floor <n>', 'node ./scripts/rooms.mjs free <day> --floor <n>', 'node <kit>/scripts/rooms.mjs free <day> --floor <n>', 'node ../../scripts/rooms.mjs free <day> --floor <n>']) {
-    only(withCommand(command), /^SKILL\.md: `node /, /is run as node <kit root>\/scripts\/rooms\.mjs: a session is not in the kit's folder$/);
-  }
+test('a command that runs a script of the kit is written node <kit root>/scripts/<name>.mjs, on one line', () => {
+  const FORM = /runs a script of the kit, which is written node <kit root>\/scripts\/<name>\.mjs: a session is in the project, not in the kit$/;
+  for (const command of [
+    'node scripts/rooms.mjs free <day> --floor <n>', 'node ./scripts/rooms.mjs free <day> --floor <n>', 'node <kit>/scripts/rooms.mjs free <day> --floor <n>',
+    'node ../../scripts/rooms.mjs free <day> --floor <n>', 'node "scripts/rooms.mjs" free <day> --floor <n>',
+    // Run another way, the kit's code is still the kit's: the one-line check a card gives is run from the kit, not from here.
+    'node --input-type=module -e "import { validate } from \'./scripts/lib/walkthrough.mjs\';" <the absolute path of your file>',
+  ]) only(withCommand(command), /^SKILL\.md: `node /, FORM);
+  // A script is named with its .mjs: without it, the name is no file of the kit either.
+  const [path, form, ...more] = withCommand('node <kit root>/scripts/rooms free <day> --floor <n>');
+  assert.match(path, /names scripts\/rooms, which is not in the kit/);
+  assert.match(form, FORM);
+  assert.deepEqual(more, []);
+  // A command stays on one line: carried on by a backslash, it is refused, once, and says why.
+  const wrapped = { 'references/free.md': '```\nnode <kit root>/scripts/rooms.mjs free <day> \\\n  --floor <n>\n```\n' };
+  only(faults({}, wrapped), /^references\/free\.md: `node <kit root>\/scripts\/rooms\.mjs free <day> \\` runs on to the next line, and a command stays on one line$/);
+});
+
+test('a command never passes what no skill passes, and a script with no usage holds no command', () => {
   only(withCommand('node <kit root>/scripts/rooms.mjs book <room> <hour> --for <patient> --endpoint <url>'), /passes --endpoint, which no skill does$/);
   only(withCommand('node <kit root>/scripts/rooms.mjs book <room> <hour> --for <patient> --endpoint=http://127.0.0.1:1'), /passes --endpoint, which/);
   only(withCommand('node <kit root>/scripts/desk.mjs staff <desk> two --seed 7'), /passes --seed, which no skill does$/);
@@ -587,7 +688,7 @@ test('every fault of a skill is reported', () => {
   const expected = [
     /^SKILL\.md: header: name is "room"/, /^SKILL\.md: header: the description is not the one/, /^SKILL\.md: header: the description is written in double quotes/,
     /^SKILL\.md: "## Never" is missing$/, /^SKILL\.md: it says where the kit's root is/,
-    /^references\/free\.md: names pool\/NOWHERE\.md/, /^references\/free\.md: `node scripts\/desk\.mjs closed <desk>` is run as/, /^references\/free\.md: names a product/,
+    /^references\/free\.md: names pool\/NOWHERE\.md/, /^references\/free\.md: `node scripts\/desk\.mjs closed <desk>` runs a script of the kit, which is written/, /^references\/free\.md: names a product/,
   ];
   assert.equal(found.length, expected.length, found.join('\n'));
   for (const [i, pattern] of expected.entries()) assert.match(found[i], pattern);
@@ -628,19 +729,29 @@ test('the table holds the eleven skills: the conductor, setup, and one for each 
   assert.equal(new Set(SKILLS.map(skill => skill.description)).size, 11);
 });
 
-test('the scripts a skill may run print a usage the command rule reads', () => {
-  const verbs = script => formsOf(KIT.usage(script)).map(form => words(form)[0]);
-  assert.deepEqual(verbs('scripts/state.mjs'), ['init', 'begin', 'await', 'stamp', 'reopen', 'route', 'resize', 'validate', 'next', 'status', 'slug']);
-  assert.deepEqual(formsOf(KIT.usage('scripts/merge.mjs')), ['<proposals dir> --out <board dir> [--seed <n>]', 'open <board dir>']);
-  assert.deepEqual(verbs('scripts/accept.mjs'), ['prototype', 'report', 'inpage']);
-  for (const script of ['scripts/render.mjs', 'scripts/shots.mjs', 'scripts/page.mjs', 'scripts/describe.mjs']) assert.equal(formsOf(KIT.usage(script)).length, 1, script);
-  const required = script => Object.entries(specOf(formsOf(KIT.usage(script))[0]).flags).filter(([, flag]) => flag.required).map(([name]) => name);
-  assert.deepEqual(required('scripts/describe.mjs'), ['--provider', '--model', '--brief', '--out', '--profile']);
-  assert.deepEqual(required('scripts/render.mjs'), ['--kit', '--out']);
-  assert.deepEqual(required('scripts/shots.mjs'), ['--out', '--widths']);
-  assert.deepEqual(specOf(formsOf(KIT.usage('scripts/page.mjs'))[0]), { fixed: ['<decision.json>'], flags: { '--out': { value: '<decision.html>', required: true } } });
-  // What no skill passes is a flag some script takes: the rule refuses something real.
-  for (const [flag, script] of [['--endpoint', 'scripts/describe.mjs'], ['--seed', 'scripts/merge.mjs']]) assert.ok(Object.hasOwn(specOf(formsOf(KIT.usage(script))[0]).flags, flag), flag);
+test('the usage of each script the conductor runs is read: the form it gives is taken, and a wrong one is not', () => {
+  // Whether a script takes these words after its name, by any form of its usage. How many forms it has, and
+  // which flags it may also take, are the script's own business.
+  const takes = (script, given) => formsOf(KIT.usage(`scripts/${script}.mjs`)).some(form => mismatch(words(given), specOf(form)) === null);
+  const verbs = formsOf(KIT.usage('scripts/state.mjs')).map(form => words(form)[0]);
+  for (const verb of ['init', 'begin', 'await', 'stamp', 'reopen', 'route', 'resize', 'validate', 'next', 'status', 'slug']) assert.ok(verbs.includes(verb), `state.mjs ${verb}`);
+  for (const [script, right, wrong] of [
+    ['state', 'validate <package>', 'valdate <package>'],
+    ['state', 'stamp <package> <stage> --words "<the founder\'s words>"', 'stamp <package> <stage>'],
+    ['state', 'route <package> <stage> <full|short|skipped> --reason "<why>"', 'route <package> <stage> half --reason "<why>"'],
+    ['merge', '<proposals dir> --out <board dir>', '<proposals dir>'],
+    ['merge', 'open <board dir>', 'open'],
+    ['render', '<board dir>/A.json --kit <kit dir> --out <board dir>/A.html --letter A', '<board dir>/A.json --out <board dir>/A.html --letter A'],
+    ['shots', '<board dir> --out <board dir> --widths <w,w...>', '<board dir> --out <board dir>'],
+    ['page', '<decision.json> --out <decision.html>', '<decision.json> --output <decision.html>'],
+    ['describe', '--provider <openai|gemini> --model <id> --brief <file> --out <file.json> --profile <PROFILE.md>', '--provider <openai|gemini> --model <id> --brief <file> --out <file.json>'],
+  ]) {
+    assert.ok(takes(script, right), `${script}.mjs takes: ${right}`);
+    assert.ok(!takes(script, wrong), `${script}.mjs does not take: ${wrong}`);
+  }
+  // What no skill passes is something a script takes: the rule refuses something real.
+  assert.ok(takes('describe', '--provider <openai|gemini> --model <id> --brief <file> --out <file.json> --profile <PROFILE.md> --endpoint <url>'));
+  assert.ok(takes('merge', '<proposals dir> --out <board dir> --seed 7'));
   assert.equal(KIT.usage('scripts/nowhere.mjs'), null);
 });
 
@@ -697,7 +808,7 @@ test('the conductor has its five sections, and its five references, each pointed
   assert.equal(new URL('../../', at('skills/design/')).href, root.href);
 });
 
-test('the conductor gives the nine stages in order, each with the skill to invoke, and setup first when the project has no profile', () => {
+test('the conductor gives the nine stages in order, each with the skill to invoke, and setup first when the project has no project profile', () => {
   const { name: plugin } = JSON.parse(read('.claude-plugin/plugin.json'));
   const order = section(conductor(), 'The order');
   const rows = tableRows(order).filter(row => /^\d+$/.test(row[0]));
@@ -707,7 +818,7 @@ test('the conductor gives the nine stages in order, each with the skill to invok
   // Each stage's output is the file the state script stamps.
   assert.deepEqual(rows.map(row => unspan(row[4])), STAGES.map(stage => ARTEFACT[stage]));
   const before = flat(order.slice(0, order.indexOf('\n|')));
-  assert.ok(before.includes(`has no profile, invoke \`${plugin}:setup\` first`), 'setup first, when the project has no profile');
+  assert.ok(before.includes(`has no project profile, invoke \`${plugin}:setup\` first`), 'setup first, when the project has no project profile');
   assert.match(flat(order), /with the Skill tool/);
   assert.match(flat(order), /structure is chosen before look/i);
 });
@@ -724,6 +835,38 @@ test('before any stage the conductor validates the package and asks what is next
   }
   assert.match(flat(before), /`<stage>: <code>: <message>`/);
   assert.match(flat(before), /`node <kit root>\/scripts\/state\.mjs status <package>`/);
+});
+
+test('the conductor opens with the words it uses, and tells the project profile from a profession\'s profile', () => {
+  const opening = conductor().slice(0, conductor().indexOf('\n## '));
+  const defined = [...opening.matchAll(/\*\*([^*]+)\*\*/g)].map(([, word]) => word.toLowerCase());
+  for (const word of ['package', 'stages', 'seat', 'card', 'the founder', 'the project profile', 'a profession\'s profile', 'carry list', 'board']) assert.ok(defined.includes(word), `${word} is defined`);
+  assert.match(flat(opening), /\*\*The project profile\*\* is `PROFILE\.md`/);
+  assert.match(flat(opening), /\*\*A profession's profile\*\* is a profile card/);
+  assert.match(flat(opening), /No seat is ever handed the project profile/);
+  // Everywhere in the conductor the word is one of the two, the name of a judge, or the flag of a script.
+  for (const [file, text] of Object.entries(folderOf('design'))) {
+    const rest = flat(text).replace(/project profile|profession's profile|profile judges?|profile card|--profile|PROFILE\.md/g, '');
+    assert.doesNotMatch(rest, /profile/i, `${file}: "profile" alone says neither the project profile nor a profession's profile`);
+  }
+});
+
+test('the conductor proposes no design and judges none, except to apply a correction after the nod', () => {
+  const opening = flat(conductor().slice(0, conductor().indexOf('\n## ')));
+  assert.match(opening, /You propose no design and you judge none, except to apply a correction after his nod \(`references\/routes\.md`\)/);
+  assert.match(flat(section(conductor(), 'Never')), /\*\*Never let one agent make and judge\.\*\* A maker never judges, a judge never fixes what it found, and you do neither, except to apply a correction after his nod \(`references\/routes\.md`\)/);
+  // The reference it points to says the same.
+  assert.match(flat(section(reference('routes.md'), 'A correction')), /the one size where the session that conducts may also do the work/);
+});
+
+test('an awaiting stage is not begun again, and Frame makes the package before it begins', () => {
+  const step = flat(section(reference('loop.md'), '1. Check the state'));
+  assert.match(step, /Two stages are not begun this way/);
+  assert.match(step, /Frame makes it first, with `init` \(`references\/routes\.md`\), and only then begins/);
+  assert.match(step, /A stage that is awaiting the founder\.\*\* Its output is already in front of him, and `begin` would put it back in work and its header back to draft/);
+  assert.match(step, /On his answer, go on from step 8, without `begin`/);
+  assert.match(flat(section(conductor(), 'The loop')), /Then mark the stage in work, unless it is awaiting the founder/);
+  assert.match(flat(section(conductor(), 'Resuming')), /On his answer, invoke that stage's skill and go on from step 8 of the loop\. An awaiting stage is not begun again/);
 });
 
 test('the three rules are stated as rules for the session', () => {
@@ -755,7 +898,7 @@ test('the Never list holds what the session must never do', () => {
   ]);
   const text = flat(section(conductor(), 'Never'));
   for (const rule of [/Never paste a card or an artefact into a brief/, /Never average or settle a disagreement between seats/, /Never stop a process by name or by pattern/, /Never edit `state\.json` or `STATE\.md`/]) assert.match(text, rule);
-  // Of an outside model, it passes the profile and nothing about a key.
+  // Of an outside model, it passes the project profile and nothing about a key.
   assert.match(text, /finds (?:its|the) key itself/);
   assert.match(text, /`--profile`/);
   assert.match(text, /never pass `--endpoint`/i);
@@ -768,14 +911,16 @@ test('every command the conductor gives is one the kit takes, with each verb of 
   assert.deepEqual([...new Set(run('state').map(([verb]) => verb))].sort(), ['await', 'begin', 'init', 'next', 'reopen', 'resize', 'route', 'slug', 'stamp', 'status', 'validate']);
   for (const script of ['merge', 'render', 'shots', 'page', 'describe']) assert.ok(run(script).length >= 1, `scripts/${script}.mjs is given`);
   assert.ok(run('merge').some(([verb]) => verb === 'open'), 'the command that opens the map');
-  // An outside model is run with the profile, and nothing on the line says where a key is.
+  // An outside model is run with the project profile, and nothing on the line says where a key is.
   for (const given of run('describe')) assert.ok(given.includes('--profile'), given.join(' '));
   for (const text of Object.values(folderOf('design'))) assert.doesNotMatch(text, /API_KEY|--keys?\b/, 'no key, and no way to one, in a command');
 });
 
 test('loop.md: one fix round and one re-read, the identity line, and the decision as one page with one question', () => {
   const loop = flat(reference('loop.md'));
-  assert.match(loop, /One fix round and one re-read/);
+  assert.match(loop, /\*\*One fix round and one re-read,\*\* and no more/);
+  assert.match(loop, /What is still open goes to the founder with the gate, as open findings, with a recommendation/);
+  assert.doesNotMatch(loop, /by default|second round/);
   assert.match(loop, /\*fixed\*, \*partly\* or \*still present\*/);
   assert.match(loop, /A fresh judge in the same seat reads the artefact again/);
   assert.match(loop, /open findings,? with a recommendation/);
@@ -799,6 +944,12 @@ test('loop.md: a seat is a fresh sub-agent started from a brief that names files
   assert.match(loop, /by its absolute path/);
   assert.match(loop, /never paste a card or an artefact into a brief/i);
   assert.match(loop, /context(?: only)?, never the design/);
+  // Which briefs he reads before they go out is said one way, here, in SKILL.md and in fresh-pass.md.
+  assert.match(loop, /The founder reads the Structure brief before it goes out, always, and every fresh brief, at Structure or at Look:\*\* either may leave the machine/);
+  assert.match(loop, /At the other stages a seat's brief is built from approved artefacts, and he reads it when he asks/);
+  assert.match(flat(section(conductor(), 'The loop')), /The founder reads the Structure brief, and every fresh brief, before it goes out/);
+  assert.match(flat(reference('fresh-pass.md')), /The founder reads every fresh brief before it goes out, at Structure and at Look: it may leave the machine/);
+  for (const text of Object.values(folderOf('design'))) assert.doesNotMatch(flat(text), /like any brief|At Structure, always/);
   // Model and effort are suggestions: the cast sheet is the founder's, a dash is the session's model.
   assert.match(loop, /the model and the effort its line of the approved cast sheet names/);
   assert.match(loop, /`templates\/package\/03-cast\.md`|`03-cast\.md`/);
@@ -812,9 +963,11 @@ test('loop.md: the two standing rules of a shared machine', () => {
   assert.match(loop, /stops only a browser it started itself, through its own handle/);
   assert.match(loop, /never stops a process by name or by pattern/);
   assert.match(loop, /never (?:have|has) more than three browser-driving seats or scripts running at once/);
+  // Where "in one message" and the limit meet, the limit wins.
+  assert.match(loop, /That limit wins over "in one message": seats that drive a browser are started three at a time, the others in one message/);
 });
 
-test('loop.md: several ledgers are laid side by side, and an audience is handed a profile\'s traits, never the profile', () => {
+test('loop.md: several ledgers are laid side by side, and an audience is handed the traits of her profession\'s profile, never the whole of it', () => {
   const loop = flat(reference('loop.md'));
   assert.match(loop, /blind to the others' ledgers/);
   assert.match(loop, /side by side/);
@@ -823,7 +976,9 @@ test('loop.md: several ledgers are laid side by side, and an audience is handed 
   assert.match(loop, /`So the interface must:`/);
   assert.match(loop, /beside the brief/);
   assert.match(loop, /"Do not open"/);
-  assert.match(loop, /Makers and judges are handed the profile whole/);
+  assert.match(loop, /An audience is handed the traits of her profession's profile, never the whole of it/);
+  assert.match(loop, /List her profession's profile itself under "Do not open", with the intent/);
+  assert.match(loop, /Makers and judges are handed her profession's profile whole/);
   // The label is the profile template's own, and the audience's brief asks for that copy.
   assert.ok(read('templates/people/PROFILE-CARD.md').includes('So the interface must:'));
   assert.ok(flat(read('templates/briefs/audience.md')).includes('`So the interface must:` taken out'));
@@ -890,10 +1045,27 @@ test('blind.md: the order, from the brief to the map', () => {
   // The readers of step 7 are handed the board, and told what beside it they do not open.
   const readers = flat(order.slice(order.indexOf('7. **The readers.**'), order.indexOf('8. **The decision page.**')));
   assert.match(readers, /handed the board folder only, never its parent/);
-  assert.match(readers, /list the map, the proposals folder and the makers' files under "Do not open"/);
+  assert.match(readers, /list four things under "Do not open": the package's `work\/` folder, where the makers' briefs are, the map, the pick and the proposals folder/);
+  // The kit every letter is drawn in is the project's kit folder, in the rule and in the step.
+  assert.match(flat(order), /`<kit dir>` is always the project's kit folder, the one the project profile names/);
   // The rules of the table, as rules.
   const rules = flat(section(reference('blind.md'), 'The rules'));
   for (const rule of [/one shared kit/, /grey kit/, /the founder reads it first/, /(?:do not|never) see each other/, /continuity maker/, /by letter/, /Nothing is (?:shortlisted|detailed)/, /sealed/, /handed the board folder only, never its parent/]) assert.match(rules, rule);
+  assert.match(rules, /the project's kit folder, the one the project profile names\. Setup writes it in every project, and where the project has no design system it holds the grey kit \(`kit\/grey\/`\) unchanged/);
+});
+
+test('blind.md: what the board holds, what never goes in it, and where a board that is made again goes', () => {
+  const sealed = flat(section(reference('blind.md'), 'What stays sealed, and what stays out of the board'));
+  assert.match(sealed, /\*\*The board holds four things:\*\* the letters' files, the drawn pages, the kit's stylesheets that the render copies beside them, and the pictures/);
+  assert.match(sealed, /\*\*Three things never go in the board:\*\* the decision page and its `decision\.json`; anything of a fresh pass, its gallery above all; anything from `work\/`/);
+  assert.match(sealed, /never saved there as a one-letter `\.json`/);
+  // A board that is made again is set aside whole, with its map and its pick, and is never an input again.
+  assert.match(sealed, /a board is never deleted/);
+  assert.match(sealed, /the merge refuses while a map or a pick lies beside the board folder/);
+  assert.match(sealed, /With his yes, move the board folder, the map and the pick together into `04-structure\/earlier\/<n>\/`: `1` for the first board set aside/);
+  assert.match(sealed, /Then merge again, into a clean `04-structure\/`/);
+  assert.match(sealed, /Nothing in `earlier\/` is ever an input/);
+  assert.doesNotMatch(flat(reference('blind.md')), /deleted on purpose|and nothing else\.\*\*/);
 });
 
 test('fresh-pass.md: offered, what a fresh maker is and is not given, shown twice at Structure, and three outcomes only', () => {
@@ -901,8 +1073,17 @@ test('fresh-pass.md: offered, what a fresh maker is and is not given, shown twic
   const text = flat(fresh);
   assert.match(text, /Offered, not automatic/);
   assert.match(text, /does not run at Detail|never runs at Detail/);
-  for (const given of [/the person and her moment/, /the job/, /the tasks/, /the language/, /the device/, /what the product can show and do/]) assert.match(text, given);
-  for (const held of [/the design system/, /the shared kit/, /today's screens and navigation/, /sibling surfaces/]) assert.match(text, held);
+  // What is given, by the form of the brief: what both forms hold, and what each adds.
+  const given = Object.fromEntries([...fresh.matchAll(/^- \*\*((?:Given|Not given)[^*]*):\*\* ([^]*?)(?=\n- \*\*|\n\n)/gm)].map(([, label, list]) => [label, flat(list)]));
+  assert.deepEqual(Object.keys(given), ['Given, in both forms', 'Given at Structure, besides', 'Given at Look, besides', 'Not given, in either form']);
+  for (const part of [/the person and her moment/, /the job/, /the tasks/, /the language/, /the device/, /what the product can show and do/]) assert.match(given['Given, in both forms'], part);
+  assert.match(given['Given at Structure, besides'], /the hardest state/);
+  assert.match(given['Given at Look, besides'], /the one screen to draw, its state, and its approved items in order, with their words exactly as approved/);
+  for (const held of [/the design system/, /the shared kit/, /today's screens and navigation/, /sibling surfaces/]) assert.match(given['Not given, in either form'], held);
+  // The two forms are the template's own: each addition is a section of it.
+  const template = read('templates/package/04-structure/BRIEF-fresh.md');
+  for (const heading of ['The hardest state', 'The one screen']) assert.ok(headings(template).includes(heading), `BRIEF-fresh.md: ## ${heading}`);
+  for (const label of ['**The screen:**', '**Its state:**', '**Its items, in order, with their words:**']) assert.ok(template.includes(label), label);
   assert.match(text, /no knowledge of form, not of what the product does/);
   assert.match(text, /one or two screens that carry the idea, never the whole flow/);
   assert.match(text, /The pick is made on the board/);

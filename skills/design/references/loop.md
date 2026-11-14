@@ -21,6 +21,14 @@ stage" says. When `next` names this stage, mark it in work:
 node <kit root>/scripts/state.mjs begin <package> <stage>
 ```
 
+Two stages are not begun this way:
+
+- **Frame, on a new design.** There is no package yet. Frame makes it first, with `init`
+  (`references/routes.md`), and only then begins.
+- **A stage that is awaiting the founder.** Its output is already in front of him, and `begin` would
+  put it back in work and its header back to draft. Put its open question to him again. On his answer,
+  go on from step 8, without `begin`.
+
 The script refuses a stage the route skips, and one that is already approved. It keeps `STATE.md`, in the
 package, as the page `node <kit root>/scripts/state.mjs status <package>` prints: every stage with its
 mode on the route (full, short, skipped) and its status (not-started, in-work, awaiting, approved,
@@ -64,8 +72,10 @@ never the design**: who she is and her moment, the job, the tasks, what the prod
 holds no component, no layout and no idea of yours. What a brief may not contain is listed in
 `references/blind.md`.
 
-- **At Structure, always, the founder reads the brief before it goes out.** Nothing is sent before his
-  yes, to a sub-agent or off the machine.
+- **The founder reads the Structure brief before it goes out, always, and every fresh brief, at
+  Structure or at Look:** either may leave the machine. Nothing is sent before his yes, to a sub-agent
+  or off the machine. At the other stages a seat's brief is built from approved artefacts, and he reads
+  it when he asks.
 - Start the makers of a stage in one message, each as a fresh sub-agent ("Starting a seat", below). No
   maker sees another's work.
 - Where several makers answer one brief, their proposals are merged blind before anyone reads them:
@@ -79,13 +89,14 @@ What it reads is named by its letter or by what it is, never by who made it.
 
 - **A judge never makes, and a maker never judges.** A judge reports. It does not fix, redraw or approve.
 - **Each judge is blind to the others' ledgers,** to the makers' notes and to the author map. Where two
-  profile judges sit, each is blind to the other's ledger too. Start the judges of a stage in one
-  message, so that no ledger exists while another judge reads.
-- **An audience is handed a profile's traits, never the profile.** Its brief gives the person (her
-  card), where she starts and what she wants, and pictures. Where she has a profile, write a copy of it
-  beside the brief with every `So the interface must:` field removed, each from its label to the next
-  blank line, and hand her that copy. List the profile itself under "Do not open", with the intent.
-  Makers and judges are handed the profile whole.
+  profile judges sit, each with a profession's profile of its own, each is blind to the other's ledger
+  too. Start the judges of a stage in one message, so that no ledger exists while another judge reads.
+- **An audience is handed the traits of her profession's profile, never the whole of it.** Its brief
+  gives the person (her card), where she starts and what she wants, and pictures. Where she has a
+  profession's profile, write a copy of it beside the brief with every `So the interface must:` field
+  removed, each from its label to the next blank line, and hand her that copy. List her profession's
+  profile itself under "Do not open", with the intent. Makers and judges are handed her profession's
+  profile whole.
 
 ### Starting a seat
 
@@ -104,7 +115,8 @@ What it reads is named by its letter or by what it is, never by who made it.
 - **A shared machine.** Other sessions work on this machine. A seat that may start a browser stops only
   a browser it started itself, through its own handle, and never stops a process by name or by pattern.
   The brief templates carry this line: leave it in. And you never have more than three browser-driving
-  seats or scripts running at once.
+  seats or scripts running at once. That limit wins over "in one message": seats that drive a browser
+  are started three at a time, the others in one message.
 
 ### Several ledgers, one stage
 
@@ -123,14 +135,14 @@ A gate is one of two kinds, and the stage's skill says which.
   shortlisted and no option is mended first: he picks from what the makers made.
 - **He approves.** The findings a judge marked `blocks` are fixed first, then read again.
 
-**One fix round and one re-read,** by default:
+**One fix round and one re-read,** and no more:
 
 1. Send the blocking findings to a maker: a fresh sub-agent in the seat whose work they are on, handed
    the findings and the artefact.
 2. A fresh judge in the same seat reads the artefact again. Its brief says it is a re-read, and names
    that seat's earlier ledger, to be opened only after it has read the artefact cold. It marks each
    earlier finding *fixed*, *partly* or *still present*.
-3. There is no second round. What remains goes to the founder as open findings, with a recommendation.
+3. What is still open goes to the founder with the gate, as open findings, with a recommendation.
 
 ## 7. The decision page
 
@@ -165,8 +177,8 @@ Write what he said into the stage's output, under `## Reviewed by the founder`, 
 stamp. Until it is there, it does not count.
 
 His notes are calibration, not orders. Where a note meets a rule or a fact of the product (a standing
-rule of the profile, something the product cannot do, an output he approved earlier), say so at once,
-with the source, and offer the true version. Then he decides.
+rule of the project profile, something the product cannot do, an output he approved earlier), say so at
+once, with the source, and offer the true version. Then he decides.
 
 ## 9. Stamp
 

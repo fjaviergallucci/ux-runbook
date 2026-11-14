@@ -16,12 +16,16 @@ twice, once inside the system and once with no knowledge of it, and the two comp
 
 Its brief is the fresh brief, written from `templates/package/04-structure/BRIEF-fresh.md`. The template
 holds two forms, one for Structure and one for Look: keep the one of the stage, as its first lines say.
-The founder reads the brief before it goes out, like any brief.
+The founder reads every fresh brief before it goes out, at Structure and at Look: it may leave the
+machine.
 
-- **Given:** the person and her moment, the job, the tasks, the language, the device, and what the
-  product can show and do, so that nothing is invented.
-- **Not given:** the design system, the shared kit, today's screens and navigation, the conventions of
-  the sibling surfaces.
+- **Given, in both forms:** the person and her moment, the job, the tasks, the language, the device, and
+  what the product can show and do, so that nothing is invented.
+- **Given at Structure, besides:** the hardest state, to play the concept through.
+- **Given at Look, besides:** the one screen to draw, its state, and its approved items in order, with
+  their words exactly as approved.
+- **Not given, in either form:** the design system, the shared kit, today's screens and navigation, the
+  conventions of the sibling surfaces.
 
 "No knowledge" means no knowledge of form, not of what the product does. If anything held back reaches a
 fresh maker, in its brief or in a file it was handed, that maker's work is no longer fresh: say so, and
@@ -45,9 +49,9 @@ start the seat again, clean.
 
 ## At Look it is shown beside the system version
 
-On the same screen, with the same content. The profile judge and one audience rank the two. The truth
-judge flags anything the product cannot do. The system fidelity judge lists what the system lacks to
-make each thing he may want.
+On the same screen, with the same content. The profile judge, who reads with her profession's profile,
+and one audience rank the two. The truth judge flags anything the product cannot do. The system fidelity
+judge lists what the system lacks to make each thing he may want.
 
 ## Three outcomes, and only three
 

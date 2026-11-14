@@ -6,9 +6,9 @@ proved wrong is answered by a later one.
 
 ## The project's lessons
 
-`LESSONS.md`, in the folder that holds the project's packages, beside its profile. Setup writes it from
-`templates/project/LESSONS.md`. After every design, append one entry in the shape that template gives.
-Its heading is the day, the design's name, and its kind and size:
+`LESSONS.md`, in the folder that holds the project's packages, beside the project profile. Setup writes
+it from `templates/project/LESSONS.md`. After every design, append one entry in the shape that template
+gives. Its heading is the day, the design's name, and its kind and size:
 
 `## 2026-11-14 · today · working-surface, surface`
 

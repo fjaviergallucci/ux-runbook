@@ -10,8 +10,8 @@ node <kit root>/scripts/state.mjs init <package> --design <name> --kind <kind> -
 ## Kind
 
 What the interface is for. It sets what the design is judged on first, how the audience reads it, and
-the preset cast. The kit has five kinds. A project may add its own in its profile, under a name in
-lower-case words joined by hyphens.
+the preset cast. The kit has five kinds. A project may add its own in the project profile, under a name
+in lower-case words joined by hyphens.
 
 | Kind | What it is | Judged first on | Note |
 |---|---|---|---|
