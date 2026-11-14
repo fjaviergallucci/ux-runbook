@@ -43,7 +43,11 @@ shows under your file must be what the source says, no better and no worse.
    `absent` and `hardest`. Where the source states one, copy it. Where it does not, describe in one
    plain sentence what the screens show: what comes first, what that pushes down, what a reader would
    look for and not find, what is there for the hardest state shown. Describe; never argue for it.
-   `firstIdea` says only that this is a transcription, and of what.
+   Write them as any proposal's are written, so that nothing on the board marks this one out.
+   `firstIdea` says only that this is a transcription, and of what. Then record it in `source`: one
+   line saying what you transcribed, and which of these lines you read off the screens because no
+   maker stated them. `source` stays in your file. The merge strips it and nothing draws it, so the
+   board stays blind and the record stays true.
 8. **Check it** before you return it. From the kit's root (the folder that holds `pool/`):
 
    ```
@@ -66,10 +70,9 @@ checked with `validate` (`scripts/lib/walkthrough.mjs`).
   screen is plainly for; `options` on a choice (two or more), a list or a nav. A container: `container`
   (region, group or expansion), a `label`, `items`, and `open` on an expansion.
 
-Ids are lower-case words joined by hyphens. Do not add `author`, `engine`, `track`, `model` or `source`:
-the conductor tags the file. Your reply is three lines: the path; how many things you marked as
-unreadable or as fitting no role; and which of the proposal's own lines are your description, not the
-source's words.
+Ids are lower-case words joined by hyphens. Write `source`, as step 7 says. Do not add `author`,
+`engine`, `track` or `model`: the conductor tags the file. Your reply is three lines: the path; how many
+things you marked as unreadable or as fitting no role; and what your `source` line says.
 
 ## Never
 

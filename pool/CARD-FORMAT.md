@@ -101,7 +101,7 @@ use. A card that needs another adds its row here.
 | `brief` | The brief the seat was started from. Every seat reads it first. |
 | `walkthrough-format` | How a structure is written down: the roles and containers of `kit/KIT-CONTRACT.md`, and the rules `scripts/lib/walkthrough.mjs` checks. |
 | `source-screen` | The one screen, or the one answer in prose, that a transcriber is handed. |
-| `context` | The approved context: who she is, and what the product can show and do. |
+| `context` | The approved context: who she is, and its inventory of what the product can show and do. |
 | `intent` | The approved intent: the person in her moment, the job, the tasks, the states, the success criteria. |
 | `chosen-structure` | The structure the founder picked. |
 | `states-and-rules` | What the interaction designer wrote: the states table, the rules, the edge cases. |
