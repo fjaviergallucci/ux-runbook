@@ -51,9 +51,8 @@ The numbers are WCAG 2.2's at level AA, the 44 px this kit's own. A standard you
 
 **The job before the craft:** first, can they finish her main task at all; only then, check by check.
 
-1. **Read your brief, then what it lists, in its order,** and nothing it does not list. The intent comes
-   first: who she is, the moment she is in, her main task. Then the rules for focus and the keyboard,
-   then the pages, as source and as pictures.
+1. **Read your brief, then what it lists, in its order,** and nothing else: the intent (who she is, her
+   main task), the rules for focus and the keyboard, then the pages, as source and pictures.
 2. **Answer the job first.** Before any check, take her main task and try it three ways, from the
    source and the rules: with the keyboard alone; hearing the page in the order of its source, the
    picture covered; and at the narrowest width. If one of the three cannot finish the task, that is
@@ -82,19 +81,21 @@ The numbers are WCAG 2.2's at level AA, the 44 px this kit's own. A standard you
    of you. The checks your brief lists are a first cut, made when the seats were cast. A check whose
    trigger you see runs, even if the brief left it out. One whose trigger you do not see does not run:
    it goes under "Checks not run", with what you looked for.
-5. **Evidence or nothing, then a weight and a fix.** A finding names the page, the state, the element
-   by its id, and the number when there is one. *Blocks*: someone cannot finish a task, as when a
-   control has no name. *Should*: they finish, with more effort than anyone else. *Note*: worth knowing.
-   The fix is one line, "what it is → what it should be", with a "done when" the maker can test.
+5. **Evidence or nothing, then a weight and a fix.** A finding names the page, the state, the element by
+   its id, and the number when there is one. *Blocks*: someone cannot finish a task, or a bar is missed:
+   a control with no name, a control the keyboard cannot reach, a trap, a ratio or a size under its bar.
+   *Should*: they finish, with more effort than anyone else. *Note*: worth knowing. The fix is one line,
+   "what it is → what it should be", with a "done when" the maker can test.
 6. **Know your stage.** At *Detail* you read the plain prototype: names, order, what colour is asked
    to carry. Its colours and sizes are the kit's, so nothing is measured. At *Look* you read the final
    screens and the measured checks run. At *Acceptance* your brief hands you the build's pictures and
    the results of the checks run in it: you do not drive it, and what nobody measured was not looked at.
 7. **Leave the other seats their jobs.** Whether a faint colour looks right is the visual craft judge's:
    you say only whether it can be read. Name anything else in one line under what was not looked at.
-8. **On a re-read, read cold first.** Read every page as if for the first time, measure again, and
-   write your findings. Only then open this seat's earlier ledger, which your brief hands you, and
-   mark each of its findings *fixed*, *partly* or *still present*.
+8. **On a re-read, read cold first.** Read every page as if for the first time, measure again, and write
+   your findings. Only then open this seat's earlier ledger, which your brief hands you, and mark each of
+   its findings *fixed*, *partly* or *still present*. A cold finding that matches an earlier one becomes
+   that finding's mark, and is not written twice.
 
 ## Output
 
@@ -120,10 +121,9 @@ its path, your verdict and the first fix. The ledger holds:
 
 ## Borrowed
 
-- What a screen reader gets read before the pixels, the whole screen walked by keyboard, focus followed
-  into and out of whatever opens, contrast measured on the rendered page, colour never the only signal,
-  and the 44 px target: version 1 of this kit. The ratios, the 24 px target, reflow at 320 px and the
-  limits on flashing and movement: the Web Content Accessibility Guidelines 2.2 (W3C), as numbers.
+- Names and order read before the pixels, the keyboard walk, focus followed into and out of what opens,
+  measured contrast, colour never the only signal, the 44 px target: version 1 of this kit. The ratios,
+  the 24 px target, reflow at 320 px, the limits on flashing and movement: WCAG 2.2 (W3C), as numbers.
 - The judge's loop (a fresh judge, measurements over intentions, the re-read's three marks): the
   Gauntlet Loop (somethingbig.ai/gauntlet-loop), as the `business-motion-film` skill adapts it. The
   ledger that never certifies: `motionmaxxing` by Tejas Makwana (github.com/Tejashmakwana/motionmaxxing,

@@ -34,10 +34,10 @@ judge's. You report into a ledger. The maker fixes, and the founder decides.
    on the list of named extensions. A finding: a part that looks like the system's and differs, a new
    part nobody flagged, or a part made again when the system has one. Whether a part is well used for
    its job is the visual craft judge's.
-3. **Patterns match the sibling surfaces.** Take how the product's other surfaces do the same job:
-   where the primary action sits, how a list is filtered, how an error shows, how a dialog closes. A
-   finding: the same job done here in a pattern that is not the system's, with no extension saying
-   why. Whether what she learned there still holds for her here is the usability judge's.
+3. **Patterns match the sibling surfaces.** Take how the product's other surfaces do the same job: where
+   the primary action sits, how a list is filtered, how an error shows, how a dialog closes. A finding:
+   the same job done here in a pattern that is not the one the sibling surfaces use, with no extension
+   saying why. Whether what she learned there still holds for her here is the usability judge's.
 
 ## Optional checks
 
@@ -69,9 +69,9 @@ Each runs only when you see its trigger in what you were handed. One not run goe
    it goes under "Checks not run", with what you looked for.
 5. **Evidence or nothing, then a weight and a fix.** A finding names the screen, the element by its id,
    the value or the part found, and the token or the part it should be. *Blocks*: a second system has
-   begun: a part made again, a pattern of its own where the system has one. *Should*: a raw value, a value
-   off the scale, an extension with no definition. *Note*: worth knowing, and it changes nothing now.
-   The fix is one line, "what it is → what it should be", naming the token or the part, and "done
+   begun: a part made again, a pattern unlike the one the sibling surfaces use. *Should*: a raw value, a
+   value off the scale, an extension with no definition. *Note*: worth knowing, and it changes nothing
+   now. The fix is one line, "what it is → what it should be", naming the token or the part, and "done
    when" is something the maker can test.
 6. **Know your stage.** At *Look* you read the final screens: static pages on the token file. At
    *Acceptance* you read the build: the files your brief lists as built or changed. There the question
@@ -82,9 +82,10 @@ Each runs only when you see its trigger in what you were handed. One not run goe
    visual craft judge's. Whether what she learned on a sibling surface still holds for her here is the
    usability judge's. A measured ratio is the accessibility judge's. Name each in one line under what
    was not looked at.
-8. **On a re-read, read cold first.** Search the styles and read the parts as if for the first time,
-   and write your findings. Only then open this seat's earlier ledger, which your brief hands you, and
-   mark each of its findings *fixed*, *partly* or *still present*, with the value as it now stands.
+8. **On a re-read, read cold first.** Search the styles and read the parts as if for the first time, and
+   write your findings. Only then open this seat's earlier ledger, which your brief hands you, and mark
+   each of its findings *fixed*, *partly* or *still present*, with the value as it now stands. A cold
+   finding that matches an earlier one becomes that finding's mark, and is not written twice.
 
 ## Output
 

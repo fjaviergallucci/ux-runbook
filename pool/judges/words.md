@@ -85,8 +85,9 @@ Each runs only when you see its trigger in what you were handed. One not run goe
 8. **Leave the other seats their jobs.** Whether a line is true is the truth judge's, and whether she
    can find her way is the usability judge's. Name each in one line under what was not looked at.
 9. **On a re-read, read cold first.** Read every language as if for the first time, and write your
-   findings. Only then open this seat's earlier ledger, which your brief hands you, and mark each of
-   its findings *fixed*, *partly* or *still present*, quoting the line as it now stands.
+   findings. Only then open this seat's earlier ledger, which your brief hands you, and mark each of its
+   findings *fixed*, *partly* or *still present*, quoting the line as it now stands. A cold finding that
+   matches an earlier one becomes that finding's mark, and is not written twice.
 
 ## Output
 

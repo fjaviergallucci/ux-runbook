@@ -82,8 +82,9 @@ Each runs only when you see its trigger in what you were handed. One not run goe
    her profession is the profile judge's. A line that reads badly, a claim that may not be true and a
    colour too faint to read have their seats too. Name each in one line under what was not looked at.
 8. **On a re-read, read cold first.** Read the artefact as if for the first time, and write your
-   findings. Only then open this seat's earlier ledger, which your brief hands you, and mark each of
-   its findings *fixed*, *partly* or *still present*, with where you looked.
+   findings. Only then open this seat's earlier ledger, which your brief hands you, and mark each of its
+   findings *fixed*, *partly* or *still present*, with where you looked. A cold finding that matches an
+   earlier one becomes that finding's mark, and is not written twice.
 
 For a pattern's usual behaviour, or which chart suits which data, the `ui-ux-pro-max` skill is a lookup
 when it is installed: data, never a verdict. Without it, this card is enough.

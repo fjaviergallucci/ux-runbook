@@ -78,7 +78,8 @@ None: this seat always reads the whole folder.
    is the design's to give. "Done when" is the same for every item: the folder answers it, or states a
    default.
 8. **On a re-read, read the folder cold first.** Write your lists before you open this seat's earlier
-   ledger. Then mark each of its items *fixed*, *partly* or *still present*, and add what is new.
+   ledger. Then mark each of its items *fixed*, *partly* or *still present*. An item on your new lists
+   that matches an earlier one becomes that item's mark, and is not written twice. The rest is new.
 
 ## Output
 

@@ -89,9 +89,10 @@ or in the specialty's section. One you do not run goes into the ledger, with the
 7. **You speak for one profile.** Where two sit, each has its own judge and its own ledger, and neither
    reads the other's. Judge for yours at full strength. A disagreement between the two ledgers is put
    to the founder as it stands: nobody averages it, and you never write a middle position.
-8. **On a re-read, read cold first.** Run the six as if for the first time, and write your findings.
-   Only then open this seat's earlier ledger, which your brief hands you, and mark each of its
-   findings *fixed*, *partly* or *still present*.
+8. **On a re-read, read cold first.** Run the six as if for the first time, and write your findings. Only
+   then open this seat's earlier ledger, which your brief hands you, and mark each of its findings
+   *fixed*, *partly* or *still present*. A cold finding that matches an earlier one becomes that
+   finding's mark, and is not written twice.
 
 ## Output
 
@@ -123,8 +124,7 @@ its path, your verdict and the first fix. The ledger holds:
 - A trait labelled as fact or as guess, what nobody has said left blank and never invented, and never
   speaking past the people the card covers: adapted from the `customer-research` skill of
   `marketingskills` by Corey Haines (github.com/coreyhaines31/marketingskills, MIT License, copyright
-  2025 Corey Haines), by way of the audience role of the picture-making process this pipeline came
-  from. Paraphrased, not copied. The ranking by the size of each gap, and two reads that disagree
-  stated and never averaged, are that role's own. The re-read's three marks: the Gauntlet Loop
-  (somethingbig.ai/gauntlet-loop), as the `business-motion-film` skill adapts it, by the same way.
-  Ideas only, in this kit's words.
+  2025 Corey Haines), by way of the audience role of the picture-making process this pipeline came from.
+  Paraphrased, not copied. The ranking by the size of each gap and the disagreement never averaged are
+  that role's own. The re-read's three marks: the Gauntlet Loop (somethingbig.ai/gauntlet-loop), as the
+  `business-motion-film` skill adapts it, by the same way. Ideas only, in this kit's words.

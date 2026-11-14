@@ -84,12 +84,12 @@ Each runs only when you see its trigger in what you were handed. One not run goe
    - *Acceptance*: the build. Whatever it shows that the approved design did not, or drops that the
      design promised, is a finding. So is a deviation the builder wrote down that changes what she is
      led to expect.
-7. **Leave the other seats their jobs.** Whether a true line reads well is the words judge's, and
-   whether a true screen can be used is the usability judge's. Name each in one line under what was
-   not looked at.
-8. **On a re-read, read cold first.** Trace the whole artefact as if for the first time, and write
-   your findings. Only then open this seat's earlier ledger, which your brief hands you, and mark each
-   of its findings *fixed*, *partly* or *still present*, with where you looked.
+7. **Leave the other seats their jobs.** Whether a true line reads well is the words judge's, whether a
+   true screen can be used the usability judge's. Name each in one line under what was not looked at.
+8. **On a re-read, read cold first.** Trace the whole artefact as if for the first time, and write your
+   findings. Only then open this seat's earlier ledger, which your brief hands you, and mark each of its
+   findings *fixed*, *partly* or *still present*, with where you looked. A cold finding that matches an
+   earlier one becomes that finding's mark, and is not written twice.
 
 ## Output
 
