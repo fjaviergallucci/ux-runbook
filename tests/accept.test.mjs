@@ -1,0 +1,1123 @@
+import { after, before, describe, test } from 'node:test';
+import assert from 'node:assert/strict';
+import { spawn, spawnSync } from 'node:child_process';
+import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { createServer } from 'node:http';
+import { dirname, join } from 'node:path';
+import { setTimeout as sleep } from 'node:timers/promises';
+import { fileURLToPath } from 'node:url';
+import { chromium } from 'playwright-core';
+import { AcceptError, INPAGE, acceptPrototype, reportOf, validateAcceptance, validateResults } from '../scripts/accept.mjs';
+import { contextOptions } from '../scripts/lib/browser.mjs';
+import { findChrome } from '../scripts/lib/chrome.mjs';
+
+const here = dirname(fileURLToPath(import.meta.url));
+const cli = join(here, '..', 'scripts', 'accept.mjs');
+const prototype = join(here, 'fixtures', 'prototype');
+const acceptanceFile = join(here, 'fixtures', 'acceptance.json');
+mkdirSync(join(here, '.tmp'), { recursive: true });
+const root = mkdtempSync(join(here, '.tmp', 'accept-'));
+after(() => rmSync(root, { recursive: true, force: true }));
+const UNIX = process.platform !== 'win32';
+
+// ---- what the tests are made of
+
+const fixture = () => JSON.parse(readFileSync(acceptanceFile, 'utf8'));
+let made = 0;
+const fresh = (name = `run ${++made}`) => {
+  const dir = join(root, name);
+  mkdirSync(dir, { recursive: true });
+  return dir;
+};
+// A prototype folder: the fixture's pages and kit, and pages of the test's own, each as a whole page.
+const prototypeIn = (dir, pages = {}) => {
+  cpSync(prototype, dir, { recursive: true });
+  for (const [name, body] of Object.entries(pages)) writeFileSync(join(dir, name), whole(body));
+  return dir;
+};
+const whole = (body, head = '') => `<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<title>A page</title>\n<link rel="stylesheet" href="kit.css">\n${head}</head>\n<body>\n${body}\n</body>\n</html>\n`;
+// A check on the fixture's default page at 390, with the fields given.
+const check = fields => ({ criterion: 'A criterion she cares about.', state: 'default', page: 'today-default-en.html', width: 390, ...fields });
+const byId = results => Object.fromEntries(results.map(result => [result.id, result]));
+
+// A command of this run, given at most `ms` to end: stopped through its own handle when it does not.
+const runFor = (args, ms = 60_000, env = {}) =>
+  new Promise(resolve => {
+    const child = spawn(process.execPath, args, { cwd: root, env: { ...process.env, ...env } });
+    let stdout = '';
+    let stderr = '';
+    const stop = setTimeout(() => child.kill('SIGKILL'), ms);
+    child.stdout.on('data', chunk => (stdout += chunk));
+    child.stderr.on('data', chunk => (stderr += chunk));
+    child.on('close', status => {
+      clearTimeout(stop);
+      resolve({ status, stdout, stderr });
+    });
+  });
+const run = (...args) => spawnSync(process.execPath, [cli, ...args], { encoding: 'utf8', cwd: root, timeout: 60_000 });
+const writeJson = (dir, name, data) => {
+  const file = join(dir, name);
+  writeFileSync(file, `${JSON.stringify(data, null, 2)}\n`);
+  return file;
+};
+
+// A Chrome that writes its process id to a file and then becomes the real one. Playwright starts it as the
+// leader of a process group of its own, so every process the launch started carries that id as its group.
+const countingChrome = dir => {
+  const file = join(dir, 'counting chrome.sh');
+  const pids = join(dir, 'chrome.pids');
+  writeFileSync(file, `#!/bin/sh\necho $$ >> '${pids}'\nexec '${findChrome()}' "$@"\n`);
+  chmodSync(file, 0o755);
+  return { file, pids: () => (existsSync(pids) ? readFileSync(pids, 'utf8').trim().split('\n').map(Number) : []) };
+};
+// The processes of one group still running; a zombie has ended.
+const inGroup = pgid =>
+  spawnSync('ps', ['-A', '-o', 'pgid=,stat='], { encoding: 'utf8' })
+    .stdout.split('\n')
+    .map(line => line.trim().split(/\s+/))
+    .filter(([group, state]) => Number(group) === pgid && !state.startsWith('Z')).length;
+// The processes left in each group a run started, once each has had three seconds to wind down; whatever is
+// left is stopped, by its group, so a failing test leaves no browser behind either.
+const leftOf = async pids => {
+  let left = 0;
+  for (const pgid of pids) {
+    for (let i = 0; i < 30 && inGroup(pgid) > 0; i++) await sleep(100);
+    left += inGroup(pgid);
+    try {
+      process.kill(-pgid, 'SIGKILL');
+    } catch {}
+  }
+  return left;
+};
+
+// A preload that writes down each context and each page the command opens, through Playwright's own
+// objects: "context <width> <theme>" and "page <file> <width> <theme>".
+const counting = join(root, 'count-openings.cjs');
+writeFileSync(counting, [
+  "const { chromium } = require('playwright-core');",
+  "const fs = require('node:fs');",
+  'const log = line => fs.appendFileSync(process.env.OPENINGS_LOG, line + "\\n");',
+  'const connect = chromium.connect.bind(chromium);',
+  'chromium.connect = async (...args) => {',
+  '  const browser = await connect(...args);',
+  '  const newContext = browser.newContext.bind(browser);',
+  '  browser.newContext = async options => {',
+  '    const at = `${options.viewport.width} ${options.colorScheme}`;',
+  '    log(`context ${at}`);',
+  '    const context = await newContext(options);',
+  '    const newPage = context.newPage.bind(context);',
+  '    context.newPage = async (...a) => {',
+  '      const page = await newPage(...a);',
+  '      const goto = page.goto.bind(page);',
+  "      page.goto = (url, ...b) => { log(`page ${decodeURIComponent(url.split('/').pop())} ${at}`); return goto(url, ...b); };",
+  '      return page;',
+  '    };',
+  '    return context;',
+  '  };',
+  '  return browser;',
+  '};',
+].join('\n'));
+
+// ---- the brief's seven
+
+test('the fixture run returns eight results, all pass: true, in the order of the file, each with its criterion, state, page, width and theme', () => {
+  const dir = fresh();
+  const out = join(dir, 'results.json');
+  const r = run('prototype', acceptanceFile, '--root', prototype, '--out', out);
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stderr, '');
+  assert.equal(r.stdout, `8 checks: 0 failed, 8 passed; results in ${out}\n`);
+  const results = JSON.parse(readFileSync(out, 'utf8'));
+  const checks = fixture().checks;
+  assert.equal(results.length, 8);
+  assert.deepEqual(results.map(result => result.id), checks.map(c => c.id));
+  for (const [i, result] of results.entries()) {
+    const c = checks[i];
+    assert.deepEqual(Object.keys(result), ['id', 'pass', 'actual', 'message', 'criterion', 'state', 'page', 'width', 'theme'], c.id);
+    assert.equal(result.pass, true, `${c.id}: ${result.message}`);
+    assert.equal(result.message, '', c.id);
+    assert.deepEqual([result.criterion, result.state, result.page, result.width, result.theme], [c.criterion, c.state, c.page, c.width, c.theme ?? 'light'], c.id);
+  }
+  const found = byId(results);
+  assert.equal(found['count-in-spanish'].actual, '2 salas libres');
+  assert.deepEqual(found['count-then-list-then-book'].actual, ['free-count', 'room-list', 'book-action']);
+  assert.equal(found['two-free-rooms-listed'].actual, 2);
+  assert.equal(found['no-booking-when-full'].actual, 0);
+  assert.equal(found['list-contrast-dark'].theme, 'dark');
+  assert.ok(found['list-contrast-dark'].actual > 6.8 && found['list-contrast-dark'].actual < 6.9, `the muted grey on the dark surface: ${found['list-contrast-dark'].actual}`);
+  const size = found['book-target-size'].actual;
+  assert.ok(size.width >= 44 && size.height === 44, JSON.stringify(size));
+});
+
+test('a check whose target does not exist returns pass: false with "not found", and the run continues', async () => {
+  const checks = fixture().checks;
+  checks.splice(3, 0, check({ id: 'gone', type: 'visible', target: 'next-free-time' }));
+  const { results } = await acceptPrototype({ design: 'today', checks }, { root: prototype });
+  assert.equal(results.length, 9);
+  assert.equal(results[3].id, 'gone');
+  assert.equal(results[3].pass, false);
+  assert.match(results[3].message, /not found/);
+  assert.equal(results[3].message, 'data-ux="next-free-time" not found');
+  assert.equal(results[3].actual, null);
+  assert.deepEqual(results.filter(result => !result.pass).map(result => result.id), ['gone'], 'every other check passes');
+});
+
+test('a page holding the same data-ux twice makes visible fail with "found 2"', async () => {
+  const dir = prototypeIn(fresh(), { 'twice.html': '<p data-ux="free-count">2 rooms free</p>\n<p data-ux="free-count">2 rooms free</p>' });
+  const checks = [check({ id: 'twice', page: 'twice.html', type: 'visible', target: 'free-count' }), ...fixture().checks];
+  const { results } = await acceptPrototype({ design: 'today', checks }, { root: dir });
+  assert.equal(results[0].pass, false);
+  assert.match(results[0].message, /found 2/);
+  assert.equal(results[0].message, 'data-ux="free-count" found 2 times; it must be on exactly one element');
+  assert.ok(results.slice(1).every(result => result.pass), 'the run goes on');
+});
+
+test('an unknown type returns pass: false with "unknown check type"', async () => {
+  const checks = [check({ id: 'colour', type: 'colour', target: 'free-count', colour: 'grey' }), ...fixture().checks];
+  assert.deepEqual(validateAcceptance({ design: 'today', checks }), [], 'an unknown type is no shape error');
+  const { results } = await acceptPrototype({ design: 'today', checks }, { root: prototype });
+  assert.deepEqual(results[0], { id: 'colour', pass: false, actual: null, message: 'unknown check type "colour"', criterion: 'A criterion she cares about.', state: 'default', page: 'today-default-en.html', width: 390, theme: 'light' });
+  assert.ok(results.slice(1).every(result => result.pass));
+});
+
+test('contrast with min 21 on grey text fails, and reports the measured ratio in actual', async () => {
+  const checks = [
+    check({ id: 'grey-list', type: 'contrast', target: 'room-list', min: 21 }),
+    check({ id: 'grey-action', type: 'contrast', target: 'book-action', min: 21 }),
+  ];
+  const { results } = await acceptPrototype({ design: 'today', checks }, { root: prototype });
+  // #595959 on #ffffff is 7.005, and #ffffff on #767676 is 4.542: each is shown to two decimals, never
+  // rounded up past what was measured.
+  assert.deepEqual(results.map(({ id, pass, actual, message }) => ({ id, pass, actual, message })), [
+    { id: 'grey-list', pass: false, actual: 7, message: 'the contrast is 7, less than 21' },
+    { id: 'grey-action', pass: false, actual: 4.54, message: 'the contrast is 4.54, less than 21' },
+  ]);
+});
+
+test('--root, --out and the acceptance file each in a folder whose name holds a space: the run works', () => {
+  const dir = fresh('two words');
+  const spaced = prototypeIn(join(dir, 'the prototype'));
+  const file = writeJson(dir, 'the checks.json', fixture());
+  const out = join(dir, 'the results', 'results.json');
+  const r = run('prototype', file, '--root', spaced, '--out', out);
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout, `8 checks: 0 failed, 8 passed; results in ${out}\n`);
+  assert.ok(JSON.parse(readFileSync(out, 'utf8')).every(result => result.pass));
+});
+
+test('report lists failed checks first, prints the criterion beside each, and opens with the counts', () => {
+  const dir = fresh();
+  const results = [
+    { id: 'a-passes', pass: true, actual: 2, message: '', criterion: 'Both free rooms are listed.', state: 'default', page: 'today-default-en.html', width: 1280, theme: 'light' },
+    { id: 'b-fails', pass: false, actual: 7, message: 'the contrast is 7, less than 21', criterion: 'The list reads at 21.', state: 'default', page: 'today-default-en.html', width: 390, theme: 'light' },
+    { id: 'c-passes', pass: true, actual: '2 salas libres', message: '', criterion: 'The count reads in Spanish.', state: 'default', page: 'today-default-es.html', width: 390, theme: 'light' },
+    { id: 'd-fails', pass: false, actual: null, message: 'data-ux="next-free-time" not found', criterion: 'The next free time |\nis shown.', state: 'empty', page: 'today-empty-en.html', width: 390, theme: 'dark' },
+  ];
+  const file = writeJson(dir, 'results.json', results);
+  const out = join(dir, 'the report', 'ACCEPTANCE-RESULTS.md');
+  const r = run('report', file, '--out', out);
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout, `4 checks: 2 failed, 2 passed; report in ${out}\n`);
+  assert.equal(readFileSync(out, 'utf8'), [
+    '4 checks: 2 failed, 2 passed.',
+    '',
+    '| Result | Check | Criterion | State | Page | Width | Theme | Actual | Message |',
+    '| --- | --- | --- | --- | --- | --- | --- | --- | --- |',
+    '| FAIL | b-fails | The list reads at 21. | default | today-default-en.html | 390 | light | 7 | the contrast is 7, less than 21 |',
+    '| FAIL | d-fails | The next free time \\| is shown. | empty | today-empty-en.html | 390 | dark |  | data-ux="next-free-time" not found |',
+    '| pass | a-passes | Both free rooms are listed. | default | today-default-en.html | 1280 | light | 2 |  |',
+    '| pass | c-passes | The count reads in Spanish. | default | today-default-es.html | 390 | light | "2 salas libres" |  |',
+    '',
+  ].join('\n'));
+});
+
+// ---- the shape of an acceptance file, checked before any browser
+
+test('the fixture is a valid acceptance file; so is every type with exactly the keys it takes', () => {
+  assert.deepEqual(validateAcceptance(fixture()), []);
+  const checks = [
+    check({ id: 'a', type: 'visible', target: 'x', theme: 'light', language: 'en', screen: 'today' }),
+    check({ id: 'b', type: 'absent', target: 'x' }),
+    check({ id: 'c', type: 'text', target: 'x', equals: '' }),
+    check({ id: 'd', type: 'text', target: 'x', matches: '^\\d+ rooms? free$' }),
+    check({ id: 'e', type: 'order', targets: ['x', 'y'] }),
+    check({ id: 'f', type: 'in-viewport', target: 'x', theme: 'dark' }),
+    check({ id: 'g', type: 'min-size', target: 'x', minWidth: 44, minHeight: 43.5 }),
+    check({ id: 'h', type: 'contrast', target: 'x', min: 1 }),
+    check({ id: 'i', type: 'contrast', target: 'x', min: 21 }),
+    check({ id: 'j', type: 'count', target: 'x', equals: 0 }),
+    check({ id: 'k', type: 'a type of tomorrow', target: 'x', anything: ['it', 'likes'] }),
+    check({ id: 'l', type: 'visible', target: 'x', page: 'states/two words/día.html' }),
+  ];
+  assert.deepEqual(validateAcceptance({ design: 'today', checks }), []);
+});
+
+test('a malformed acceptance file is refused, every fault named by its path', () => {
+  const ok = check({ id: 'ok', type: 'visible', target: 'free-count' });
+  const one = (fields, without = []) => {
+    const c = { ...ok, ...fields };
+    for (const key of without) delete c[key];
+    return { design: 'today', checks: [c] };
+  };
+  const cases = [
+    [null, ['$: must be an object']],
+    [[], ['$: must be an object']],
+    ['today', ['$: must be an object']],
+    [{ checks: [ok] }, ['$.design: must be a non-empty string']],
+    [{ design: '', checks: [ok] }, ['$.design: must be a non-empty string']],
+    [{ design: 7, checks: [ok] }, ['$.design: must be a non-empty string']],
+    [{ design: 'today' }, ['$.checks: must be a list of at least one check']],
+    [{ design: 'today', checks: [] }, ['$.checks: must be a list of at least one check']],
+    [{ design: 'today', checks: ok }, ['$.checks: must be a list of at least one check']],
+    [{ design: 'today', checks: [ok], colour: 'grey' }, ['$.colour: unknown key']],
+    [{ design: 'today', checks: [ok, null, 'x', []] }, ['$.checks[1]: must be an object', '$.checks[2]: must be an object', '$.checks[3]: must be an object']],
+    [one({}, ['id']), ['$.checks[0].id: must be a non-empty string']],
+    [one({ id: '' }), ['$.checks[0].id: must be a non-empty string']],
+    [one({ id: 3 }), ['$.checks[0].id: must be a non-empty string']],
+    [{ design: 'today', checks: [ok, { ...ok, id: 'other' }, { ...ok }] }, ['$.checks[2].id: "ok" is also the id of $.checks[0]']],
+    [one({}, ['criterion']), ['$.checks[0].criterion: must be a non-empty string']],
+    [one({ criterion: ' ' }), ['$.checks[0].criterion: must be a non-empty string']],
+    [one({}, ['state']), ['$.checks[0].state: must be a non-empty string']],
+    [one({ state: '' }), ['$.checks[0].state: must be a non-empty string']],
+    [one({}, ['page']), ['$.checks[0].page: must be a non-empty string']],
+    [one({ page: '' }), ['$.checks[0].page: must be a non-empty string']],
+    [one({ page: '/today.html' }), ['$.checks[0].page: must be a relative path; it is "/today.html"']],
+    [one({ page: 'C:/today.html' }), ['$.checks[0].page: must be a relative path; it is "C:/today.html"']],
+    [one({ page: 'file:today.html' }), ['$.checks[0].page: must be a relative path; it is "file:today.html"']],
+    [one({ page: 'today.html#empty' }), ['$.checks[0].page: must hold no #, ?, % or backslash; it is "today.html#empty"']],
+    [one({ page: 'today.html?state=empty' }), ['$.checks[0].page: must hold no #, ?, % or backslash; it is "today.html?state=empty"']],
+    [one({ page: 'today%20empty.html' }), ['$.checks[0].page: must hold no #, ?, % or backslash; it is "today%20empty.html"']],
+    [one({ page: 'states\\today.html' }), ['$.checks[0].page: must hold no #, ?, % or backslash; it is "states\\\\today.html"']],
+    [one({ page: '../today.html' }), ['$.checks[0].page: must stay inside the prototype folder; it is "../today.html"']],
+    [one({ page: 'states/../../today.html' }), ['$.checks[0].page: must stay inside the prototype folder; it is "states/../../today.html"']],
+    [one({ page: 'states/../..' }), ['$.checks[0].page: must stay inside the prototype folder; it is "states/../.."']],
+    [one({}, ['width']), ['$.checks[0].width: must be a whole number of CSS pixels from 1']],
+    [one({ width: 0 }), ['$.checks[0].width: must be a whole number of CSS pixels from 1']],
+    [one({ width: -390 }), ['$.checks[0].width: must be a whole number of CSS pixels from 1']],
+    [one({ width: 390.5 }), ['$.checks[0].width: must be a whole number of CSS pixels from 1']],
+    [one({ width: '390' }), ['$.checks[0].width: must be a whole number of CSS pixels from 1']],
+    [one({ theme: 'sepia' }), ['$.checks[0].theme: must be light or dark']],
+    [one({ theme: 'Light' }), ['$.checks[0].theme: must be light or dark']],
+    [one({ theme: null }), ['$.checks[0].theme: must be light or dark']],
+    [one({ language: '' }), ['$.checks[0].language: must be a non-empty string']],
+    [one({ screen: 7 }), ['$.checks[0].screen: must be a non-empty string']],
+    [one({}, ['type']), ['$.checks[0].type: must be a non-empty string']],
+    [one({ type: '' }), ['$.checks[0].type: must be a non-empty string']],
+    [one({ type: ['visible'] }), ['$.checks[0].type: must be a non-empty string']],
+    [one({}, ['target']), ['$.checks[0].target: must be a non-empty string']],
+    [one({ target: '' }), ['$.checks[0].target: must be a non-empty string']],
+    [one({ target: ['free-count'] }), ['$.checks[0].target: must be a non-empty string']],
+    [one({ colour: 'grey' }), ['$.checks[0].colour: unknown key for type visible']],
+    [one({ 'two words': 1 }), ['$.checks[0]["two words"]: unknown key for type visible']],
+    [one({ equals: 'x' }), ['$.checks[0].equals: unknown key for type visible']],
+    [one({ targets: ['a', 'b'] }), ['$.checks[0].targets: unknown key for type visible']],
+    [one({ type: 'absent', min: 3 }), ['$.checks[0].min: unknown key for type absent']],
+    [one({ type: 'in-viewport', minWidth: 3 }), ['$.checks[0].minWidth: unknown key for type in-viewport']],
+    // order names its ids in targets: a list of two or more, each once.
+    [one({ type: 'order', targets: ['a', 'b'] }), ['$.checks[0].target: unknown key for type order']],
+    [one({ type: 'order' }, ['target']), ['$.checks[0].targets: must be a list of at least two ids']],
+    [one({ type: 'order', targets: ['a'] }, ['target']), ['$.checks[0].targets: must be a list of at least two ids']],
+    [one({ type: 'order', targets: 'a,b' }, ['target']), ['$.checks[0].targets: must be a list of at least two ids']],
+    [one({ type: 'order', targets: ['a', ''] }, ['target']), ['$.checks[0].targets[1]: must be a non-empty string']],
+    [one({ type: 'order', targets: ['a', 7, 'b'] }, ['target']), ['$.checks[0].targets[1]: must be a non-empty string']],
+    [one({ type: 'order', targets: ['a', 'b', 'a'] }, ['target']), ['$.checks[0].targets[2]: "a" is named twice']],
+    // text takes exactly one of equals and matches.
+    [one({ type: 'text' }), ['$.checks[0]: a text check takes exactly one of equals and matches']],
+    [one({ type: 'text', equals: 'a', matches: 'a' }), ['$.checks[0]: a text check takes exactly one of equals and matches']],
+    [one({ type: 'text', equals: 2 }), ['$.checks[0].equals: must be a string']],
+    [one({ type: 'text', equals: null }), ['$.checks[0].equals: must be a string']],
+    [one({ type: 'text', matches: '' }), ['$.checks[0].matches: must be a non-empty string']],
+    [one({ type: 'text', matches: /rooms/ }), ['$.checks[0].matches: must be a non-empty string']],
+    [one({ type: 'text', matches: '(rooms' }), ['$.checks[0].matches: is not a regular expression (Unterminated group)']],
+    [one({ type: 'text', equals: 'a', min: 3 }), ['$.checks[0].min: unknown key for type text']],
+    // min-size takes minWidth and minHeight, which are not the check's own width.
+    [one({ type: 'min-size', minHeight: 44 }), ['$.checks[0].minWidth: must be a number above 0']],
+    [one({ type: 'min-size', minWidth: 44 }), ['$.checks[0].minHeight: must be a number above 0']],
+    [one({ type: 'min-size', minWidth: 0, minHeight: 44 }), ['$.checks[0].minWidth: must be a number above 0']],
+    [one({ type: 'min-size', minWidth: 44, minHeight: -1 }), ['$.checks[0].minHeight: must be a number above 0']],
+    [one({ type: 'min-size', minWidth: '44', minHeight: 44 }), ['$.checks[0].minWidth: must be a number above 0']],
+    [one({ type: 'min-size', minWidth: Infinity, minHeight: 44 }), ['$.checks[0].minWidth: must be a number above 0']],
+    [one({ type: 'min-size', minWidth: 44, minHeight: NaN }), ['$.checks[0].minHeight: must be a number above 0']],
+    [one({ type: 'min-size', minWidth: 44, minHeight: 44, height: 44 }), ['$.checks[0].height: unknown key for type min-size']],
+    // contrast takes a ratio from 1 to 21.
+    [one({ type: 'contrast' }), ['$.checks[0].min: must be a number from 1 to 21']],
+    [one({ type: 'contrast', min: 0.5 }), ['$.checks[0].min: must be a number from 1 to 21']],
+    [one({ type: 'contrast', min: 21.5 }), ['$.checks[0].min: must be a number from 1 to 21']],
+    [one({ type: 'contrast', min: '4.5' }), ['$.checks[0].min: must be a number from 1 to 21']],
+    // count takes a whole number from 0.
+    [one({ type: 'count' }), ['$.checks[0].equals: must be a whole number from 0']],
+    [one({ type: 'count', equals: -1 }), ['$.checks[0].equals: must be a whole number from 0']],
+    [one({ type: 'count', equals: 1.5 }), ['$.checks[0].equals: must be a whole number from 0']],
+    [one({ type: 'count', equals: '2' }), ['$.checks[0].equals: must be a whole number from 0']],
+    // A type it does not know still needs what every check needs.
+    [one({ type: 'colour' }, ['state', 'width']), ['$.checks[0].state: must be a non-empty string', '$.checks[0].width: must be a whole number of CSS pixels from 1']],
+  ];
+  for (const [data, errors] of cases) assert.deepEqual(validateAcceptance(data), errors, JSON.stringify(data));
+});
+
+// ---- the command line
+
+test('an invalid acceptance file is refused with exit 1 before Chrome starts: every fault printed, nothing written', { skip: !UNIX && 'needs a shell script for Chrome' }, async () => {
+  const dir = fresh();
+  const chrome = countingChrome(dir);
+  const data = fixture();
+  data.checks[1].width = 0;
+  data.checks[4].page = '../today.html';
+  const file = writeJson(dir, 'acceptance.json', data);
+  const out = join(dir, 'not made', 'results.json');
+  const r = await runFor([cli, 'prototype', file, '--root', prototype, '--out', out, '--chrome', chrome.file]);
+  assert.deepEqual([r.status, r.stdout], [1, '']);
+  assert.equal(r.stderr, `${file} is not a valid acceptance file:\n  $.checks[1].width: must be a whole number of CSS pixels from 1\n  $.checks[4].page: must stay inside the prototype folder; it is "../today.html"\n`);
+  assert.deepEqual(chrome.pids(), [], 'Chrome was never started');
+  assert.ok(!existsSync(join(dir, 'not made')), 'nothing is made');
+});
+
+test('what else is refused with exit 1 before Chrome starts: an unreadable acceptance file, a root that is no folder, an out that cannot be written', { skip: !UNIX && 'needs a shell script for Chrome' }, async () => {
+  const dir = fresh();
+  const chrome = countingChrome(dir);
+  const notJson = join(dir, 'not json.json');
+  writeFileSync(notJson, '{ "design": ');
+  const aFile = join(dir, 'a file');
+  writeFileSync(aFile, 'x');
+  // In a folder not made yet: a refusal makes nothing.
+  const out = join(dir, 'not made', 'results.json');
+  const cases = [
+    [[join(dir, 'missing.json'), '--root', prototype, '--out', out], `cannot read ${join(dir, 'missing.json')}: not found\n`],
+    [[notJson, '--root', prototype, '--out', out], new RegExp(`^cannot read ${notJson}: it is not JSON \\(`)],
+    [[acceptanceFile, '--root', join(dir, 'no prototype'), '--out', out], `cannot read ${join(dir, 'no prototype')}: not found\n`],
+    [[acceptanceFile, '--root', aFile, '--out', out], `cannot read ${aFile}: it is a file, not a folder\n`],
+    [[acceptanceFile, '--root', prototype, '--out', join(aFile, 'results.json')], `cannot write ${join(aFile, 'results.json')}: part of the path is a file, not a folder\n`],
+    [[acceptanceFile, '--root', prototype, '--out', dir], `cannot write ${dir}: it is a folder, not a file\n`],
+  ];
+  for (const [args, stderr] of cases) {
+    const r = await runFor([cli, 'prototype', ...args, '--chrome', chrome.file]);
+    assert.equal(r.status, 1, r.stderr);
+    assert.equal(r.stdout, '');
+    if (stderr instanceof RegExp) assert.match(r.stderr, stderr);
+    else assert.equal(r.stderr, stderr);
+  }
+  assert.deepEqual(chrome.pids(), [], 'Chrome was never started');
+  assert.ok(!existsSync(join(dir, 'not made')), 'nothing is made');
+});
+
+test('prototype exits 1 when any check failed: each failure printed, the results still written in full; and no browser of the run is left', { skip: !UNIX && 'needs a shell script for Chrome' }, async () => {
+  const dir = fresh();
+  const chrome = countingChrome(dir);
+  const data = fixture();
+  data.checks.push(check({ id: 'gone', type: 'visible', target: 'next-free-time' }), check({ id: 'grey', type: 'contrast', target: 'room-list', min: 21 }));
+  const file = writeJson(dir, 'acceptance.json', data);
+  const out = join(dir, 'results.json');
+  const r = await runFor([cli, 'prototype', file, '--root', prototype, '--out', out, '--chrome', chrome.file]);
+  const left = await leftOf(chrome.pids());
+  assert.equal(r.status, 1, r.stderr);
+  assert.equal(r.stdout, `10 checks: 2 failed, 8 passed; results in ${out}\n`);
+  assert.equal(r.stderr, 'failed: gone: data-ux="next-free-time" not found\nfailed: grey: the contrast is 7, less than 21\n');
+  assert.equal(JSON.parse(readFileSync(out, 'utf8')).length, 10);
+  assert.equal(chrome.pids().length, 1, 'one browser for the run');
+  assert.equal(left, 0, 'no process of it is left');
+});
+
+test('each page is opened once for each width and theme its checks name, in one context for each width and theme; reduced motion, 900 px high, scale 1', () => {
+  const dir = fresh();
+  const env = 'document.querySelector("[data-ux=env]").textContent = `${innerWidth}x${innerHeight}@${devicePixelRatio} ${matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"} ${matchMedia("(prefers-reduced-motion: reduce)").matches ? "reduce" : "motion"}`';
+  prototypeIn(dir, { 'env.html': `<p data-ux="env"></p>\n<script>${env}</script>` });
+  const data = fixture();
+  data.checks.push(
+    check({ id: 'env-390', page: 'env.html', type: 'text', target: 'env', equals: '390x900@1 light reduce' }),
+    check({ id: 'env-1280-dark', page: 'env.html', width: 1280, theme: 'dark', type: 'text', target: 'env', equals: '1280x900@1 dark reduce' }),
+    check({ id: 'env-1280-light', page: 'env.html', width: 1280, theme: 'light', type: 'text', target: 'env', equals: '1280x900@1 light reduce' }),
+  );
+  const file = writeJson(dir, 'acceptance.json', data);
+  const log = join(dir, 'openings.log');
+  const out = join(dir, 'results.json');
+  const r = spawnSync(process.execPath, ['--require', counting, cli, 'prototype', file, '--root', dir, '--out', out], { encoding: 'utf8', timeout: 60_000, env: { ...process.env, OPENINGS_LOG: log } });
+  assert.equal(r.status, 0, r.stderr);
+  const openings = readFileSync(log, 'utf8').trim().split('\n');
+  // Grouped by width and theme in the order they first appear, each page once in each.
+  assert.deepEqual(openings, [
+    'context 390 light',
+    'page today-empty-en.html 390 light',
+    'page today-default-es.html 390 light',
+    'page today-default-en.html 390 light',
+    'page env.html 390 light',
+    'context 1280 light',
+    'page today-default-en.html 1280 light',
+    'page env.html 1280 light',
+    'context 1280 dark',
+    'page today-default-en.html 1280 dark',
+    'page env.html 1280 dark',
+  ]);
+});
+
+test('a page that does not open, or that leaves, fails every check of its group with the page\'s fault; the other groups run', async () => {
+  const dir = prototypeIn(fresh(), { 'leaves.html': '<p data-ux="free-count">2 rooms free</p>\n<script>location.href = "today-empty-en.html"</script>' });
+  const checks = [
+    check({ id: 'missing-a', page: 'missing.html', type: 'visible', target: 'free-count' }),
+    check({ id: 'fine', type: 'visible', target: 'free-count' }),
+    check({ id: 'leaves-a', page: 'leaves.html', type: 'visible', target: 'free-count' }),
+    check({ id: 'missing-b', page: 'missing.html', type: 'count', target: 'free-', equals: 1 }),
+    check({ id: 'leaves-b', page: 'leaves.html', type: 'text', target: 'free-count', equals: '2 rooms free' }),
+    check({ id: 'missing-other-width', page: 'missing.html', width: 1280, type: 'absent', target: 'book-action' }),
+  ];
+  const { results } = await acceptPrototype({ design: 'today', checks }, { root: dir });
+  const found = byId(results);
+  assert.deepEqual(results.map(result => result.id), checks.map(c => c.id));
+  for (const id of ['missing-a', 'missing-b', 'missing-other-width']) {
+    assert.equal(found[id].pass, false, id);
+    assert.equal(found[id].actual, null, id);
+    assert.match(found[id].message, /^the page did not open: net::ERR_FILE_NOT_FOUND/, id);
+  }
+  for (const id of ['leaves-a', 'leaves-b']) assert.deepEqual([found[id].pass, found[id].actual, found[id].message], [false, null, 'the page sent itself to today-empty-en.html'], id);
+  assert.equal(found.fine.pass, true);
+});
+
+// Faults put into the browsers a command starts, through Playwright's own objects. FAULT names one:
+//   dead-page  the browser is stopped, by its own process handle, as a page is asked of it, at the calls
+//              numbered in FAULT_AT (as "2,3"), counted over the whole run
+//   hang       page.close() never returns for the page named FAULT_PAGE
+const faults = join(root, 'browser-faults.cjs');
+writeFileSync(faults, [
+  "const { chromium } = require('playwright-core');",
+  'const fault = process.env.FAULT;',
+  "const at = n => (process.env.FAULT_AT ?? '').split(',').map(Number).includes(n);",
+  "const marked = url => String(url).endsWith('/' + process.env.FAULT_PAGE);",
+  'const servers = [];',
+  'let pages = 0;',
+  "const stopOwn = async () => { const child = servers.at(-1).process(); if (child.exitCode === null && child.signalCode === null) { child.kill('SIGKILL'); await new Promise(resolve => child.once('exit', resolve)); } };",
+  'const launchServer = chromium.launchServer.bind(chromium);',
+  'chromium.launchServer = async (...args) => { const server = await launchServer(...args); servers.push(server); return server; };',
+  'const connect = chromium.connect.bind(chromium);',
+  'chromium.connect = async (...args) => {',
+  '  const browser = await connect(...args);',
+  '  const newContext = browser.newContext.bind(browser);',
+  '  browser.newContext = async (...a) => {',
+  '    const context = await newContext(...a);',
+  '    const newPage = context.newPage.bind(context);',
+  '    context.newPage = async (...b) => {',
+  "      if (fault === 'dead-page' && at(++pages)) await stopOwn();",
+  '      const page = await newPage(...b);',
+  "      if (fault === 'hang') { const close = page.close.bind(page); page.close = (...c) => (marked(page.url()) ? new Promise(() => {}) : close(...c)); }",
+  '      return page;',
+  '    };',
+  '    return context;',
+  '  };',
+  '  return browser;',
+  '};',
+].join('\n'));
+
+test('a page whose browser stops twice before it can be opened fails each of its checks, and one that will not close is a warning; the run goes on in a fresh browser, and none is left', { skip: !UNIX && 'needs a shell script for Chrome' }, async () => {
+  // The second page asked for is the Spanish one: its browser stops as it is asked, and again in the fresh one.
+  let dir = fresh();
+  let chrome = countingChrome(dir);
+  let out = join(dir, 'results.json');
+  let r = await runFor(['--require', faults, cli, 'prototype', acceptanceFile, '--root', prototype, '--out', out, '--chrome', chrome.file], 60_000, { FAULT: 'dead-page', FAULT_AT: '2,3' });
+  let pids = chrome.pids();
+  let left = await leftOf(pids);
+  assert.deepEqual([r.status, r.stderr], [1, 'failed: count-in-spanish: the browser stopped twice while opening this page\n']);
+  assert.deepEqual(JSON.parse(readFileSync(out, 'utf8')).map(result => result.pass), [true, true, false, true, true, true, true, true]);
+  assert.equal(pids.length, 3, 'a fresh browser after each stop');
+  assert.equal(left, 0, 'no process of any of them is left');
+  // The empty page will not close: its checks stand, its browser is stopped by its own handle, and a fresh one goes on.
+  dir = fresh();
+  chrome = countingChrome(dir);
+  out = join(dir, 'results.json');
+  r = await runFor(['--require', faults, cli, 'prototype', acceptanceFile, '--root', prototype, '--out', out, '--chrome', chrome.file], 60_000, { FAULT: 'hang', FAULT_PAGE: 'today-empty-en.html' });
+  pids = chrome.pids();
+  left = await leftOf(pids);
+  assert.deepEqual([r.status, r.stderr], [0, 'warning: today-empty-en.html: the page would not close; its browser was stopped\n']);
+  assert.ok(JSON.parse(readFileSync(out, 'utf8')).every(result => result.pass));
+  assert.equal(pids.length, 2);
+  assert.equal(left, 0);
+});
+
+test('a page whose in-page function cannot be put in place, or gives no result, fails each of its checks; the run goes on', async () => {
+  const dir = prototypeIn(fresh(), {
+    'locked.html': '<p data-ux="free-count">2 rooms free</p>\n<script>"use strict"; Object.defineProperty(window, "__uxAccept", { value: () => [], writable: false })</script>',
+    'silent.html': '<p data-ux="free-count">2 rooms free</p>\n<script>Object.defineProperty(window, "__uxAccept", { set() {}, get: () => () => [] })</script>',
+    'liar.html': '<script>Object.defineProperty(window, "__uxAccept", { set() {}, get: () => checks => checks.map(() => ({ id: "another", pass: true, actual: null, message: "" })) })</script>',
+    'vague.html': '<script>Object.defineProperty(window, "__uxAccept", { set() {}, get: () => checks => checks.map(c => ({ id: c.id, pass: "yes", actual: null, message: "" })) })</script>',
+    'terse.html': '<script>Object.defineProperty(window, "__uxAccept", { set() {}, get: () => checks => checks.map(c => ({ id: c.id, pass: true })) })</script>',
+  });
+  const checks = [
+    check({ id: 'locked', page: 'locked.html', type: 'visible', target: 'free-count' }),
+    check({ id: 'silent', page: 'silent.html', type: 'visible', target: 'free-count' }),
+    check({ id: 'liar', page: 'liar.html', type: 'visible', target: 'free-count' }),
+    check({ id: 'vague', page: 'vague.html', type: 'visible', target: 'free-count' }),
+    check({ id: 'terse', page: 'terse.html', type: 'visible', target: 'free-count' }),
+    check({ id: 'fine', type: 'visible', target: 'free-count' }),
+  ];
+  const { results } = await acceptPrototype({ design: 'today', checks }, { root: dir });
+  assert.equal(results[0].pass, false);
+  assert.match(results[0].message, /^the checks could not be run: .*__uxAccept/);
+  // A result for another check, or one that does not say whether it passed, is no result.
+  for (const result of results.slice(1, 4)) assert.deepEqual([result.pass, result.actual, result.message], [false, null, 'the page gave no result for this check'], result.id);
+  // One that says no more than whether it passed has nothing measured, and nothing to say.
+  assert.deepEqual([results[4].pass, results[4].actual, results[4].message], [true, null, '']);
+  assert.equal(results[5].pass, true);
+});
+
+test('what a page reports as it runs (a script error, a stylesheet that did not load) is given beside the results, and is printed as a warning that leaves the exit code to the checks', () => {
+  const dir = prototypeIn(fresh(), { 'broken.html': '<p data-ux="free-count">2 rooms free</p>\n<script>throw new Error("the rooms did not load")</script>' });
+  writeFileSync(join(dir, 'unstyled.html'), whole('<p data-ux="free-count">2 rooms free</p>', '<link rel="stylesheet" href="missing.css">\n'));
+  const file = writeJson(dir, 'acceptance.json', {
+    design: 'today',
+    checks: [
+      check({ id: 'broken', page: 'broken.html', type: 'visible', target: 'free-count' }),
+      check({ id: 'unstyled', page: 'unstyled.html', type: 'visible', target: 'free-count' }),
+      check({ id: 'unstyled-wide', page: 'unstyled.html', width: 1280, type: 'visible', target: 'free-count' }),
+    ],
+  });
+  const out = join(dir, 'results.json');
+  const r = run('prototype', file, '--root', dir, '--out', out);
+  assert.equal(r.status, 0, r.stderr);
+  // Said once a page, however many widths saw it.
+  assert.equal(r.stderr, 'warning: broken.html: script error: the rooms did not load\nwarning: unstyled.html: missing.css did not load: net::ERR_FILE_NOT_FOUND\n');
+  assert.ok(JSON.parse(readFileSync(out, 'utf8')).every(result => result.pass));
+});
+
+test('--timeout limits how long a page is given: its checks fail saying so, soon', async () => {
+  // A server that never answers: the stylesheet it is asked for never comes.
+  const server = createServer(() => {});
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  try {
+    const dir = fresh();
+    prototypeIn(dir);
+    writeFileSync(join(dir, 'slow.html'), whole('<p data-ux="free-count">2 rooms free</p>', `<link rel="stylesheet" href="http://127.0.0.1:${server.address().port}/held.css">\n`));
+    const file = writeJson(dir, 'acceptance.json', { design: 'today', checks: [check({ id: 'slow', page: 'slow.html', type: 'visible', target: 'free-count' }), check({ id: 'fine', type: 'visible', target: 'free-count' })] });
+    const out = join(dir, 'results.json');
+    const started = Date.now();
+    const r = await runFor([cli, 'prototype', file, '--root', dir, '--out', out, '--timeout', '1500'], 30_000);
+    assert.equal(r.status, 1, r.stderr);
+    // On a loaded machine a page given up while it loads may also not close in time: its browser is then
+    // stopped, and that is said of the page too.
+    const [first, ...rest] = r.stderr.trimEnd().split('\n');
+    assert.equal(first, 'failed: slow: slow.html did not finish loading within 1500 ms');
+    for (const line of rest) assert.equal(line, 'warning: slow.html: the page would not close; its browser was stopped');
+    assert.ok(Date.now() - started < 15_000, `it took ${Date.now() - started} ms`);
+    assert.deepEqual(JSON.parse(readFileSync(out, 'utf8')).map(result => result.pass), [false, true]);
+  } finally {
+    server.closeAllConnections();
+    server.close();
+  }
+});
+
+test('the CLI exits 2 for bad usage, with the usage, and makes nothing', () => {
+  const dir = fresh();
+  const out = join(dir, 'out.json');
+  const cases = [
+    [[], 'accept takes a command: prototype, report or inpage'],
+    [['check'], 'unknown command "check": it is prototype, report or inpage'],
+    [['prototype', '--root', prototype, '--out', out], 'prototype takes one <acceptance.json>'],
+    [['prototype', acceptanceFile, acceptanceFile, '--root', prototype, '--out', out], 'prototype takes one <acceptance.json>'],
+    [['prototype', acceptanceFile, '--out', out], '--root is missing'],
+    [['prototype', acceptanceFile, '--root', prototype], '--out is missing'],
+    [['prototype', acceptanceFile, '--root', prototype, '--out', out, '--timeout', '0'], '--timeout must be a whole number of milliseconds from 1, as 30000; it is "0"'],
+    [['prototype', acceptanceFile, '--root', prototype, '--out', out, '--widths', '390'], 'unknown flag --widths'],
+    [['report', '--out', out], 'report takes at least one <results.json>'],
+    [['report', acceptanceFile], '--out is missing'],
+    [['report', acceptanceFile, '--out', out, '--root', prototype], 'unknown flag --root'],
+    [['inpage', 'today'], 'inpage takes nothing more'],
+    [['inpage', '--out', out], 'unknown flag --out'],
+  ];
+  for (const [args, message] of cases) {
+    const r = run(...args);
+    assert.equal(r.status, 2, `${args.join(' ')}: ${r.stderr}`);
+    assert.ok(r.stderr.startsWith(`${message}\n\nUsage: node scripts/accept.mjs`), r.stderr);
+    assert.equal(r.stdout, '');
+  }
+  assert.ok(!existsSync(out), 'nothing is made');
+});
+
+test('the CLI prints its usage for --help and exits 0', () => {
+  for (const args of [['--help'], ['prototype', '--help'], ['-h']]) {
+    const r = run(...args);
+    assert.equal(r.status, 0);
+    assert.ok(r.stdout.startsWith('Usage: node scripts/accept.mjs prototype <acceptance.json> --root <folder> --out <results.json>'), r.stdout);
+    for (const type of ['visible', 'absent', 'text', 'order', 'in-viewport', 'min-size', 'contrast', 'count']) assert.match(r.stdout, new RegExp(`\\n  ${type} `), type);
+    assert.equal(r.stderr, '');
+  }
+});
+
+test('inpage prints the absolute path of the in-page file and exits 0', () => {
+  const r = run('inpage');
+  assert.deepEqual([r.status, r.stderr], [0, '']);
+  assert.equal(r.stdout, `${INPAGE}\n`);
+  assert.equal(INPAGE, join(here, '..', 'scripts', 'inpage', 'accept-inpage.js'));
+  assert.ok(existsSync(INPAGE));
+});
+
+// ---- the report
+
+test('report reads several results files into one table, failed first in the order read', () => {
+  const dir = fresh();
+  const result = (id, pass) => ({ id, pass, actual: null, message: pass ? '' : 'no', criterion: `Criterion ${id}.`, state: 'default', page: 'today.html', width: 390, theme: 'light' });
+  const first = writeJson(dir, 'prototype.json', [result('a', true), result('b', false)]);
+  const second = writeJson(dir, 'build.json', [result('c', false), result('d', true)]);
+  const out = join(dir, 'report.md');
+  const r = run('report', first, second, '--out', out);
+  assert.equal(r.status, 0, r.stderr);
+  const rows = readFileSync(out, 'utf8').split('\n').filter(line => line.startsWith('| FAIL') || line.startsWith('| pass'));
+  assert.deepEqual(rows.map(row => row.split(' | ')[1]), ['b', 'c', 'a', 'd']);
+  assert.ok(readFileSync(out, 'utf8').startsWith('4 checks: 2 failed, 2 passed.\n'));
+  // The same, as a module.
+  assert.equal(reportOf([[result('a', true)], [result('b', false)]]).split('\n')[0], '2 checks: 1 failed, 1 passed.');
+});
+
+test('report refuses with exit 1 a results file that is not a list of results, and writes nothing', () => {
+  const dir = fresh();
+  const good = { id: 'a', pass: true, actual: 2, message: '', criterion: 'C.', state: 'default', page: 'p.html', width: 390, theme: 'light' };
+  const out = join(dir, 'report.md');
+  const cases = [
+    [{ results: [good] }, ['$: must be a list of results']],
+    [[good, null], ['$[1]: must be an object']],
+    [[{ ...good, id: '' }], ['$[0].id: must be a non-empty string']],
+    [[{ ...good, pass: 'yes' }], ['$[0].pass: must be true or false']],
+    [[{ ...good, message: null }], ['$[0].message: must be a string']],
+    [[{ ...good, criterion: '' }], ['$[0].criterion: must be a non-empty string']],
+    [[{ ...good, state: 3 }], ['$[0].state: must be a string']],
+    [[{ ...good, page: 3 }], ['$[0].page: must be a string']],
+    [[{ ...good, width: '390' }], ['$[0].width: must be a whole number from 1']],
+    [[{ ...good, theme: false }], ['$[0].theme: must be a string']],
+    [[(({ actual, ...rest }) => rest)(good)], ['$[0].actual: is missing']],
+  ];
+  for (const [data, errors] of cases) {
+    assert.deepEqual(validateResults(data), errors, JSON.stringify(data));
+    const file = writeJson(dir, 'results.json', data);
+    const r = run('report', file, '--out', out);
+    assert.deepEqual([r.status, r.stdout, r.stderr], [1, '', `${file} is not a list of results:\n${errors.map(e => `  ${e}\n`).join('')}`]);
+  }
+  assert.deepEqual(validateResults([good]), []);
+  assert.deepEqual(validateResults([]), []);
+  const notJson = join(dir, 'not json.json');
+  writeFileSync(notJson, '[');
+  const r = run('report', notJson, '--out', out);
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, new RegExp(`^cannot read ${notJson}: it is not JSON`));
+  assert.ok(!existsSync(out));
+});
+
+// ---- in the page, as a build's own session evaluates it: one browser for all of these
+
+describe('the in-page file, evaluated through a driver of its own', () => {
+  let browser;
+  let source;
+  before(async () => {
+    source = readFileSync(INPAGE, 'utf8');
+    // Scroll bars shown, as a build's own session may show them: Playwright hides them by default.
+    browser = await chromium.launch({ executablePath: findChrome(), headless: true, ignoreDefaultArgs: ['--hide-scrollbars'] });
+  });
+  after(() => browser?.close());
+
+  // The checks, evaluated on a page holding `body`, at a width and theme, as a build's session would: the
+  // file's text through the driver's evaluate, then the function.
+  const evaluate = async (body, checks, { width = 390, theme = 'light', head = '', then } = {}) => {
+    const context = await browser.newContext(contextOptions(width, theme));
+    try {
+      const page = await context.newPage();
+      await page.setContent(`<!doctype html><html lang="en"><head><meta charset="utf-8"><title>t</title>${STYLE}${head}</head><body>${body}</body></html>`);
+      if (then) await page.evaluate(then);
+      await page.evaluate(source);
+      return await page.evaluate(checks => window.__uxAccept(checks), checks);
+    } finally {
+      await context.close();
+    }
+  };
+  // No margin round the page, and a line 18 px high, so that boxes can be said exactly.
+  const STYLE = '<style>body { margin: 0 } p { line-height: 18px }</style>';
+  const c = (id, type, fields = {}) => ({ id, type, target: id, ...fields });
+  const shown = results => results.map(({ id, pass, actual, message }) => [id, pass, actual, message]);
+
+  test('it is one script with no import, export or require and no name of its own: it can be evaluated again and again, and as the body of a function', async () => {
+    assert.doesNotMatch(source, /^\s*(import|export)\b|\brequire\s*\(/m);
+    const context = await browser.newContext(contextOptions(390, 'light'));
+    try {
+      const page = await context.newPage();
+      await page.setContent('<p data-ux="free-count">2 rooms free</p>');
+      const before = await page.evaluate(() => Object.keys(window));
+      await page.evaluate(source);
+      await page.evaluate(source);
+      // Selenium's way: the text is the body of a function.
+      await page.evaluate(text => new Function(text)(), source);
+      const added = await page.evaluate(names => Object.keys(window).filter(name => !names.includes(name)), before);
+      assert.deepEqual(added, ['__uxAccept']);
+      const [result] = await page.evaluate(() => window.__uxAccept([{ id: 'n', type: 'visible', target: 'free-count' }]));
+      assert.deepEqual([result.id, result.pass, result.message], ['n', true, '']);
+    } finally {
+      await context.close();
+    }
+  });
+
+  test('it reads only: the page is the same before and after every type of check', async () => {
+    const context = await browser.newContext(contextOptions(390, 'light'));
+    try {
+      const page = await context.newPage();
+      await page.setContent('<main data-screen="today"><p data-ux="free-count" style="color: oklch(0.4 0 0)">2 rooms free</p><ul><li data-ux="room-1">Room 1</li></ul><button data-ux="book-action">Book</button></main>');
+      await page.evaluate(() => {
+        window.mutations = 0;
+        new MutationObserver(list => (window.mutations += list.length)).observe(document, { subtree: true, childList: true, attributes: true, characterData: true });
+      });
+      const html = await page.evaluate(() => document.documentElement.outerHTML);
+      await page.evaluate(source);
+      const types = ['visible', 'absent', 'in-viewport', 'contrast'].map(type => ({ id: type, type, target: 'free-count', screen: 'today', min: 3 }));
+      types.push({ id: 'text', type: 'text', target: 'free-count', matches: 'rooms' }, { id: 'order', type: 'order', targets: ['free-count', 'book-action'] }, { id: 'min-size', type: 'min-size', target: 'book-action', minWidth: 1, minHeight: 1 }, { id: 'count', type: 'count', target: 'room-', equals: 1 });
+      const results = await page.evaluate(checks => window.__uxAccept(checks), types);
+      assert.equal(results.length, 8);
+      await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 50)));
+      assert.equal(await page.evaluate(() => window.mutations), 0);
+      assert.equal(await page.evaluate(() => document.documentElement.outerHTML), html);
+    } finally {
+      await context.close();
+    }
+  });
+
+  test('it never throws: checks that are not a list, a check that is not one, a check that throws, an unknown type, each gives a failed result and the rest go on', async () => {
+    const context = await browser.newContext(contextOptions(390, 'light'));
+    try {
+      const page = await context.newPage();
+      await page.setContent(`${STYLE}<p data-ux="free-count">2 rooms free</p>`);
+      await page.evaluate(source);
+      for (const checks of [null, 'free-count', { id: 'a' }, undefined]) {
+        assert.deepEqual(await page.evaluate(checks => window.__uxAccept(checks), checks), [{ id: null, pass: false, actual: null, message: 'the checks must be a list' }], String(checks));
+      }
+      const results = await page.evaluate(() =>
+        window.__uxAccept([
+          null,
+          7,
+          ['free-count'],
+          { type: 'visible', target: 'free-count' },
+          { id: '', type: 'visible', target: 'free-count' },
+          { id: 'throws', get type() { throw new Error('a getter that throws'); } },
+          { id: 'toString', type: 'toString', target: 'free-count' },
+          { id: 'constructor', type: 'constructor', target: 'free-count' },
+          { id: 'none', target: 'free-count' },
+          { id: 'kind', type: 'Visible', target: 'free-count' },
+          { id: 'object-type', type: { toString: () => 'visible' }, target: 'free-count' },
+          { id: 'throws-words', get type() { throw 'plain words'; } },
+          { id: 'throws-unreadable', get type() { throw { toString() { throw new Error('no'); } }; } },
+          { id: 'after', type: 'visible', target: 'free-count' },
+        ]),
+      );
+      assert.deepEqual(shown(results), [
+        [null, false, null, 'the check is not an object'],
+        [null, false, null, 'the check is not an object'],
+        [null, false, null, 'the check is not an object'],
+        [null, false, null, 'the check has no id'],
+        [null, false, null, 'the check has no id'],
+        ['throws', false, null, 'the check could not be made: a getter that throws'],
+        ['toString', false, null, 'unknown check type "toString"'],
+        ['constructor', false, null, 'unknown check type "constructor"'],
+        ['none', false, null, 'unknown check type undefined'],
+        ['kind', false, null, 'unknown check type "Visible"'],
+        ['object-type', false, null, 'unknown check type {}'],
+        ['throws-words', false, null, 'the check could not be made: plain words'],
+        ['throws-unreadable', false, null, 'the check could not be made: an error that cannot be read'],
+        ['after', true, { width: 390, height: 18 }, ''],
+      ]);
+      // A list that cannot even be counted.
+      const uncounted = await page.evaluate(() => window.__uxAccept(new Proxy([], { get: (list, key) => { if (key === 'length') throw new Error('a list that cannot be counted'); return list[key]; } })));
+      assert.deepEqual(uncounted, [{ id: null, pass: false, actual: null, message: 'the checks could not be read: a list that cannot be counted' }]);
+    } finally {
+      await context.close();
+    }
+  });
+
+  test('an element is found by its data-ux, exactly once; with a screen, inside that screen alone', async () => {
+    const body = [
+      '<section data-screen="today"><p data-ux="free-count">2 rooms free</p><p data-ux="room-1">Room 1</p></section>',
+      '<section data-screen="book"><p data-ux="free-count">Book a room</p></section>',
+      '<section data-screen="twice"></section><section data-screen="twice"></section>',
+      '<p data-ux=\'say "hi"\'>Quoted</p>',
+    ].join('');
+    const results = await evaluate(body, [
+      c('free-count', 'visible'),
+      c('free-count', 'visible', { screen: 'today' }),
+      c('free-count', 'text', { screen: 'book', equals: 'Book a room' }),
+      c('room-1', 'visible', { screen: 'book' }),
+      c('room-1', 'visible', { screen: 'nowhere' }),
+      c('room-1', 'visible', { screen: 'twice' }),
+      c('room-1', 'visible', { screen: '' }),
+      c('free', 'visible'),
+      c('say "hi"', 'visible'),
+      { id: 'no-target', type: 'visible' },
+      { id: 'empty-target', type: 'visible', target: '' },
+      { id: 'list-target', type: 'visible', target: ['room-1'] },
+    ]);
+    assert.deepEqual(shown(results), [
+      ['free-count', false, null, 'data-ux="free-count" found 2 times; it must be on exactly one element'],
+      ['free-count', true, { width: 390, height: 18 }, ''],
+      ['free-count', true, 'Book a room', ''],
+      ['room-1', false, null, 'data-ux="room-1" not found in data-screen="book"'],
+      ['room-1', false, null, 'data-screen="nowhere" not found'],
+      ['room-1', false, null, 'data-screen="twice" found 2 times; a screen must be on exactly one element'],
+      ['room-1', false, null, 'screen must be a non-empty string'],
+      ['free', false, null, 'data-ux="free" not found'],
+      ['say "hi"', true, { width: 390, height: 18 }, ''],
+      ['no-target', false, null, 'target must be a non-empty string'],
+      ['empty-target', false, null, 'target must be a non-empty string'],
+      ['list-target', false, null, 'target must be a non-empty string'],
+    ]);
+  });
+
+  test('visible: not displayed, not visible, fully transparent, on itself or an element it is in, or with no width or no height, is not rendered', async () => {
+    const body = [
+      '<p data-ux="plain">Shown</p>',
+      '<p data-ux="none" style="display: none">x</p>',
+      '<div style="display: none"><p data-ux="in-none">x</p></div>',
+      '<p data-ux="hidden" style="visibility: hidden">x</p>',
+      '<div style="visibility: hidden"><p data-ux="in-hidden">x</p></div>',
+      '<div style="visibility: hidden"><p data-ux="shown-again" style="visibility: visible">x</p></div>',
+      '<p data-ux="collapsed" style="visibility: collapse">x</p>',
+      '<p data-ux="clear" style="opacity: 0">x</p>',
+      '<div class="faded" style="opacity: 0"><p data-ux="in-clear">x</p></div>',
+      '<p data-ux="faint" style="opacity: 0.01">x</p>',
+      '<p data-ux="flat" style="height: 0; overflow: hidden">x</p>',
+      '<p data-ux="thin" style="width: 0; overflow: hidden">x</p>',
+    ].join('');
+    const ids = ['plain', 'none', 'in-none', 'hidden', 'in-hidden', 'shown-again', 'collapsed', 'clear', 'in-clear', 'faint', 'flat', 'thin'];
+    const results = await evaluate(body, ids.map(id => c(id, 'visible')));
+    assert.deepEqual(shown(results), [
+      ['plain', true, { width: 390, height: 18 }, ''],
+      ['none', false, { width: 0, height: 0 }, 'not rendered: display: none on data-ux="none"'],
+      ['in-none', false, { width: 0, height: 0 }, 'not rendered: display: none on <div>'],
+      ['hidden', false, { width: 390, height: 18 }, 'not rendered: visibility: hidden'],
+      ['in-hidden', false, { width: 390, height: 18 }, 'not rendered: visibility: hidden'],
+      ['shown-again', true, { width: 390, height: 18 }, ''],
+      ['collapsed', false, { width: 390, height: 18 }, 'not rendered: visibility: collapse'],
+      ['clear', false, { width: 390, height: 18 }, 'not rendered: opacity: 0 on data-ux="clear"'],
+      ['in-clear', false, { width: 390, height: 18 }, 'not rendered: opacity: 0 on <div class="faded">'],
+      ['faint', true, { width: 390, height: 18 }, ''],
+      ['flat', false, { width: 390, height: 0 }, 'not rendered: its box is 390 × 0'],
+      ['thin', false, { width: 0, height: 18 }, 'not rendered: its box is 0 × 18'],
+    ]);
+  });
+
+  test('absent: no element has the id, or none that has it is rendered', async () => {
+    const body = '<p data-ux="shown">x</p><p data-ux="hidden" hidden>x</p><p data-ux="half">x</p><p data-ux="half" hidden>x</p><p data-ux="both">x</p><p data-ux="both">x</p><p data-ux="gone-twice" hidden>x</p><p data-ux="gone-twice" style="opacity: 0">x</p><section data-screen="book"></section>';
+    const results = await evaluate(body, [c('never', 'absent'), c('hidden', 'absent'), c('gone-twice', 'absent'), c('shown', 'absent'), c('half', 'absent'), c('both', 'absent'), c('shown', 'absent', { screen: 'book' })]);
+    assert.deepEqual(shown(results), [
+      ['never', true, 0, ''],
+      ['hidden', true, 0, ''],
+      ['gone-twice', true, 0, ''],
+      ['shown', false, 1, 'data-ux="shown" is rendered'],
+      ['half', false, 1, 'data-ux="half" is rendered'],
+      ['both', false, 2, 'data-ux="both" is rendered, on 2 elements'],
+      ['shown', true, 0, ''],
+    ]);
+  });
+
+  test('text: the text with its runs of white space made one and trimmed, equal to equals or matched by matches; anything else is a malformed check', async () => {
+    const body = '<p data-ux="count">\n   2  rooms\n\tfree  </p><p data-ux="nbsp">10:00&nbsp;a. m.</p><p data-ux="upper" style="text-transform: uppercase">Book</p>';
+    const results = await evaluate(body, [
+      c('count', 'text', { equals: '2 rooms free' }),
+      c('count', 'text', { equals: '2 rooms' }),
+      c('count', 'text', { matches: '^\\d+ rooms? free$' }),
+      c('count', 'text', { matches: '^free' }),
+      c('nbsp', 'text', { equals: '10:00\u00a0a. m.' }),
+      c('upper', 'text', { equals: 'Book' }),
+      c('count', 'text', {}),
+      c('count', 'text', { equals: 'a', matches: 'a' }),
+      c('count', 'text', { equals: 2 }),
+      c('count', 'text', { matches: '(rooms' }),
+      c('count', 'text', { matches: '' }),
+    ]);
+    assert.deepEqual(shown(results), [
+      ['count', true, '2 rooms free', ''],
+      ['count', false, '2 rooms free', 'the text is "2 rooms free", not "2 rooms"'],
+      ['count', true, '2 rooms free', ''],
+      ['count', false, '2 rooms free', 'the text "2 rooms free" does not match /^free/'],
+      ['nbsp', true, '10:00\u00a0a. m.', ''],
+      ['upper', true, 'Book', ''],
+      ['count', false, null, 'a text check takes exactly one of equals and matches'],
+      ['count', false, null, 'a text check takes exactly one of equals and matches'],
+      ['count', false, null, 'equals must be a string'],
+      ['count', false, null, 'matches is not a regular expression: Invalid regular expression: /(rooms/: Unterminated group'],
+      ['count', false, null, 'matches must be a non-empty string'],
+    ]);
+  });
+
+  test('order: each id after the one before it in the document; a container comes before what it holds', async () => {
+    const body = '<p data-ux="a">a</p><div data-ux="list"><p data-ux="b">b</p></div><p data-ux="c">c</p>';
+    const results = await evaluate(body, [
+      { id: 'in-order', type: 'order', targets: ['a', 'b', 'c'] },
+      { id: 'held', type: 'order', targets: ['list', 'b'] },
+      { id: 'swapped', type: 'order', targets: ['a', 'c', 'b'] },
+      { id: 'reversed', type: 'order', targets: ['b', 'list'] },
+      { id: 'missing', type: 'order', targets: ['a', 'z'] },
+      { id: 'twice', type: 'order', targets: ['a', 'b', 'a'] },
+      { id: 'one', type: 'order', targets: ['a'] },
+      { id: 'text', type: 'order', targets: 'a,b' },
+      { id: 'blank', type: 'order', targets: ['a', ''] },
+    ]);
+    assert.deepEqual(shown(results), [
+      ['in-order', true, ['a', 'b', 'c'], ''],
+      ['held', true, ['list', 'b'], ''],
+      ['swapped', false, ['a', 'b', 'c'], 'data-ux="b" comes before data-ux="c"'],
+      ['reversed', false, ['list', 'b'], 'data-ux="list" comes before data-ux="b"'],
+      ['missing', false, null, 'data-ux="z" not found'],
+      ['twice', false, null, 'targets names "a" twice'],
+      ['one', false, null, 'targets must be a list of at least two ids'],
+      ['text', false, null, 'targets must be a list of at least two ids'],
+      ['blank', false, null, 'targets must be a list of at least two ids'],
+    ]);
+  });
+
+  test('in-viewport: the whole box inside the first viewport, without scrolling; a page scrolled since is measured as it was first seen, a fixed element where it stays', async () => {
+    const body = [
+      '<p data-ux="top" style="height: 20px">top</p>',
+      '<p data-ux="edge" style="width: 390px; height: 20px">edge</p>',
+      '<p data-ux="wide" style="width: 391px; height: 20px">wide</p>',
+      '<p data-ux="left" style="margin-left: -1px; width: 100px; height: 20px">left</p>',
+      '<p data-ux="up" style="position: absolute; left: 0; top: -1px; width: 100px; height: 20px">up</p>',
+      '<p data-ux="bottom-edge" style="position: absolute; left: 0; top: 880px; width: 100px; height: 20px">bottom edge</p>',
+      '<p data-ux="below" style="position: absolute; left: 0; top: 881px; width: 100px; height: 20px">below</p>',
+      '<p data-ux="far" style="position: absolute; left: 0; top: 2000px; width: 100px; height: 20px">far</p>',
+      '<p data-ux="pinned" style="position: fixed; left: 0; bottom: 0; width: 100px; height: 20px">pinned</p>',
+      '<div style="position: fixed; top: 0; right: 0"><p data-ux="in-pinned" style="height: 20px; width: 50px">in pinned</p></div>',
+      '<p data-ux="gone" hidden>gone</p>',
+      '<div style="width: 3000px; height: 3000px"></div>',
+    ].join('');
+    const ids = ['top', 'edge', 'wide', 'left', 'up', 'bottom-edge', 'below', 'far', 'pinned', 'in-pinned', 'gone'];
+    const expected = [
+      ['top', true, { x: 0, y: 0, width: 390, height: 20 }, ''],
+      ['edge', true, { x: 0, y: 20, width: 390, height: 20 }, ''],
+      ['wide', false, { x: 0, y: 40, width: 391, height: 20 }, 'it is not inside the first viewport, 390 × 900: its right edge is at 391'],
+      ['left', false, { x: -1, y: 60, width: 100, height: 20 }, 'it is not inside the first viewport, 390 × 900: its left edge is at -1'],
+      ['up', false, { x: 0, y: -1, width: 100, height: 20 }, 'it is not inside the first viewport, 390 × 900: its top edge is at -1'],
+      ['bottom-edge', true, { x: 0, y: 880, width: 100, height: 20 }, ''],
+      ['below', false, { x: 0, y: 881, width: 100, height: 20 }, 'it is not inside the first viewport, 390 × 900: its bottom edge is at 901'],
+      ['far', false, { x: 0, y: 2000, width: 100, height: 20 }, 'it is not inside the first viewport, 390 × 900: its bottom edge is at 2020'],
+      ['pinned', true, { x: 0, y: 880, width: 100, height: 20 }, ''],
+      ['in-pinned', true, { x: 340, y: 0, width: 50, height: 20 }, ''],
+      ['gone', false, null, 'not rendered: display: none on data-ux="gone"'],
+    ];
+    // The page's own scroll bar is hidden, so the viewport is the whole width at every scroll.
+    const head = '<style>html { scrollbar-width: none } p { margin: 0 }</style>';
+    assert.deepEqual(shown(await evaluate(body, ids.map(id => c(id, 'in-viewport')), { head })), expected);
+    // Scrolled 100 px across and 1500 px down: the far one is in view now, and is still not in the first
+    // viewport; the fixed ones are where they stay.
+    assert.deepEqual(shown(await evaluate(body, ids.map(id => c(id, 'in-viewport')), { head, then: () => window.scrollTo(100, 1500) })), expected);
+    // A scroll bar the page shows is not part of the viewport: here one down the side, and then one along
+    // the bottom, since the element is now wider than what is left.
+    const scrolled = await evaluate('<p data-ux="edge" style="margin: 0; width: 390px; height: 20px">edge</p><div style="height: 3000px"></div>', [c('edge', 'in-viewport')]);
+    assert.equal(scrolled[0].pass, false);
+    assert.match(scrolled[0].message, /^it is not inside the first viewport, 3\d\d × 8\d\d: its right edge is at 390$/);
+  });
+
+  test('min-size: the box at least minWidth by minHeight; its size is shown to two decimals, never rounded up', async () => {
+    const body = '<button data-ux="exact" style="all: unset; display: block; width: 44px; height: 44px">x</button><button data-ux="narrow" style="all: unset; display: block; width: 43.996px; height: 44px">x</button><button data-ux="short" style="all: unset; display: block; width: 44px; height: 43px">x</button><button data-ux="gone" style="display: none">x</button>';
+    const results = await evaluate(body, [
+      c('exact', 'min-size', { minWidth: 44, minHeight: 44 }),
+      c('narrow', 'min-size', { minWidth: 44, minHeight: 44 }),
+      c('short', 'min-size', { minWidth: 44, minHeight: 44 }),
+      c('gone', 'min-size', { minWidth: 44, minHeight: 44 }),
+      c('exact', 'min-size', { minHeight: 44 }),
+      c('exact', 'min-size', { minWidth: 44, minHeight: 0 }),
+      c('exact', 'min-size', { minWidth: '44', minHeight: 44 }),
+      // What JSON cannot carry, a driver can hand the function.
+      c('exact', 'min-size', { minWidth: Infinity, minHeight: 44 }),
+      c('exact', 'min-size', { minWidth: 44, minHeight: NaN }),
+    ]);
+    assert.deepEqual(shown(results), [
+      ['exact', true, { width: 44, height: 44 }, ''],
+      ['narrow', false, { width: 43.98, height: 44 }, 'its box is 43.98 × 44, less than 44 × 44'],
+      ['short', false, { width: 44, height: 43 }, 'its box is 44 × 43, less than 44 × 44'],
+      ['gone', false, { width: 0, height: 0 }, 'its box is 0 × 0, less than 44 × 44'],
+      ['exact', false, null, 'minWidth must be a number above 0'],
+      ['exact', false, null, 'minHeight must be a number above 0'],
+      ['exact', false, null, 'minWidth must be a number above 0'],
+      ['exact', false, null, 'minWidth must be a number above 0'],
+      ['exact', false, null, 'minHeight must be a number above 0'],
+    ]);
+  });
+
+  test('contrast: the text colour against the nearest background that is not transparent, translucent ones laid over what is behind them, the WCAG ratio', async () => {
+    const body = [
+      '<div style="background: #ffffff"><p data-ux="grey" style="color: #767676">grey</p></div>',
+      '<div style="background: #ffffff"><p data-ux="half-ink" style="color: rgba(0, 0, 0, 0.5)">half ink</p></div>',
+      '<div style="background: #000000"><div style="background: rgba(255, 255, 255, 0.5)"><p data-ux="veil" style="color: #000000">veil</p></div></div>',
+      '<p data-ux="bare" style="color: #767676">bare</p>',
+      '<div style="background: #000000"><button data-ux="own" style="background: #ffffff; color: #000000">own</button></div>',
+      '<div style="background: #ffffff"><p data-ux="modern" style="color: oklch(0 0 0)">modern</p></div>',
+      '<div style="background: #ffffff"><p data-ux="see-through" style="color: transparent">see-through</p></div>',
+      '<div style="background: #ffffff"><p data-ux="red" style="color: #ff0000">red</p></div>',
+      '<div style="background: #ffffff"><p data-ux="blue" style="color: #0000ff">blue</p></div>',
+    ].join('');
+    const ids = ['grey', 'half-ink', 'veil', 'bare', 'own', 'modern', 'see-through', 'red', 'blue'];
+    const results = await evaluate(body, [...ids.map(id => c(id, 'contrast', { min: 4.5 })), c('grey', 'contrast', { min: 4.55 }), c('grey', 'contrast', {}), c('grey', 'contrast', { min: 22 }), c('grey', 'contrast', { min: 0.5 }), c('grey', 'contrast', { min: '4.5' }), c('see-through', 'contrast', { min: 1 })]);
+    assert.deepEqual(shown(results), [
+      // #767676 on white: 4.54.
+      ['grey', true, 4.54, ''],
+      // Half-black ink laid on white is a grey of 127.5 each way: 3.97.
+      ['half-ink', false, 3.97, 'the contrast is 3.97, less than 4.5'],
+      // Half-white over black is the same grey behind black text: 5.28, not the 21 of black on white.
+      ['veil', true, 5.28, ''],
+      // No background anywhere: the canvas, white in light.
+      ['bare', true, 4.54, ''],
+      // Its own background is the nearest.
+      ['own', true, 21, ''],
+      // A colour written in another space is read in sRGB.
+      ['modern', true, 21, ''],
+      ['see-through', false, 1, 'the contrast is 1, less than 4.5'],
+      // Each channel weighs what WCAG says: red 0.2126, blue 0.0722 (and green the rest).
+      ['red', false, 3.99, 'the contrast is 3.99, less than 4.5'],
+      ['blue', true, 8.59, ''],
+      ['grey', false, 4.54, 'the contrast is 4.54, less than 4.55'],
+      ['grey', false, null, 'min must be a number from 1 to 21'],
+      ['grey', false, null, 'min must be a number from 1 to 21'],
+      ['grey', false, null, 'min must be a number from 1 to 21'],
+      ['grey', false, null, 'min must be a number from 1 to 21'],
+      // A ratio of exactly the minimum passes.
+      ['see-through', true, 1, ''],
+    ]);
+  });
+
+  test('contrast: the canvas is dark when the page asks for a dark scheme and the theme is dark, else white', async () => {
+    const body = '<p data-ux="ink" style="color: #767676">ink</p>';
+    const ratio = async (theme, head) => (await evaluate(body, [c('ink', 'contrast', { min: 1 })], { theme, head }))[0].actual;
+    // #767676 on #121212, the dark canvas: 4.12.
+    assert.equal(await ratio('dark', '<style>:root { color-scheme: light dark }</style>'), 4.12);
+    assert.equal(await ratio('dark', '<meta name="color-scheme" content="dark light">'), 4.12);
+    assert.equal(await ratio('light', '<style>:root { color-scheme: dark }</style>'), 4.12);
+    assert.equal(await ratio('light', '<style>:root { color-scheme: light dark }</style>'), 4.54);
+    assert.equal(await ratio('dark', ''), 4.54);
+    assert.equal(await ratio('dark', '<style>:root { color-scheme: light }</style>'), 4.54);
+  });
+
+  test('count: the elements whose data-ux starts with the target, inside the screen when one is named', async () => {
+    const body = '<section data-screen="today"><ul data-ux="rooms"><li data-ux="room-1">1</li><li data-ux="room-2" hidden>2</li></ul></section><section data-screen="book"><p data-ux="room-3">3</p></section><p data-ux="spare-room-4">4</p>';
+    const results = await evaluate(body, [
+      c('room-', 'count', { equals: 3 }),
+      c('room-', 'count', { equals: 2, screen: 'today' }),
+      c('room-', 'count', { equals: 1, screen: 'book' }),
+      c('room', 'count', { equals: 3 }),
+      c('desk-', 'count', { equals: 0 }),
+      c('room-', 'count', { equals: -1 }),
+      c('room-', 'count', { equals: 1.5 }),
+      c('room-', 'count', {}),
+    ]);
+    assert.deepEqual(shown(results), [
+      ['room-', true, 3, ''],
+      ['room-', true, 2, ''],
+      ['room-', true, 1, ''],
+      ['room', false, 4, '4 elements have a data-ux starting with "room"; the check wants 3'],
+      ['desk-', true, 0, ''],
+      ['room-', false, null, 'equals must be a whole number from 0'],
+      ['room-', false, null, 'equals must be a whole number from 0'],
+      ['room-', false, null, 'equals must be a whole number from 0'],
+    ]);
+  });
+});
+
+test('no product name appears in the acceptance scripts or the shared browser library', () => {
+  for (const file of [cli, INPAGE, join(here, '..', 'scripts', 'lib', 'browser.mjs'), acceptanceFile, ...['today-default-en', 'today-empty-en', 'today-default-es'].map(name => join(prototype, `${name}.html`))]) {
+    const text = readFileSync(file, 'utf8');
+    assert.doesNotMatch(text, /\bVerbato\b/i, file);
+    assert.doesNotMatch(text, /\bVersa\b/, file);
+  }
+});
+
+test('an error of the module is an AcceptError, and options are checked', async () => {
+  await assert.rejects(acceptPrototype({ design: 'today', checks: [] }, { root: prototype }), e => e instanceof AcceptError && e.message === 'the acceptance checks are not valid:\n  $.checks: must be a list of at least one check');
+  await assert.rejects(acceptPrototype(fixture(), {}), e => e instanceof TypeError && /^root must be the path of a folder/.test(e.message));
+  await assert.rejects(acceptPrototype(fixture(), { root: prototype, timeout: 0 }), e => e instanceof TypeError && /^timeout must be a whole number of milliseconds from 1/.test(e.message));
+});

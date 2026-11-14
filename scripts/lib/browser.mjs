@@ -40,9 +40,9 @@ export const contextOptions = (width, theme) => ({ viewport: { width, height: HE
 //   runs     [{ width, theme, files }]: each run is one context, its files opened in it in turn
 //   timeout  how long a page is given to load, to settle, and for each step on it, in milliseconds
 //   act      what is done with each page once it has settled and its document is known: { run(page,
-//            timeout) → a promise of the value kept, failed: what is said when run fails ("the picture could
-//            not be taken"), during: what is said of a page that left while it ran (" while it was being
-//            pictured"), unread: what is said when the page cannot be read once run }
+//            timeout, file, run) → a promise of the value kept, failed: what is said when run fails ("the
+//            picture could not be taken"), during: what is said of a page that left while it ran (" while it
+//            was being pictured"), unread: what is said when the page cannot be read once run }
 //   Refusal  the class of the error thrown when Chrome does not start, keeps stopping, or opens no page
 //   done     done(file, visit, run), awaited, for each file of each run in order, once it is done with:
 //            visit is { fault, read, value, reports, closing } (see visitPage), or { lost: true } when its
@@ -64,7 +64,7 @@ export async function visitPages(chrome, runs, { timeout = TIMEOUT, act, Refusal
         let visit = AGAIN_VISIT;
         for (let opening = 1; visit.next === AGAIN && opening <= OPENINGS; opening++) {
           context ??= await browsers.context(options);
-          visit = context === null ? AGAIN_VISIT : await visitPage(context, file, { timeout, act, browsers });
+          visit = context === null ? AGAIN_VISIT : await visitPage(context, file, { timeout, act, browsers, run });
           if (visit.next !== KEEP) {
             await browsers.stop();
             context = null;
@@ -185,7 +185,7 @@ export const firstLine = text => String(text).split('\n')[0].replace(/^[a-zA-Z]+
 //   reports  what went wrong as the page ran, each said once: script errors, console errors, resources that
 //            did not load, reports that could not be read
 //   closing  what is said when the page would not close, or null
-async function visitPage(context, file, { timeout, act, browsers }) {
+async function visitPage(context, file, { timeout, act, browsers, run }) {
   const target = pathToFileURL(resolve(file)).href;
   const folder = dirname(resolve(file));
   let page;
@@ -330,7 +330,7 @@ async function visitPage(context, file, { timeout, act, browsers }) {
   }
   if (!fault) {
     try {
-      value = await answer(act.run(page, timeout), timeout + CLOSE_MS);
+      value = await answer(act.run(page, timeout, file, run), timeout + CLOSE_MS);
     } catch (e) {
       fault = `${act.failed}: ${firstLine(e.message)}`;
     }

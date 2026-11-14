@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hoy, salas libres</title>
+<link rel="stylesheet" href="kit.css">
+<style>
+  /* El tamaño mínimo que pide el diseño para la acción principal de la pantalla. */
+  .ux-action.is-primary { min-width: 2.75rem; min-height: 2.75rem; }
+</style>
+</head>
+<body>
+<section class="ux-frame" data-screen="today">
+  <header><h2>Hoy</h2></header>
+  <div class="ux-screen">
+    <h3 class="ux-heading">Salas ahora mismo</h3>
+    <p class="ux-status" data-ux="free-count">2 salas libres</p>
+    <div class="ux-list" data-ux="room-list">Todas las salas, primero la que se libera antes
+      <ul>
+        <li data-ux="free-room-2">Sala 2 — libre hasta las 10:30</li>
+        <li data-ux="free-room-jardin">Sala Jardín — libre hasta las 11:15</li>
+        <li>Sala 1 — Dan con Maria K., hasta las 10:00</li>
+        <li>Sala 3 — en limpieza, lista a las 9:50</li>
+      </ul>
+    </div>
+    <button class="ux-action is-primary" type="button" data-ux="book-action">Reservar sin cita</button>
+  </div>
+</section>
+</body>
+</html>
