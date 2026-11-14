@@ -37,5 +37,5 @@ product. A project's own people, each of a profile, are in its own `pool/persons
 | `person.first-timer` | Her first morning at the front desk, nobody to ask, the screen open for the first time and a man waiting. |
 | `person.daily-expert` | Three years on this screen, the phone at her ear, her hand already where the button was yesterday. |
 | `person.hurried-on-a-phone` | Walking a corridor with her arms full, the phone in one hand, fifteen seconds, about to be interrupted. |
-| `person.keyboard-user` | Both hands on the keyboard and the mouse in a drawer: she has pressed Tab and is looking for where she is. |
-| `person.second-language-reader` | Reading the screen's language as her second, word by word, at a message she has to act on. |
+| `person.keyboard-user` | Alone at the desk after closing, the mouse in a drawer, fourteen bookings to move by keyboard before she can go home. |
+| `person.second-language-reader` | A quiet half hour, nobody watching, and a message in her second language that she must be sure of before she acts and replies. |

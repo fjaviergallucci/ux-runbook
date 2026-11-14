@@ -13,7 +13,7 @@ and change the setting.
 
 ## The moment
 
-It is ten past eight on Noor's first morning at the front desk of a small clinic. The colleague who was
+It is ten past eight on Marta's first morning at the front desk of a small clinic. The colleague who was
 going to show her round has called in sick. A note stuck to the monitor gives the address of the
 room-booking tool. She has typed it in and signed in, and the screen has just opened for the first time.
 She has never seen it, or any tool like it: at her last job the bookings were kept in a paper diary. A

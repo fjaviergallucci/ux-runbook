@@ -13,11 +13,11 @@ another product, keep her and change the setting.
 
 ## The moment
 
-Marta has run the front desk of a small clinic for three years, and the room-booking tool has been open
-on her screen for all of them. It is twenty to ten, the busiest quarter of an hour of her morning. The
-phone is wedged between her shoulder and her ear, a caller wants tomorrow's appointment moved, and her
-right hand is already travelling to where the button has always been. She stopped reading this screen
-long ago: she knows where things are. Overnight the screen was changed, and nobody told her.
+Noor has run the front desk of a small clinic for three years, and the room-booking tool has been open on
+her screen for all of them. It is twenty to ten, the busiest quarter of an hour of her morning. The phone
+is wedged between her shoulder and her ear, a caller wants tomorrow's appointment moved, and her right
+hand is already travelling to where the button has always been. She stopped reading this screen long ago:
+she knows where things are. Overnight the screen was changed, and nobody told her.
 
 ## The job
 
@@ -35,7 +35,7 @@ is saying "that's moved" without having looked at the screen for longer than a g
   whatever appears under her hand at that moment is pressed.
 - Take an added step in silence. A confirmation she did not need yesterday is counted forty times a day,
   and resented each time.
-- Walk through steps laid out for a beginner, or keep undoing a choice the screen made for her.
+- Walk through steps laid out for a beginner, or keep changing back a choice the screen made for her.
 - Look for a faster way that nobody showed her. The way she knows is the way she uses.
 
 ## The check

@@ -854,15 +854,30 @@ test('the task reader is the one audience card, and holds the decisions it was w
   );
 });
 
-test('the task reader is handed a person and pictures, and nothing that says what the design means to do', () => {
+test('the task reader is handed a person, her profile\'s traits and pictures, and nothing that says what the design means to do', () => {
   const { data, text } = cards.find(card => card.data.id === 'audience.task-reader');
-  for (const name of ['brief', 'person', 'pictures']) assert.ok(data.reads.includes(name), `it reads "${name}"`);
-  // The intent the tasks came from; the makers' reasoning, in each place it is written; the page's code; who made what, and what others found.
-  const blind = ['intent', 'describers-brief', 'maker-notes', 'states-and-rules', 'strings', 'prototype', 'author-map', 'other-ledgers', 'task-reads'];
-  for (const name of blind) assert.ok(data['never-reads'].includes(name), `"${name}" is in never-reads`);
+  // The whole of what it may open: her card, what is true of her profession, and the screens as pictures.
+  assert.deepEqual(data.reads, ['brief', 'person', 'profile-traits', 'pictures']);
+  // The whole of its blind list, in any order: the intent the tasks came from, and each folder that holds it;
+  // the profile, for the criteria in it; the makers' reasoning, in each place it is written; the page's code;
+  // who made what, and what others found.
+  const blind = [
+    'intent', 'package', 'handoff-folder', 'build', 'profile', 'describers-brief', 'maker-notes', 'states-and-rules', 'strings', 'prototype',
+    'author-map', 'other-ledgers', 'task-reads',
+  ];
+  assert.deepEqual([...data['never-reads']].sort(), [...blind].sort());
   assert.deepEqual(data.reads.filter(name => data['never-reads'].includes(name)), [], 'nothing is both read and never read');
+  // A profile's traits are the profile without what a judge holds a design to (ruling R131).
+  const names = Object.fromEntries(
+    codeRows(sectionOf(read('pool/CARD-FORMAT.md'), 'The names in `reads` and `never-reads`')).map(([name, what]) => [unspan(name), what]),
+  );
+  assert.ok(names['profile-traits'], 'pool/CARD-FORMAT.md has a row for "profile-traits"');
+  assert.match(names['profile-traits'], /every "So the interface must" line taken out/);
+  assert.match(names['profile-traits'], /what an audience is handed/);
   const method = flat(sectionOf(text, 'Method'));
   assert.match(method, /never the intent the tasks came from/);
+  assert.match(method, /handed its traits and no more/);
+  assert.match(method, /What an interface should do about them is not hers to know/);
   assert.match(method, /a person cannot find a control by reading markup/);
 });
 
@@ -871,6 +886,10 @@ test('the task reader answers six things for each task, ranks with the size of e
   const method = sectionOf(text, 'Method');
   inOrder(method, ANSWERS, 'the six answers');
   assert.match(flat(method), /Every answer points at something on the screen/);
+  // The tasks are the brief's, whatever job her own card gives her.
+  assert.match(flat(method), /The tasks are the brief's; her job says what "done" means to her/);
+  // No hesitation at all is where a simulated reader agrees too easily: the answer is sent back to the screen.
+  assert.match(flat(method), /name the nearest thing she could have pressed instead, and what on the screen told the two apart/);
   assert.match(flat(method), /each task, on each option, in her language/);
   inOrder(method, ['*clear*', '*slight*', '*tie*'], 'the size of a gap');
   assert.match(flat(method), /with the size of each gap, .* one reason/);

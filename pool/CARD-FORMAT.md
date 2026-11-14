@@ -171,6 +171,7 @@ use. A card that needs another adds its row here.
 | `build` | The built interface at Acceptance: what the builder wrote back (what was built and where, how to reach each state, what deviates), the files it built or changed, pictures of each state, and the results of the acceptance checks run in it. |
 | `package` | The design's package apart from the handoff folder: every stage's folder, with all the stages wrote. |
 | `profile` | A profession's profile card: its base, and the section for the specialty the design serves. |
+| `profile-traits` | A profile with every "So the interface must" line taken out: what is true, who it does not hold for, and the evidence. It is what an audience is handed, since those lines are what a judge holds a design to. |
 | `person` | One person's card: someone in a moment, with her job, what she never does and the one check. An audience is handed the one it is seated as. |
 | `product-facts` | The project's own record of what the product does and what may be said of it, where it keeps one. |
 | `earlier-ledger` | The same seat's ledger from an earlier read of the same artefact. On a re-read it is opened only after the artefact has been read again, cold. |
