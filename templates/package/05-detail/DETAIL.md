@@ -45,8 +45,8 @@ expansion opens; where it returns when that closes; where it goes after an error
 
 ## Edge cases
 
-{Screen by screen, what the structure shows at each of the edges your card names, and at this product's
-worst cases.}
+{Screen by screen, what the structure shows at each of the edges the interaction designer's card names,
+and at this product's worst cases.}
 
 ## Data map
 

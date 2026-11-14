@@ -574,7 +574,7 @@ test('DETAIL.md holds the rules, the data map and the dependencies, and takes wh
 test('the instructions cut to two lines kept what a filler cannot do without', () => {
   // The edges are the interaction designer's card's, all of them: the template lists none in part.
   const edges = flat(section(template('package/05-detail/DETAIL.md'), 'Edge cases'));
-  assert.match(edges, /each of the edges your card names/);
+  assert.match(edges, /each of the edges the interaction designer's card names/);
   assert.doesNotMatch(edges, /longest|two hundred|second press|narrowest/);
   // The blind rules name the session's own idea among what the describers do not see (design § 12).
   assert.match(flat(section(template('package/03-cast.md'), 'Blind rules')), /the describers[^.;]*each other[^.;]*the session's own idea[^.;]*today's screen/);
