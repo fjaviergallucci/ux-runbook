@@ -1526,6 +1526,68 @@ test('--out is never the brief, the profile or the keys file, with --text or wit
   assert.equal(s.server.requests.length, 2);
 });
 
+test('without --text the raw file beside --out is none of them either: it too is cleared just before the request', async t => {
+  const s = await setup(t, openaiSays(fenced(fixture('calendar.json'))));
+  const dir = fresh();
+  mkdirSync(join(dir, 'made-up'), { recursive: true });
+  // Each input of the run, named as the raw file of an --out beside it. The keys file is made up by the
+  // test, and never named like a credentials file.
+  const outs = { brief: join(dir, 'a brief.json'), profile: join(dir, 'a profile.json'), keys: join(dir, 'made-up', 'fake-dotenv.json') };
+  const briefPath = rawOf(outs.brief);
+  writeFileSync(briefPath, BRIEF);
+  const keys = rawOf(outs.keys);
+  writeFileSync(keys, `OPENAI_API_KEY=${KEY}\n`);
+  const profilePath = rawOf(outs.profile);
+  writeFileSync(profilePath, ['---', ON, keysLine(keys), '---', '', '# Project profile', ''].join('\n'));
+  const mine = { ...s, briefPath, profilePath };
+  const said = what => `the raw file beside --out, <out>.raw.txt, is ${what}: it would be removed, or an answer written over it`;
+  const cases = [
+    [outs.brief, briefPath, said('the brief itself')],
+    [outs.profile, profilePath, said('the profile itself')],
+    [outs.keys, keys, said('the keys file the profile names')],
+  ];
+  for (const [outPath, input, message] of cases) {
+    const before = readFileSync(input, 'utf8');
+    // Whether or not the environment holds a key, and before one is looked up.
+    for (const env of [watched().env, MADE_UP]) {
+      const e = await refusal(call(mine, { outPath, env }));
+      assert.ok(e instanceof UsageError, message);
+      assert.equal(e.message, message);
+    }
+    const { env, looked } = watched();
+    await refusal(call(mine, { outPath, env }));
+    assert.deepEqual(looked, [], `${message}: no key is looked up`);
+    assert.equal(readFileSync(input, 'utf8') === before, true, `${message}: the file is as it was`);
+    assert.equal(existsSync(outPath), false, `${message}: nothing is at --out`);
+  }
+  const r = await run(flagsOf({ ...mine, outPath: outs.brief }));
+  assert.equal(r.status, 2);
+  assert.equal(r.stdout, '');
+  assert.ok(r.stderr.startsWith(`${said('the brief itself')}\n\nUsage: `));
+  assert.equal(readFileSync(briefPath, 'utf8') === BRIEF, true, 'the brief is as it was');
+  // It is the same file however the brief is written: by the file, not by the words of its path.
+  const another = await refusal(call({ ...mine, briefPath: `${dir}/made-up/../a brief.json.raw.txt` }, { outPath: outs.brief, env: watched().env }));
+  assert.ok(another instanceof UsageError);
+  assert.equal(another.message, said('the brief itself'));
+  // It is usage: said before the brief is read, where the brief is missing too.
+  const early = await refusal(call({ ...mine, briefPath: join(dir, 'NO-BRIEF.md') }, { outPath: outs.profile, env: watched().env }));
+  assert.ok(early instanceof UsageError);
+  assert.equal(early.message, said('the profile itself'));
+  assert.equal(s.server.requests.length, 0);
+  // With --text no raw file is cleared or written, so a brief that is named as one is in no danger: the
+  // run goes ahead, and the brief is as it was.
+  const textOut = join(dir, 'an answer.txt');
+  const textBrief = rawOf(textOut);
+  writeFileSync(textBrief, BRIEF);
+  assert.equal((await call({ ...mine, briefPath: textBrief }, { text: true, outPath: textOut })).ok, true);
+  assert.equal(readFileSync(textBrief, 'utf8') === BRIEF, true, 'with --text, the brief is as it was');
+  // And without --text, an --out whose raw file is a file of its own goes ahead as before.
+  const kept = [briefPath, profilePath, keys].map(path => readFileSync(path, 'utf8'));
+  assert.equal((await call(mine, { outPath: join(dir, 'a proposal.json') })).ok, true);
+  assert.equal([briefPath, profilePath, keys].every((path, i) => readFileSync(path, 'utf8') === kept[i]), true, 'an input of the run changed');
+  assert.equal(s.server.requests.length, 2);
+});
+
 test('the usage gives --text a form of its own, and says what the switch is for', async () => {
   const help = await run(['--help']);
   assert.equal(help.status, 0);
@@ -1545,6 +1607,9 @@ test('the usage gives --text a form of its own, and says what the switch is for'
   assert.match(said, /written whole, as it came, to --out/);
   assert.match(said, /\.txt, \.md or \.html/);
   assert.match(said, /Exit codes: 0 a proposal is written, or with --text the answer · 1 /);
+  // What --out may never be is said once, of both modes, and not as the rule of --text alone.
+  assert.match(said, /In either mode --out is never the brief, the profile or the keys file, and without --text neither is the raw file beside it: each would be written over/);
+  assert.doesNotMatch(said, /\.txt, \.md or \.html file\. Never/);
 });
 
 // --- 18. The script's text ---------------------------------------------------------------------------

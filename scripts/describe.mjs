@@ -9,7 +9,7 @@
 //   1. the profile: an outside engine is off until the project profile's engines-on list holds
 //      model:<provider>;
 //   2. the usage: the model id, the address, the timeout and --out, which is none of the run's own
-//      inputs: not the brief, the profile or the keys file;
+//      inputs: not the brief, the profile or the keys file; nor, without --text, is the raw file beside it;
 //   3. the brief: it must hold text;
 //   4. the key: found by name, in the environment, else in the dotenv file the profile's keys-file names;
 //      the command line takes neither a key nor a keys file;
@@ -140,9 +140,13 @@ export async function describe({ provider, model, briefPath, outPath, profilePat
   }
   if (typeof briefPath !== 'string' || briefPath === '') throw new UsageError('--brief is missing');
   // What an earlier run left at --out is cleared just before the request, and the answer is then written
-  // there: so --out is none of the run's own inputs, with --text or without.
+  // there: so --out is none of the run's own inputs, with --text or without. Without --text the same is
+  // done to the raw file beside it, so that is none of them either.
   for (const [input, what] of [[briefPath, 'the brief itself'], [profilePath, 'the profile itself'], [keysFile, 'the keys file the profile names']]) {
     if (sameFile(outPath, input)) throw new UsageError(`--out is ${what}: the answer would overwrite it`);
+    if (!asText && sameFile(rawOf(outPath), input)) {
+      throw new UsageError(`the raw file beside --out, <out>.raw.txt, is ${what}: it would be removed, or an answer written over it`);
+    }
   }
   // 3. The brief.
   const brief = readBrief(briefPath);
@@ -458,8 +462,9 @@ and an answer that holds the key, as written or in JSON's escapes, is saved nowh
   --model <id>        the provider's model id: letters, digits, ".", "_" and "-"
   --brief <file>      the brief to send
   --out <file.json>   where the proposal is written; the folders above it are made when missing.
-                      With --text, where the answer is written: a .txt, .md or .html file. Never
-                      the brief, the profile or the keys file: the answer would overwrite it
+                      With --text, where the answer is written: a .txt, .md or .html file.
+                      In either mode --out is never the brief, the profile or the keys file, and
+                      without --text neither is the raw file beside it: each would be written over
   --text              write the answer whole and look for no proposal in it
   --profile <file>    the project profile
   --endpoint <url>    a stand-in for the provider on this machine, as in the kit's tests: http: or
