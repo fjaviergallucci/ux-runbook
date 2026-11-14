@@ -48,9 +48,9 @@ const ABSOLUTE = /^[/\\]/;
 const SCHEME = /^[a-zA-Z][a-zA-Z0-9+.-]*:/;
 const CONTROL = /[\u0000-\u001f\u007f]/;
 const isPicture = v => typeof v === 'string' && v.trim() === v && v !== '' && !CONTROL.test(v) && !ABSOLUTE.test(v) && !SCHEME.test(v);
-// A browser reads # as the start of a fragment, ? of a query and % of an escape: a path holding one names
-// one file on the disk and another to the page.
-const ADDRESS_MARKS = /[#?%]/;
+// A browser reads # as the start of a fragment, ? of a query, % of an escape, and a backslash as a slash: a
+// path holding one names one file on the disk and another to the page.
+const ADDRESS_MARKS = /[#?%\\]/;
 
 const isObject = v => v !== null && typeof v === 'object' && !Array.isArray(v);
 const isText = v => typeof v === 'string' && v.trim() !== '';
@@ -133,7 +133,7 @@ function checkShown(holder, at, what, fail) {
     holder.images.forEach((image, i) => {
       if (!isPicture(image)) fail(`${at}.images[${i}]`, `must be ${PICTURE}; it is ${show(image)}`);
       else if (ADDRESS_MARKS.test(image)) {
-        fail(`${at}.images[${i}]`, `a picture path cannot hold "#", "?" or "%": a browser reads them as part of an address, so it would not find the file the disk holds; it is ${show(image)}`);
+        fail(`${at}.images[${i}]`, `a picture path cannot hold "#", "?", "%" or "\\": a browser reads them as part of an address, a backslash as "/", so it would not find the file the disk holds; it is ${show(image)}`);
       }
     });
   }
@@ -164,7 +164,8 @@ function checkSeat(seat, at, letters, said, fail) {
   need(seat, 'line', isText, TEXT, at, fail);
   const on = Object.hasOwn(seat, 'option');
   if (on) names(seat, at, letters, fail);
-  if (!named) return;
+  // A line on an option that is not on the page is that fault alone, not a second line of its seat.
+  if (!named || (on && !letters?.has(seat.option))) return;
   const key = JSON.stringify([seat.seat, on ? seat.option : null]);
   if (said.has(key)) {
     const where = on ? `on option ${seat.option}` : 'with no option';
@@ -245,7 +246,7 @@ const STYLE = `:root {
 *, *::before, *::after { box-sizing: border-box; }
 body {
   margin: 0 auto;
-  max-width: 84rem;
+  max-width: 90rem;
   padding: 1.5rem 1rem 3rem;
   background: var(--page);
   color: var(--ink);
@@ -260,8 +261,9 @@ h3 { margin: 0 0 0.5rem; font-size: 1.0625rem; line-height: 1.35; }
 p { margin: 0 0 0.5rem; }
 .options h2 { margin-top: 0; }
 /* The options in one row, and the gallery's items in another: a row wider than the page scrolls sideways
-   on its own, the page never. A column holds a phone-width picture at its own width; on a phone a column
-   takes the whole width. */
+   on its own, the page never. A column holds a phone-width picture at its own width, and three columns fit
+   side by side in a window 1440 wide (the page is 90rem at most); on a phone a column takes the whole
+   width. */
 .row { display: flex; align-items: flex-start; gap: 1rem; overflow-x: auto; padding-bottom: 0.5rem; }
 .option, .item { flex: 0 0 auto; width: min(27rem, 100%); padding: 1rem; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
 .letter {
@@ -354,7 +356,7 @@ function drawShown(heading, holder, label, kind) {
 // A picture's file name, without its folder and its extension: "shots/A-1280-light.png" is A-1280-light.
 // A name that is all extension (".plain") is kept whole, and a path with no name is shown as written.
 function fileName(path) {
-  const name = path.split(/[\\/]/).pop();
+  const name = path.split('/').pop();
   const dot = name.lastIndexOf('.');
   return (dot > 0 ? name.slice(0, dot) : name) || path;
 }
@@ -411,8 +413,8 @@ question mark in all: "?", "\uFF1F" or "\u061F"); when the reason is more than o
 recommendation or a seat names an option that is not on the page; when an option has no letter or
 shows neither a picture nor a line; when two options share a letter; when a seat says two lines on one
 option, or two on none; when an open finding lacks its seat or its line; when a picture path holds "#",
-"?" or "%"; when the identity lacks any of design, kind, size, stage and of; when a key is unknown; or,
-the page finding its pictures from its own folder,
+"?", "%" or a backslash; when the identity lacks any of design, kind, size, stage and of; when a key is
+unknown; or, the page finding its pictures from its own folder,
 when a picture it names is not a file in the folder of --out.
 
   --out <decision.html>   the page to write, not the data itself; its folder is made when it is not

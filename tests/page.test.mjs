@@ -104,6 +104,9 @@ test('a seat says at most one line on each option, and at most one line on no op
   valid(changed(d => d.seats.push({ seat: 'judge.profile', line: 'A is slower.', option: 'A' })), 'another option');
   valid(changed(d => d.seats.push({ seat: 'judge.profile', line: 'On the whole, B.' })), 'no option beside an option');
   valid(changed(d => d.seats.push({ seat: 'judge.truth', line: 'C holds a fact the product lacks.', option: 'C' })), 'an option beside none');
+  // A line whose option is not a letter on the page is its own fault, not a second line of its seat.
+  const nulls = changed(d => d.seats.push({ seat: 'judge.truth', line: 'Again.', option: null }, { seat: 'judge.truth', line: 'Once more.', option: null }));
+  assert.deepEqual(validateDecision(nulls), ['seats[4]: "option" names null, which is no option on this page', 'seats[5]: "option" names null, which is no option on this page']);
   // Two lines with no seat named are two faults of their own, not a second line of one seat.
   const nameless = changed(d => {
     delete d.seats[1].seat;
@@ -241,9 +244,9 @@ test('an image is a relative path, as written: an absolute path, a URL, a scheme
   }
 });
 
-test('a picture path holding #, ? or % is refused: a browser reads them as part of an address, the disk does not', () => {
-  for (const path of ['shots/A#1.png', 'shots/A?.png', 'shots/A%201280.png', '#', '?', '%']) {
-    refuses(changed(d => (d.options[0].images[1] = path)), /^options\[0\]\.images\[1\]: a picture path cannot hold "#", "\?" or "%": a browser reads them as part of an address, so it would not find the file the disk holds; it is /, path);
+test('a picture path holding #, ?, % or a backslash is refused: a browser reads them as part of an address, the disk does not', () => {
+  for (const path of ['shots/A#1.png', 'shots/A?.png', 'shots/A%201280.png', '#', '?', '%', 'shots\\A.png', 'fresh\\today-2.png']) {
+    refuses(changed(d => (d.options[0].images[1] = path)), /^options\[0\]\.images\[1\]: a picture path cannot hold "#", "\?", "%" or "\\": a browser reads them as part of an address, a backslash as "\/", so it would not find the file the disk holds; it is /, path);
     refuses(changed(d => (d.gallery.items[0].images[0] = path)), /^gallery\.items\[0\]\.images\[0\]: a picture path cannot hold/, `gallery ${path}`);
   }
 });
@@ -327,6 +330,13 @@ test('the page is one self-contained file: inline styles with a light and a dark
   const pictures = [...page.matchAll(/<img src="([^"]*)"/g)].map(([, src]) => src);
   assert.deepEqual(pictures, [...data.options, ...data.gallery.items].map(shown => shown.images[0]));
   for (const src of pictures) assert.equal(count(page, `<a class="picture" href="${src}"><img src="${src}" `), 1, src);
+  // Three columns, each holding a phone picture whole, fit side by side in a window 1440 wide.
+  const rem = (rule, property) => Number(style.match(new RegExp(`${rule} \\{[^}]*?\\b${property}: (?:min\\()?([\\d.]+)rem`))[1]);
+  const [page_, column, gap, cardPad] = [rem('body', 'max-width'), rem('\\.option, \\.item', 'width'), rem('\\.row', 'gap'), rem('\\.option, \\.item', 'padding')];
+  const bodyPad = Number(style.match(/body \{[^}]*?padding: [\d.]+rem ([\d.]+)rem/)[1]);
+  assert.ok(3 * column + 2 * gap <= page_ - 2 * bodyPad, `three columns of ${column}rem and two gaps fit in ${page_}rem less its padding`);
+  assert.ok(page_ * 16 <= 1440, `the page is at most 1440 px wide: ${page_ * 16}`);
+  assert.ok((column - 2 * cardPad) * 16 - 2 >= 390 + 2, 'a column holds a 390 px picture and its border');
   // The options' row scrolls sideways on its own; nothing else declares an overflow, so the page never does.
   assert.match(style.match(/\.row \{[^}]*\}/)[0], /overflow-x: auto;/);
   assert.equal(style.match(/\boverflow(-[xy])?\s*:/g).length, 1, 'one overflow declared: the row\'s');
@@ -385,7 +395,7 @@ test('an option or a gallery item with three pictures draws exactly one, and lin
   const three = ['shots/A-390-light.png', 'shots/A-1280-light.png', 'shots/more/A-1280-dark.final.webp'];
   const data = changed(d => {
     d.options[0].images = three;
-    d.gallery.items[0].images = ['fresh/today-1.png', 'fresh\\today-2.png', '../fresh/.plain'];
+    d.gallery.items[0].images = ['fresh/today-1.png', 'fresh/more/today-2.png', '../fresh/.plain'];
   });
   const page = renderDecision(data);
   const article = page.match(/<article class="option">\n<h3><span class="letter">A<\/span>[\s\S]*?<\/article>\n/)[0];
@@ -396,7 +406,7 @@ test('an option or a gallery item with three pictures draws exactly one, and lin
   const item = sectionOf(page, 'gallery');
   assert.equal(count(item, '<img '), 1);
   assert.ok(item.includes('<a class="picture" href="fresh/today-1.png"><img src="fresh/today-1.png" alt="Gallery item 1, picture 1 of 3"></a>'));
-  assert.ok(item.includes('<li><a href="fresh\\today-2.png">today-2</a></li>\n<li><a href="../fresh/.plain">.plain</a></li>'));
+  assert.ok(item.includes('<li><a href="fresh/more/today-2.png">today-2</a></li>\n<li><a href="../fresh/.plain">.plain</a></li>'));
   // Every picture the data names is still on the page, once as an address of its own.
   for (const image of [...three, ...data.gallery.items[0].images]) assert.equal(count(page, `href="${image}"`), 1, image);
 });
@@ -615,7 +625,7 @@ test('in Chrome: the options in one row that scrolls on its own, one whole pictu
   writeFileSync(file, renderDecision(data));
   const browser = await chromium.launch({ executablePath: findChrome(), headless: true });
   try {
-    for (const width of [1280, 390]) {
+    for (const width of [1440, 1280, 390]) {
       const context = await browser.newContext({ viewport: { width, height: 900 }, deviceScaleFactor: 1, reducedMotion: 'reduce' });
       const page = await context.newPage();
       await page.goto(pathToFileURL(file).href);
@@ -648,9 +658,12 @@ test('in Chrome: the options in one row that scrolls on its own, one whole pictu
       assert.equal(seen.overflow, false, `${width}: the page itself never scrolls sideways`);
       assert.equal(seen.last, true, `${width}: the question is the last element of the body`);
       assert.deepEqual(seen.inView, [true, true, true], `${width}: the question is in view at the top, the middle and the end`);
-      assert.equal(seen.scrolls, true, `${width}: the row of options scrolls sideways on its own`);
+      assert.equal(seen.scrolls, width < 1440, `${width}: the row of options scrolls sideways on its own only when it must`);
       assert.deepEqual(seen.options.map(option => option.pictures), [1, 1, 1], `${width}: one picture an option`);
-      if (width === 1280) {
+      if (width === 1440) {
+        const whole = seen.options.filter(option => option.left >= 0 && option.right <= width);
+        assert.equal(whole.length, 3, `${width}: three options side by side, nothing cut: ${JSON.stringify(seen.options)}`);
+      } else if (width === 1280) {
         const whole = seen.options.filter(option => option.left >= 0 && option.right <= width);
         assert.ok(whole.length >= 2, `${width}: two options side by side in the first screen: ${JSON.stringify(seen.options)}`);
       } else {
@@ -662,7 +675,7 @@ test('in Chrome: the options in one row that scrolls on its own, one whole pictu
         assert.ok(loaded && link && fit === 'fill', at);
         assert.ok(Math.abs(shown[1] - (shown[0] * natural[1]) / natural[0]) <= 1, `${at}: whole, never cropped`);
         assert.ok(shown[0] <= natural[0], `${at}: never blown up`);
-        if (width === 1280) assert.equal(shown[0], 390, `${at}: a phone picture at its own width`);
+        if (width > 390) assert.equal(shown[0], 390, `${at}: a phone picture at its own width`);
         else assert.ok(shown[0] >= 300, `${at}: as wide as the phone allows`);
       }
       await context.close();

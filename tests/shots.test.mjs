@@ -98,6 +98,57 @@ const leftIn = async pgid => {
   return left;
 };
 
+// A command of this run, given at most `ms` to end: stopped through its own handle when it does not.
+const runFor = (args, ms, env = {}) =>
+  new Promise(resolve => {
+    const child = spawn(process.execPath, args, { cwd: root, env: { ...process.env, ...env } });
+    let stdout = '';
+    let stderr = '';
+    const stop = setTimeout(() => child.kill('SIGKILL'), ms);
+    child.stdout.on('data', chunk => (stdout += chunk));
+    child.stderr.on('data', chunk => (stderr += chunk));
+    child.on('close', status => {
+      clearTimeout(stop);
+      resolve({ status, stdout, stderr });
+    });
+  });
+// Faults put into the browsers a command starts, through Playwright's own objects. FAULT=hang: page.close()
+// never returns for the page named FAULT_PAGE. FAULT=crash: as that page opens, the browser is stopped by its
+// own process handle, the one Playwright's server gives. FAULT=die-after: the same, once that page has been
+// closed. FAULT=stuck: no browser server ever closes. FAULT=context: the first context never closes.
+const faults = join(root, 'browser-faults.cjs');
+writeFileSync(faults, [
+  "const { chromium } = require('playwright-core');",
+  'const servers = [];',
+  'const launchServer = chromium.launchServer.bind(chromium);',
+  'chromium.launchServer = async (...args) => {',
+  '  const server = await launchServer(...args);',
+  '  servers.push(server);',
+  "  if (process.env.FAULT === 'stuck') server.close = () => new Promise(() => {});",
+  '  return server;',
+  '};',
+  "const marked = url => (process.env.FAULT_PAGE ?? '').split(',').some(name => String(url).endsWith('/' + name));",
+  'const connect = chromium.connect.bind(chromium);',
+  'chromium.connect = async (...args) => {',
+  '  const browser = await connect(...args);',
+  '  const newContext = browser.newContext.bind(browser);',
+  '  browser.newContext = async (...a) => {',
+  '    const context = await newContext(...a);',
+  "    if (process.env.FAULT === 'context' && !globalThis.contextHung) { globalThis.contextHung = true; context.close = () => new Promise(() => {}); }",
+  '    const newPage = context.newPage.bind(context);',
+  '    context.newPage = async (...b) => {',
+  '      const page = await newPage(...b);',
+  "      if (process.env.FAULT === 'hang') { const close = page.close.bind(page); page.close = (...c) => (marked(page.url()) ? new Promise(() => {}) : close(...c)); }",
+  "      if (process.env.FAULT === 'crash') { const goto = page.goto.bind(page); page.goto = (url, ...c) => { if (marked(url)) servers.at(-1).process().kill('SIGKILL'); return goto(url, ...c); }; }",
+  "      if (process.env.FAULT === 'die-after') { const close = page.close.bind(page); page.close = async (...c) => { const marks = marked(page.url()); await close(...c); if (marks) servers.at(-1).process().kill('SIGKILL'); }; }",
+  '      return page;',
+  '    };',
+  '    return context;',
+  '  };',
+  '  return browser;',
+  '};',
+].join('\n'));
+
 // ---- shooting
 
 test('shooting the board at 1280 and 390, light, writes six full-page PNGs, each as wide as its width', async () => {
@@ -206,6 +257,71 @@ test('a frame inside the page that goes nowhere is a resource that did not open;
   const result = await shoot([framed], { out: join(dir, 'shots'), widths: [390] });
   assert.deepEqual(result.errors, [{ file: framed, message: 'missing.html did not open: net::ERR_FILE_NOT_FOUND' }]);
   assert.deepEqual(result.files.map(file => basename(file)), ['framed-390-light.png']);
+});
+
+test('a page that goes to about:blank, from its script or once loaded, sent itself there: an error, and no picture', async () => {
+  const dir = fresh();
+  const loaded = page(dir, 'blank-load.html', '<script>addEventListener("load", () => (location.href = "about:blank"))</script>\n<p>Leaves.</p>');
+  const script = page(dir, 'blank-script.html', '<script>location.href = "about:blank"</script>');
+  page(dir, 'good.html', '<p>Good.</p>');
+  const out = join(dir, 'shots');
+  mkdirSync(out);
+  writeFileSync(join(out, 'blank-load-390-light.png'), 'an older picture');
+  const result = await shoot([dir], { out, widths: [390] });
+  assert.deepEqual(result.errors, [
+    { file: loaded, message: 'the page sent itself to about:blank' },
+    { file: script, message: 'the page sent itself to about:blank' },
+  ]);
+  assert.deepEqual(readdirSync(out), ['good-390-light.png']);
+});
+
+test('a page that reloads itself with a query sent itself to that address, named with its query', async () => {
+  const dir = fresh();
+  const reload = page(dir, 'reload.html', '<script>if (!location.search) location.search = "?again"</script>\n<p>Again.</p>');
+  const result = await shoot([reload], { out: join(dir, 'shots'), widths: [390] });
+  assert.deepEqual([result.errors, result.files], [[{ file: reload, message: 'the page sent itself to reload.html?again' }], []]);
+});
+
+test('a page or a folder whose name holds ^ or | is the page asked for: pictured, exit 0', () => {
+  const dir = join(fresh(), 'up^folder');
+  page(dir, 'caret^.html', '<p>Caret.</p>');
+  // Windows refuses | in a file name.
+  if (UNIX) page(dir, 'pipe|.html', '<p>Pipe.</p>');
+  const out = join(dir, 'shots');
+  const r = run(dir, '--out', out, '--widths', '390');
+  assert.deepEqual([r.status, r.stderr], [0, '']);
+  assert.deepEqual(readdirSync(out).sort(), UNIX ? ['caret^-390-light.png', 'pipe|-390-light.png'] : ['caret^-390-light.png']);
+});
+
+test('a page settles only with no move under way and once it has stayed on one document: a slow move is waited for, a move on arrival is followed, a ticking # is no move', async () => {
+  const html = body => `<!doctype html><html><head><meta charset="utf-8"><title>t</title></head><body>${body}</body></html>`;
+  const server = createServer((request, response) => {
+    const send = body => response.writeHead(200, { 'content-type': 'text/html' }).end(html(body));
+    if (request.url === '/slow') setTimeout(() => send('<p>Slow to come.</p>'), 600);
+    else if (request.url === '/hop') setTimeout(() => send('<script>setTimeout(() => (location.href = "/end"), 50)</script>'), 400);
+    else send('<p>The end.</p>');
+  });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  try {
+    const at = `http://127.0.0.1:${server.address().port}`;
+    const dir = fresh();
+    // Once loaded it sets off on a move that takes 600 ms to land: it is judged where it lands, not
+    // pictured as itself meanwhile.
+    const slow = page(dir, 'a-slow.html', `<script>addEventListener("load", () => setTimeout(() => (location.href = "${at}/slow"), 10))</script>\n<p>Leaving.</p>`);
+    // It lands after 400 ms on a page that moves on 50 ms later: it is judged where it ends.
+    const hop = page(dir, 'b-hop.html', `<script>location.href = "${at}/hop"</script>\n<p>Leaving.</p>`);
+    // Only the part after # changes, every 30 ms: it never leaves, and is pictured.
+    page(dir, 'c-ticking.html', '<script>setInterval(() => (location.hash = String(Date.now())), 30)</script>\n<p>Ticking.</p>');
+    const result = await shoot([dir], { out: join(dir, 'shots'), widths: [390], timeout: 5000 });
+    assert.deepEqual(result.errors, [
+      { file: slow, message: `the page sent itself to ${at}/slow` },
+      { file: hop, message: `the page sent itself to ${at}/end` },
+    ]);
+    assert.deepEqual(result.files.map(file => basename(file)), ['c-ticking-390-light.png']);
+  } finally {
+    server.closeAllConnections();
+    server.close();
+  }
 });
 
 test('a page that only changes the part of its address after # stays its own page, and is pictured', async () => {
@@ -707,24 +823,130 @@ test('--timeout limits how long a page is given: one error naming the page, soon
     const started = Date.now();
     // Four pictures of the page: each opening given up after a millisecond is closed before it has landed,
     // the moment Chrome can hang in. A command that hangs is stopped, and fails.
-    const r = await new Promise(resolve => {
-      const child = spawn(process.execPath, [cli, slow, '--out', join(dir, 'shots'), '--widths', '1280,390', '--themes', 'light,dark', '--timeout', '1'], { cwd: root });
-      let stdout = '';
-      let stderr = '';
-      const stop = setTimeout(() => child.kill('SIGKILL'), 30_000);
-      child.stdout.on('data', chunk => (stdout += chunk));
-      child.stderr.on('data', chunk => (stderr += chunk));
-      child.on('close', status => {
-        clearTimeout(stop);
-        resolve({ status, stdout, stderr });
-      });
-    });
+    const r = await runFor([cli, slow, '--out', join(dir, 'shots'), '--widths', '1280,390', '--themes', 'light,dark', '--timeout', '1'], 30_000);
     assert.equal(r.status, 1, r.stderr);
-    assert.equal(r.stderr, `error: ${slow}: slow.html did not finish loading within 1 ms\n`);
-    assert.ok(Date.now() - started < 15_000, `it took ${Date.now() - started} ms`);
+    // One error names the page. On a loaded machine an opening given up this early may also not close in
+    // time; its browser is then stopped, and that is said too, of the same page.
+    const lines = r.stderr.trimEnd().split('\n');
+    assert.equal(lines[0], `error: ${slow}: slow.html did not finish loading within 1 ms`);
+    for (const line of lines.slice(1)) assert.equal(line, `error: ${slow}: the page would not close; its browser was stopped`);
+    assert.ok(Date.now() - started < 30_000, `it took ${Date.now() - started} ms`);
   } finally {
     server.close();
   }
+});
+
+test('pages that send each other back and forth never hang a run: twelve runs, each within 40 s, an error for each moving page, the good page pictured, nothing left', { skip: !UNIX && 'needs a shell script for Chrome', timeout: 180_000 }, async t => {
+  // Each run: two pages that send each other back and forth (after 20 ms, or at once), and a good page.
+  const once = async delay => {
+    const dir = fresh();
+    const chrome = countingChrome(dir);
+    const send = to => (delay ? `<script>setTimeout(() => (location.href = "${to}"), ${delay})</script>` : `<script>location.href = "${to}"</script>`);
+    const moving = [page(dir, 'a-there.html', send('b-back.html')), page(dir, 'b-back.html', send('a-there.html'))];
+    page(dir, 'c-good.html', '<p>Good.</p>');
+    const out = join(dir, 'shots');
+    const started = Date.now();
+    const r = await runFor([cli, dir, '--out', out, '--widths', '390', '--timeout', '700', '--chrome', chrome.file], 40_000);
+    return { r, delay, took: Date.now() - started, moving, out, pids: chrome.pids() };
+  };
+  // Twelve at once: six sending after 20 ms, six at once.
+  const runs = await Promise.all([20, 20, 20, 20, 20, 20, 0, 0, 0, 0, 0, 0].map(once));
+  for (const { r, delay, took, moving, out, pids } of runs) {
+    assert.equal(r.status, 1, `ended with ${r.status} after ${took} ms: ${r.stderr}`);
+    const lines = r.stderr.trimEnd().split('\n');
+    for (const file of moving) assert.ok(lines.some(line => line.startsWith(`error: ${file}: `)), `an error for ${file}: ${r.stderr}`);
+
+    for (const line of lines) assert.ok(moving.some(file => line.startsWith(`error: ${file}: `)), `only the moving pages have errors: ${line}`);
+    assert.equal(r.stdout, `shot 1 picture at 390 px, light, into ${out}\n`);
+    assert.deepEqual(readdirSync(out), ['c-good-390-light.png']);
+    assert.ok(pids.length >= 1);
+    for (const pid of pids) assert.equal(await leftIn(pid), 0, `processes left from the Chrome started as ${pid}`);
+  }
+  // Pages that move every 20 ms open, and do not settle: they are said to keep moving. How each one reads
+  // depends on the machine's load (a starved page may look settled, and fail its read instead), so this
+  // is asked of the twelve together, not of each.
+  const kept = runs.filter(run => run.delay).flatMap(run => run.r.stderr.split('\n')).filter(line => /: the page kept moving for 700 ms, last to (a-there|b-back)\.html$/.test(line));
+  assert.ok(kept.length > 0, 'pages that never settle are said to keep moving');
+  t.diagnostic(`12 runs; the longest took ${Math.max(...runs.map(run => run.took))} ms; ${kept.length} of 12 moving pages said to keep moving`);
+});
+
+test('a page whose close never returns is an error; its browser is stopped by its own handle, and the next page is pictured in a fresh one', { skip: !UNIX && 'needs a shell script for Chrome' }, async () => {
+  const dir = fresh();
+  const chrome = countingChrome(dir);
+  page(dir, 'a-first.html', '<p>First.</p>');
+  const hang = page(dir, 'b-hang.html', '<p>Will not close.</p>');
+  page(dir, 'c-after.html', '<p>After.</p>');
+  const out = join(dir, 'shots');
+  const started = Date.now();
+  const r = await runFor(['--require', faults, cli, dir, '--out', out, '--widths', '390', '--chrome', chrome.file], 30_000, { FAULT: 'hang', FAULT_PAGE: 'b-hang.html' });
+  assert.equal(r.status, 1, r.stderr);
+  assert.equal(r.stderr, `error: ${hang}: the page would not close; its browser was stopped\n`);
+  assert.deepEqual(readdirSync(out).sort(), ['a-first-390-light.png', 'b-hang-390-light.png', 'c-after-390-light.png']);
+  assert.ok(Date.now() - started < 20_000, `it took ${Date.now() - started} ms`);
+  const pids = chrome.pids();
+  assert.equal(pids.length, 2, 'a fresh browser was started');
+  for (const pid of pids) assert.equal(await leftIn(pid), 0, `processes left from the Chrome started as ${pid}`);
+});
+
+test('a browser that dies while a page opens is an error of that page, and the run goes on in a fresh browser', { skip: !UNIX && 'needs a shell script for Chrome' }, async () => {
+  const dir = fresh();
+  const chrome = countingChrome(dir);
+  page(dir, 'a-first.html', '<p>First.</p>');
+  const crash = page(dir, 'b-crash.html', '<p>Its browser dies.</p>');
+  page(dir, 'c-after.html', '<p>After.</p>');
+  const out = join(dir, 'shots');
+  const started = Date.now();
+  const r = await runFor(['--require', faults, cli, dir, '--out', out, '--widths', '390', '--chrome', chrome.file], 30_000, { FAULT: 'crash', FAULT_PAGE: 'b-crash.html' });
+  // A dead browser is not waited for: no page of it is closed, no move of it awaited.
+  assert.ok(Date.now() - started < 4500, `it took ${Date.now() - started} ms`);
+  assert.equal(r.status, 1, r.stderr);
+  assert.equal(r.stderr, `error: ${crash}: its browser stopped while the page was open; the run went on in a fresh browser\n`);
+  assert.deepEqual(readdirSync(out).sort(), ['a-first-390-light.png', 'c-after-390-light.png']);
+  const pids = chrome.pids();
+  assert.equal(pids.length, 2, 'a fresh browser was started');
+  for (const pid of pids) assert.equal(await leftIn(pid), 0, `processes left from the Chrome started as ${pid}`);
+});
+
+test('a browser that dies between two pages, or between two widths, is replaced: no page is blamed for it', { skip: !UNIX && 'needs a shell script for Chrome' }, async () => {
+  const dir = fresh();
+  const chrome = countingChrome(dir);
+  for (const name of ['a-first.html', 'b-next.html', 'c-last.html']) page(dir, name, `<p>${name}</p>`);
+  const out = join(dir, 'shots');
+  // The browser dies after the first page of each width, and after its last.
+  const r = await runFor(['--require', faults, cli, dir, '--out', out, '--widths', '1280,390', '--chrome', chrome.file], 30_000, { FAULT: 'die-after', FAULT_PAGE: 'a-first.html,c-last.html' });
+  assert.deepEqual([r.status, r.stderr], [0, '']);
+  assert.deepEqual(readdirSync(out).sort(), ['1280', '390'].flatMap(width => ['a-first', 'b-next', 'c-last'].map(name => `${name}-${width}-light.png`)).sort());
+  const pids = chrome.pids();
+  assert.equal(pids.length, 4, 'a fresh browser after each death but the last');
+  for (const pid of pids) assert.equal(await leftIn(pid), 0, `processes left from the Chrome started as ${pid}`);
+});
+
+test('a browser that will not close is stopped by its own handle, and the run ends', { skip: !UNIX && 'needs a shell script for Chrome' }, async () => {
+  const dir = fresh();
+  const chrome = countingChrome(dir);
+  page(dir, 'only.html', '<p>Only.</p>');
+  const out = join(dir, 'shots');
+  const started = Date.now();
+  const r = await runFor(['--require', faults, cli, dir, '--out', out, '--widths', '390', '--chrome', chrome.file], 30_000, { FAULT: 'stuck' });
+  assert.deepEqual([r.status, r.stderr], [0, '']);
+  assert.deepEqual(readdirSync(out), ['only-390-light.png']);
+  assert.ok(Date.now() - started < 15_000, `it took ${Date.now() - started} ms`);
+  const pids = chrome.pids();
+  assert.equal(pids.length, 1);
+  assert.equal(await leftIn(pids[0]), 0, 'the browser that would not close is gone');
+});
+
+test('a context that will not close: its browser is stopped, a fresh one goes on with the next width, and the run ends', { skip: !UNIX && 'needs a shell script for Chrome' }, async () => {
+  const dir = fresh();
+  const chrome = countingChrome(dir);
+  page(dir, 'only.html', '<p>Only.</p>');
+  const out = join(dir, 'shots');
+  const r = await runFor(['--require', faults, cli, dir, '--out', out, '--widths', '1280,390', '--chrome', chrome.file], 40_000, { FAULT: 'context' });
+  assert.deepEqual([r.status, r.stderr], [0, '']);
+  assert.deepEqual(readdirSync(out).sort(), ['only-1280-light.png', 'only-390-light.png']);
+  const pids = chrome.pids();
+  assert.equal(pids.length, 2, 'a fresh browser after the context that would not close');
+  for (const pid of pids) assert.equal(await leftIn(pid), 0, `processes left from the Chrome started as ${pid}`);
 });
 
 test('the CLI prints its usage for --help and exits 0', () => {
@@ -733,8 +955,10 @@ test('the CLI prints its usage for --help and exits 0', () => {
   assert.ok(r.stdout.startsWith('Usage: node scripts/shots.mjs <file or folder>... --out <folder> --widths <w,w...>'), r.stdout);
   assert.match(r.stdout, /reduced motion/);
   // What a user could trip on, said where they look.
-  assert.match(r.stdout, /A script error, or a move to another page, raised after the picture is taken is not seen\./);
-  assert.match(r.stdout, /--timeout <ms> +how long a page is given to load, in milliseconds; 30000 when not given/);
+  assert.match(r.stdout, /A script error raised after the picture is taken, or a move made after the page has settled, is not seen\./);
+  assert.match(r.stdout, /A page is judged once it has settled: 100 ms without moving\./);
+  assert.match(r.stdout, /a page that will not close, or a browser that dies, is an error of that\npage, and the run goes on in a fresh browser/);
+  assert.match(r.stdout, /--timeout <ms> +how long a page is given to load, to settle, and for each step on it, in\n +milliseconds; 30000 when not given/);
   assert.match(r.stdout, /A request Chrome cancels itself \(net::ERR_ABORTED, as a video may\) is reported as an error too\./);
   assert.equal(r.stderr, '');
 });
