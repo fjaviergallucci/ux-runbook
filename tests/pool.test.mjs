@@ -1,7 +1,8 @@
-import { test } from 'node:test';
+import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { validateAcceptance } from '../scripts/accept.mjs';
 import {
@@ -1270,4 +1271,221 @@ test('pool/INDEX.md lists the people too: exactly one row for each person, with 
     assert.deepEqual(more, [], `${id} has two cells`);
     assert.match(moment, /\S.*[.?]$/, `${id} has a line for her moment`);
   }
+});
+
+// ---- card.mjs check: a project's own cards and people, checked before they are cast
+
+const cli = fileURLToPath(at('scripts/card.mjs'));
+mkdirSync(fileURLToPath(at('tests/.tmp/')), { recursive: true });
+const scratch = mkdtempSync(join(fileURLToPath(at('tests/.tmp/')), 'pool-'));
+after(() => rmSync(scratch, { recursive: true, force: true }));
+
+const POOL_FOLDERS = ['profiles', 'persons', 'makers', 'judges', 'audiences'];
+const README_LINE = 'This project\'s own cards: each is written to the card format of the kit.\n';
+// A project's pool as setup leaves it, in a path with a space: the five folders, each with its README.
+let pools = 0;
+function projectPool() {
+  const pool = join(scratch, `a project ${++pools}`, 'design', 'pool');
+  for (const folder of POOL_FOLDERS) {
+    mkdirSync(join(pool, folder), { recursive: true });
+    writeFileSync(join(pool, folder, 'README.md'), README_LINE);
+  }
+  return pool;
+}
+// One file of a pool, written at its path under it; the path it was written at.
+const put = (pool, file, text) => {
+  const path = join(pool, ...file.split('/'));
+  writeFileSync(path, text);
+  return path;
+};
+// One run of the command: its exit code, what it printed, and what it said was wrong with the run.
+const check = (args, cwd) => {
+  const run = node([cli, ...args], cwd);
+  return [run.status, run.stdout, run.stderr];
+};
+const USAGE = node([cli, '--help']).stdout;
+const MAKER_CARD = write(HEADER, BODY);
+const JUDGE_CARD = write(JUDGE_HEADER, [...CHECKS, ...BODY]);
+const AUDIENCE_CARD = write({ ...HEADER, id: 'audience.room-reader', shelf: 'audience', 'loaded-with': 'person' }, BODY);
+const PERSON_CARD = write(PERSON_HEADER, PERSON_BODY);
+// What the command says of each file: a sound one, one passed over, one in no folder of cards, one unread.
+const ok = file => `${file}: ok\n`;
+const passedOver = file => `${file}: passed over: a README.md is never a card\n`;
+const noFolder = (file, folder) => `${file}: file: a card is in a folder named makers, judges or audiences, and a person in one named persons; this file is in "${folder}"\n`;
+const unread = (file, why) => `${file}: file: cannot be read: ${why}\n`;
+const faultsOf = (file, faults) => faults.map(fault => `${file}: ${fault}\n`).join('');
+
+test('card.mjs prints its usage for --help and -h, and the usage gives the one form it takes', () => {
+  assert.match(USAGE, /^Usage: node scripts\/card\.mjs check <file>\.\.\.\n\n/);
+  for (const args of [['--help'], ['-h'], ['check', '--help'], ['check', 'makers/room-lister.md', '-h']]) assert.deepEqual(check(args), [0, USAGE, ''], args.join(' '));
+  // What it says of itself is what it does: the folders, the README, the three exit codes.
+  for (const folder of [...Object.keys(FOLDERS), PERSON_FOLDER]) assert.ok(USAGE.includes(`${folder}/`), folder);
+  assert.match(USAGE, /README\.md/);
+  assert.match(USAGE, /pool\/CARD-FORMAT\.md/);
+  assert.match(USAGE, /\nExit codes: 0 [^·]+ · 1 [^·]+ · 2 bad usage\.\n$/);
+});
+
+test('card.mjs check: a sound card of each shelf and a sound person are ok, each held to the format of the folder it is in', () => {
+  const pool = projectPool();
+  const files = [put(pool, FILE.maker, MAKER_CARD), put(pool, FILE.judge, JUDGE_CARD), put(pool, FILE.audience, AUDIENCE_CARD), put(pool, PERSON_FILE, PERSON_CARD)];
+  assert.match(pool, / /, 'the path has a space in it');
+  for (const file of files) assert.deepEqual(check(['check', file]), [0, ok(file), '']);
+  assert.deepEqual(check(['check', ...files]), [0, files.map(ok).join(''), '']);
+  // With CRLF line endings too.
+  const crlf = put(pool, 'makers/room-lister.md', MAKER_CARD.replace(/\n/g, '\r\n'));
+  assert.deepEqual(check(['check', crlf]), [0, ok(crlf), '']);
+});
+
+test('card.mjs check: each fault of a card is printed on a line of its own, with its file, and the exit code is 1', () => {
+  const pool = projectPool();
+  const { verified, ...header } = HEADER;
+  const text = write(header, BODY.filter(([name]) => name !== 'Never'));
+  const file = put(pool, FILE.maker, text);
+  const [status, printed, said] = check(['check', file]);
+  assert.deepEqual([status, said], [1, '']);
+  const lines = printed.split('\n');
+  assert.equal(lines.length, 3, printed);
+  assert.equal(lines[0], `${file}: header: "verified" is missing`);
+  assert.ok(lines[1].startsWith(`${file}: body: "## Never" is missing`), lines[1]);
+  assert.equal(lines[2], '');
+  // They are the checker's own faults, all of them and no other, and the file is left as it was.
+  assert.equal(verified, HEADER.verified);
+  assert.equal(printed, faultsOf(file, validateCard(text, { file: FILE.maker })));
+  assert.equal(readFileSync(file, 'utf8'), text);
+  assert.deepEqual(readdirSync(join(pool, 'makers')).sort(), ['README.md', 'room-lister.md']);
+});
+
+test('card.mjs check: a faulty person is reported the same way, by the person checker', () => {
+  const pool = projectPool();
+  const text = write({ ...PERSON_HEADER, evidence: 'hunch' }, PERSON_BODY.filter(([name]) => name !== 'The check'));
+  const file = put(pool, PERSON_FILE, text);
+  const [status, printed, said] = check(['check', file]);
+  assert.deepEqual([status, said], [1, '']);
+  assert.equal(printed, faultsOf(file, validatePerson(text, { file: PERSON_FILE })));
+  assert.match(printed, /: header: "evidence" must be one of fact, guess, mixed; it is "hunch"\n/);
+  assert.match(printed, /: body: "## The check" is missing/);
+  assert.equal(printed.trimEnd().split('\n').length, 2);
+});
+
+test('card.mjs check: the folder says what a file is: a seat in makers/, judges/ or audiences/, a person in persons/', () => {
+  const pool = projectPool();
+  // A judge's card put in makers/ is on the wrong shelf.
+  const judge = put(pool, 'makers/room-truth.md', JUDGE_CARD);
+  let [status, printed, said] = check(['check', judge]);
+  assert.deepEqual([status, said], [1, '']);
+  assert.equal(printed, faultsOf(judge, validateCard(JUDGE_CARD, { file: 'makers/room-truth.md' })));
+  assert.match(printed, /: header: "shelf" is judge, but the card is in makers\/, the maker shelf\n/);
+  // The file's name is part of the check: the id is the file's.
+  const renamed = put(pool, 'judges/room-facts.md', JUDGE_CARD);
+  [status, printed, said] = check(['check', renamed]);
+  assert.deepEqual([status, said], [1, '']);
+  assert.equal(printed, `${renamed}: header: "id" names "room-truth", but the file is judges/room-facts.md: it must be judge.room-facts\n`);
+  // A person put among the audiences is held to a seat's card, and a seat's card among the persons to a person's.
+  const person = put(pool, 'audiences/desk-cover.md', PERSON_CARD);
+  [status, printed, said] = check(['check', person]);
+  assert.deepEqual([status, said], [1, '']);
+  assert.equal(printed, faultsOf(person, validateCard(PERSON_CARD, { file: 'audiences/desk-cover.md' })));
+  assert.match(printed, /: header: "shelf" is missing\n/);
+  const seat = put(pool, 'persons/room-lister.md', MAKER_CARD);
+  [status, printed, said] = check(['check', seat]);
+  assert.deepEqual([status, said], [1, '']);
+  assert.equal(printed, faultsOf(seat, validatePerson(MAKER_CARD, { file: 'persons/room-lister.md' })));
+  assert.match(printed, /: header: "id" must be person\.<name>/);
+});
+
+test('card.mjs check: a file in any other folder is no card to check, which is a fault, and it is not opened', () => {
+  const pool = projectPool();
+  const outside = [
+    [put(pool, 'profiles/front-desk.md', '---\nid: profile.front-desk\n---\n# Front desk\n'), 'profiles'],
+    // A sound card beside the folders, and one a folder too deep.
+    [put(pool, 'room-lister.md', MAKER_CARD), 'pool'],
+    [(mkdirSync(join(pool, 'makers', 'more')), put(pool, 'makers/more/room-lister.md', MAKER_CARD)), 'more'],
+    // One that is not there is said the same: the folder is judged before the file is opened.
+    [join(pool, 'profiles', 'nowhere.md'), 'profiles'],
+  ];
+  for (const [file, folder] of outside) assert.deepEqual(check(['check', file]), [1, noFolder(file, folder), ''], file);
+  // A folder named like one of the four, with a prefix, is another folder.
+  mkdirSync(join(pool, 'my-makers'));
+  const near = put(pool, 'my-makers/room-lister.md', MAKER_CARD);
+  assert.deepEqual(check(['check', near]), [1, noFolder(near, 'my-makers'), '']);
+});
+
+test('card.mjs check: a path is read from where the command is run, and the folder is the one the file is in', () => {
+  const pool = projectPool();
+  put(pool, FILE.judge, JUDGE_CARD);
+  put(pool, PERSON_FILE, PERSON_CARD);
+  // From the pool, from the card's own folder, and from the folder beside it: the line names the path as given.
+  assert.deepEqual(check(['check', 'judges/room-truth.md', 'persons/desk-cover.md'], pool), [0, `${ok('judges/room-truth.md')}${ok('persons/desk-cover.md')}`, '']);
+  assert.deepEqual(check(['check', 'room-truth.md'], join(pool, 'judges')), [0, ok('room-truth.md'), '']);
+  assert.deepEqual(check(['check', './room-truth.md'], join(pool, 'judges')), [0, ok('./room-truth.md'), '']);
+  assert.deepEqual(check(['check', '../judges/room-truth.md'], join(pool, 'makers')), [0, ok('../judges/room-truth.md'), '']);
+  assert.deepEqual(check(['check', 'README.md'], join(pool, 'judges')), [0, passedOver('README.md'), '']);
+  assert.deepEqual(check(['check', 'desk-cover.md'], join(pool, 'persons')), [0, ok('desk-cover.md'), '']);
+});
+
+test('card.mjs check: a file named README.md is never a card: it is passed over in every folder, and is no fault', () => {
+  const pool = projectPool();
+  const readmes = POOL_FOLDERS.map(folder => join(pool, folder, 'README.md'));
+  // A pool with no card of its own yet: every folder's README, and nothing to refuse.
+  assert.deepEqual(check(['check', ...readmes]), [0, readmes.map(passedOver).join(''), '']);
+  for (const file of readmes) assert.deepEqual(check(['check', file]), [0, passedOver(file), '']);
+  // Beside a sound card it changes nothing, and beside a faulty one it does not hide the fault.
+  const sound = put(pool, FILE.judge, JUDGE_CARD);
+  assert.deepEqual(check(['check', readmes[3], sound]), [0, `${passedOver(readmes[3])}${ok(sound)}`, '']);
+  const faulty = put(pool, FILE.maker, MAKER_CARD.replace('shelf: maker\n', ''));
+  const [status, printed, said] = check(['check', readmes[2], faulty]);
+  assert.deepEqual([status, said], [1, '']);
+  assert.equal(printed, `${passedOver(readmes[2])}${faulty}: header: "shelf" is missing\n`);
+  // Only that name: written another way, a file of a card folder is held to the card format.
+  const lower = put(pool, 'makers/readme.md', README_LINE);
+  assert.deepEqual(check(['check', lower]), [1, faultsOf(lower, validateCard(README_LINE, { file: 'makers/readme.md' })), '']);
+  assert.match(check(['check', lower])[1], /: header: a card opens with its header/);
+});
+
+test('card.mjs check: several files in one run are reported in the order given, and one fault among them makes the exit code 1', () => {
+  const pool = projectPool();
+  const judge = put(pool, FILE.judge, JUDGE_CARD);
+  const person = put(pool, PERSON_FILE, PERSON_CARD);
+  const faulty = put(pool, FILE.maker, MAKER_CARD.replace('engine: own\n', 'engine: magic\n'));
+  const profile = put(pool, 'profiles/front-desk.md', '# Front desk\n');
+  const readme = join(pool, 'audiences', 'README.md');
+  const fault = `${faulty}: header: "engine" must be own, skill:<name>, model:any or tool:<name>; it is "magic"\n`;
+  assert.deepEqual(check(['check', judge, faulty, readme, person, profile]), [1, `${ok(judge)}${fault}${passedOver(readme)}${ok(person)}${noFolder(profile, 'profiles')}`, '']);
+  assert.deepEqual(check(['check', person, readme, judge]), [0, `${ok(person)}${passedOver(readme)}${ok(judge)}`, '']);
+  // A file named twice is checked twice: the command keeps no list of its own.
+  assert.deepEqual(check(['check', judge, judge]), [0, `${ok(judge)}${ok(judge)}`, '']);
+});
+
+test('card.mjs check: a file that cannot be read is a fault of that file, and the others are still checked', () => {
+  const pool = projectPool();
+  const judge = put(pool, FILE.judge, JUDGE_CARD);
+  const missing = join(pool, 'judges', 'nowhere.md');
+  const folder = join(pool, 'makers', 'a-folder.md');
+  mkdirSync(folder);
+  assert.deepEqual(check(['check', missing]), [1, unread(missing, 'not found'), '']);
+  assert.deepEqual(check(['check', folder]), [1, unread(folder, 'it is a folder, not a file'), '']);
+  assert.deepEqual(check(['check', missing, judge, folder]), [1, `${unread(missing, 'not found')}${ok(judge)}${unread(folder, 'it is a folder, not a file')}`, '']);
+});
+
+test('card.mjs: bad usage says what is wrong, then prints the usage, and exits 2 with nothing checked', () => {
+  const pool = projectPool();
+  const faulty = put(pool, FILE.maker, '# Not a card\n');
+  for (const [args, message] of [
+    [[], 'no verb given: card.mjs takes check'],
+    [['validate', faulty], 'unknown verb "validate": card.mjs takes check'],
+    [[faulty], `unknown verb "${faulty}": card.mjs takes check`],
+    [['check'], 'check takes at least one <file>'],
+    [['check', faulty, '--fix'], 'unknown flag --fix'],
+    [['--strict', 'check', faulty], 'unknown flag --strict'],
+    [['check', '--out=report.txt', faulty], 'unknown flag --out'],
+  ]) assert.deepEqual(check(args), [2, '', `${message}\n\n${USAGE}`], args.join(' '));
+});
+
+test('card.mjs check: every card and every person of the kit\'s own pool is sound, in one run from the kit\'s root', () => {
+  const kit = fileURLToPath(root);
+  const files = [...cards, ...persons].map(({ file }) => `pool/${file}`);
+  assert.equal(files.length, 22);
+  assert.deepEqual(check(['check', ...files], kit), [0, files.map(ok).join(''), '']);
+  // The pages beside the folders are no cards.
+  for (const page of ['pool/INDEX.md', 'pool/CARD-FORMAT.md', 'pool/MODELS.md']) assert.deepEqual(check(['check', page], kit), [1, noFolder(page, 'pool'), ''], page);
 });
