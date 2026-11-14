@@ -916,7 +916,7 @@ test('the conductor has its five sections, and its five references, each pointed
   assert.equal(new URL('../../', at('skills/design/')).href, root.href);
 });
 
-test('the conductor gives the nine stages in order, each with the skill to invoke, and setup first when the project has no project profile', () => {
+test('the conductor gives the nine stages in order, each with the skill to invoke, and setup first when the project has no project profile or one the founder never reviewed', () => {
   const { name: plugin } = JSON.parse(read('.claude-plugin/plugin.json'));
   const order = section(conductor(), 'The order');
   const rows = tableRows(order).filter(row => /^\d+$/.test(row[0]));
@@ -926,7 +926,13 @@ test('the conductor gives the nine stages in order, each with the skill to invok
   // Each stage's output is the file the state script stamps.
   assert.deepEqual(rows.map(row => unspan(row[4])), STAGES.map(stage => ARTEFACT[stage]));
   const before = flat(order.slice(0, order.indexOf('\n|')));
-  assert.ok(before.includes(`has no project profile, invoke \`${plugin}:setup\` first`), 'setup first, when the project has no project profile');
+  // A setup that stopped halfway leaves a project profile behind: the founder's review, not the file, says
+  // that a project is set up.
+  assert.ok(
+    before.includes(`When the project has no project profile, or one whose \`## Reviewed by the founder\` section is empty, invoke \`${plugin}:setup\` first`),
+    'setup first, when the project has no project profile, or one he never reviewed',
+  );
+  assert.equal(headings(parse(read('templates/project/PROFILE.md')).body).at(-1), 'Reviewed by the founder', 'the section is the template\'s, and its last');
   assert.match(flat(order), /with the Skill tool/);
   assert.match(flat(order), /structure is chosen before look/i);
 });
@@ -1282,6 +1288,7 @@ test('setup has the six sections and its one reference, pointed to from SKILL.md
   // It is run once for a project, by the conductor, in the conductor's words.
   const opening = flat(setup().slice(0, setup().indexOf('\n## ')));
   assert.match(opening, /once, before its first design/);
+  assert.match(opening, /The conductor \(`ux:design`\) sends you here when a project has no project profile, or one whose `## Reviewed by the founder` section is empty/);
   assert.match(opening, /Run it from the project's root\. `<packages>` is the folder that holds the project's packages: `design` at the project's root, unless the founder names another/);
   assert.match(opening, /`<scratch>` is a folder you make outside the project/);
 });
@@ -1323,8 +1330,15 @@ test('setup\'s steps come in the order of its brief: read, the profile, the ques
   assert.match(steps, /\*\*When the project has no design system, say so\.\*\* `tokens` and `components` stay empty, "Design system" says "None yet", the project kit is the grey kit as it is, and Look will run once as a direction/);
   assert.ok(flat(read('templates/project/PROFILE.md')).includes('"None yet" while there is none'), 'the template\'s own words for it');
   // A setup that was left unfinished is picked up, and a finished one is not run again.
-  assert.match(steps, /If `<packages>\/PROFILE\.md` has a `## Reviewed by the founder` section, the project is set up: say so, and stop/);
-  assert.match(steps, /go on from the first step whose output is missing/);
+  assert.match(steps, /It is due when `<packages>\/PROFILE\.md` is missing, and when its `## Reviewed by the founder` section is empty: nothing under the heading, or only the template's instruction/);
+  assert.match(steps, /With his words there, the project is set up: say so, and stop/);
+  assert.match(steps, /Without them, a setup was left unfinished: go on from the first step whose output is missing/);
+  // Where the packages go is asked before anything is written there.
+  const start = steps.slice(steps.indexOf('3. **Start the project profile.**'), steps.indexOf('4. **Ask the founder'));
+  inOrder(start, [/First, where it goes: if `design` at the project's root already holds something else, ask him where the packages go before you write anything/, /Then copy `templates\/project\/PROFILE\.md` to `<packages>\/PROFILE\.md`/], 'step 3');
+  // With no design system the kit is still drawn and pictured: the gate shows the pictures.
+  assert.match(steps, /With no design system: the copy, then the drawing and the pictures\./);
+  assert.match(flat(projectKit()), /\*\*A project with no design system gets the grey kit as it is:\*\* the copy, then the drawing and the pictures, which are step 1 and steps 5 and 6/);
 });
 
 test('setup asks only what it could not read, one question at a time, and an answer counts once it is in the project profile', () => {
@@ -1337,6 +1351,15 @@ test('setup asks only what it could not read, one question at a time, and an ans
     /5\. Whether a brief may be sent to an outside text model/, /6\. Only when the session lists a screen generator among its tools/,
   ], 'the questions');
   assert.match(flat(section(setup(), 'Never')), /\*\*Never ask two things at once,\*\* and never ask what the project already says/);
+  // Each answer has its place. The languages are written as codes, which his words do not give; the
+  // professions are written as their stubs, at once.
+  assert.match(steps, /He names them; you write their codes as `languages`, as `\[es, en\]`, and show him the line/);
+  assert.ok(read('templates/project/PROFILE.md').includes('as `[es, en]`'), 'the template\'s own example of the codes');
+  assert.match(steps, /Each one he names gets its stub at once, written from the template as step 6 says: the stubs are where this answer lives/);
+  assert.match(steps, /When he names none, no stub is written/);
+  // The product's name, for the two titles, has a source.
+  assert.match(steps, /Its title and the project profile's take the product's name from his sentence under `product`; when that sentence names none, ask him/);
+  for (const file of ['PROFILE.md', 'LESSONS.md']) assert.match(read(`templates/project/${file}`), /^# \w+ · \{the product's name\}$/m, `${file}: its title holds the product's name`);
 });
 
 test('a key of the project profile that setup names is a key of the template, and the ones it fills by asking are all named', () => {
@@ -1357,11 +1380,15 @@ test('a key of the project profile that setup names is a key of the template, an
     assert.ok(sections.includes(name), `${name} is a section of the template`);
     assert.ok(flat(setup()).includes(`"${name}"`), `SKILL.md names "${name}"`);
   }
-  // The two sections setup adds are none of the template's.
+  // The engine check and the founder's review are sections of the template too: setup fills them, and adds none.
   for (const name of ['Engine check', 'Reviewed by the founder']) {
-    assert.ok(!sections.includes(name), name);
+    assert.ok(sections.includes(name), `${name} is a section of the template`);
     assert.ok(setup().includes(`\`## ${name}\``), `SKILL.md names ## ${name}`);
   }
+  assert.deepEqual(sections.slice(-2), ['Engine check', 'Reviewed by the founder']);
+  assert.match(flat(section(setup(), 'Writes')), /The engine check, and his review \| the last two sections of the project profile/);
+  assert.match(flat(setup()), /Keep every key of the header and every heading/);
+  for (const adds of [/after the template's sections/, /as the last section/]) assert.doesNotMatch(flat(setup()), adds, 'setup adds no section to the project profile');
 });
 
 test('an outside engine is the founder\'s to turn on: setup writes it only on his yes, in its card\'s spelling, with the model id he gives', () => {
@@ -1370,11 +1397,13 @@ test('an outside engine is the founder\'s to turn on: setup writes it only on hi
   assert.match(steps, /\*\*Only on his yes\*\*, ask which provider, and add it to `engines-on` in its card's spelling: `model:openai`, `model:gemini`/);
   assert.match(steps, /ask the model's id, and write it as he gives it: `openai-model`, `gemini-model`/);
   assert.match(steps, /On his yes, add `tool:stitch` to `engines-on`/);
-  assert.match(steps, /`engines-on` stays `\[\]`/);
+  assert.match(steps, /Three things wait for him: `engines-on` stays `\[\]` until his yes; `keys-file` stays empty until he gives a path, and a credentials file you came across while reading the project is never opened and never written here; `## Reviewed by the founder` stays empty until the gate/);
   // The spellings are the card format's own, and the template's.
   for (const text of [read('pool/CARD-FORMAT.md'), read('templates/project/PROFILE.md')]) assert.ok(text.includes('`model:openai`, `model:gemini`, `tool:stitch`'));
   // The keys file is a path he gives, and the path is all setup has to do with it.
   assert.match(steps, /a dotenv file outside the repository; if in a file, he gives its path, and you write the path as `keys-file` and do nothing else with it/);
+  assert.match(steps, /A path inside the repository is not taken: say so, and ask him for one outside it\. Comparing two paths opens nothing/);
+  assert.match(read('templates/project/PROFILE.md'), /dotenv file \*\*outside the repository\*\*/, 'the template asks for one outside');
   assert.match(flat(section(setup(), 'Never')), /\*\*Never turn an engine on yourself\.\*\* `engines-on` holds what the founder said yes to/);
 });
 
@@ -1389,7 +1418,7 @@ test('the engine check covers every engine a card of the kit names, each its own
   for (const engine of ['skill:<name>', 'model:any', 'tool:stitch']) assert.ok(check.includes(`- **\`${engine}\`.**`), `the check for ${engine}`);
   assert.match(check, /- \*\*A browser,\*\*/);
   // A skill is looked for, never run; a tool is looked for, and generates nothing.
-  assert.match(check, /Is that skill installed on this machine, under that name\?.*Do not run it/);
+  assert.match(check, /Is that skill installed on this machine, under that name\? Look at the skills and the plugins the session lists, then in the project's `\.claude\/skills\/` and the user's `~\/\.claude\/skills\/`\. Do not run it/);
   assert.match(check, /Is the tool among those the session lists\? That is the whole check: nothing is generated/);
   // An outside model: one call that asks for text, with the project profile and nothing about a key.
   assert.deepEqual(setupRuns('describe'), [
@@ -1404,8 +1433,11 @@ test('the engine check covers every engine a card of the kit names, each its own
   // A browser: one run of the picture script on the kit's own specimen page.
   assert.ok(setupRuns('shots').includes('node <kit root>/scripts/shots.mjs <kit root>/kit/grey/parts.html --out <scratch>/browser --widths 1280'));
   assert.match(check, /The script starts its own browser and stops it/);
-  assert.match(check, /Record it in the project profile under `## Engine check`, after the template's sections: the day, then a table `\| Engine \| Used by \| Result \|`, one row for each engine/);
+  assert.match(check, /Fill the `## Engine check` section of the project profile: the day, then a table `\| Seat \| Engine \| What the check found \|` with one row for each seat of the kit's pool, and under it one line for the browser/);
+  assert.match(check, /What the check found is "nothing to check", for an engine that is `own`/);
   for (const result of ['answers', 'installed', 'listed', 'missing', 'off']) assert.ok(check.includes(`\`${result}\``), `the result ${result}`);
+  // The columns are the template's own.
+  assert.match(flat(section(parse(read('templates/project/PROFILE.md')).body, 'Engine check')), /Seat · Engine · What the check found/);
   assert.match(check, /Frame reads this section/);
 });
 
@@ -1438,8 +1470,8 @@ test('the gate: the founder corrects the project profile once, hears that the st
   assert.match(gate, /\*\*The founder corrects the project profile, once\.\*\*/);
   assert.match(gate, /ask one question/);
   assert.match(gate, /each stub of a profession's profile is a guess, and stays one until someone of that profession has been heard/);
-  assert.match(gate, /write `## Reviewed by the founder` as the last section: the day, what he corrected, and the words he approved it with/);
-  assert.match(gate, /An approval that is only in the chat is not one/);
+  assert.match(gate, /write under `## Reviewed by the founder`, the last section: the day, what he corrected, and the words he approved it with/);
+  assert.match(gate, /An approval that is only in the chat is not one, and while that section is empty the project is not set up/);
   assert.match(gate, /changed by the designs that change it \(a new direction, a new standing rule\), never rewritten from memory/);
   assert.match(gate, /go back to the conductor: the first design starts at Frame/);
 });
@@ -1457,8 +1489,10 @@ test('the project\'s pool is five folders, each with a one-line README; a stub i
   for (const folder of ['persons', 'makers', 'judges', 'audiences']) assert.ok(existsSync(at(`pool/${folder}/`)), `the kit has pool/${folder}/`);
   assert.ok(read('pool/CARD-FORMAT.md').includes('## The person card'));
   const said = flat(steps);
-  assert.match(said, /one stub for each profession he named/);
-  assert.match(said, /from `templates\/people\/PROFILE-CARD\.md`: its id `profile\.<name>`, every heading and all four labels kept, the example specialty deleted/);
+  assert.match(said, /each with a one-line `README\.md` and nothing else, but for the stubs in `profiles\/`/);
+  assert.match(said, /A stub is one file for one profession, as `<packages>\/pool\/profiles\/front-desk-coordinator\.md`, written from `templates\/people\/PROFILE-CARD\.md`: its id `profile\.<name>`, every heading and all four labels kept, the example specialty deleted/);
+  const persons = rows.find(([folder]) => folder === '`persons/`')[1];
+  assert.match(persons, /^The people this product is designed for, each of a profession that has its file in `profiles\/`: /);
   assert.match(said, /\*\*Mark the evidence of every characteristic `guess`\*\*: nobody of that profession has been heard/);
   assert.match(said, /write "Not known yet\." where they said nothing/);
   // The template's evidence field takes that word, and its id is written that way.
@@ -1505,6 +1539,17 @@ test('project-kit.md: the tokens are one CSS file in the kit\'s own folder, with
   const first = linesOf(projectKit()).filter(({ fenced }) => fenced).map(({ line }) => line.trim()).find(line => line.startsWith('/*'));
   assert.match(first, /^\/\* Copied from \S+\.css at [0-9a-f]{7}\. .*\*\/$/, 'the first line, as an example');
   assert.match(text, /An export says `Exported from`/);
+  // The commit on that line is true of the file: a source with changes not committed is said to have them.
+  assert.match(text, /Check first whether the source has changes that are not committed \(`git status --short <the file>` prints a line when it has\): the first line then says "with uncommitted changes" after the commit/);
+  // A dark theme switched by a class or an attribute is exported, so that the dark pictures are dark.
+  assert.match(text, /\*\*A dark theme the product switches by a class or an attribute\*\* does not survive a plain copy/);
+  assert.match(text, /the dark set never applies under `prefers-color-scheme: dark`, which is what the picture script sets, and the dark pictures come out light/);
+  assert.match(text, /The file is then an export: the dark set is placed under `@media \(prefers-color-scheme: dark\)`, and the first line says it was exported, from what, and how/);
+  assert.match(read('scripts/lib/browser.mjs'), /colorScheme: theme/, 'the picture script sets the theme by that media query');
+  // The contract says the same of where the tokens are: a file of the kit's own folder.
+  const rule = flat(section(read('kit/KIT-CONTRACT.md'), 'The rule'));
+  assert.match(rule, /It is one stylesheet that imports the project's tokens from a file of the kit's own folder: setup copies the project's token file there, or exports it when the tokens are not plain CSS, and records on its first line where it came from/);
+  assert.doesNotMatch(rule, /links the project's real token file/);
   assert.match(text, /\*\*The copy goes stale when the tokens change\.\*\* Then it is copied or exported again, with the new commit on its first line/);
   // The stylesheet imports it by relative name, as the contract allows.
   assert.ok(linesOf(projectKit()).some(({ line, fenced }) => fenced && line.trim() === '@import "tokens.css";'));
@@ -1527,7 +1572,7 @@ test('project-kit.md: each class of the contract is restyled on the project\'s t
   assert.match(text, /\*\*You read the components, and copy none\.\*\*/);
   assert.match(text, /never drawn through the project's own toolchain/);
   // With no design system the kit is the grey kit, untouched.
-  assert.match(text, /\*\*A project with no design system gets the grey kit as it is\.\*\*/);
+  assert.match(text, /\*\*A project with no design system gets the grey kit as it is:\*\* the copy, then the drawing and the pictures/);
   const never = flat(section(projectKit(), 'Never'));
   for (const rule of [/Never import, copy or run a real component/, /Never link a token file outside `<packages>\/kit\/`/, /Never invent tokens for a project that has none/, /Never start or stop a browser yourself/]) assert.match(never, rule);
 });

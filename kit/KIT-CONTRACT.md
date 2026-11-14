@@ -147,7 +147,8 @@ Everything else is styled by class.
 ## The rule
 
 **A project kit restyles these classes on the project's token file, and adds none.** It is one
-stylesheet that links the project's real token file; when the project's tokens are not plain CSS, setup
-exports them to a CSS file and records where they came from. It renames no class, drops none and adds
-none, and changes no markup. Like the grey kit, it styles each class once, the same wherever the part
-appears, so that no proposal looks better made than another.
+stylesheet that imports the project's tokens from a file of the kit's own folder: setup copies the
+project's token file there, or exports it when the tokens are not plain CSS, and records on its first
+line where it came from. It renames no class, drops none and adds none, and changes no markup. Like the
+grey kit, it styles each class once, the same wherever the part appears, so that no proposal looks
+better made than another.

@@ -773,7 +773,17 @@ test('project/PROFILE.md parses, has every header key, and turns nothing on', ()
     const wanted = lists.includes(key) ? [] : { packages: 'design', kit: 'design/kit' }[key] ?? '';
     assert.deepEqual(data[key], wanted, key);
   }
-  assert.deepEqual(headings(body), ['How to fill the header', 'Kinds this project adds', 'Standing rules', 'How a browser check is run here', 'Design system']);
+  assert.deepEqual(headings(body), [
+    'How to fill the header', 'Kinds this project adds', 'Standing rules', 'How a browser check is run here', 'Design system', 'Engine check', 'Reviewed by the founder',
+  ]);
+  // What setup's check found: the day, then a row for each seat. And last, the founder's review, which is
+  // empty until the gate: an empty one says the project is not set up yet.
+  const check = flat(section(body, 'Engine check')).trim();
+  assert.match(check, /^\{The day of the check\. Then a table, Seat · Engine · What the check found, with one row for each seat[^{}]*\}$/);
+  assert.match(check, /one line for the browser/);
+  const reviewed = flat(section(body, 'Reviewed by the founder')).trim();
+  assert.match(reviewed, /^\{What he corrected at the gate[^{}]*in his words[^{}]*\}$/);
+  assert.match(reviewed, /Empty until the gate: until then, delete this instruction and write nothing in its place/);
   // No instruction sits in the header: each key is explained in the body.
   const how = section(body, 'How to fill the header');
   assert.deepEqual(tableOf(how, 'Key').rows.map(([key]) => unspan(key)), PROFILE_KEYS);

@@ -21,9 +21,9 @@ Three files in `<packages>/kit/`, and nothing else:
 It is static HTML and CSS. It holds no component of the project, no script and no build step, and it
 is never drawn through the project's own toolchain: that would tie a design to the build.
 
-**A project with no design system gets the grey kit as it is.** Do step 1, then steps 5 and 6. There
-is no token file, and `kit.css` is not touched: Look will choose a direction, and the kit is rebuilt
-on the tokens that direction brings.
+**A project with no design system gets the grey kit as it is:** the copy, then the drawing and the
+pictures, which are step 1 and steps 5 and 6. There is no token file, and `kit.css` is not touched:
+Look will choose a direction, and the kit is rebuilt on the tokens that direction brings.
 
 ## 1. Copy the grey kit
 
@@ -40,15 +40,23 @@ pages with no style. The tokens are therefore a file of the kit's own folder:
   a framework's configuration), or plain CSS spread over several files: export them into one file of
   custom properties, `<packages>/kit/tokens.css`. Take every value from the source as it is written
   there. Type none from memory, round none, and leave out none that a default part uses.
+- **A dark theme the product switches by a class or an attribute** does not survive a plain copy:
+  the dark set never applies under `prefers-color-scheme: dark`, which is what the picture script
+  sets, and the dark pictures come out light. The file is then an export: the dark set is placed
+  under `@media (prefers-color-scheme: dark)`, and the first line says it was exported, from what,
+  and how.
 - **Its first line says where it came from**: the source, by its path from the project's root, and
-  the commit the source was read at, as `git rev-parse --short HEAD` prints it. Where the project
+  the commit the source was read at, as `git rev-parse --short HEAD` prints it. Check first whether
+  the source has changes that are not committed (`git status --short <the file>` prints a line when
+  it has): the first line then says "with uncommitted changes" after the commit. Where the project
   keeps no history, the day stands for the commit.
 
   ```
   /* Copied from src/styles/tokens.css at 4f2a9c1. Do not edit here: change the source, then copy again. */
   ```
 
-  An export says `Exported from`, and names each source file.
+  An export says `Exported from`, names each source file, and says what was done to it, as "the set
+  under the dark class placed under the media query".
 - **In the project profile:** `tokens` is the project's own token file when it is plain CSS, and
   `<packages>/kit/tokens.css` when you exported it; either way "Design system" says where the kit's
   copy came from, with the commit.

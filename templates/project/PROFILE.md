@@ -74,3 +74,13 @@ No password, token or key is ever written here.
 components make up the project kit.}
 
 {"None yet" while there is none: Look then runs once as a direction, and writes this section and `tokens`.}
+
+## Engine check
+
+{The day of the check. Then a table, Seat · Engine · What the check found, with one row for each seat
+of the kit's pool, and under it one line for the browser the kit's scripts drive.}
+
+## Reviewed by the founder
+
+{What he corrected at the gate, in his words, and the words he approved the profile with, with the day.
+Empty until the gate: until then, delete this instruction and write nothing in its place.}

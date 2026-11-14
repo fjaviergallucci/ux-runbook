@@ -7,8 +7,8 @@ description: "Use when an interface design is about to start in a project that h
 Every stage reads the project profile, so something has to write it first. You set one project up,
 once, before its first design: you write the project profile, build the project kit, make the project's
 pool, and check which engines answer. The conductor (`ux:design`) sends you here when a project has no
-project profile, and its words are yours: the founder, the project profile, a profession's profile, a
-package, a seat, a card.
+project profile, or one whose `## Reviewed by the founder` section is empty. Its words are yours: the
+founder, the project profile, a profession's profile, a package, a seat, a card.
 
 The kit's root is two directories above this skill's own folder; run a script as
 `node <kit root>/scripts/<name>.mjs`. Run it from the project's root. `<packages>` is the folder that
@@ -46,16 +46,17 @@ All of it in the project, under `<packages>`, and nothing else:
 | The project's pool, empty | `<packages>/pool/`: `profiles/`, `persons/`, `makers/`, `judges/`, `audiences/` | step 6 |
 | A stub of each profession's profile | `<packages>/pool/profiles/<name>.md` | `templates/people/PROFILE-CARD.md` |
 | The project's lessons, with no entry yet | `<packages>/LESSONS.md` | `templates/project/LESSONS.md` |
-| The engine check, and his review | two sections at the end of the project profile | step 7, and the gate |
+| The engine check, and his review | the last two sections of the project profile | step 7, and the gate |
 
 A file you write while working that is none of these goes in `<scratch>`: never in the project.
 
 ## Steps
 
-1. **See whether setup is due.** If `<packages>/PROFILE.md` has a `## Reviewed by the founder` section,
-   the project is set up: say so, and stop. If it is there without that section, a setup was left
-   unfinished: go on from the first step whose output is missing, and ask nothing the project profile
-   already answers.
+1. **See whether setup is due.** It is due when `<packages>/PROFILE.md` is missing, and when its
+   `## Reviewed by the founder` section is empty: nothing under the heading, or only the template's
+   instruction. With his words there, the project is set up: say so, and stop. Without them, a setup
+   was left unfinished: go on from the first step whose output is missing, and ask nothing the project
+   profile already answers.
 2. **Read the project.** Find its design system: the token files, the folder of the component source,
    its documents. Find the document that says what the product does (`facts`), the languages and the
    format of their strings (`languages`, `strings-format`), how a browser check is run here
@@ -64,29 +65,37 @@ A file you write while working that is none of these goes in `<scratch>`: never 
    **When the project has no design system, say so.** `tokens` and `components` stay empty, "Design
    system" says "None yet", the project kit is the grey kit as it is, and Look will run once as a
    direction. You do not start one here.
-3. **Start the project profile.** Copy `templates/project/PROFILE.md` to `<packages>/PROFILE.md` and
-   fill what you read, each path from the project's root. Keep every key of the header and every
-   heading; a key with nothing to say keeps its empty value, and an instruction in braces you cannot
-   answer becomes "Not known yet." `engines-on` stays `[]`. If `design` at the project's root already
-   holds something else, ask him where the packages go, and write it as `packages`, with `kit` under it.
+3. **Start the project profile.** First, where it goes: if `design` at the project's root already
+   holds something else, ask him where the packages go before you write anything, and write his answer
+   as `packages`, with `kit` under it. Then copy `templates/project/PROFILE.md` to
+   `<packages>/PROFILE.md` and fill what you read, each path from the project's root. Keep every key
+   of the header and every heading; a key with nothing to say keeps its empty value, and an
+   instruction in braces you cannot answer becomes "Not known yet." Three things wait for him:
+   `engines-on` stays `[]` until his yes; `keys-file` stays empty until he gives a path, and a
+   credentials file you came across while reading the project is never opened and never written here;
+   `## Reviewed by the founder` stays empty until the gate.
 4. **Ask the founder what you could not read.** One question at a time, each about one thing. Write
    each answer into the project profile, in his words, before the next question: until it is written
    there, it does not count. Skip a question the project has already answered.
    1. The product in one sentence, as he would say it to a friend: `product`. As: "A room-booking tool
       for the front desk of a small clinic."
-   2. The languages it ships, the main one first: `languages`. Then, for each, the register it is
-      written in and how she is addressed: "Standing rules".
+   2. The languages it ships, the main one first. He names them; you write their codes as
+      `languages`, as `[es, en]`, and show him the line. Then, for each, the register it is written in
+      and how she is addressed: "Standing rules".
    3. His standing rules for interfaces: "Standing rules", one line each.
-   4. The professions it serves, as "front-desk coordinators". "Nobody in particular" is an answer,
-      and then no stub is written.
+   4. The professions it serves, as "front-desk coordinators". Each one he names gets its stub at
+      once, written from the template as step 6 says: the stubs are where this answer lives. When he
+      names none, no stub is written.
    5. Whether a brief may be sent to an outside text model. Say what a yes means: the brief leaves this
       machine, and setup itself will send one line that holds nothing of the project, to see that the
       engine answers. **Only on his yes**, ask which provider, and add it to `engines-on` in its
       card's spelling: `model:openai`, `model:gemini`. Then ask the model's id, and write it as he
       gives it: `openai-model`, `gemini-model`. Then ask whether the key is in the environment his
       sessions run in, or in a dotenv file outside the repository; if in a file, he gives its path,
-      and you write the path as `keys-file` and do nothing else with it. The script's `--help` says
-      by which name it looks for the key: point him to it. He puts the key in place himself.
+      and you write the path as `keys-file` and do nothing else with it. A path inside the
+      repository is not taken: say so, and ask him for one outside it. Comparing two paths opens
+      nothing. The script's `--help` says by which name it looks for the key: point him to it. He
+      puts the key in place himself.
    6. Only when the session lists a screen generator among its tools: whether a brief may be sent to
       it. On his yes, add `tool:stitch` to `engines-on`.
    Anything else the template asks that the project did not say (the account a browser check uses, by
@@ -94,28 +103,29 @@ A file you write while working that is none of these goes in `<scratch>`: never 
 5. **Build the project kit**, as `references/project-kit.md` says: the grey kit copied into
    `<packages>/kit/`, the project's tokens copied or exported into one CSS file beside `kit.css`, each
    class of the contract restyled on those tokens alone, then `parts.html` pictured for the founder.
-   With no design system, the copy is the whole of it.
-6. **Make the project's pool.** Five folders under `<packages>/pool/`, each empty but for a one-line
-   `README.md`:
+   With no design system: the copy, then the drawing and the pictures.
+6. **Make the project's pool.** Five folders under `<packages>/pool/`, each with a one-line
+   `README.md` and nothing else, but for the stubs in `profiles/`:
 
    | Folder | Its `README.md` says |
    |---|---|
    | `profiles/` | One file for each profession this product serves, written from `templates/people/PROFILE-CARD.md` of the kit. |
-   | `persons/` | This project's people, each of a profession's profile here: a card is written to "The person card" in `pool/CARD-FORMAT.md` of the kit. |
+   | `persons/` | The people this product is designed for, each of a profession that has its file in `profiles/`: a card is written to "The person card" in `pool/CARD-FORMAT.md` of the kit. |
    | `makers/` | This project's own makers: a card is written to `pool/CARD-FORMAT.md` of the kit. |
    | `judges/` | This project's own judges: a card is written to `pool/CARD-FORMAT.md` of the kit. |
    | `audiences/` | This project's own audiences: a card is written to `pool/CARD-FORMAT.md` of the kit. |
 
-   Then one stub for each profession he named, as `<packages>/pool/profiles/front-desk-coordinator.md`,
-   from `templates/people/PROFILE-CARD.md`: its id `profile.<name>`, every heading and all four labels
-   kept, the example specialty deleted. Fill a field only from what the project's documents and the
-   founder said of that profession, and write "Not known yet." where they said nothing. **Mark the
+   A stub is one file for one profession, as `<packages>/pool/profiles/front-desk-coordinator.md`,
+   written from `templates/people/PROFILE-CARD.md`: its id `profile.<name>`, every heading and all four
+   labels kept, the example specialty deleted. Fill a field only from what the project's documents and
+   the founder said of that profession, and write "Not known yet." where they said nothing. **Mark the
    evidence of every characteristic `guess`**: nobody of that profession has been heard.
 7. **Check the engines, and record what each said.** Read the `engine` line of every card in the kit's
    `pool/makers/`, `pool/judges/` and `pool/audiences/`. An engine that is `own` needs no check. Each
    other engine is checked once:
    - **`skill:<name>`.** Is that skill installed on this machine, under that name? Look at the skills
-     the session lists, and in the folders skills and plugins are installed in. Do not run it.
+     and the plugins the session lists, then in the project's `.claude/skills/` and the user's
+     `~/.claude/skills/`. Do not run it.
    - **`model:any`.** One call for each `model:` entry of `engines-on`, with the model id the project
      profile holds for it; with no entry, the engine is off and nothing is sent. Write the line
      `Answer with the one word: ready.` to `<scratch>/engine-check.md`, then:
@@ -139,14 +149,15 @@ A file you write while working that is none of these goes in `<scratch>`: never 
 
      Exit 0 and one picture: it answers. The script starts its own browser and stops it.
 
-   Record it in the project profile under `## Engine check`, after the template's sections: the day,
-   then a table `| Engine | Used by | Result |`, one row for each engine, with the seats whose cards
-   name it (for the browser, the kit's picture scripts). A result is `answers`, with the script's
-   line; `installed`; `listed`; `missing`; `off`, for an outside engine he has not turned on; or the
-   script's refusal. Frame reads this section.
-8. **Write the lessons file.** Copy `templates/project/LESSONS.md` to `<packages>/LESSONS.md`, with the
-   product's name in its title, without its comment and without the entry it gives as a shape: the
-   first design appends the first entry.
+   Fill the `## Engine check` section of the project profile: the day, then a table
+   `| Seat | Engine | What the check found |` with one row for each seat of the kit's pool, and under
+   it one line for the browser. What the check found is "nothing to check", for an engine that is
+   `own`; `answers`, with the script's line; `installed`; `listed`; `missing`; `off`, for an outside
+   engine he has not turned on; or the script's refusal. Frame reads this section.
+8. **Write the lessons file.** Copy `templates/project/LESSONS.md` to `<packages>/LESSONS.md`, without
+   its comment and without the entry it gives as a shape: the first design appends the first entry.
+   Its title and the project profile's take the product's name from his sentence under `product`;
+   when that sentence names none, ask him.
 
 ## Gate
 
@@ -156,9 +167,9 @@ the project kit's parts, and ask one question: what is wrong or missing in it?
 - Write each correction into the project profile as he gives it, a rule in his words.
 - Tell him that each stub of a profession's profile is a guess, and stays one until someone of that
   profession has been heard.
-- When he has nothing more, write `## Reviewed by the founder` as the last section: the day, what he
-  corrected, and the words he approved it with. An approval that is only in the chat is not one, and
-  until this section is written the project is not set up.
+- When he has nothing more, write under `## Reviewed by the founder`, the last section: the day, what
+  he corrected, and the words he approved it with. An approval that is only in the chat is not one,
+  and while that section is empty the project is not set up.
 
 After the gate the project profile is changed by the designs that change it (a new direction, a new
 standing rule), never rewritten from memory. Remove `<scratch>`, and go back to the conductor: the
@@ -175,12 +186,10 @@ first design starts at Frame.
 - **Never ask for a key, never print one, and never write one.** Not in the chat, not in the project
   profile, not in any file. Never print the environment. If he pastes a key into the chat, write it
   nowhere and tell him it has been shown, so it should be replaced.
-- **Never turn an engine on yourself.** `engines-on` holds what the founder said yes to, in his own
-  answer, and nothing else.
+- **Never turn an engine on yourself.** `engines-on` holds what the founder said yes to, nothing else.
 - **Never invent a design system.** A project that has none says so in its project profile, and gets
   the grey kit as it is.
-- **Never copy a real component into the project kit,** and never run the project's own toolchain to
-  draw it.
+- **Never copy a real component into the project kit,** and never run the project's own toolchain.
 - **Never invent a trait of a profession.** A stub says what was read or said, and is marked a guess.
 - **Never ask two things at once,** and never ask what the project already says.
 - **Never stop a process by name or by pattern.** The machine is shared. A browser is started only
