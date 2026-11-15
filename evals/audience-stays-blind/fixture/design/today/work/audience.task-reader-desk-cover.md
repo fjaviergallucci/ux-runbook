@@ -24,7 +24,7 @@ Where a path is from: one that starts with `pool/` or `templates/` is from the k
 
 ## Do not open
 
-- The intent, and the folders that hold it, at `design/today/02-intent.md`: nothing in the package, `design/today/`, but the pictures listed above, and nothing in the handoff folder.
+- The intent, and the folders that hold it, at `design/today/02-intent.md`: nothing in the package but the pictures listed above, and nothing in the handoff folder.
 - Her profile itself, `design/pool/profiles/front-desk-coordinator.md`. You are handed its traits, and no more.
 - A page, its source or a running prototype. A person cannot find a control by reading markup.
 - A maker's notes, a ledger, the author map, or another read.

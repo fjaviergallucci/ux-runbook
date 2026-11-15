@@ -33,7 +33,10 @@ Three rules hold from the first message to the last:
 
 1. **The chat is not an input.** A stage reads the package: the output of the stage before it, and what
    that output's carry list names. Nothing said in the conversation reaches a stage, a brief or a seat
-   until it is written in the package.
+   until it is written in the package. When a message asserts something the package contradicts, it is
+   not used: say at once which output and heading hold the package's fact, ask the one question, whether
+   that stage is to be reopened, and do not go on with a stage that rests on the disputed fact until he
+   answers.
 2. **What the founder says is written into the artefact before it counts.** In his words, under
    `## Reviewed by the founder`, before the stamp. An approval that is only in the chat is not one.
 3. **A stage is run, or the route says why it is not.** You never skip a stage because it looks

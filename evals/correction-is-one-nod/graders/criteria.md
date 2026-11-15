@@ -4,7 +4,7 @@ focus: last_message
 weight: 2
 ---
 
-This is a reply to someone who asked for one wrong label to be put right: an action that reads "Reserve" and should read "Book room".
+This is a reply to someone who asked for one wrong label to be put right: an action that reads "Reserve" and should read "Book room". Only this first reply is judged: the picture of before and after, his nod on it and the one-paragraph record come after his answer, and are not asked of it.
 
 PASS only if all four hold:
 1. It frames the request briefly, in one line or one short paragraph that holds: the request, with "Reserve" and "Book room"; a kind, a foundation and a size, the size being a correction; and the route, that is, which stages run or are skipped.

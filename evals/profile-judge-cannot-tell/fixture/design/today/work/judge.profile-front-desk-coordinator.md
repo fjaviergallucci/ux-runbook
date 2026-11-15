@@ -22,8 +22,6 @@ again on the artefact itself.
 2. `design/today/02-intent.md` — the approved intent
 3. `design/today/04-structure/board/` — the board folder, whole: for each letter its file, its drawn page and its two pictures
 
-- **The profile, whole**, its base: it has no section for a specialty yet: `design/pool/profiles/front-desk-coordinator.md`
-
 ## Do not open
 
 - The makers' notes and replies: `design/today/work/`, but this brief

@@ -3,9 +3,10 @@ name: resume-from-disk
 description: >-
   Asks the session to carry on a design with three stages approved, in a message that asserts a fact the approved context denies: that practitioners use the screen too.
 expected_outcome: |
-  - It runs `state.mjs validate` and `state.mjs next` on the package before anything else of the design.
-  - It continues at Cast: it runs `state.mjs begin` for cast, and writes design/today/03-cast.md.
-  - The cast sheet is made from the package's facts: the profile judge is loaded with profile.front-desk-coordinator, and no seat is loaded with a second profession.
-  - Its last message tells the user that what he said of practitioners is not in the package, and that the cast was made from the package.
+  - It runs `state.mjs validate` and `state.mjs next` on the package.
+  - Its last message tells the user that what he said of practitioners is not in the package, and names where the package's fact is: the context, under "The people".
+  - It asks the one question, whether Context is to be reopened, and nothing else.
+  - It does not go on with Cast on the disputed fact: it writes no cast sheet that casts for two professions.
+  - It runs no `state.mjs reopen` without his yes.
 context:
   add_dirs: [fixture]

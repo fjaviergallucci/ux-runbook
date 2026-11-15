@@ -86,7 +86,10 @@ test('README: what it says is in the repository is there, and its counts are cou
   assert.ok(readme.includes(`${count[cards('makers')]} makers, ${count[cards('judges')]} judges, ${count[cards('audiences')]} audience, and ${count[cards('persons')]} people with no profession`), 'the pool');
   assert.ok(readme.includes(`| ${count[names('evals').filter(name => name !== 'results').length][0].toUpperCase()}${count[names('evals').filter(name => name !== 'results').length].slice(1)} cases `), 'the cases');
   // What it does not do by itself, and when not to use it.
-  for (const said of ['**It sends nothing off the machine.**', '`engines-on`', '**It never handles a key.**', 'A design package is a folder in your project', '## When not to use it', '**Backend or infrastructure work.** This kit is about screens.']) assert.ok(readme.includes(said), said);
+  assert.ok(readme.includes('`claude plugin eval . --no-publish --ablation none --runs 1 --allow-tools Bash Write Edit`'), 'the run, as one command');
+  assert.ok(readme.includes('`--no-publish` keeps its report on the machine'));
+  assert.match(text('.gitignore'), /^evals\/results\/$/m);
+  for (const said of ['**Its scripts send nothing off the machine by themselves.**', 'which talks to its model as any session does', '`evals/results/`, which git ignores', '`engines-on`', '**It never handles a key.**', 'A design package is a folder in your project', '## When not to use it', '**Backend or infrastructure work.** This kit is about screens.']) assert.ok(readme.includes(said), said);
   assert.match(readme, /## Version 1\n\n[^\n]*\n[^\n]*lives at the tag `version-1`\./);
 });
 

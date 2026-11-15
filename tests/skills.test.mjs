@@ -997,6 +997,8 @@ test('an awaiting stage is not begun again, and Frame makes the package before i
 test('the three rules are stated as rules for the session', () => {
   const text = flat(conductor().slice(0, conductor().indexOf('\n## ')));
   inOrder(text, [/1\. \*\*The chat is not an input\.\*\*/, /2\. \*\*What the founder says is written into the artefact before it counts\.\*\*/, /3\. \*\*A stage is run, or the route says why it is not\.\*\*/], 'the three rules');
+  // What the first rule asks when a message contradicts the package: the fact's place, the one question, and a stop.
+  inOrder(text, [/1\. \*\*The chat is not an input\.\*\*/, /When a message asserts something the package contradicts, it is not used: say at once which output and heading hold the package's fact, ask the one question, whether that stage is to be reopened, and do not go on with a stage that rests on the disputed fact until he answers\./, /2\. \*\*What the founder says/], 'a contradicted fact');
   assert.match(text, /Stages hold procedure, seats hold opinion, the project holds facts/);
 });
 

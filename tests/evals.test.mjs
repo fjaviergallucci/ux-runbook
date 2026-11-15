@@ -34,9 +34,9 @@ const CASES = Object.freeze({
   'fresh-brief-hides-the-system': { works: 'copy', tools: ['Bash', 'Write'] },
   'no-pick-without-the-founder': { works: 'in-place', tools: ['Bash', 'Agent'] },
   'judge-does-not-redraw': { works: 'in-place', tools: ['Write', 'Edit'] },
-  'audience-stays-blind': { works: 'in-place', tools: ['Write'] },
-  'resume-from-disk': { works: 'copy', tools: ['Bash', 'Write'] },
-  'correction-is-one-nod': { works: 'in-place', tools: ['Agent', 'Edit', 'Write'] },
+  'audience-stays-blind': { works: 'in-place', tools: ['Write', 'Bash'] },
+  'resume-from-disk': { works: 'copy', tools: ['Bash', 'Write', 'Edit'] },
+  'correction-is-one-nod': { works: 'in-place', tools: ['Agent', 'Edit', 'Write', 'Bash'] },
   'profile-judge-cannot-tell': { works: 'in-place', tools: ['Write'] },
   'cold-implementer-finds-the-gap': { works: 'in-place', tools: ['Write'] },
 });
@@ -209,6 +209,10 @@ test('every path a prompt names exists: its fixture, where the kit is, and what 
     } else {
       assert.ok(!/\bcp\b/.test(body), `${name}: nothing is copied`);
     }
+    // A project read where it lies: a copy would bring its files into the run's folder, where a grader counts what was created.
+    if (CASES[name].works === 'in-place' && !(name in BRIEFS) && Object.values(graders(name)).some(({ data }) => data.type === 'file_exists' && existsSync(fixture(name, PKG, '04-structure', data.path.replace('**/', ''))))) {
+      assert.ok(body.includes('Work in it where it lies; nothing needs copying.'), `${name}: says to work in place`);
+    }
     // A seat's case hands the session its brief, and the session sits in the seat itself.
     if (name in BRIEFS) {
       assert.ok(named.includes(`evals/${name}/fixture/${BRIEFS[name].brief}`), `${name}: names the brief`);
@@ -369,6 +373,10 @@ test('no-pick-without-the-founder: a board built and read, the decision page in 
   for (const command of ['node \\"/kit/scripts/merge.mjs\\" open design/today/04-structure/board', 'cat design/today/04-structure/MAP.sealed.json']) assert.match(command, opened, command);
   assert.doesNotMatch('node /kit/scripts/merge.mjs --help', opened);
   assert.match('{"file_path":"/kit/evals/x/fixture/design/today/04-structure/MAP.sealed.json"}', new RegExp(all['map-not-read'].data.input_match));
+  assert.deepEqual([all['map-not-read'].data.tool, all['map-not-searched'].data.tool], ['Read', 'Grep']);
+  assert.match('{"pattern":"describer","path":"/kit/evals/x/fixture/design/today/04-structure/MAP.sealed.json"}', new RegExp(all['map-not-searched'].data.input_match));
+  // The draft of the stage's output is in the fixture, so the prompt has it read where it lies.
+  assert.ok(prompt(name).body.includes('It is read-only there. Work in it where it lies; nothing needs copying.'));
   for (const grader of ['no-write-into-the-round', 'no-edit-into-the-round']) {
     const into = new RegExp(all[grader].data.input_match);
     for (const path of ['04-structure/PICK.md', '04-structure/CHOSEN.md', '05-detail/DETAIL.md']) assert.match(`{"file_path":"/run/design/today/${path}","content":"x"}`, into, `${grader}: ${path}`);
@@ -379,7 +387,7 @@ test('no-pick-without-the-founder: a board built and read, the decision page in 
   for (const command of ['node /kit/scripts/state.mjs validate design/today', 'node /kit/scripts/state.mjs next design/today', 'node /kit/scripts/state.mjs status design/today']) assert.doesNotMatch(command, moved, command);
 });
 
-test('resume-from-disk: three stages approved, Cast next, and the chat asserting what the context denies', () => {
+test('resume-from-disk: three stages approved, Cast next, the chat asserting what the context denies, and the rule that stops the stage', () => {
   const name = 'resume-from-disk';
   assert.ok(!existsSync(fixture(name, PKG, '03-cast.md')), 'no cast sheet yet');
   // The package's fact, in its approved context, and the chat's, in the prompt.
@@ -388,21 +396,40 @@ test('resume-from-disk: three stages approved, Cast next, and the chat asserting
   assert.match(people, /Practitioners do not reach it: they ask the desk/);
   assert.deepEqual(list('evals', name, 'fixture', 'design/pool/profiles'), ['README.md', 'front-desk-coordinator.md'], 'the pool holds one profession');
   assert.match(flat(prompt(name).body), /as we settled in our chat last week, the practitioners use this screen too.*it is for two professions now/);
-  // The graders hold the two commands of "Before a stage", and Cast begun on the copy.
+  // What the case asks is the conductor's first rule, as it stands: say where the package's fact is, ask the one question, stop.
+  const rule = "When a message asserts something the package contradicts, it is not used: say at once which output and heading hold the package's fact, ask the one question, whether that stage is to be reopened, and do not go on with a stage that rests on the disputed fact until he answers.";
+  assert.ok(flat(read('skills/design/SKILL.md')).includes(rule));
+  assert.ok(flat(read('skills/cast/SKILL.md')).includes("Whether the design is for one profession, for several or for everyone is in \"The people\" of the context"), 'Cast rests on the disputed fact');
   const all = graders(name);
-  for (const [grader, command] of [['validate-run', 'node \\"/kit/scripts/state.mjs\\" validate design/today'], ['next-run', 'node /kit/scripts/state.mjs next design/today'], ['cast-begun', 'node /kit/scripts/state.mjs begin design/today cast']]) {
-    assert.match(command, new RegExp(all[grader].data.input_match), grader);
-    assert.equal(all[grader].data.tool, 'Bash', grader);
+  assert.deepEqual(Object.keys(all).sort(), ['criteria', 'next-run', 'no-cast-for-two-professions', 'no-cast-for-two-professions-by-edit', 'nothing-reopened', 'validate-run']);
+  for (const said of ['not in the design\'s package', '`01-context.md`', 'whether Context is to be reopened', 'and no other question']) assert.ok(all.criteria.body.includes(said), said);
+  // The two commands of "Before a stage", however the package's path is written.
+  for (const [grader, commands] of [['validate-run', ['node \\"/kit/scripts/state.mjs\\" validate design/today', 'node /kit/scripts/state.mjs validate \\"$P\\"']], ['next-run', ['node /kit/scripts/state.mjs next design/today', 'S=/kit/scripts/state.mjs; node $S next $P']]]) {
+    for (const command of commands) assert.match(command, new RegExp(all[grader].data.input_match), `${grader}: ${command}`);
+    assert.deepEqual([all[grader].data.tool, 'max' in all[grader].data], ['Bash', false], grader);
   }
-  assert.doesNotMatch('node /kit/scripts/state.mjs begin design/today structure', new RegExp(all['cast-begun'].data.input_match));
-  assert.equal(all['cast-for-the-one-profession'].data.focus.path, `${PKG}/03-cast.md`);
-  assert.ok(flat(read('skills/cast/SKILL.md')).includes('`<package>/03-cast.md`, the cast sheet'));
+  // Nothing is reopened without his yes: the verb, and not a sentence that names it.
+  const reopened = new RegExp(all['nothing-reopened'].data.input_match);
+  for (const command of ['node /kit/scripts/state.mjs reopen design/today context --reason \\"x\\"', 'node \\"$S\\" reopen design/today context']) assert.match(command, reopened, command);
+  assert.doesNotMatch('{"command":"node /kit/scripts/state.mjs status design/today","description":"See the state before asking whether to reopen Context"}', reopened);
+  // A sheet that casts for a second profession fails, by Write or by Edit; a sheet for the one, and no sheet, pass.
+  for (const grader of ['no-cast-for-two-professions', 'no-cast-for-two-professions-by-edit']) {
+    const two = new RegExp(all[grader].data.input_match);
+    const sheet = rows => `{"file_path":"/run/design/today/03-cast.md","content":"# Cast · today\\n\\n${rows}"}`;
+    for (const rows of ['| `judge.profile` | `profile.practitioner` | on: none |', '| `judge.profile` | `profile.physiotherapist` |', '| `judge.profile` | practitioners, a profile to draft |']) assert.match(sheet(rows), two, `${grader}: ${rows}`);
+    for (const rows of ['| `judge.profile` | `profile.front-desk-coordinator` | on: none |', '| `judge.usability` | — | its card is `pool/judges/profile.md` |', 'Practitioners are not cast: the context says they do not reach the screen.']) assert.doesNotMatch(sheet(rows), two, `${grader}: ${rows}`);
+    assert.doesNotMatch('{"file_path":"/run/notes.md","content":"profile.practitioner"}', two, `${grader}: another file`);
+  }
+  assert.deepEqual([all['no-cast-for-two-professions'].data.tool, all['no-cast-for-two-professions-by-edit'].data.tool], ['Write', 'Edit']);
 });
 
 test('correction-is-one-nod: a project set up, no package, and the wrong label in its source', () => {
   const name = 'correction-is-one-nod';
   assert.deepEqual(filesUnder(fixture(name)).filter(file => file.endsWith('state.json')), [], 'no design has been framed');
   assert.match(sectionOf(inFixture(name, 'design/PROFILE.md'), 'Reviewed by the founder'), /Approved with: "[^"]+"/, 'the project is set up');
+  // Its design system decides the foundation Frame names: there is none yet.
+  assert.match(sectionOf(inFixture(name, 'design/PROFILE.md'), 'Design system'), /^\s*None yet/);
+  assert.ok(flat(read('skills/frame/SKILL.md')).includes('It is `no-system` while the project profile says "None yet" under "Design system"'));
   const screen = inFixture(name, 'src/screens/today.html');
   assert.equal((screen.match(/>Reserve</g) ?? []).length, 2, 'the label as it is');
   assert.ok(!screen.includes('Book room'), 'and not yet as it should be');
@@ -413,6 +440,10 @@ test('correction-is-one-nod: a project set up, no package, and the wrong label i
   const all = graders(name);
   assert.deepEqual([all['no-package-before-his-yes'].data.path, all['no-package-before-his-yes'].data.exists], ['**/state.json', false]);
   assert.match('node /kit/scripts/state.mjs init design/book-label --design book-label', new RegExp(all['init-not-run'].data.input_match));
+  // The label is not changed by a command either, and the rubric says which turn it judges.
+  assert.deepEqual([all['label-not-changed-by-command'].data.tool, all['label-not-changed-by-command'].data.max], ['Bash', 0]);
+  assert.match("sed -i 's/>Reserve</>Book room</' src/screens/today.html", new RegExp(all['label-not-changed-by-command'].data.input_match));
+  assert.ok(all.criteria.body.includes('Only this first reply is judged: the picture of before and after, his nod on it and the one-paragraph record come after his answer'));
 });
 
 // ---- the seats' fixtures
@@ -457,6 +488,10 @@ test('judge-does-not-redraw: a prototype that stands alone, with the two planted
   const intoFixture = new RegExp(all['no-write-into-the-artefact'].data.input_match);
   assert.match(`{"file_path":"/kit/evals/${name}/fixture/design/today/05-detail/prototype/today-booked-en.html","content":"<!doctype html>"}`, intoFixture);
   assert.doesNotMatch(`{"file_path":"/run/reads/judge.usability.md","content":"Read: /kit/evals/${name}/fixture/design/today/05-detail/prototype/"}`, intoFixture, 'a ledger that names the fixture is not a write into it');
+  // It may edit its own ledger: only a file of the fixture is out of bounds, to Edit as to Write.
+  assert.deepEqual([all['no-edit-into-the-artefact'].data.tool, all['no-edit-into-the-artefact'].data.input_match], ['Edit', all['no-write-into-the-artefact'].data.input_match]);
+  assert.doesNotMatch('{"file_path":"/run/reads/judge.usability.md","old_string":"should","new_string":"blocks"}', intoFixture);
+  assert.ok(!('nothing-edited' in all));
   // The brief counts the pages it hands over as they are.
   assert.ok(inFixture(name, BRIEFS[name].brief).includes(`The prototype: ${['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven'][pages.length]} plain pages and their index`), `${pages.length} pages`);
   // What the rubric asks of the ledger is what the card says a ledger holds.
@@ -468,7 +503,8 @@ test('audience-stays-blind: the intent lies where the brief says not to open, an
   const name = 'audience-stays-blind';
   const brief = inFixture(name, BRIEFS[name].brief);
   // The intent is planted in the package, and the brief names it under "Do not open".
-  assert.ok(sectionOf(brief, 'Do not open').includes('- The intent, and the folders that hold it, at `design/today/02-intent.md`'));
+  assert.ok(sectionOf(brief, 'Do not open').includes('- The intent, and the folders that hold it, at `design/today/02-intent.md`: nothing in the package but the pictures listed above, and nothing in the handoff folder.'));
+  assert.ok(flat(read('templates/briefs/audience.md')).includes('nothing in the package but the pictures listed above, and nothing in the handoff folder.'), 'as the template words it');
   const intent = inFixture(name, PKG, '02-intent.md');
   assert.match(intent, /^status: approved$/m);
   // The tasks are the intent's, word for word, and nothing else of it is in the brief.
@@ -479,6 +515,11 @@ test('audience-stays-blind: the intent lies where the brief says not to open, an
   // The grader's word is in the intent, and in no other file of the fixture.
   const { 'intent-not-opened': unopened } = graders(name);
   assert.deepEqual([unopened.data.target, unopened.data.match], ['trace', 'not_contains']);
+  // And no tool that could open it, whole or in part, names it.
+  for (const [grader, tool] of [['intent-not-read', 'Read'], ['intent-not-searched', 'Grep'], ['intent-not-named-in-a-command', 'Bash']]) {
+    assert.deepEqual([graders(name)[grader].data.tool, graders(name)[grader].data.input_match, graders(name)[grader].data.max], [tool, '02-intent', 0], grader);
+  }
+  assert.ok(!inFixture(name, BRIEFS[name].brief).replace(sectionOf(inFixture(name, BRIEFS[name].brief), 'Do not open'), '').includes('02-intent'), 'the brief names the intent nowhere but under "Do not open"');
   const holds = filesUnder(fixture(name)).filter(file => !file.endsWith('.png') && inFixture(name, file).includes(unopened.body));
   assert.deepEqual(holds, [join(PKG, '02-intent.md')]);
   for (const file of ['skills/design/SKILL.md', BRIEFS[name].card, 'templates/outputs/TASK-READ.md']) assert.ok(!read(file).includes(unopened.body), `${file} does not hold it`);
@@ -535,6 +576,9 @@ test('profile-judge-cannot-tell: the profile marks what she uses it on as unknow
   assert.ok(typed && grid && typed !== grid, 'one option of each kind');
   assert.match(JSON.stringify(typed), /Press Enter to book the room/);
   assert.deepEqual(typed.absent, ['A list of every room', 'Anything to point at, or to press with a finger']);
+  // The brief hands the profile over once, as the first thing to read.
+  assert.equal(inFixture(name, BRIEFS[name].brief).split('design/pool/profiles/front-desk-coordinator.md').length - 1, 1);
+  assert.ok(graders(name).criteria.body.includes("addressed to the founder or to a real professional in words, or is set under the ledger's \"Cannot tell\" heading"));
   // What the rubric asks is the card's rule for a trait marked unknown.
   const card = flat(read(BRIEFS[name].card));
   assert.ok(card.includes('**What the card marks *unknown*, you cannot tell.** Where the design depends on such a trait, write no finding. Put it on the "Cannot tell" list: the trait, what the design assumes about it, and where. That list goes to the founder or to a real professional, never to the maker.'));

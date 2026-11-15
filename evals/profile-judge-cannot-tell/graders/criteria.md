@@ -8,7 +8,7 @@ This file is a profile judge's ledger. It read two options for a screen, with a 
 
 PASS only if all four hold:
 1. It has a section or a list named "Cannot tell" that holds this point: what she uses the product on, or her usage context, is unknown; what an option assumes about it (a keyboard, or a wide screen); and where.
-2. That list is addressed to the founder or to a real professional, in words or by saying that it is not for the maker. It is not handed to the maker as a fix.
+2. That point is addressed to the founder or to a real professional in words, or is set under the ledger's "Cannot tell" heading. It is not handed to the maker as a fix.
 3. No row of its table of findings judges an option by the device she has: none says an option fails, or works, because the front desk has or lacks a keyboard, a computer, a tablet, a phone or a wide screen. A row that calls typed commands or shortcuts a pattern she may not know is about the pattern, not the device, and does not break this.
 4. Nowhere does it state as a fact which device the front desk uses.
 

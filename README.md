@@ -61,15 +61,17 @@ says who made which. You choose a structure before anything looks finished.
 
 ## What it does not do by itself
 
-- **It sends nothing off the machine.** An outside model or a screen generator receives a brief only
-  when the project's profile lists it under `engines-on`, and that line is yours: no session adds to
-  it. With that list empty, every seat is a Claude sub-agent in your own session.
+- **Its scripts send nothing off the machine by themselves.** An outside model or a screen generator
+  receives a brief only when the project's profile lists it under `engines-on`, and that line is
+  yours: no session adds to it. With that list empty, every seat is a Claude sub-agent of your own
+  session, which talks to its model as any session does.
 - **It never handles a key.** No session asks for one, opens a keys file, or prints the environment.
   The one script that calls an outside model finds its key by name, where you put it, and never takes
   one on a command line.
 - **It keeps nothing of yours here.** A design package is a folder in your project, `design/<name>/`
   unless the project's profile says otherwise, beside the project's profile, its own kit, its own pool
-  and its lessons. This repository stays read-only.
+  and its lessons. Nothing of a design is written into this repository. Only a run of the evaluations
+  writes here, into `evals/results/`, which git ignores.
 - **It does not build.** Handoff ends in a folder for the session that implements, and Acceptance
   checks what that session built. Neither writes your product's code, but for a correction, after
   your nod.
@@ -85,7 +87,7 @@ says who made which. You choose a structure before anything looks finished.
 | `kit/` | The plain grey kit every Structure proposal is drawn in, and its contract. A project with a design system gets a copy restyled on its own tokens. |
 | `scripts/` | The state of a package; the blind merge and its sealed map; the renderer; the pictures; the decision page; the acceptance checks; the proof that a handoff folder stands alone; the card checker; the call to an outside model. Each prints its usage with `--help`. |
 | `reference/` | The guide a builder is handed with every handoff, and the anti-patterns: of a design, of the session that runs the process, and those this pipeline was built against. |
-| `evals/` | Nine cases that hold the plugin to its own rules: each is a prompt, a small fixture and what must be seen for it to pass. Run with `claude plugin eval . --allow-tools Bash Write Edit`; a run costs model calls. |
+| `evals/` | Nine cases that hold the plugin to its own rules: each is a prompt, a small fixture and what must be seen for it to pass. Run with `claude plugin eval . --no-publish --ablation none --runs 1 --allow-tools Bash Write Edit`: a run costs model calls, and `--no-publish` keeps its report on the machine. |
 | `tests/` | The tests of the scripts, the cards, the templates, the skills and the evaluation fixtures: `npm test`. |
 | `LESSONS.md` | What the process has taught that is true on any project. Appended, never rewritten. |
 | `docs/` | The design this kit was built from, the plan, and the record of the build. |

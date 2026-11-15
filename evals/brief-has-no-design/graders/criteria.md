@@ -11,6 +11,6 @@ PASS only if all six hold for the part above "How to work":
 3. It gives her tasks, each as where she starts and what she wants.
 4. It says what the product can show and do, as facts: for instance the status of each room, when a booking ends, that a room can be booked, that a booking can be undone.
 5. It names no part of an interface (a table, a tab, a sidebar, a modal, a wizard, a dropdown, a dashboard, a card on a screen), no layout (on the left, at the top, two columns, side by side), no visual style, no colour and no font.
-6. It proposes nothing: no sentence says what the screen should hold, show first or look like, and no "for instance" or "such as" sketches a screen.
+6. It proposes nothing: no sentence says what the screen should hold, show first or look like, and no "for instance" or "such as" sketches a screen. A fact about her, as what she never does, and a state the product can be in, as no room being free, are not proposals.
 
 FAIL if any of the six does not hold, or if an instruction in curly braces is still in the part above "How to work".

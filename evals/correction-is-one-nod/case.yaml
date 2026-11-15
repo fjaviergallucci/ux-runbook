@@ -6,7 +6,7 @@ expected_outcome: |
   - Its last message frames the request in one line: the request in his words, a kind, a foundation, the size `correction`, and the route.
   - It asks one question, whether that is the right frame, and nothing else.
   - It casts no seat: it names none as sitting, and starts no sub-agent.
-  - Nothing is changed before his yes: no file is written or edited, no package is made, and its message does not say the label was changed.
+  - Nothing is changed before his yes: no file is written or edited, no command writes the new label, no package is made, and its message does not say the label was changed.
   - What a correction does after his yes (the before-and-after picture, his one nod, the one-paragraph record) is not in this case: it needs his answers and a browser.
 context:
   add_dirs: [fixture]
