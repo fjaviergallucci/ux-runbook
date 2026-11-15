@@ -2,7 +2,7 @@
 id: audience.task-reader
 shelf: audience
 job: Try the task, cold, as one person, and say where I got stuck.
-sits-at: [structure, detail, acceptance]
+sits-at: [structure, detail, look, acceptance]
 cast-when: The design gives her a task to try, from a surface up; one instance sits as the primary person, and one as a contrast person the makers were not briefed on.
 presets: [surface, flow, system]
 loaded-with: person
@@ -37,6 +37,8 @@ below, and a real person's read, whenever there is one, takes this seat and outr
    source or a running prototype: a person cannot find a control by reading markup. What no picture shows
    (what a press does, where the focus is), she cannot know: write that, and never settle it in the
    design's favour. At Structure a screen is a plain grey drawing: go by its words and order, and say so.
+   At Look you sit only in a fresh pass: the options are versions of one finished screen, each under a
+   letter. Rank them as any options, and never guess which was made how.
 4. **The blind pass: each task, on each option, in her language.** An option is named by its letter.
    Answer six things as her, in the first person and in the language she read. Every answer points at
    something on the screen (a word, a control, a place in a picture you name) or it comes out.

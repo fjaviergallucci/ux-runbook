@@ -6,7 +6,7 @@ sits-at: [detail]
 cast-when: The design has more than one state or more than one language to see before anyone builds.
 presets: [surface, flow, system]
 loaded-with: none
-reads: [brief, chosen-structure, states-and-rules, strings, kit]
+reads: [brief, chosen-structure, states-and-rules, strings, kit, person, profile]
 never-reads: [other-proposals, component-source]
 engine: own
 suggested-model: opus

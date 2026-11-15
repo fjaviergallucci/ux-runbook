@@ -58,6 +58,10 @@ At any size from a surface up:
 - `judge.words` gets its own question to the founder when the kind is `first-run`, `message` or
   `public-page`. For those kinds the words get their own review: its line of the cast sheet says that
   its read is put to him as a question of its own, apart from the rest of the stage.
+- With a fresh pass at Look, three seats read the beside comparison, the same screen in each version,
+  by letter: `judge.truth`; `judge.profile`, once for each profession's profile, when the context's
+  people section names one; and `audience.task-reader`, once, as the primary person. Each has its line
+  in the "Look" table of the cast sheet, which says that it reads the beside comparison.
 
 Three makers sit by rule too, and none of them by default:
 
@@ -92,7 +96,7 @@ no size. A project's own card says the same things in its header.
 | visual craft | `judge.visual-craft` | context, look, acceptance | surface, flow, system | `skill:design-audit:design-audit` | `opus` | `high` |
 | system fidelity | `judge.system-fidelity` | look, acceptance | adjustment, surface, flow, system | `own` | `opus` | `medium` |
 | cold implementer | `judge.cold-implementer` | handoff | adjustment, surface, flow, system | `own` | `opus` | `high` |
-| task reader | `audience.task-reader` | structure, detail, acceptance | surface, flow, system | `own` | `opus` | `medium` |
+| task reader | `audience.task-reader` | structure, detail, look, acceptance | surface, flow, system | `own` | `opus` | `medium` |
 | by rule | `judge.profile` | intent, structure, detail, look, acceptance | — | `own` | `opus` | `high` |
 | by rule | `maker.outside-describer` | structure, look | — | `model:any` | — | — |
 | by rule | `maker.screen-generator` | structure, look | — | `tool:stitch` | — | — |

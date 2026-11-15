@@ -989,6 +989,8 @@ test('an awaiting stage is not begun again, and Frame makes the package before i
   assert.match(step, /On his answer, go on from step 8, without `begin`/);
   assert.match(flat(section(conductor(), 'The loop')), /Then mark the stage in work, unless it is awaiting the founder/);
   assert.match(flat(section(conductor(), 'Resuming')), /On his answer, invoke that stage's skill and go on from step 8 of the loop\. An awaiting stage is not begun again/);
+  // A stage may stop before its gate, on a page of its own: its own skill knows where that question was asked.
+  assert.match(flat(section(conductor(), 'Resuming')), /An awaiting stage is not begun again\. A question a stage asked mid-way is put again by that stage's own skill, at the step that asked it\./);
 });
 
 test('the three rules are stated as rules for the session', () => {
@@ -2236,10 +2238,10 @@ test('presets.md: the default cast by size, word for word, and every seat it nam
   const presetFor = size => Object.values(cards).filter(card => card.presets.includes(size)).map(card => card.id).sort();
   assert.deepEqual(presetFor('system'), presetFor('surface'));
   assert.deepEqual(presetFor('correction'), []);
-  // Added by rule: the cards preset for no size, and the two judges the kind brings in.
+  // Added by rule: the cards preset for no size, the two judges the kind brings in, and the reader a fresh pass at Look seats (ruling R144).
   const ruled = [...new Set(spansOf(section(text, 'Added by rule')).filter(isSeat))];
   assert.deepEqual(ruled.filter(id => cards[id].presets.length === 0).sort(), Object.values(cards).filter(card => card.presets.length === 0).map(card => card.id).sort());
-  assert.deepEqual(ruled.filter(id => cards[id].presets.length > 0).sort(), ['judge.truth', 'judge.words']);
+  assert.deepEqual(ruled.filter(id => cards[id].presets.length > 0).sort(), ['audience.task-reader', 'judge.truth', 'judge.words']);
 });
 
 test('presets.md: what is added by rule, how the table is read, and what a seat does without its engine', () => {
@@ -2261,6 +2263,11 @@ test('presets.md: what is added by rule, how the table is read, and what a seat 
   // The conductor's table of the kinds says the same of the three.
   const kinds = Object.fromEntries(tableRows(section(reference('routes.md'), 'Kind')).map(row => [unspan(row[0]), row[3]]));
   assert.deepEqual([kinds['first-run'], kinds.message, kinds['public-page']], ['the words get their own review', 'the words get their own review', 'the truth judge always sits']);
+  // Ruling R144: with a fresh pass at Look, Cast seats the three that read the beside comparison, so that each has a line, a model and an effort.
+  assert.match(byRule, /With a fresh pass at Look, three seats read the beside comparison, the same screen in each version, by letter: `judge\.truth`; `judge\.profile`, once for each profession's profile, when the context's people section names one; and `audience\.task-reader`, once, as the primary person\. Each has its line in the "Look" table of the cast sheet, which says that it reads the beside comparison/);
+  for (const id of ['judge.truth', 'judge.profile', 'audience.task-reader']) assert.ok(kitCards()[id]['sits-at'].includes('look'), `${id} sits at look`);
+  assert.match(flat(read('pool/audiences/task-reader.md')), /At Look you sit only in a fresh pass: the options are versions of one finished screen, each under a letter\. Rank them as any options, and never guess which was made how/);
+  assert.match(flat(read('templates/outputs/LEDGER.md')), /The profile judge, at Structure and for a beside comparison at Look: delete it otherwise/);
   // The three makers the ruling adds: none sits by default.
   assert.match(byRule, /Three makers sit by rule too, and none of them by default:/);
   assert.match(byRule, /`maker\.outside-describer`, only when the project profile lists a provider under `engines-on`: `model:openai` or `model:gemini`\. It is one more describer at Structure, and at Look it sits only inside a fresh pass\. Its line of the cast sheet names the provider and the model id/);
@@ -3273,7 +3280,7 @@ test('detail: three makers one after another, each started on what the cast shee
 const HANDED_AT_DETAIL = Object.freeze({
   'chosen-structure': /`<chosen>`/, intent: /`<package>\/02-intent\.md`/, context: /`<package>\/01-context\.md`/, 'states-and-rules': /The states and the rules/, strings: /`<package>\/05-detail\/strings\.json`/,
   prototype: /`<package>\/05-detail\/prototype\/`/, kit: /`<kit dir>`, the shared kit, and `kit\/KIT-CONTRACT\.md`, its contract/, 'product-facts': /The project's facts document/, pictures: /`<package>\/05-detail\/shots\//,
-  profile: /profession's profile, whole/, person: /^her card\./, 'profile-traits': /Her profession's traits/,
+  profile: /profession's profile, whole/, person: /\bher card\b/i, 'profile-traits': /Her profession's traits/,
 });
 // What a card's `never-reads` names, as the seat's brief lists it at Detail.
 const KEPT_OUT_AT_DETAIL = Object.freeze({
@@ -3307,9 +3314,11 @@ test('detail: each seat is handed what its card reads and no more, the words jud
   assert.match(top, /A card of the project's own that the cast sheet seats here is handed what its header's `reads` allows, by the same rule/);
   const common = { maker: forAll(section(seats, 'The makers')), reader: forAll(section(seats, 'The readers')) };
   assert.match(common.maker, /One after another, never together: each reads what the one before it wrote/);
-  // No maker's card at Detail reads her card or her profession's profile, so none is handed either.
-  assert.match(common.maker, /No maker is handed her card or her profession's profile, which no maker's card at Detail reads: the intent holds her in her moment/);
-  for (const card of Object.values(cards).filter(card => card.shelf === 'maker')) assert.ok(!card.reads.includes('person') && !card.reads.includes('profile'), card.id);
+  // Ruling R143: each maker at Detail is handed her card and her profession's profile, whole, as the conductor and the maker's brief template say, and its card reads both.
+  assert.match(common.maker, /Each is handed, besides what its own section lists, the two lines the maker's brief template keeps for them: her card, by the path the carry list names, and her profession's profile, whole, its base and then the section of her specialty\. Where she has no profession, the second line is deleted/);
+  for (const card of Object.values(cards).filter(card => card.shelf === 'maker')) assert.ok(card.reads.includes('person') && card.reads.includes('profile'), card.id);
+  assert.match(flat(read('templates/briefs/maker.md')), /- \*\*The person the design is for:\*\* \{her card's absolute path\} - \*\*Her profile, whole\*\*, its base and then the section of \{her specialty\}/);
+  assert.match(flat(reference('loop.md')), /Where that is a profession's profile, a maker or a judge is handed it whole, and an audience only its traits\. A describer and a fresh maker are handed neither the person nor her profession's profile/);
   for (const path of ['<package>/04-structure/CHOSEN.md', '<package>/03-cast.md', '<package>/work/', '<package>/05-detail/reads/', '<package>/04-structure/earlier/']) assert.ok(common.maker.includes(`\`${path}\``), path);
   assert.match(common.reader, /the judges in one message, so that no ledger exists while another judge reads, then the audiences/);
   assert.match(common.reader, /What each reads is named by what it is, never by who made it/);
@@ -3581,21 +3590,23 @@ test('look: two modes; inside a system one visual designer on the project\'s tok
 const HANDED_AT_LOOK = Object.freeze({
   'chosen-structure': /`<chosen>`/, intent: /`<package>\/02-intent\.md`/, context: /`<package>\/01-context\.md`/, 'states-and-rules': /The states and the rules/, strings: /`<package>\/05-detail\/strings\.json`/,
   prototype: /`<package>\/05-detail\/prototype\/`/, tokens: /`<tokens>`/, 'design-system': /What the project says of its design system/i, 'fresh-marks': /his marks|what he marked in it/, 'final-screens': /The final screens/,
-  pictures: /`<package>\/06-look\/shots\/`/, 'component-source': /The component source: the folder the project profile names under `components`/, 'sibling-surfaces': /The sibling surfaces/, 'product-facts': /The project's facts document/,
-  profile: /profession's profile, whole/,
+  pictures: /`<package>\/06-look\/(?:shots|beside)\/`/, 'component-source': /The component source: the folder the project profile names under `components`/, 'sibling-surfaces': /The sibling surfaces/, 'product-facts': /The project's facts document/,
+  profile: /profession's profile, whole/, person: /\bher card\b/i, 'profile-traits': /Her profession's traits/,
 });
 // What a card's `never-reads` names, as the seat's brief lists it at Look, or as the hand-over keeps it out.
 const KEPT_OUT_AT_LOOK = Object.freeze({
   'design-system': /the design system/i, kit: /the project's kit/, 'current-screens': /today's screens?/, 'sibling-surfaces': /sibling surfaces/, 'other-proposals': /another fresh maker's files|no other proposal/,
   'session-idea': /idea of yours/, 'maker-notes': /`<package>\/work\/`/, 'author-map': /`<package>\/04-structure\/MAP\.sealed\.json`/, 'other-ledgers': /every file of `<package>\/06-look\/reads\/` but its own/,
-  'task-reads': /an audience's read is in it/,
+  'task-reads': /an audience's read is in it|every file of `<package>\/06-look\/reads\/` but its own/, intent: /`<package>\/02-intent\.md`/, package: /every other file of the package/, profile: /her profession's profile itself/,
+  'describers-brief': /everything in `<package>\/04-structure\/`/, 'states-and-rules': /`<package>\/05-detail\/states\.md`, `<package>\/05-detail\/DETAIL\.md`/, strings: /`<package>\/05-detail\/strings\.json`/,
+  prototype: /`<package>\/05-detail\/prototype\/`/,
 });
 
 test('look: each seat is handed what its card reads and no more; a fresh maker the fresh brief alone, and nothing of the system, the kit or the prototype', () => {
   const seats = stageRef('look', 'seats.md');
   assert.deepEqual(headings(seats), ['The makers', 'The readers']);
   const cards = cardsAt('look');
-  assert.deepEqual(seatSections(seats), ['maker.visual-designer', 'maker.screen-generator', 'maker.outside-describer', 'judge.visual-craft', 'judge.system-fidelity', 'judge.accessibility', 'judge.truth', 'judge.profile']);
+  assert.deepEqual(seatSections(seats), ['maker.visual-designer', 'maker.screen-generator', 'maker.outside-describer', 'judge.visual-craft', 'judge.system-fidelity', 'judge.accessibility', 'judge.truth', 'judge.profile', 'audience.task-reader']);
   assert.deepEqual([...seatSections(seats)].sort(), Object.keys(cards).sort());
   const top = flat(seats.slice(0, seats.indexOf('\n## ')));
   assert.match(top, /A brief hands a seat what its card's `reads` allows and this page lists, each file by its absolute path, and lists under "Do not open" what its card's `never-reads` names, as this package holds it/);
@@ -3632,14 +3643,24 @@ test('look: each seat is handed what its card reads and no more; a fresh maker t
     // What its card never reads is listed in its brief, or kept out of what is sent.
     const closed = `${flat(part)}${reader ? ` ${common}` : ''}`;
     for (const token of card['never-reads']) {
+      if (AT_ANOTHER_STAGE.includes(token)) continue;
       assert.ok(KEPT_OUT_AT_LOOK[token], `${id}: ${token} has no place the test knows`);
       assert.match(closed, KEPT_OUT_AT_LOOK[token], `${id}: never reads ${token}`);
     }
     if (reader) {
       assert.match(said['Do not open'], /^the list above/, id);
-      assert.match(said.Writes, /`<package>\/06-look\/reads\/<seat>(?:-<name>)?\.md`, in the shape of `templates\/outputs\/LEDGER\.md`/, id);
+      assert.match(said.Writes, /`<package>\/06-look\/reads\/<seat>(?:-<name>)?(?:-beside)?\.md`, in the shape of `templates\/outputs\/(?:LEDGER|TASK-READ)\.md`/, id);
     }
   }
+  // Ruling R143: the visual designer is handed her card and her profession's profile, whole; a fresh maker neither.
+  assert.match(leads(subsection(seats, '`maker.visual-designer`')).Handed, /And the two lines the maker's brief template keeps for them: her card, by the path the carry list names, and her profession's profile, whole\. A fresh maker is handed neither/);
+  for (const id of ['maker.screen-generator', 'maker.outside-describer']) assert.ok(!cards[id].reads.includes('person') && !cards[id].reads.includes('profile'), id);
+  // Ruling R144: the task reader sits at Look only with a fresh pass, and reads the beside comparison by letter, as pictures.
+  const audience = leads(subsection(seats, '`audience.task-reader`'));
+  assert.match(flat(subsection(seats, '`audience.task-reader`')), /At Look it sits only with a fresh pass, once, as the primary person, `person\.<name>`: it reads the beside comparison, and nothing else of the stage/);
+  assert.match(audience['Its brief'], /It says that the options are versions of one screen, each under a letter, and asks her to rank them/);
+  assert.match(audience.Handed, /the pictures in `<package>\/06-look\/beside\/`, each by its path, as `<package>\/06-look\/beside\/A-1280-light\.png`\. The pictures, and pictures only\./);
+  assert.match(audience['Do not open'], /`<package>\/06-look\/screens\/`, `<package>\/06-look\/shots\/` and `<package>\/06-look\/fresh\/`, which say which version is which/);
   // The visual designer: its lens, whether motion is cast, his marks in his words; nothing of the fresh screens before he has said what he borrows.
   const designer = leads(subsection(seats, '`maker.visual-designer`'));
   assert.match(designer['Its brief'], /Its lens: the skill its line of the cast sheet names as its engine, to load if it is installed; inside a design system it shapes hierarchy and emphasis, not the palette/);

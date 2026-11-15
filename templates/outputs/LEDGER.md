@@ -53,8 +53,8 @@ depends on: for the founder or a real professional, never for the maker.}
 
 ## Ranking
 
-{The profile judge, at Structure only: delete it otherwise. The options by letter, the best first for
-this profession, with the size of each gap, clear · slight · tie, and one reason.}
+{The profile judge, at Structure and for a beside comparison at Look: delete it otherwise. The options
+by letter, the best first for this profession, with each gap, clear · slight · tie, and one reason.}
 
 ## Borrow list
 

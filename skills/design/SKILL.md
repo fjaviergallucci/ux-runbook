@@ -142,7 +142,8 @@ conversation is needed, and nothing of one is used.
 2. Run `validate`, `next` and `status`, as in "Before a stage". Report a stale or changed artefact first.
 3. If `status` shows an open question, a stage is awaiting the founder. Put that question to him. On
    his answer, invoke that stage's skill and go on from step 8 of the loop. An awaiting stage is not
-   begun again.
+   begun again. A question a stage asked mid-way is put again by that stage's own skill, at the step
+   that asked it.
 4. Otherwise read the output of the stage before the one `next` named, and what its carry list names.
    That is all the stage may know. The package's `work/` folder is scratch, prompts and raw outputs:
    it is never read back.

@@ -6,7 +6,7 @@ sits-at: [detail]
 cast-when: The design shows words, which is every design, or a change touches what something says.
 presets: [adjustment, surface, flow, system]
 loaded-with: none
-reads: [brief, chosen-structure, states-and-rules, intent, context]
+reads: [brief, chosen-structure, states-and-rules, intent, context, person, profile]
 never-reads: [other-proposals]
 engine: own
 suggested-model: fable

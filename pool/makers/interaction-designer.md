@@ -6,7 +6,7 @@ sits-at: [detail]
 cast-when: A structure is chosen, or a change touches how something behaves.
 presets: [adjustment, surface, flow, system]
 loaded-with: none
-reads: [brief, chosen-structure, intent, context]
+reads: [brief, chosen-structure, intent, context, person, profile]
 never-reads: [other-proposals]
 engine: own
 suggested-model: fable

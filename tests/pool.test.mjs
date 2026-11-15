@@ -851,7 +851,7 @@ test('the task reader is the one audience card, and holds the decisions it was w
   const [{ data }] = audiences;
   assert.deepEqual(
     [data['sits-at'], data.presets, data['loaded-with'], data.engine, data['suggested-model'], data['suggested-effort'], data.verified],
-    [['structure', 'detail', 'acceptance'], ['surface', 'flow', 'system'], 'person', 'own', 'opus', 'medium', '2026-11-14'],
+    [['structure', 'detail', 'look', 'acceptance'], ['surface', 'flow', 'system'], 'person', 'own', 'opus', 'medium', '2026-11-14'],
   );
 });
 

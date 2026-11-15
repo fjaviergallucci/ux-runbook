@@ -33,8 +33,9 @@ Four names are used below, besides `<tokens>`, the project's token file as the s
   about, or "Nothing marked".
 - **Handed:** `<chosen>`. The states and the rules. `<package>/05-detail/strings.json`, the strings.
   `<package>/05-detail/prototype/`, the pages and the stable ids on them. `<tokens>`. What the
-  project says of its design system. And, for each of his marks, its picture, where the carry list
-  names one.
+  project says of its design system. For each of his marks, its picture, where the carry list names
+  one. And the two lines the maker's brief template keeps for them: her card, by the path the carry
+  list names, and her profession's profile, whole. A fresh maker is handed neither.
 - **Do not open:** its card closes nothing, and four things are kept from it all the same.
   `<package>/work/`, but its own brief. `<package>/06-look/reads/`, but the ledgers a fix round
   hands it. `<package>/04-structure/earlier/`. And, until he has said what he borrows,
@@ -174,3 +175,24 @@ with a fresh pass, to rank the two.
   profile judge. And the pages themselves: it reads the screens as pictures.
 - **Writes:** its ledger, `<package>/06-look/reads/<seat>-<name>.md`, in the shape of
   `templates/outputs/LEDGER.md`.
+
+### `audience.task-reader`
+
+At Look it sits only with a fresh pass, once, as the primary person, `person.<name>`: it reads the
+beside comparison, and nothing else of the stage.
+
+- **Its brief,** from `templates/briefs/audience.md`: who she is, her language and her width, and her
+  tasks, copied word for word from "Tasks for the audience" of the intent. It says that the options
+  are versions of one screen, each under a letter, and asks her to rank them.
+- **Handed:** her card. Her profession's traits: a copy of her profession's profile with every
+  `So the interface must:` field removed, written beside the brief as the loop says, and the one
+  file of `<package>/work/` she opens. And the pictures in `<package>/06-look/beside/`, each by its
+  path, as `<package>/06-look/beside/A-1280-light.png`. The pictures, and pictures only.
+- **Do not open:** the list above, and with it: `<package>/02-intent.md`, and every other file of
+  the package; her profession's profile itself; `<package>/06-look/screens/`,
+  `<package>/06-look/shots/` and `<package>/06-look/fresh/`, which say which version is which;
+  everything in `<package>/04-structure/`; `<package>/05-detail/prototype/`,
+  `<package>/05-detail/states.md`, `<package>/05-detail/DETAIL.md` and
+  `<package>/05-detail/strings.json`. A person cannot find a control by reading markup.
+- **Writes:** one task read, `<package>/06-look/reads/<seat>-<name>-beside.md`, in the shape of
+  `templates/outputs/TASK-READ.md`, with her ranking of the letters.

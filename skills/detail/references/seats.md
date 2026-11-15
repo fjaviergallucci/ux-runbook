@@ -19,9 +19,11 @@ the data map and the dependencies.
 
 ## The makers
 
-One after another, never together: each reads what the one before it wrote. No maker is handed her
-card or her profession's profile, which no maker's card at Detail reads: the intent holds her in her
-moment. Every maker's brief lists these under "Do not open":
+One after another, never together: each reads what the one before it wrote. Each is handed, besides
+what its own section lists, the two lines the maker's brief template keeps for them: her card, by the
+path the carry list names, and her profession's profile, whole, its base and then the section of her
+specialty. Where she has no profession, the second line is deleted. Every maker's brief lists these
+under "Do not open":
 
 - everything in `<package>/04-structure/` but `<chosen>` and its pictures: the board, the proposals
   folder and `<package>/04-structure/earlier/`, and with them every proposal that was not chosen;
@@ -35,7 +37,7 @@ moment. Every maker's brief lists these under "Do not open":
   plausible rows of the context's inventory, as the context states them.
 - **Handed:** `<chosen>`, with its pictures. `<package>/02-intent.md`, the intent, for its states
   table, its tasks and its success criteria. `<package>/01-context.md`, the context, for the
-  inventory its data map traces to.
+  inventory its data map traces to. Her card, and her profession's profile, whole.
 - **Do not open:** the list above.
 - **Writes:** `<package>/05-detail/states.md`, in the shape of its template, and in
   `<package>/05-detail/DETAIL.md` the headings its card names: "Rules", "Edge cases", "Data map",
@@ -60,7 +62,7 @@ moment. Every maker's brief lists these under "Do not open":
   main one first, each with the register and the form of address the context's "Constraints" gives
   it. And the project's writing skill, where its line of the cast sheet names one.
 - **Handed:** `<chosen>`. The states and the rules. `<package>/02-intent.md`, the intent.
-  `<package>/01-context.md`, the context.
+  `<package>/01-context.md`, the context. Her card, and her profession's profile, whole.
 - **Do not open:** the list above.
 - **Writes:** `<package>/05-detail/strings.json`, in the shape of its template: each key with its
   line in every language, its limit, where it appears, and its why-line, never blank.
@@ -74,7 +76,8 @@ moment. Every maker's brief lists these under "Do not open":
 - **Its brief,** from `templates/briefs/maker.md`, gives the folder of the kit, `<kit dir>`, and the
   two widths of the context's "Constraints".
 - **Handed:** `<chosen>`. The states and the rules. `<package>/05-detail/strings.json`, the strings.
-  `<kit dir>`, the shared kit, and `kit/KIT-CONTRACT.md`, its contract.
+  `<kit dir>`, the shared kit, and `kit/KIT-CONTRACT.md`, its contract. Her card, and her
+  profession's profile, whole.
 - **Do not open:** the list above, and the project's component source, the folder the project
   profile names under `components`: the prototype is files that open from a folder.
 - **Writes:** `<package>/05-detail/prototype/`: one page for each screen, state and language, named
