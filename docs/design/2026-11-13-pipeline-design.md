@@ -157,8 +157,8 @@ project before its first design (§ 4.9).
   - what was tried and rejected;
   - **the angles considered** — at least three ways of framing the problem, each with its risk; never one;
   - what the design must not become;
-  - **the founder's own words**, asked for here when the words will matter: one or two sentences as he
-    would say them. They go verbatim into the writer's brief later;
+  - **the founder's own words**, asked for here, once (§ 25, amendment 2): what she calls these things,
+    and any word she must never see. They go verbatim into the writer's brief later;
   - the questions for him, each with a recommendation.
 - **Gate:** he corrects. His corrections are written under *Reviewed by the founder*.
 
@@ -699,7 +699,7 @@ walkthrough vocabulary.
 
 - **The grey kit** ships with this repository, for projects with no design system.
 - **A project kit** is the same set of parts restyled to look like the project's default components: one
-  stylesheet that links the project's real token file. It is written once, at setup, kept in the
+  stylesheet beside a copy of the project's real token file (§ 25, amendment 1). It is written once, at setup, kept in the
   project (`design/kit/`), and read by the system fidelity judge like any other artefact. When a
   project's tokens are not plain CSS, setup exports them to a CSS file and records where they came from.
 - **Never the real components run through the project's own toolchain.** That would tie the designing
@@ -856,7 +856,8 @@ replaces it; no second path stays in the tree. *(author's call)*
 - Secrets: a script that calls an outside model reads its key inside itself, by name, and never prints
   it.
 - A browser check is headless, started and closed by the script, with reduced motion set explicitly.
-- The founder is asked one question about one thing at a time; a decision page is one screen.
+- The founder is asked one question about one thing at a time — a list a seat returns is one thing
+  (§ 25, amendment 3); a decision page is one screen.
 - Nothing is shortlisted, detailed or drawn finished before the gate that precedes it.
 - A stage is run, or the route says why it is not. Nothing is skipped silently.
 
@@ -1018,3 +1019,48 @@ Four rules.
 **Not planned:** design tools that round-trip through a hosted canvas, and third-party interface
 generators. Either can be added later as a card, on evidence from the lessons file.
 
+## 25. Amendments after the build and its dry run *(2026-11-15)*
+
+The build and a dry run of the whole pipeline on a fictional project (`docs/design/DRY-RUN.md`) changed
+seven things this document states. Each was ruled on by the session that conducted the build; the
+ruling's number is the one in the build's log (`docs/build-log/progress.md`). Where a section above
+disagrees with this one, this one holds.
+
+1. **A project kit copies the tokens; it does not link them** (§ 12, "The shared kit"). The renderer
+   copies only the stylesheets it finds in the kit's folder next to the pages it draws, so a kit that
+   imported tokens from elsewhere in the project drew unstyled pages. Setup copies or exports the tokens
+   into the kit's folder as one CSS file, with a first line that records the source and the commit it was
+   taken from; the kit is rebuilt when the tokens change. *(Task 14.)*
+2. **Context always asks once for his words** (§ 4.1): what she calls these things, and any word she
+   must never see. "None" is an answer. The test "when the words will matter" asked the conducting
+   session to judge, and in the dry run the question was never asked. *(R164.)*
+3. **A list is one thing** (§ 18, "one question about one thing at a time"). A list a maker or a reader
+   returns — dependencies, states the intent does not name, what the structure cannot hold, facts a
+   string waits for, items nobody decided, deviations — is put to him as one question: the entries
+   numbered, each with what follows from each answer, answered by number in one message. An entry he
+   leaves unanswered stays open and is listed so. An answer that meets a standing rule, a fact of the
+   product or an output he approved is still asked on its own, at once. In the dry run Detail alone put
+   36 questions one at a time. *(R174.)*
+4. **An accepted deviation is part of what was approved** (§ 4.5, § 4.6, § 9, § 13). When he accepts, as
+   a cost, something that breaks a standing rule or a line of the approved intent, it is written in a
+   section of its own in the stage's output — what it breaks, his words, the date — carried on, handed to
+   every judge from that stage on as part of what was approved (never to an audience), and copied into
+   the handoff's "must not change". A judge that still finds it writes it once, as accepted at that
+   stage; it is not sent to a fix round and does not block. In the dry run the same accepted cost came
+   back marked blocking at Look, twice, and again at Acceptance. *(R175, R186.)*
+5. **A project with no browser script** (§ 4.8, "the way the project profile says a check is run"). The
+   design assumed every project keeps one. Where it keeps none, Acceptance says so and, on his yes,
+   writes the project's driver in the project, on the kit's own browser library, and records its command
+   in the profile. The handoff folder carries the in-page check file, so a builder can run the checks
+   without the kit. *(R159.)*
+6. **What a reader is shown** (§ 11, § 12). The board is drawn twice: with the makers' notes, for him
+   and for the judges; and without the bet, the cost, what it is deliberately bad at and the notes, for
+   the audience, who must never be told what a design means to do. Each page is pictured whole and as
+   its first screen alone, so that "without scrolling" can be read off a picture. *(R154, R171.)*
+7. **One more name for what a seat may read** (§ 7, "What a card states"): `example-data`, the made-up
+   rows a prototype is drawn with, handed to the prototype builder and to the truth judge. *(R188.)*
+
+Three things the dry run showed and this build did not decide are left for the proving run (§ 19): a
+script for the mechanical part of Handoff; checks that test what a page does, not only what it shows;
+and whether every file of a stamped stage, not only its output, is guarded against change (ruled yes,
+R184, and built in the last fix wave).
