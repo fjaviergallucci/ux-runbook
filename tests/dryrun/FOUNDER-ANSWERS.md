@@ -504,3 +504,34 @@ The same holds for anything the pipeline says to put to him before going on, for
 no heading: a stale or changed artefact that `state.mjs validate` reports, a reopening, a resize or a
 change of route, a faulty card, a script's refusal, or a fact Context could not source. Stop, and
 report it.
+
+## Added during the run (questions the file did not foresee)
+
+### Setup · Does the product need a kind of interface beyond the kit's five?
+
+None. The five are enough.
+
+### Setup · Any other question the profile template asks that the project did not say
+
+Not known yet. Leave it so and move on.
+
+### Detail · a cost I accepted meets one of my own rules or the intent I approved: keep it as a cost, or reopen Structure?
+
+(For each such question, whichever rule or line of the intent it names.)
+
+Keep it as a cost. Don't reopen Structure. I know it breaks the rule, and I'd rather see it written down as
+a deviation I accepted than go round again. Record it so the judges and the builder can see I said so.
+
+### Detail · a fact a string waits for — three more
+
+- *The verb for holding a room:*
+
+  > "Hold" in English, "Apartar" in Spanish. "Hold room", "Apartar sala" are right.
+
+- *Whether the screen shows a heading, and what it is called:*
+
+  > No heading. The answer is the screen; a title would only push it down.
+
+- *How long a room's name can be:*
+
+  > Short. "Room 5", "Sala 5" — never more than ten characters.
