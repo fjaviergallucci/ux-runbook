@@ -448,8 +448,10 @@ test('the description is the one the skill was given, word for word', () => {
 
 test('the description is written in double quotes', () => {
   only(faults({ description: ROOMS.description }), /^SKILL\.md: header: the description is written in double quotes/, /description: "…"/);
+  // In single quotes it reads as it is, since a header takes that form too (R170): the one fault is that a skill's is not written so.
+  only(faults({ description: `'${ROOMS.description}'` }), /^SKILL\.md: header: the description is written in double quotes/);
   // Quoted another way, the quotes are part of what is read: both faults.
-  assert.equal(faults({ description: `'${ROOMS.description}'` }).length, 2);
+  assert.equal(faults({ description: `\`${ROOMS.description}\`` }).length, 2);
   // A description that holds a double quote cannot be written in them.
   assert.equal(faults({ description: '"Use when she asks for a "quiet" room."' }, {}, { ...ROOMS, description: 'Use when she asks for a "quiet" room.' }).length, 1);
 });
