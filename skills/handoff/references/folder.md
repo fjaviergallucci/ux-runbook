@@ -62,15 +62,14 @@ the shared kit, and a builder would take its grey for the look.
 - **The index.** `<package>/07-handoff/prototype/index.html`: every page as a link, grouped by
   screen, then state, then language. Its words are the screens' names and the names of the states,
   as `states.md` has them, and the languages by the codes `languages` of the project profile gives.
-  Count the pages by tool: screens times states times
-  languages, less the rows that cannot occur.
+  Count the pages by tool: screens times states times languages, less the rows that cannot occur.
 
 ## The folder stands alone, proved
 
 Once the pages, the token file and the index are in, and again after any of them changes:
 
 ```
-node <kit root>/scripts/alone.mjs <package>/07-handoff --package <package>
+node <kit root>/scripts/alone.mjs <package>/07-handoff
 ```
 
 It reads every page and stylesheet of the folder and prints one line for each address that does not
@@ -80,9 +79,9 @@ On success it prints one line, that the folder stands alone, with its counts: th
 
 - **A page's link that leaves the folder** is the one line above, missed in that page: point it at
   the copy, by the same script. A stylesheet, a picture or a script a page loads from the project is
-  an asset: it is copied in beside the pages, and its address in the page made to lead to the copy. Those are the two
-  changes a copied page takes, and the only two: its link to the token file, and the address of an
-  asset copied in.
+  an asset: it is copied in beside the pages, and its address in the page made to lead to the copy.
+  Those are the two changes a copied page takes, and the only two: its link to the token file, and
+  the address of an asset copied in.
 - **What a page loads that cannot be copied in,** as a script or a picture from another host: the
   page is not edited to pass. It is a fault in what was approved, and it goes to the founder, open,
   as a question, recorded with the `await` of the skill's gate. Nothing goes on until he answers.
@@ -107,14 +106,36 @@ folder does not itself hold: a stage's folder, a ledger, `measures.md`, a maker'
 each place, by file and line, and exits 1. A folder's name is found where it is written as a path,
 with its slash; `../build/`, the builder's place, may be named. A pointer that names no file, as
 "answer 28" or "as decided at Detail", it does not see: the first rule of this page still holds for
-what you write, and the cold implementer reads for the rest. Each place found is put right before
-the cold implementer starts:
+what you write, and the cold implementer reads for the rest.
+
+It is run once the folder's last file is written: after step 7 of the skill, before the cold
+implementer is started, and again when a file of the folder changes at step 9.
+
+```
+node <kit root>/scripts/alone.mjs <package>/07-handoff --package <package>
+```
+
+Run at step 3 it could not pass: the entry and the guide name `DECISIONS.md`, which the package holds
+from Frame on and the folder only from step 4; and the files of steps 4 to 7, where a pointer is
+most often written, would never be read. Each place it prints is put right before the cold
+implementer starts:
 
 - **In a file you wrote,** write out what the pointer stood for, and take the pointer out.
-- **In a file that was approved,** as a comment of a stylesheet or a row of the states that reads
-  "as answered", the file is not rewritten: what was approved does not change here. `PARTS.md`
-  says where the pointer is and what it stood for, under its token file line, so that a builder
-  who meets it finds its answer in the folder.
+- **In a file that was approved,** at an earlier stage, and copied in unchanged, as a comment of a
+  stylesheet or a row of the states that reads "as answered", the file is not rewritten: what was
+  approved does not change here. `PARTS.md` says where the pointer is and what it stood for, under
+  its token file line, so that a builder who meets it finds its answer in the folder. It never
+  writes the name the pointer points to, which would be one more place for the command to print:
+  "the comment that opens `prototype/today.css` points to the list of the look's extensions: they
+  are under 'Changes to the system', below".
+- **A link** the command prints is no file of the folder: copy in what it leads to, under the
+  link's own name, or take the link out.
+
+**When it may exit 1.** Only so: every place it prints is in a file that was approved at an earlier
+stage and copied in unchanged, and each is listed in `PARTS.md`, as above. Then the stage goes on:
+the cold implementer is started, and those places are put to the founder with the gate, each as an
+open finding on the decision page and named in the gate's question. He may leave one as it is, or
+reopen the stage whose file holds it. Any other place is mended first, and the command run again.
 
 ## `IMPLEMENTER-GUIDE.md`, and `build/`
 
@@ -172,7 +193,8 @@ Written from the component source, read in this session: the folder the project 
 - **The token file line:** its path in the folder, `tokens.css`; the path of the project's own token
   file, which it was copied from by way of the project kit; that file's commit; and each file
   copied in with it, because the token file loads it, with where it came from. Under it, each
-  pointer an approved file still holds, with what it stood for.
+  pointer an approved file still holds: where it is and what it stood for, never the name it
+  points to.
 - **Existing parts:** one row for each element id of `SPEC.md`. The component's name is the source's
   own. The file is the one you opened. The tokens are the ones the final screens use for it.
 - **An element with no part in the system** has no row made up for it. It is a question for the
@@ -200,9 +222,9 @@ with the criterion it holds.
 - **Every measured value is held.** Each row of `measures.md` has its check: a `contrast` with its
   `min`, a `min-size` with its `minWidth` and `minHeight`, at the row's width and theme. The `min`
   of a `contrast` is the standard the row is held to: the measured value stands beside it, under
-  "Measured values" of `ACCEPTANCE.md`. No check
-  measures a gap, a size of text or the length of a line: such a row is listed in `ACCEPTANCE.md`,
-  under "Measured values", with its value and "measured by a person" where its check would be.
+  "Measured values" of `ACCEPTANCE.md`. No check measures a gap, a size of text or the length of a
+  line: such a row is listed in `ACCEPTANCE.md`, under "Measured values", with its value and
+  "measured by a person" where its check would be.
 - **An element is named by its `data-ux`.** Where two screens carry the same id, the check names its
   `screen`, and the element is looked for inside the one element whose `data-screen` is that screen.
 - **A check names its `state`, its `page`, its `width`,** and its `theme` when it is not light. The

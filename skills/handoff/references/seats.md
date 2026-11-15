@@ -49,7 +49,7 @@ of those.
 |---|---|
 | **The answer is in what the carry list hands you,** and the folder left it out or said it twice. | Write it in the folder, word for word where it is hers to read. Two files that disagree are made to agree with what was approved. |
 | **It is how something is built:** where a file goes, how state is held. | Write it under "Left to the builder" of `HANDOFF.md`: it is the builder's, and now says so. |
-| **Nobody decided it.** | Put such items to the founder as one question, numbered, as step 9 of the skill says. His answers are written into the folder as he said them. Where he leaves one open, write a default there, marked "Default:", with the line "nobody decided this: build it so, or write another way down as a deviation". |
+| **Nobody decided it.** | Put such items to the founder as one question, numbered, as step 9 of the skill says. His answers are written into the folder as he said them. Where his answer for an entry says to take the default, write a default there, marked "Default:", with the line "nobody decided this: build it so, or write another way down as a deviation". An entry he leaves unanswered stays open: no default is written for it. |
 
 Three items come up on every folder, and each is closed the first way:
 
@@ -65,10 +65,14 @@ Three items come up on every folder, and each is closed the first way:
   case inside a row, as three kinds of room in one row of a dialog, is no state: `SPEC.md` holds
   it, and `ACCEPTANCE.md` lists it as one a person looks at.
 
-And three things hold while you close them:
+And these hold while you close them:
 
 - **A default is his to see.** Each one is listed on the decision page under `findings`, so that his
   go covers it. You propose a default in one line and never settle one in silence.
+- **You never fill in an answer he did not give.** An entry of the question that he leaves
+  unanswered stays open, whatever default you proposed for it: it is written nowhere in the folder
+  as decided, it is listed on the decision page under `findings`, as open, and the gate's question
+  names it. A default is written only where his answer for that entry says to take it.
 - **A default is your proposal, and is held first.** Before it goes to him, hold it against the
   pages and the checks it touches: a default that hides what an approved page draws, or fails a
   check that passes, is no default. It is marked "the conductor's proposal" until he answers. An
@@ -92,9 +96,11 @@ cold and written its lists. It marks each earlier item *fixed*, *partly* or *sti
 
 There is no second round. What is still present goes to the founder with the gate, as an open
 finding. The handoff is ready when the lists are empty, or every item left has its answer or its
-default written in the folder.
+default written in the folder. An item he left unanswered has neither: it stays an open finding, and
+the gate's question names it.
 
 An item of the re-read that you close in the folder afterwards is closed, and nobody reads it again:
 the decision page lists it under `findings`, by seat, as "closed after the re-read, not read again",
 with where it was closed. A pointer in an approved file is closed that way, by its line in
-`PARTS.md`.
+`PARTS.md`; the pointer itself still goes to him with the gate, as an open finding, as
+`references/folder.md` says.

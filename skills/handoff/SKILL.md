@@ -21,7 +21,6 @@ the handoff folder, which is all a builder is given, and `<package>/07-handoff-g
 never in it, for what the gate needs and a builder does not.
 
 ## Question
-
 Can a session that was not here build it without asking?
 
 ## Reads
@@ -86,13 +85,11 @@ Each path is from `<package>/`. `<version>` is the version a stage stands at, as
    - the guide, whole, and the in-page file of the checks, as `accept-inpage.js`; and the three
      pages of `templates/package/build/` into `<package>/build/`.
    ```
-   node <kit root>/scripts/alone.mjs <package>/07-handoff --package <package>
+   node <kit root>/scripts/alone.mjs <package>/07-handoff
    ```
-   It must exit 0, with its one line: the folder stands alone. What the token file loads from
-   outside is copied in beside it, or taken out of the copy and listed in `HANDOFF.md` for the
-   builder to supply. What a page loads that cannot be copied in goes to the founder, open: no page
-   is edited to pass. **Nothing may point back either,** in a comment or a note: no text file of the
-   folder names a file of the package that the folder does not hold.
+   It must exit 0, with its one line: the folder stands alone. What the token file loads from outside is
+   copied in beside it, or taken out of the copy and listed in `HANDOFF.md` for the builder to supply.
+   What a page loads that cannot be copied in goes to the founder, open: no page is edited to pass.
 4. **Write `SPEC.md`, the strings and `DECISIONS.md`.** Each heading is filled from the approved
    section `references/folder.md` names for it, and whatever a builder needs is written out in full:
    nothing in the folder points back into the package. `strings.json` is the detail's, copied.
@@ -115,11 +112,16 @@ Each path is from `<package>/`. `<version>` is the version a stage stands at, as
    none fails. A check answered `cannot be told:` or `cannot be measured:` is rewritten so that it
    can be made, or taken out and listed in `ACCEPTANCE.md` as one a person must look at.
    `--allow-errors` is passed only with its reason written in `COVERAGE.md`, as a sentence.
-7. **Write `COVERAGE.md`, and fill `HANDOFF.md`.** Coverage: every seat that read, from Context on,
-   with what it read, the model it ran on and its checks run and not run; every finding with what
-   became of it; and the counts step 6 printed, with the day: never a command, or a path out of the
-   folder. `HANDOFF.md`: the slices in build order, as "the list of free rooms, default and empty",
-   each small enough to build, verify and commit alone, with its done-when and its checks, by id.
+7. **Write `COVERAGE.md`, and fill `HANDOFF.md`.** Coverage: every seat that read, from Context on, with
+   what it read, the model it ran on and its checks run and not run; every finding with what became of
+   it; and the counts step 6 printed, with the day: never a command, or a path out of the folder.
+   `HANDOFF.md`: the slices in build order, as "the list of free rooms, default and empty", each small
+   enough to build, verify and commit alone, with its done-when and its checks, by id. **Then prove that
+   nothing points back,** in a comment or a note: no text file of the folder names a file of the package
+   that the folder does not hold. Run it, and mend each place it prints, before any seat reads:
+   `node <kit root>/scripts/alone.mjs <package>/07-handoff --package <package>`. It may exit 1 only so:
+   every place left is in a file approved earlier and copied in unchanged, which is not rewritten, and
+   `PARTS.md` lists each without the name it points to. Those go to him with the gate, as open findings.
 8. **Start the cold implementer.** One `judge.cold-implementer`, a fresh sub-agent, started as
    "Starting a seat" in the loop says, on the model and the effort its line of the cast sheet's
    "Handoff" table names: a dash means the session's model, and you enforce none. Its brief, from
@@ -135,12 +137,13 @@ Each path is from `<package>/`. `<version>` is the version a stage stands at, as
      the checks it touches. One that changes what she sees or can do is put with its options, never
      with a blanket default. Record it with the `await` of the gate, write his answers under
      `## Reviewed by the founder` and into the folder, as he said them, and put the stage back in
-     work with the `begin` of step 1. Where he leaves one open, the default is written, marked as one.
+     work with the `begin` of step 1. A default is written only where his answer takes it: one he
+     leaves unanswered stays open, listed so under `findings`, and the gate's question names it.
 
-   Run steps 3 and 6 again when a page or a check changed. **One re-read, when an item blocked:** a
-   fresh sub-agent in the same seat reads the folder cold, then opens the earlier ledger. No second
-   round: an item closed after it is listed as "closed after the re-read, not read again". **Its
-   own row and items go into `COVERAGE.md` only after its last read.**
+   Run steps 3 and 6 again when a page or a check changed, and step 7's proof when any file did. **One
+   re-read, when an item blocked:** a fresh sub-agent in the same seat reads the folder cold, then opens
+   the earlier ledger. No second round: an item closed after it is listed as "closed after the re-read,
+   not read again". **Its own row and items go into `COVERAGE.md` only after its last read.**
 10. **Build the decision page.** Write `<package>/07-handoff-gate/decision.json` in the shape of
     `templates/outputs/decision-approve.json`: the folder as its one option, with two reference
     pictures named from the page, the phone width first, as
@@ -150,7 +153,6 @@ Each path is from `<package>/`. `<version>` is the version a stage stands at, as
     ```
     node <kit root>/scripts/page.mjs <package>/07-handoff-gate/decision.json --out <package>/07-handoff-gate/decision.html
     ```
-
 **Routed `short`** (an adjustment), Handoff is what changes, and no more. **Sized `flow`,** the folder
 is one, and `SPEC.md` goes surface by surface. **Sized `correction`,** it is one paragraph, and no
 seat. `references/forms.md` has the three.
@@ -158,14 +160,13 @@ seat. `references/forms.md` has the three.
 ## Gate
 
 **He gives one go.** Put `<package>/07-handoff-gate/decision.html` in front of him, and the folder
-itself, `<package>/07-handoff/HANDOFF.md` first. Record the one question, so that a session resuming
-tomorrow asks the same:
+itself, `<package>/07-handoff/HANDOFF.md` first. Record the one question, which names each item and
+each pointer still open, so that a session resuming tomorrow asks the same:
 ```
 node <kit root>/scripts/state.mjs await <package> handoff --question "<the one question>"
 ```
 One question, about one thing: may this folder go to the session that builds it? **Stop: nothing is
 handed to a builder before his go, and you do not give it.**
-
 - **Write what he says under `## Reviewed by the founder`,** in `HANDOFF.md`: what he corrected, and
   the words of his go, as he said them. A correction that changes a string, a state, a rule, an id
   or a value is not Handoff's: ask him to reopen its stage, as the conductor's "Resuming" says.
@@ -173,7 +174,6 @@ handed to a builder before his go, and you do not give it.**
   ```
   node <kit root>/scripts/state.mjs stamp <package> handoff --words "<the founder's words>"
   ```
-
   Then append the decision to the package's `DECISIONS.md`, and ask the state what is next, as step
   9 of the loop says. `HANDOFF.md` has no carry list: Acceptance reads this folder, and `build/`.
 - **Tell him what happens now.** The session that builds is given `<package>/07-handoff/` and nothing
@@ -191,7 +191,7 @@ handed to a builder before his go, and you do not give it.**
   command that names them, no "as discussed", and no address on the web but a source the builder
   must fetch, named without its query.
 - **Never give the cold implementer anything but the folder,** or an answer not written in it.
-- **Never settle a default in silence,** and never run a second re-read.
+- **Never settle a default in silence,** fill in an answer he did not give, or run a second re-read.
 - **Never open what is on no line of Look's carry list,** the package's history least of all.
 - **Never write a password, a token or a key into the folder,** and never the path of a keys file:
   an account is named by its role, with where its sign-in is kept.
