@@ -111,7 +111,13 @@ One round, in the makers' order, and each seat at most once.
 The readers are started once the pages are photographed: the judges in one message, so that no
 ledger exists while another judge reads, then the audiences. A reader that drives a browser, the
 accessibility judge among them, counts among the three. What each reads is named by what it is,
-never by who made it. Every reader's brief lists these under "Do not open":
+never by who made it.
+
+`<seat>`, in the name of a reader's file, is the seat's id, and a seat that is loaded adds what it is
+loaded with, so that no two readers share a file: `judge.usability`, `judge.profile-<name>` for each
+profession's profile, `audience.task-reader-<name>-<language>` for each person and language.
+
+Every reader's brief lists these under "Do not open":
 
 - `<package>/work/`, where the makers' briefs and replies are;
 - `<package>/04-structure/MAP.sealed.json`, the author map, and `<package>/04-structure/CHOSEN.md`,
@@ -125,7 +131,8 @@ never by who made it. Every reader's brief lists these under "Do not open":
 
 **On a re-read** the brief is the first read's, and says so. It names one file more: that seat's
 earlier ledger, the one file of `<package>/05-detail/reads/` it opens besides its own, and only
-after it has read cold and written its findings. It writes `<seat>-reread.md`, beside the first
+after it has read cold and written its findings. It writes its first read's name with `-reread`
+before `.md`, as `judge.usability-reread.md` or `judge.profile-<name>-reread.md`, beside the first
 read and never over it.
 
 ### `judge.usability`
@@ -187,8 +194,9 @@ is its main read.
   and state. `<package>/05-detail/strings.json`, the strings.
 - **Do not open:** the list above: the audiences' reads are in it, and so is the ledger of another
   profile judge. And the pages themselves: it reads the prototype as pictures.
-- **Writes:** its ledger, `<package>/05-detail/reads/<seat>-<name>.md`, in the shape of
-  `templates/outputs/LEDGER.md`.
+- **Writes:** its ledger, `<package>/05-detail/reads/<seat>.md`, in the shape of
+  `templates/outputs/LEDGER.md`: `judge.profile-<name>.md`, so that two profile judges never share
+  a file, in a first read or in a re-read.
 
 ### `audience.task-reader`
 
@@ -208,5 +216,5 @@ for each language, the same person, and tell the founder that the sheet's count 
   the package; her profession's profile itself; `<package>/05-detail/prototype/`, the pages and
   their source; `<package>/05-detail/states.md`, `<package>/05-detail/DETAIL.md` and
   `<package>/05-detail/strings.json`. A person cannot find a control by reading markup.
-- **Writes:** one task read, `<package>/05-detail/reads/<seat>-<name>-<language>.md`, in the shape
-  of `templates/outputs/TASK-READ.md`.
+- **Writes:** one task read, `<package>/05-detail/reads/<seat>.md`, in the shape of
+  `templates/outputs/TASK-READ.md`: `audience.task-reader-<name>-<language>.md`.

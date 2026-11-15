@@ -3130,8 +3130,8 @@ const CONDUCTORS_OWN = /Every stage runs the same nine steps|\*\*One fix round a
 
 test('detail and look: the six sections and no other, the question the conductor gives each, and the conductor\'s rules pointed to, never copied', () => {
   for (const [name, title, does, gate, files] of [
-    ['detail', 'Detail', 'approves', ' **He approves, on the prototype.**', ['SKILL.md', 'references/seats.md']],
-    ['look', 'Look', 'picks or approves, from pictures', ' **He picks, or approves, from pictures.**', ['SKILL.md', 'references/direction.md', 'references/fresh.md', 'references/seats.md']],
+    ['detail', 'Detail', 'approves', ' **He approves, on the prototype.**', ['SKILL.md', 'references/correction.md', 'references/forms.md', 'references/seats.md']],
+    ['look', 'Look', 'picks or approves, from pictures', ' **He picks, or approves, from pictures.**', ['SKILL.md', 'references/direction.md', 'references/forms.md', 'references/fresh.md', 'references/seats.md']],
   ]) {
     const text = stageSkill(name);
     assert.deepEqual(headings(text), STAGE_SECTIONS, name);
@@ -3213,17 +3213,20 @@ test('detail: it reads the chosen structure and what its carry list names, and w
   const gate = flat(section(text, 'Gate'));
   inOrder(gate, [/\*\*Write what he says under `## Reviewed by the founder`:\*\* what he corrected, and the words he approved the prototype with, as he said them/,
     /A correction goes to the maker whose artefact it is on, a fresh sub-agent handed his words\. The pages are generated and photographed again, and he sees them before the stamp\. You change no rule, no string and no page yourself/,
-    /\*\*Write the carry list,\*\* `## Carry`: the lines of `CHOSEN\.md`'s own carry list, as they are/, /a `- structure@<version>#<slug>` line for "The structure" and for "What it is deliberately bad at"/,
-    /a `- source:<path>` line, from the project's root, for `states\.md`, for `strings\.json`, for the prototype's folder, for the pictures' folder, for the reads' folder, and for the package's `DECISIONS\.md`/,
+    /\*\*Write the carry list,\*\* `## Carry`: the lines of `CHOSEN\.md`'s own carry list, as they are, the cast sheet's table for every stage among them/,
+    /a `- structure@<version>#<slug>` line for "The structure", for "What it is deliberately bad at" and for "What the readers found"/,
+    /a `- source:<path>` line, from the project's root, for `<package>\/04-structure\/reads`, for `states\.md`, for `strings\.json`, for the prototype's folder, for the pictures' folder, for the reads' folder, and for the package's `DECISIONS\.md`/,
     /\*\*Stamp it,\*\* in the words he approved it with/, /state\.mjs stamp <package> detail --words/,
     /Then append the decision to the package's `DECISIONS\.md`, each dependency he settled with it, and ask the state what is next, as step 9 of the loop says/], 'the gate, after his answer');
-  for (const heading of ['The structure', 'What it is deliberately bad at']) assert.ok(headings(outputOf('structure')).includes(heading), heading);
-  // The short form: what changes and no more; a route that skips Structure; a correction, which is the conductor's.
+  // What the handoff's coverage page needs travels on: what Structure's readers found, their ledgers, and each seat's line of the cast sheet.
+  for (const heading of ['The structure', 'What it is deliberately bad at', 'What the readers found']) assert.ok(headings(outputOf('structure')).includes(heading), heading);
+  assert.match(flat(section(stageSkill('structure'), 'Writes')), /`reads\/` \| one ledger or one task read for each reader/);
+  assert.match(read('templates/package/07-handoff/COVERAGE.md'), /\| Stage \| Seat \| Loaded with \| What it read \| Checks run \| Ran on \| Verdict \|/);
+  // The other forms: an adjustment, a flow and a correction, each said in one line that points to its page.
   const short = flat(section(text, 'Steps')).slice(flat(section(text, 'Steps')).indexOf('**Routed `short`**'));
-  assert.match(short, /^\*\*Routed `short`\*\* \(an adjustment\), Detail is what changes, and no more: only the seats of the sheet's "Detail" table run, on the screens, the states and the strings the change touches, and every other heading of `DETAIL\.md` says "Unchanged by this adjustment"/);
-  assert.match(short, /A stage the route skips is left out of `built-from` and of the carry list: where it skips Structure, the stage before this one is Cast, and you read `<package>\/03-cast\.md` and what its carry list names/);
-  assert.match(short, /A design sized `correction` casts no seat: `skills\/design\/references\/routes\.md`, under "A correction"/);
+  assert.equal(short.trim(), '**Routed `short`** (an adjustment), Detail is what changes, and no more. **Sized `flow`,** it goes surface by surface, steps 3 to 8 once for each, and is approved and stamped once. `references/forms.md` has both. **Sized `correction`,** it is one change and one nod, and casts no seat: `references/correction.md`.');
   assert.ok(headings(reference('routes.md')).includes('A correction'));
+  assert.match(flat(reference('routes.md')), /`flow` \| several surfaces that form one task \| Everything\. Structure treats the flow as one thing; Detail and Look go surface by surface/);
   assert.deepEqual([routeFor('adjustment').structure, routeFor('adjustment').detail, routeFor('correction').detail], ['skipped', 'short', 'short']);
 });
 
@@ -3253,7 +3256,7 @@ test('detail: three makers one after another, each started on what the cast shee
   inOrder(undecided, [/\*\*Put what a maker could not decide to the founder, one question at a time,\*\* as soon as its reply names it, and before the next maker starts\. You supply none of it, and you drop nothing/, /\*\*A dependency:\*\* an element needs something the product cannot supply today, as a waiting list when no room is free\. It stays on its screen, and on its line under `## Dependencies`/,
     /Ask him: is it to be built with the design, or does the element go\? If it goes, the interaction designer takes it out, never you/,
     /\*\*A state the intent does not name, a fact a string waits for, a state the structure cannot hold:\*\* `references\/seats\.md` says what each asks of him, and which stage it may reopen/,
-    /Write each answer under `## Reviewed by the founder`, as he said it: an entry with no answer there is still to be asked/], 'what a maker could not decide');
+    /Record each question with the `await` of the gate, write his answer under `## Reviewed by the founder`, as he said it, and put the stage back in work with the `begin` of step 1\. An entry with no answer there is still to be asked/], 'what a maker could not decide');
   const seats = stageRef('detail', 'seats.md');
   const lists = flat(subsection(seats, '`maker.interaction-designer`'));
   assert.match(lists, /A list that is not empty is the founder's, one question at a time, before the interface writer starts/);
@@ -3348,7 +3351,7 @@ test('detail: each seat is handed what its card reads and no more, the words jud
     }
     assert.match(said['Do not open'], /^the list above/, id);
     // Everything a seat is handed or writes is in the package, the project's kit or the kit: no path is left bare.
-    if (reader) assert.match(said.Writes, /`<package>\/05-detail\/reads\/<seat>(?:-<name>)?(?:-<language>)?\.md`, in the shape of `templates\/outputs\/(?:LEDGER|TASK-READ)\.md`/, id);
+    if (reader) assert.match(said.Writes, /`<package>\/05-detail\/reads\/<seat>\.md`, in the shape of `templates\/outputs\/(?:LEDGER|TASK-READ)\.md`/, id);
     else assert.match(said.Writes, /`<package>\/05-detail\//, id);
   }
   // The interaction designer writes the states, the rules, the data map and the dependencies where its card and the template say.
@@ -3409,7 +3412,10 @@ test('detail: blocking findings are fixed in one round by the maker whose artefa
     /\*\*The prototype builder runs last, whenever a state or a string changed:\*\* no page is mended by hand, so every page is generated again\. Then step 5 of the skill is run again/,
     /\*\*A truth finding that needs something the product lacks\*\* is the interaction designer's, and its one fix is a line under "Dependencies", with the element that needs it and what is missing\. The element stays until the founder has answered/], 'who fixes what');
   assert.match(read('pool/makers/prototype-builder.md'), /No\s+page is written or mended by hand/);
-  assert.match(forAll(section(seats, 'The readers')), /\*\*On a re-read\*\* the brief is the first read's, and says so\. It names one file more: that seat's earlier ledger, the one file of `<package>\/05-detail\/reads\/` it opens besides its own, and only after it has read cold and written its findings\. It writes `<seat>-reread\.md`, beside the first read and never over it/);
+  assert.match(forAll(section(seats, 'The readers')), /\*\*On a re-read\*\* the brief is the first read's, and says so\. It names one file more: that seat's earlier ledger, the one file of `<package>\/05-detail\/reads\/` it opens besides its own, and only after it has read cold and written its findings\. It writes its first read's name with `-reread` before `\.md`, as `judge\.usability-reread\.md` or `judge\.profile-<name>-reread\.md`, beside the first read and never over it/);
+  // Two profile judges never share a file: a reader's file is named for its seat and for what the seat is loaded with.
+  assert.match(forAll(section(seats, 'The readers')), /`<seat>`, in the name of a reader's file, is the seat's id, and a seat that is loaded adds what it is loaded with, so that no two readers share a file: `judge\.usability`, `judge\.profile-<name>` for each profession's profile, `audience\.task-reader-<name>-<language>` for each person and language/);
+  assert.match(leads(subsection(seats, '`judge.profile`')).Writes, /`<package>\/05-detail\/reads\/<seat>\.md`, in the shape of `templates\/outputs\/LEDGER\.md`: `judge\.profile-<name>\.md`, so that two profile judges never share a file, in a first read or in a re-read/);
 });
 
 test('detail: every command is one its script takes, in the order of the stage; the pictures are taken one run at a time; the gate is on the prototype, and the words are a question of their own for three kinds', () => {
@@ -3464,7 +3470,8 @@ test('detail: every command is one its script takes, in the order of the stage; 
     /Then put `<package>\/05-detail\/decision\.html` in front of him, and the prototype itself, `<package>\/05-detail\/prototype\/index\.html`, to open and click through/,
     /Record the one question, so that a session resuming tomorrow asks the same/, /state\.mjs await <package> detail --question/,
     /One question, about one thing: do you approve this prototype for Look\? \*\*Stop: you do not approve, and you go no further without his words\.\*\*/], 'the gate');
-  assert.match(stepOf(section(text, 'Steps'), 'Begin'), /A stage that is awaiting the founder is not begun again: go to "Gate", with his answer\. Otherwise mark it in work:/);
+  // A question asked mid-way is recorded too, and a session that resumes takes his answer to the step that asked for it.
+  assert.match(stepOf(section(text, 'Steps'), 'Begin'), /A stage that is awaiting the founder is not begun again: take his answer to "Gate", or to the step that asked for it\. Otherwise mark it in work:/);
   // The words are a separate question, asked first, for the three kinds whose words are the product.
   const [, kinds] = /Where the kind is ((?:`[a-z-]+`(?:, | or )?)+), the words are a question of their own, asked first/.exec(gate);
   assert.deepEqual(spansOf(kinds), ['first-run', 'message', 'public-page']);
@@ -3509,8 +3516,10 @@ test('look: it reads the detail and what its carry list names, his gallery marks
   const writes = section(text, 'Writes');
   assert.match(flat(writes), /Everything below is in `<package>\/06-look\/`, and the seats' briefs in `<package>\/work\/`\. `<version>` is the version a stage stands at, as `status` prints it: after a reopening it is not 1/);
   const rows = tableRows(writes).slice(2);
-  assert.deepEqual(rows.flatMap(([first]) => spansOf(first)), ['LOOK.md', 'screens/', 'variants/', 'checks.json', 'results.json', 'measures.md', 'shots/', 'reads/', 'directions/', 'BRIEF-fresh.md', 'fresh/', 'beside.json', 'beside.html',
-    'decision.json', 'decision.html']);
+  // Every file and folder the stage writes has its row: the surface's own token file, what was set aside, the lettered pictures and the sealed file among them.
+  assert.deepEqual(rows.flatMap(([first]) => spansOf(first)), ['LOOK.md', 'screens/', 'variants/', 'checks.json', 'results.json', 'measures.md', 'shots/', 'reads/', 'directions/', 'tokens.css', 'earlier/', 'BRIEF-fresh.md', 'fresh/', 'beside/',
+    'BESIDE.sealed.json', 'beside.json', 'beside.html', 'borrow.json', 'borrow.html', 'decision.json', 'decision.html']);
+  assert.match(writes, /the versions' pictures under letters, and beside that folder the sealed file that says which is which; the two pages put to him/);
   assert.deepEqual(kitPaths(writes).filter(path => path.startsWith('templates/')).sort(), ['templates/outputs/LEDGER.md', 'templates/outputs/decision-approve.json', 'templates/outputs/decision.json',
     'templates/package/04-structure/BRIEF-fresh.md', 'templates/package/06-look/LOOK.md']);
   assert.deepEqual(filesUnder('templates/package/06-look/'), ['LOOK.md']);
@@ -3523,8 +3532,8 @@ test('look: it reads the detail and what its carry list names, his gallery marks
     assert.ok(headings(template).includes(heading), heading);
   }
   assert.match(flat(read('pool/CARD-FORMAT.md')), /`final-screens` \| What Look made: the finished screens as static pages on the project's tokens, with the table of measured values and the list of named extensions/);
-  // The short form: what changes, and no more.
-  assert.match(flat(section(text, 'Steps')), /\*\*Routed `short`\*\* \(an adjustment\), Look is what changes, and no more: only the screens and the states the change touches are redrawn, photographed, measured and read, and every other heading of `LOOK\.md` says "Unchanged by this adjustment"\. A stage the route skips is left out of `built-from`/);
+  // The other forms: an adjustment and a flow, each said in one line that points to its page.
+  assert.ok(flat(section(text, 'Steps')).trim().endsWith('**Routed `short`** (an adjustment), Look is what changes, and no more. **Sized `flow`,** it goes surface by surface, steps 4, 5, 7 and 8 once for each, and is picked or approved and stamped once. `references/forms.md` has both.'));
   assert.equal(routeFor('adjustment').look, 'short');
 });
 
@@ -3532,7 +3541,7 @@ test('look: two modes; inside a system one visual designer on the project\'s tok
   const text = stageSkill('look');
   const steps = section(text, 'Steps');
   assert.deepEqual(boldSteps(steps), [[1, 'Begin'], [2, 'Read the detail, and what its carry list names. Then name the mode'], [3, 'With a fresh pass, write its brief and stop'], [4, 'Start the visual designer'],
-    [5, 'Photograph and measure, one command after the other,'], [6, 'With a fresh pass, show the two side by side, and stop'], [7, 'Start the readers'], [8, 'One fix round, and one re-read'], [9, 'Build the decision page']]);
+    [5, 'Photograph and measure, one command after the other,'], [6, 'With a fresh pass, show the versions side by side, blind, and stop twice'], [7, 'Start the readers'], [8, 'One fix round, and one re-read'], [9, 'Build the decision page']]);
   // The two modes of the design, and what makes a design a direction first.
   const mode = stepOf(steps, 'Read the detail, and what its carry list names. Then name the mode');
   assert.match(mode, /Copy the template to `<package>\/06-look\/LOOK\.md` and write `built-from`, unless the file is already there: then go on from what it holds, at the first step whose file is missing\. Under "Mode", one of two:/);
@@ -3558,12 +3567,19 @@ test('look: two modes; inside a system one visual designer on the project\'s tok
   const measure = stepOf(steps, 'Photograph and measure, one command after the other,');
   assert.match(measure, /^5\. \*\*Photograph and measure, one command after the other,\*\* never both at once:/);
   inOrder(measure, [/shots\.mjs <package>\/06-look\/screens --out <package>\/06-look\/shots --widths <primary>,<phone> --themes <themes>/, /accept\.mjs prototype <package>\/06-look\/checks\.json --root <package>\/06-look\/screens --out <package>\/06-look\/results\.json/,
-    /The widths are those of "Constraints"; `<themes>` is `light`, or `light,dark` when `<tokens>` defines a dark theme/,
+    /The widths are those of "Constraints"; `<themes>` is `light`, or `light,dark` when `<tokens>` defines a dark theme/, /With variants, both are run on `variants\/` too: `references\/seats\.md`/,
     /\*\*The table of `measures\.md` is written from what these two scripts return, never by eye,\*\* and this run is what you hold it to/,
     /Each contrast and each size is the `actual` of a result in `results\.json`, at its width and theme; any other value was read in the browser by a script of the visual designer's own, kept beside the table/,
     /A row with neither behind it, a value that differs, a line `error:` or `overflow:`, or a check that failed goes back to the visual designer, once, before the readers start: you write no value, and correct none/,
     /Both commands are run again after every change to the screens/], 'photograph and measure');
   assert.match(KIT.usage('scripts/accept.mjs'), /\{ id, pass, actual, message, criterion, state, page, width, theme \}/);
+  // Variants are photographed, measured and read like the screens: a page named for its screen and its variant, checks of its own, and the same two commands on its folder.
+  const variants = leads(subsection(stageRef('look', 'seats.md'), '`maker.visual-designer`'))['Variants are photographed, measured and read like the screens'];
+  assert.match(variants, /^A variant's page is named for its screen and its variant, as `today-default-en-compact\.html`, so that no picture of one takes a screen's name; `variants\/` holds a `checks\.json` of its own; and each variant has its rows in `measures\.md`, which name it\. In step 5 of the skill, with variants, two more commands follow the two, one after the other:/);
+  assert.deepEqual(commandsOf(subsection(stageRef('look', 'seats.md'), '`maker.visual-designer`')), ['node <kit root>/scripts/shots.mjs <package>/06-look/variants --out <package>/06-look/shots --widths <primary>,<phone> --themes <themes>',
+    'node <kit root>/scripts/accept.mjs prototype <package>/06-look/variants/checks.json --root <package>/06-look/variants --out <package>/06-look/variants/results.json']);
+  assert.match(flat(stageRef('look', 'seats.md')), /"The final screens" are `<package>\/06-look\/screens\/`, the pages, and `<package>\/06-look\/measures\.md`, the table of measured values and the named extensions; with variants, `<package>\/06-look\/variants\/` too/);
+  assert.match(KIT.usage('scripts/page.mjs'), /when a picture it names is not a file in the folder of --out/);
   assert.match(KIT.usage('scripts/accept.mjs'), /contrast\s+target, min \(1 to 21\)/);
   assert.match(KIT.usage('scripts/accept.mjs'), /min-size\s+target, minWidth, minHeight/);
   assert.match(flat(read('pool/makers/visual-designer.md')), /`scripts\/accept\.mjs prototype` measures a contrast or a size by id: `--help` gives the form of a check, and a result's `actual` is the value\. For the rest, read the computed value in the browser with a script of your own/);
@@ -3583,7 +3599,8 @@ test('look: two modes; inside a system one visual designer on the project\'s tok
   assert.deepEqual(nevers(text), ['Never draw, redraw or restyle a screen yourself', 'Never choose a variant or a direction', 'Never ask for variants where the system leaves no real choice',
     'Never let a palette, a typeface or a raw value into a screen inside a design system', 'Never send the fresh brief before he has read it', 'Never pass the outside script anything about a key',
     'Never give a fresh maker the design system, the kit, today\'s screens or the prototype', 'Never hand off a fresh screen, mend one, or copy its code or its values', 'Never change the project profile silently',
-    'Never change a string, a state, a rule or an id', 'Never run a second fix round', 'Never read his gallery marks in `<package>/04-structure/earlier/`', 'Never stop a process by name or by pattern', 'Never ask two things at once']);
+    'Never change a string, a state, a rule or an id', 'Never read his gallery marks in `<package>/04-structure/earlier/`', 'Never stop a process by name or by pattern', 'Never ask two things at once']);
+  assert.match(flat(section(text, 'Never')), /\*\*Never change a string, a state, a rule or an id,\*\* and never run a second fix round/);
 });
 
 // What a card's `reads` allows, as a seat's hand-over at Look names it in this package.
@@ -3611,6 +3628,13 @@ test('look: each seat is handed what its card reads and no more; a fresh maker t
   const top = flat(seats.slice(0, seats.indexOf('\n## ')));
   assert.match(top, /A brief hands a seat what its card's `reads` allows and this page lists, each file by its absolute path, and lists under "Do not open" what its card's `never-reads` names, as this package holds it/);
   assert.match(top, /"The final screens" are `<package>\/06-look\/screens\/`, the pages, and `<package>\/06-look\/measures\.md`, the table of measured values and the named extensions/);
+  // A reader's file is named for its seat and for what the seat is loaded with; a seat that read the beside comparison reads the main read as a fresh sub-agent, its earlier file closed.
+  const naming = forAll(section(seats, 'The readers'));
+  assert.match(naming, /`<seat>`, in the name of a reader's file, is the seat's id, and a seat that is loaded adds what it is loaded with, so that no two readers share a file: `judge\.visual-craft`, `judge\.profile-<name>` for each profession's profile, `audience\.task-reader-<name>`/);
+  assert.match(naming, /Three seats read twice when a fresh pass ran, each time as a fresh sub-agent: the truth judge and the profile judge read the beside comparison first, and the system fidelity judge writes the borrow list first, as `references\/fresh\.md` gives them\. What this page gives is the main read, of step 7 of the skill/);
+  assert.match(naming, /Its seat's read of the beside comparison, `<seat>-beside\.md`, and the borrow list are not its own: a main read opens neither/);
+  assert.match(naming, /`<package>\/04-structure\/earlier\/`, and the board and the proposals folder beside it, but `<chosen>` where a seat is handed it/);
+  assert.match(naming, /It writes its first read's name with `-reread` before `\.md`, as `judge\.visual-craft-reread\.md` or `judge\.profile-<name>-reread\.md`, beside the first read and never over it/);
   // No seat is ever handed the project profile: what the project says of its design system is the files that section names.
   assert.match(top, /"What the project says of its design system" is the documents that "Design system" of the project profile names, each by its path\. A seat is handed those files, and never the project profile/);
   assert.match(flat(conductor()), /No seat is ever handed the project profile/);
@@ -3660,7 +3684,8 @@ test('look: each seat is handed what its card reads and no more; a fresh maker t
   assert.match(flat(subsection(seats, '`audience.task-reader`')), /At Look it sits only with a fresh pass, once, as the primary person, `person\.<name>`: it reads the beside comparison, and nothing else of the stage/);
   assert.match(audience['Its brief'], /It says that the options are versions of one screen, each under a letter, and asks her to rank them/);
   assert.match(audience.Handed, /the pictures in `<package>\/06-look\/beside\/`, each by its path, as `<package>\/06-look\/beside\/A-1280-light\.png`\. The pictures, and pictures only\./);
-  assert.match(audience['Do not open'], /`<package>\/06-look\/screens\/`, `<package>\/06-look\/shots\/` and `<package>\/06-look\/fresh\/`, which say which version is which/);
+  assert.match(audience['Do not open'], /`<package>\/06-look\/screens\/`, `<package>\/06-look\/shots\/` and `<package>\/06-look\/fresh\/`, which say which version is which; `<package>\/06-look\/BESIDE\.sealed\.json`/);
+  assert.match(audience.Writes, /`<package>\/06-look\/reads\/<seat>-beside\.md`, in the shape of `templates\/outputs\/TASK-READ\.md`, with her ranking of the letters: `audience\.task-reader-<name>-beside\.md`/);
   // The visual designer: its lens, whether motion is cast, his marks in his words; nothing of the fresh screens before he has said what he borrows.
   const designer = leads(subsection(seats, '`maker.visual-designer`'));
   assert.match(designer['Its brief'], /Its lens: the skill its line of the cast sheet names as its engine, to load if it is installed; inside a design system it shapes hierarchy and emphasis, not the palette/);
@@ -3687,17 +3712,18 @@ test('look: each seat is handed what its card reads and no more; a fresh maker t
   assert.match(flat(read('pool/judges/truth.md')), /\*Look\*: only what Look could have added/);
   assert.match(flat(subsection(seats, '`judge.profile`')), /It sits here only when a criterion that fires is about legibility or about where she uses it, and with a fresh pass, to rank the two/);
   assert.match(flat(presets()), /at Look only when a criterion that fires is about legibility or about where she uses it/);
-  assert.match(leads(subsection(seats, '`judge.system-fidelity`')).Handed, /after a fresh pass, what he marked in it, as he said it, with the fresh screen each mark is on, by its path: its borrow list is written from them/);
+  assert.match(leads(subsection(seats, '`judge.system-fidelity`')).Handed, /after a fresh pass, what he marked in it, as he said it, with the fresh screen each mark is on, by its path: it checks what was rebuilt against them/);
   assert.match(read('pool/judges/system-fidelity.md'), /\| borrow-list \| A fresh pass ran/);
   assert.match(leads(subsection(seats, '`judge.accessibility`'))['Its brief'], /It says the screens are drawn in their final colours and sizes: at Look its measured checks run/);
   for (const id of ['maker.visual-designer', 'maker.screen-generator', 'judge.accessibility']) assert.match(flat(subsection(seats, `\`${id}\``)), /\*\*It drives a browser[,*]/, id);
 });
 
-test('look: a fresh pass draws the one screen with its approved words, only the paint its own; his yes comes before anything is sent; three outcomes; and nothing a fresh maker made is handed off', () => {
+test('look: a fresh pass draws the one screen with its approved words, only the paint its own; his yes comes before anything is sent; the versions are compared blind; two questions, three outcomes; and nothing a fresh maker made is handed off', () => {
   const text = stageSkill('look');
   const steps = section(text, 'Steps');
   const fresh = stageRef('look', 'fresh.md');
-  assert.deepEqual(headings(fresh), ['1. The one screen', '2. The fresh brief', '3. Stop: the founder reads it', '4. The fresh makers', '5. The readers of the two', '6. The page, and the stop', '7. The three outcomes']);
+  assert.deepEqual(headings(fresh), ['1. The one screen', '2. The fresh brief', '3. Stop: the founder reads it', '4. The fresh makers', '5. The letters', '6. The readers of the two', '7. The first question: what he would keep',
+    '8. The second question: what is borrowed', '9. The three outcomes']);
   const top = flat(fresh.slice(0, fresh.indexOf('\n## ')));
   // Offered, never added: the conductor's rule, pointed to.
   assert.match(top, /What a fresh pass is, what a fresh maker is and is not given, and its three outcomes are the conductor's: `skills\/design\/references\/fresh-pass\.md`/);
@@ -3706,7 +3732,8 @@ test('look: a fresh pass draws the one screen with its approved words, only the 
   // Ruling R121: the fresh brief names the one screen the visual designer is drawing, with its approved structure, states and strings.
   const brief = stepOf(steps, 'With a fresh pass, write its brief and stop');
   assert.match(brief, /"Fresh pass" of the cast sheet says whether one runs at Look\. Write `<package>\/06-look\/BRIEF-fresh\.md` in its Look form: the one screen that carries the idea, its state, and its approved items in order, their words exactly as approved/);
-  assert.match(brief, /The founder reads it whole\. \*\*Nothing is sent before his yes,\*\* to a sub-agent or off the machine: `references\/fresh\.md` has the brief, the stop and the makers/);
+  // A brief that is there is not a brief he has said yes to: on any day, the stop holds until LOOK.md holds his yes.
+  assert.match(brief, /He reads it whole\. \*\*Nothing is sent before his yes,\*\* to a sub-agent or off the machine: until `LOOK\.md` holds it, written, you are at this stop, on any day\. `references\/fresh\.md` has the rest/);
   const template = read('templates/package/04-structure/BRIEF-fresh.md');
   assert.match(template, /<!-- Look form: from here to the end/);
   assert.match(flat(template), /## The one screen You are asked to draw one screen, in one state\. Its structure and its words are decided\. Draw it with these items, in this order, and these words exactly as written/);
@@ -3725,13 +3752,17 @@ test('look: a fresh pass draws the one screen with its approved words, only the 
     assert.ok(written.includes(`"${heading}"`), `fresh.md names "${heading}"`);
   }
   assert.match(flat(read('pool/makers/screen-generator.md')), /\*\*At Look, choose only the paint\.\*\* Your brief names the one screen the visual designer is drawing, and its state, and carries that screen's approved structure and strings/);
-  // The stop: he reads it whole, hears what leaves the machine, and nothing is sent before his yes is written.
+  // The stop: he reads it whole, hears what leaves the machine, the question is recorded, and nothing is sent before his yes is written.
   const stop = flat(section(fresh, '3. Stop: the founder reads it'));
   inOrder(stop, [/Put the brief in front of him whole\. Say in the same message which seats would send it off this machine, each with its provider: every `maker\.outside-describer` line, `model:openai` or `model:gemini`, and a `maker\.screen-generator` on `tool:stitch`/,
-    /One question, about one thing: may this brief go out as it is\? \*\*Nothing is sent before his yes: not to a sub-agent, and not off the machine\.\*\*/,
-    /Write what he changes into the brief, then his yes under `## Reviewed by the founder` of `LOOK\.md`, as he said it, with the seats that send it out\. A seat he holds back does not run/,
-    /A provider that `engines-on` of the project profile does not list gets nothing, and you turn no engine on/], 'the stop at the fresh brief');
+    /One question, about one thing: may this brief go out as it is\? Record it with the `await` of the skill's gate\. \*\*Nothing is sent before his yes: not to a sub-agent, and not off the machine\.\*\*/,
+    /Write what he changes into the brief, then his yes under `## Reviewed by the founder` of `LOOK\.md`, as he said it, with the seats that send it out, and put the stage back in work with the `begin` of step 1 of the skill\. A seat he holds back does not run/,
+    /A provider that `engines-on` of the project profile does not list gets nothing, and you turn no engine on/,
+    /\*\*Until `LOOK\.md` holds his yes to this brief, no fresh maker is started\.\*\* A session that resumes and finds `BRIEF-fresh\.md` with no yes to it written there is at this stop: it puts the brief to him again, whole, and sends nothing/,
+    // Ruling R144: a fresh pass asked for at the gate has no line on the cast sheet, so its seats run on what their cards suggest, and he is told.
+    /\*\*A fresh pass he asked for at the gate has no line on the cast sheet\.\*\* Then each of its seats, the makers of step 4 and the readers of step 6, runs on the model and the effort its card suggests\. Say so to him at this stop, seat by seat: he may name another/], 'the stop at the fresh brief');
   assert.match(flat(reference('loop.md')), /every fresh brief, at Structure or at Look:\*\* either may leave the machine\. Nothing is sent before his yes/);
+  assert.match(flat(structureRef('rounds.md')), /A seat the cast sheet has no line for runs on the model and the effort its card suggests, unless he says otherwise/);
   // No seat is started and nothing is sent in a step of the skill before that stop.
   const before = steps.slice(0, steps.search(/^4\. \*\*/m));
   assert.deepEqual(commandsOf(before), ['node <kit root>/scripts/state.mjs begin <package> look']);
@@ -3759,34 +3790,69 @@ test('look: a fresh pass draws the one screen with its approved words, only the 
   assert.match(makers, /\*\*Everything in `<package>\/06-look\/fresh\/` stays as it came\.\*\* You mend nothing: not a label, not a mark left around the page/);
   assert.ok(stageCommands('look').includes('node <kit root>/scripts/shots.mjs <package>/06-look/fresh/<name>.html --out <package>/06-look/fresh --widths <primary> --allow-errors'));
   assert.match(flat(read('pool/makers/screen-generator.md')), /--widths <the device's width> --allow-errors/);
-  // The readers of the two: the conductor's four, each by what its card allows; the two ranked without saying which is the system's.
-  const readers = flat(section(fresh, '5. The readers of the two'));
-  inOrder(readers, [/\*\*The truth judge\*\* reads each fresh screen for anything the product cannot do/, /\*\*The profile judge, and one audience when the cast sheet seats one at Look, rank the two\.\*\* Each is handed the pictures alone, each under a letter, and its brief does not say which letter is the system's/,
-    /\*\*The system fidelity judge reads later,\*\* in step 7 of the skill, once he has said what he borrows: its borrow list is written from his marks/], 'the readers of the two');
+
+  // Ruling R142: the comparison is blind. The pictures are copied under letters dealt at random, by a command and not by the session,
+  // and which letter is which is in a sealed file beside the folder, shut until his first answer is written.
+  const letters = section(fresh, '5. The letters');
+  inOrder(flat(letters), [/The versions of the one screen are compared blind/, /Their names say which is which, and which engine made it, so nobody reads them there/,
+    /This command copies each into `<package>\/06-look\/beside\/` under a letter dealt at random, writes which letter is which into `<package>\/06-look\/BESIDE\.sealed\.json`, beside that folder, and prints the letters and nothing else/,
+    /The pictures land as `<package>\/06-look\/beside\/A-1280-light\.png`, and the letters do not follow the order you named them in/, /The command refuses a `beside\/` that is already there: letters are dealt once/,
+    /\*\*Until his first answer is written, the sealed file is not opened, printed, searched or copied,\*\* and you do not work out a letter by setting two pictures side by side/], 'the letters');
+  const [dealing] = fencedLines(letters);
+  assert.match(dealing, /^node -e "[^"]+" <package>\/06-look shots\/<page>-<primary>-light\.png fresh\/<name>-<primary>-light\.png$/);
+  assert.match(dealing, /require\('crypto'\)\.randomInt\(/);
+  // It is no command of the kit's scripts, so the command rule passes over it; the run-through runs it.
+  assert.deepEqual(commandsOf(letters), []);
+  // The readers of the two are the seats Cast gave a line (ruling R144), handed the lettered folder and nothing else of 06-look.
+  const readers = flat(section(fresh, '6. The readers of the two'));
+  inOrder(readers, [/The seats the cast sheet's "Look" table says read the beside comparison: the truth judge, the profile judge for each profession's profile, and one task reader\. Each is a fresh sub-agent on what its line names/,
+    /\*\*Of `<package>\/06-look\/`, each is handed `<package>\/06-look\/beside\/` and nothing else:\*\* the pictures, by letter\. Its brief says the letters are versions of one screen, and never which is the system's/,
+    /\*\*Do not open, for this read:\*\* `<package>\/06-look\/BESIDE\.sealed\.json`, `<package>\/06-look\/fresh\/`, `<package>\/06-look\/shots\/` and `<package>\/06-look\/screens\/`, with the list `references\/seats\.md` gives every reader/,
+    // The truth judge is held to what it can open: the inventory and the approved strings, never the fresh brief.
+    /\*\*The truth judge\*\* flags, by letter, anything the product cannot do: an element, a label or a promise that neither the context's inventory nor the approved strings hold\. It is handed `<package>\/01-context\.md` and `<package>\/05-detail\/strings\.json` to hold the pictures to/,
+    /\*\*The profile judge and the task reader rank the letters,\*\* best first, with the size of each gap/,
+    /\*\*Each writes `<package>\/06-look\/reads\/<seat>-beside\.md`,\*\* a ledger or a task read\. That file is closed to the main read of step 7 of the skill/], 'the readers of the two');
+  assert.doesNotMatch(readers, /the brief did not hold/);
+  assert.match(flat(stageRef('look', 'seats.md')), /`<package>\/06-look\/BRIEF-fresh\.md`, and the prompt kept beside a fresh screen/);
+  assert.match(flat(presets()), /With a fresh pass at Look, three seats read the beside comparison/);
   assert.match(flat(reference('fresh-pass.md')), /The profile judge, who reads with her profession's profile, and one audience rank the two\. The truth judge flags anything the product cannot do\. The system fidelity judge lists what the system lacks to make each thing he may want/);
-  // Shown beside the system version, on one page, the cost of the third outcome on it before he chooses.
-  const side = stepOf(steps, 'With a fresh pass, show the two side by side, and stop');
-  assert.match(side, /The fresh screens as they came, from `fresh\/`, beside the system version of the same screen, on one page; he says which of the three outcomes it is/);
+  // The skill's step: blind, and two stops.
+  const side = stepOf(steps, 'With a fresh pass, show the versions side by side, blind, and stop twice');
+  assert.match(side, /The system's picture of the one screen and each fresh one are copied under letters dealt at random into `beside\/`, read by letter, and put to him: what would he keep\? Then, with what each thing would cost the system on the page: which of the three outcomes\?/);
   assert.match(side, /What he borrows is rebuilt on the tokens by the visual designer and flagged in `LOOK\.md` as a named extension of the system: `references\/fresh\.md`\. Then step 5 again/);
-  const page = flat(section(fresh, '6. The page, and the stop'));
-  inOrder(page, [/Write `<package>\/06-look\/beside\.json` in the shape of `templates\/outputs\/decision\.json`, and build it/, /page\.mjs <package>\/06-look\/beside\.json --out <package>\/06-look\/beside\.html/,
-    /\*\*The options:\*\* the system version of the one screen first, then each fresh screen as it came, its title saying that it is fresh/,
+  // Ruling R145, the first question: he marks what he would keep, by letter, as blind as the readers; only then is the sealed file opened.
+  const first = flat(section(fresh, '7. The first question: what he would keep'));
+  inOrder(first, [/Write `<package>\/06-look\/beside\.json` in the shape of `templates\/outputs\/decision\.json`, and build it/, /page\.mjs <package>\/06-look\/beside\.json --out <package>\/06-look\/beside\.html/,
+    /\*\*The options are the letters,\*\* in their order, each with its picture named from the page, as `beside\/A-1280-light\.png`\. No title and no line says which is the system's: he is as blind as the readers were/,
+    /\*\*one question:\*\* what would you keep from each of these\?/, /record the question with the `await` of the skill's gate\. \*\*Stop\.\*\*/,
+    /Write what he marks, letter by letter, as he said it, under "Fresh pass" of `LOOK\.md`, and put the stage back in work with the `begin` of step 1 of the skill/,
+    /\*\*Only now is the sealed file opened:\*\* read `<package>\/06-look\/BESIDE\.sealed\.json`, and write beside each mark which version it is on/,
+    /If nothing he marked is on a fresh screen, the outcome is the first of step 9, and no second question is asked/], 'the first question');
+  // The second question: the borrow list first, so that he chooses with the cost in front of him; the cost of the third outcome on the page too.
+  const second = flat(section(fresh, '8. The second question: what is borrowed'));
+  inOrder(second, [/He chooses with the cost in front of him/, /\*\*The system fidelity judge writes the borrow list first\.\*\*/,
+    /Its brief says this read is the borrow list alone: for each thing he marked, what the system has for it, and what it lacks, a token, a part, a pattern or nothing\. It writes `<package>\/06-look\/reads\/judge\.system-fidelity-borrow\.md`/,
+    /\*\*Then the page,\*\* `<package>\/06-look\/borrow\.json`, in the shape of `templates\/outputs\/decision\.json`, now by what each version is: the system version first, then each fresh screen as it came, its title saying that it is fresh/,
+    /page\.mjs <package>\/06-look\/borrow\.json --out <package>\/06-look\/borrow\.html/, /\*\*The cost of each thing is on the page:\*\* under `findings`, by seat, one line of the borrow list for each thing he marked/,
     /\*\*The cost of the third outcome is on the page before he chooses:\*\* the line of each fresh option says that taking it whole is a change of direction for this surface/,
-    /\*\*one question:\*\* which is it: nothing to borrow, named things to borrow, or the fresh concept as a whole\?/, /record the question with the `await` of the skill's gate\. \*\*Stop: you borrow nothing, and you go no further without his words\.\*\*/], 'the page beside');
+    /\*\*one question:\*\* which is it: nothing to borrow, named things to borrow, or the fresh concept as a whole\?/, /record the question with the `await` of the skill's gate\. \*\*Stop: you borrow nothing, and you go no further without his words\.\*\*/], 'the second question');
+  assert.match(read('pool/judges/system-fidelity.md'), /\| borrow-list \| A fresh pass ran/);
+  assert.match(read('templates/outputs/LEDGER.md'), /^## Borrow list$/m);
   // The three outcomes of the conductor, each with what Look does next; a borrowed thing is rebuilt and flagged as a named extension.
-  const outcomes = section(fresh, '7. The three outcomes');
+  const outcomes = section(fresh, '9. The three outcomes');
   assert.deepEqual(boldSteps(outcomes).map(([, name]) => name), ['Nothing to borrow', 'Borrow named things', 'The fresh concept wins as a whole']);
   assert.deepEqual(boldSteps(section(reference('fresh-pass.md'), 'Three outcomes, and only three')).map(([, name]) => name), ['Nothing to borrow', 'Borrow named things', 'The fresh concept wins as a whole']);
   assert.match(flat(outcomes), /There are three outcomes, and no fourth: "a bit of both" names nothing\. Ask him for the things, by name/);
   assert.match(flat(outcomes), /Each thing he names goes to a fresh visual designer, handed his words, the fresh screen each is on, and the screens as they stand\. It rebuilds each on `<tokens>`, and copies none of the fresh screen's code or its values/);
   assert.match(flat(outcomes), /\*\*What the system lacks enters as a named extension of the system:\*\* its name; what it is, a token, a part or a pattern; its values beside the system's own; where it is used; what it costs\. It is written in `measures\.md` and flagged in `LOOK\.md`, under "Named extensions" in both/);
+  assert.match(flat(outcomes), /In its main read the system fidelity judge is handed his marks once more, and checks that what was rebuilt holds nothing taken from a fresh screen/);
   assert.match(flat(read('pool/makers/visual-designer.md')), /that enters as a \*\*named extension\*\*: its name, what it is \(a token, a part or a pattern\), its values beside the system's own, where it is used, and what it costs/);
   assert.match(flat(outcomes), /\*\*The fresh concept wins as a whole\.\*\* That is a change of direction for this surface: `references\/direction\.md`, under "When a fresh concept won as a whole"\. Even then the fresh screen is not handed off/);
   assert.ok(headings(stageRef('look', 'direction.md')).includes('When a fresh concept won as a whole'));
-  // Nothing a fresh maker made is handed off: not copied into the screens, and never named by the carry list.
-  assert.match(flat(outcomes), /\*\*Never is a fresh screen handed off as it came\.\*\* Nothing of `<package>\/06-look\/fresh\/` is copied into `<package>\/06-look\/screens\/`, and no line of the carry list names it/);
+  // Nothing a fresh maker made is handed off: not copied into the screens, and never named by the carry list, as it came or under a letter.
+  assert.match(flat(outcomes), /\*\*Never is a fresh screen handed off as it came\.\*\* Nothing of `<package>\/06-look\/fresh\/` is copied into `<package>\/06-look\/screens\/`, and no line of the carry list names it, or `<package>\/06-look\/beside\/`/);
   const gate = flat(section(text, 'Gate'));
-  assert.match(gate, /the lines of the detail's own carry list, as they are, but any that names a file of a `fresh\/` folder/);
+  assert.match(gate, /the lines of the detail's own carry list, as they are, the cast sheet's tables among them, but any that names a file of a `fresh\/` folder/);
   assert.match(gate, /\*\*No line names `<package>\/06-look\/fresh\/`, or anything else a fresh maker made: none of it is handed off\.\*\*/);
   assert.match(never, /\*\*Never hand off a fresh screen, mend one, or copy its code or its values\.\*\*/);
   // He may still ask for one at the decision page: it is run before he is asked again.
@@ -3813,7 +3879,9 @@ test('direction.md: two or three directions of different kinds, each named with 
   assert.match(kinds, /\*\*Who draws them\.\*\* Until the kit has a card for a direction maker, `maker\.visual-designer` is cast once for each direction, each with a different lens\. The cast sheet's "Look" table has a line for each, with its lens/);
   assert.match(flat(presets()), /three directions, each drawn by one `maker\.visual-designer` cast for a direction, each with a lens of its own/);
   assert.ok(!Object.keys(kitCards()).some(id => id.includes('direction')), 'the kit has no direction maker card yet');
-  assert.match(kinds, /\*\*Read the lenses before you start a maker\.\*\* Two lines with one lens, or lenses that part only by a shade, a little warmer or a little denser, are not two kinds\. Say so to the founder, and he names another: the sheet is his, and you write no lens of your own/);
+  assert.match(kinds, /\*\*Read the lenses before you start a maker\.\*\* Two lines with one lens, or lenses that part only by a shade, a little warmer or a little denser, are not two kinds\. Say so to the founder, and ask him for another: the sheet is his, and you write no lens of your own/);
+  // Every question the page asks mid-stage is recorded, his answer written, and the stage put back in work, before the next step.
+  assert.match(top, /\*\*Every question this page puts to the founder is recorded before it is asked,\*\* with the `await` of the skill's gate, so that a session resuming tomorrow asks the same one\. His answer is written under `## Reviewed by the founder` of `LOOK\.md`, as he said it, and the stage is put back in work with the `begin` of step 1 of the skill, before the next step starts\. There are five such questions: a lens, the pick, a hybrid, the change to the project profile, and a fresh concept redrawn/);
   assert.match(kinds, /\*\*The same detailed screen for all:\*\* the screen of the chosen structure where the one job gets done, in its `default` state, in the product's main language, with every string exactly as `<package>\/05-detail\/strings\.json` has it\. A direction changes the paint, never the detail/);
   // Each named, with a thesis and a stated cost, and none shown without its cost.
   assert.match(kinds, /a \*\*name\*\* of two or three words that stick; a \*\*thesis\*\*, one sentence on what it is good at and for whom; and a \*\*stated cost\*\*, the weakness it accepts on purpose\. A direction with no stated cost goes back to its maker once, and is not shown without one\. You write none of the three/);
@@ -3829,16 +3897,23 @@ test('direction.md: two or three directions of different kinds, each named with 
     'node <kit root>/scripts/page.mjs <package>/06-look/directions.json --out <package>/06-look/directions.html']);
   inOrder(page, [/Every direction is an option, lettered in the alphabetical order of the names: its name is the title, its thesis and its cost the line/, /one question: which direction does this product take\?/,
     /\*\*If the readers could not tell them apart,\*\* that is a finding on the page, by seat\. You draw no further direction, and you mend none/, /record the question with the `await` of the skill's gate\. \*\*Stop: you do not pick\.\*\* He picks one, by its name/,
+    /is drawn once more by a fresh maker of the picked direction\. He confirms it from its picture, one question, before anything becomes a token/,
     /If he takes none, no further direction is drawn on the same lenses: he names new ones, and the cast sheet changes with his yes/], 'the page of directions');
   assert.ok(nevers(text).includes('Never choose a variant or a direction'));
   // The pick becomes the tokens, written by a maker; the project profile is updated by a change he sees and approves, never silently.
   const pick = section(direction, 'The pick becomes the tokens');
-  assert.deepEqual(boldSteps(pick).map(([, name]) => name), ['Write his pick', 'A maker writes the token file, never you', 'The project kit is rebuilt on the new tokens,', 'The project profile is updated by a change he sees and approves, never silently', 'Log it', 'Go on from step 3 of the skill']);
+  // Ruling R146: a maker writes the tokens; the change to the project profile is put to him first; the kit is rebuilt only after his yes.
+  assert.deepEqual(boldSteps(pick).map(([, name]) => name), ['Write his pick', 'A maker writes the token file, never you', 'The project profile is updated by a change he sees and approves, never silently, and first',
+    'Only after his yes is the project kit rebuilt on the new tokens:', 'Log it', 'Go on from step 3 of the skill']);
   assert.match(flat(pick), /A fresh `maker\.visual-designer`, handed the picked page, writes one CSS file of custom properties: every value of the page's block, none added and none rounded/);
-  assert.match(flat(pick), /It is `<kit dir>\/tokens\.css`\. For a surface that leaves a design system it is `<package>\/06-look\/tokens\.css`, and that file is `<tokens>` for the rest of this design/);
-  assert.match(flat(pick), /\*\*The project kit is rebuilt on the new tokens,\*\* where the project had none: steps 3 to 6 of `skills\/setup\/references\/project-kit\.md`/);
+  // A token file that is there is never written over: a rebrand writes a new file, and setup's copy of the real tokens stays.
+  inOrder(flat(pick), [/That file is `<tokens>` for the rest of this design, and where it is written depends on what is there:/, /\*\*A project with no token file:\*\* `<kit dir>\/tokens\.css`/,
+    /\*\*A project that has a design system, and takes a new direction:\*\* a new file beside it, named for the direction, as `<kit dir>\/tokens-quiet-ledger\.css`\. \*\*A token file that is there is never written over:\*\* setup's copy of the real tokens stays as it is/,
+    /\*\*A surface that leaves the design system:\*\* `<package>\/06-look\/tokens\.css`/, /Show him the lines before you write one, and before the kit is touched/,
+    /\*\*Only after his yes is the project kit rebuilt on the new tokens:\*\* steps 3 to 6 of `skills\/setup\/references\/project-kit\.md`, the kit's stylesheet importing the new file\. He looks at the redrawn `parts\.html` as he did at setup's gate, and what he corrects is changed and pictured again/], 'the tokens, the project profile, then the kit');
+  assert.match(flat(projectKit()), /Then the pictures go to the founder with the project profile, at the gate/);
   assert.match(flat(projectKit()), /Look will choose a direction, and the kit is rebuilt on the tokens that direction brings/);
-  inOrder(flat(pick), [/Show him the lines before you write one: `tokens`, naming the token file; and, under `## Design system`, the direction's name, its thesis and its cost, the token file by its path, and the package and the day it was picked in/,
+  inOrder(flat(pick), [/Show him the lines before you write one, and before the kit is touched: `tokens`, naming the token file; and, under `## Design system`, the direction's name, its thesis and its cost, the token file by its path, and the package and the day it was picked in/,
     /One question, about one thing: may the project profile be changed so\?/, /On his yes, write those lines into `<packages>\/PROFILE\.md`, and his words under `## Reviewed by the founder` of `LOOK\.md`/], 'the change to the project profile');
   assert.match(flat(read('templates/project/PROFILE.md')), /"None yet" while there is none: Look then runs once as a direction, and writes this section and `tokens`/);
   assert.match(flat(read(`templates/package/${ARTEFACT.look}`)), /For a direction: each one's name, thesis and stated cost; the one he picked; the token file the pick became/);
@@ -3848,6 +3923,7 @@ test('direction.md: two or three directions of different kinds, each named with 
   const won = flat(section(direction, 'When a fresh concept won as a whole'));
   assert.match(won, /The third outcome of a fresh pass is a change of direction for this surface, and its direction is already picked: no other is drawn/);
   assert.match(won, /copies none of the fresh screen's code or its values, names the direction and states its thesis and its cost/);
+  assert.match(won, /He confirms it from the picture: one page, one question, recorded as every question of this page is/);
   assert.match(won, /The screens already drawn on the system are set aside, not deleted: move them, with their pictures and their measures, into `<package>\/06-look\/earlier\/`\. Nothing there is handed off/);
 });
 
@@ -3861,7 +3937,7 @@ test('look: every command is one its script takes, in the order of the stage; th
   }
   assert.deepEqual([...new Set(commands.map(command => /scripts\/([a-z]+)\.mjs/.exec(command)[1]))].sort(), ['accept', 'describe', 'page', 'shots', 'state']);
   const state = commands.filter(command => command.startsWith('node <kit root>/scripts/state.mjs ')).map(command => words(command).slice(2));
-  assert.deepEqual([...new Set(state.map(([verb]) => verb))].sort(), ['await', 'begin', 'slug', 'stamp', 'status']);
+  assert.deepEqual([...new Set(state.map(([verb]) => verb))].sort(), ['await', 'begin', 'stamp', 'status']);
   for (const [verb, pkg, stage] of state.filter(([verb]) => ['begin', 'await', 'stamp'].includes(verb))) assert.deepEqual([pkg, stage], ['<package>', 'look'], verb);
   assert.deepEqual(fencedLines(text), [
     'node <kit root>/scripts/state.mjs begin <package> look',
@@ -3880,7 +3956,8 @@ test('look: every command is one its script takes, in the order of the stage; th
   assert.match(KIT.usage('scripts/shots.mjs'), /\[--themes light,dark\]/);
   // The decision page: a pick among variants, or an approval of one proposal; either way one page and one question.
   const page = stepOf(section(text, 'Steps'), 'Build the decision page');
-  assert.match(page, /Fill `LOOK\.md` as its template says: "Measured values" and "Named extensions" are copied from `measures\.md`, row for row/);
+  // What LOOK.md holds of the measures is what measures.md holds at the stamp: copied, and copied again after any later redraw.
+  assert.match(page, /Fill `LOOK\.md` as its template says: "Measured values" and "Named extensions" are copied from `measures\.md`, row for row, and copied again after any later redraw, before the stamp/);
   assert.match(page, /With variants, in the shape of `templates\/outputs\/decision\.json`: each variant an option, by letter, its line what it buys and what it costs\. With one proposal, in the shape of `templates\/outputs\/decision-approve\.json`: the final screens as its one option/);
   assert.match(page, /the pictures named from the page, the phone width first, as `shots\/today-default-en-390-light\.png`; one line for each seat; each open finding under `findings`, by seat; one recommendation, resting on the reads; one question\. Its identity is as `status` prints it, at stage 7 of 9/);
   assert.equal(STAGES.indexOf('look') + 1, 7);
@@ -3891,11 +3968,11 @@ test('look: every command is one its script takes, in the order of the stage; th
     /One question, about one thing\. With variants: which variant goes on to Handoff\? With one proposal: do you approve these screens for Handoff\? \*\*Stop: you neither pick nor approve, and you go no further without his words\.\*\*/,
     /\*\*A variant he picks that the screens are not drawn in\*\* is drawn by a fresh visual designer, handed his pick\. Step 5 is run again, and he sees the pictures and the table before the stamp/,
     /\*\*Write what he says under `## Reviewed by the founder`:\*\* what he picked or corrected, and the words he approved it with, as he said them\. A correction goes to a fresh visual designer, handed his words, and step 5 is run again\. You redraw nothing yourself/,
-    /\*\*Write the carry list,\*\* `## Carry`:/, /a `- detail@<version>#<slug>` line for "Rules", "Edge cases", "Data map", "Dependencies" and "Strings"/,
-    /a `- source:<path>` line, from the project's root, for the screens' folder, the pictures' folder, the reads' folder, `measures\.md`, `checks\.json`, `results\.json` and `<tokens>`/,
+    /\*\*Write the carry list,\*\* `## Carry`:/, /a `- detail@<version>#<slug>` line for "Rules", "Edge cases", "Data map", "Dependencies", "Strings" and "What the readers found"/,
+    /a `- source:<path>` line for the screens' folder, the pictures' folder, the reads' folder, `measures\.md`, `checks\.json`, `results\.json` and `<tokens>`/,
     /\*\*Stamp it,\*\* in the words he picked or approved with/, /state\.mjs stamp <package> look --words/, /Then append the decision to the package's `DECISIONS\.md`, each named extension with it, and ask the state what is next, as step 9 of the loop says/], 'the gate');
   // A page of the stage that is not its gate's records its question too: a session that resumes takes his answer where it was asked.
-  assert.match(stepOf(section(text, 'Steps'), 'Begin'), /A stage that is awaiting the founder is not begun again: take his answer to "Gate", or to the reference whose page he was asked on\. Otherwise mark it in work:/);
+  assert.match(stepOf(section(text, 'Steps'), 'Begin'), /A stage that is awaiting the founder is not begun again: take his answer to "Gate", or to the reference that asked\. Otherwise mark it in work:/);
   for (const name of ['fresh.md', 'direction.md']) assert.match(flat(stageRef('look', name)), /record the question with the `await` of the skill's gate/, name);
   for (const name of ['fresh.md', 'direction.md']) assert.match(flat(stageRef('look', name)), /put the stage back in work with the `begin` of step 1 of the skill|Put the stage back in work with the `begin` of step 1 of the skill/, name);
   assert.match(flat(section(text, 'Never')), /\*\*Never choose a variant or a direction\.\*\* Your one recommendation rests on the reads/);
@@ -3903,6 +3980,68 @@ test('look: every command is one its script takes, in the order of the stage; th
   for (const [script, wrong] of [['accept', 'prototype <package>/06-look/checks.json --out <package>/06-look/results.json'], ['accept', '<package>/06-look/checks.json --root <package>/06-look/screens --out <package>/06-look/results.json'],
     ['shots', '<package>/06-look/screens --out <package>/06-look/shots --themes <themes>'], ['describe', '--text --provider <openai|gemini> --model <id> --brief <package>/06-look/BRIEF-fresh.md --out <package>/06-look/fresh/<name>.html'],
     ['page', '<package>/06-look/beside.json']]) assert.ok(!takenBy(script, wrong), `${script}.mjs does not take: ${wrong}`);
+});
+
+test('detail and look: the other forms — an adjustment keeps what changes and no more, a flow goes surface by surface and is stamped once, and a correction is one change and one nod', () => {
+  for (const [name, title, repeats, once] of [
+    ['detail', 'Detail', /\*\*What repeats for each surface:\*\* steps 3 to 8 of the skill\. The three makers in their order, the pictures, the readers, the one fix round and the one re-read\. A surface is finished before the next one begins, and each has its one fix round/,
+      /\*\*What is done once, for the whole flow:\*\* the questions of step 4 that touch more than one surface; the words' page, where the kind asks for one; the decision page, with the pictures of each surface among its option's and the open findings of all of them; the gate; the carry list; the stamp\. He approves the flow, not a surface/],
+    ['look', 'Look', /\*\*What repeats for each surface:\*\* steps 4, 5, 7 and 8 of the skill\. One visual designer, a fresh sub-agent for each surface, handed the screens of the surfaces already drawn so that the flow reads as one; the pictures and the measures; the readers; the one fix round and the one re-read/,
+      /\*\*What is done once, for the whole flow:\*\* the mode, and a direction when there is none; a fresh pass, on the one screen that carries the idea; the variants' axis, which holds on every surface; the decision page, with the pictures of each surface among its option's; the gate; the carry list; the stamp\. He picks or approves the flow, not a surface/],
+  ]) {
+    const forms = stageRef(name, 'forms.md');
+    assert.deepEqual(headings(forms), ['Routed `short`: an adjustment', 'Sized `flow`: surface by surface'], name);
+    const short = flat(section(forms, 'Routed `short`: an adjustment'));
+    assert.match(short, new RegExp(`^ ${title} is what changes, and no more\\.`), name);
+    assert.match(short, new RegExp(`\\*\\*Every other heading of \`${ARTEFACT[name].split('/')[1]}\` says "Unchanged by this adjustment"\\.\\*\\*`), name);
+    assert.match(short, /\*\*A stage the route skips is left out of `built-from` and of the carry list\.\*\*/, name);
+    // With Structure skipped there is no chosen proposal to hand over.
+    assert.match(short, /\*\*With Structure skipped there is no chosen proposal, and no hand-over names `<chosen>`\.\*\* A seat takes the structure from what it is handed besides: the states and the rules/, name);
+    // A flow: what repeats for each surface, what every surface writes into, and what is done and stamped once.
+    const flow = flat(section(forms, 'Sized `flow`: surface by surface'));
+    assert.match(flow, repeats, name);
+    assert.match(flow, once, name);
+    assert.match(flow, new RegExp(`\\*\\*A reader's file takes the surface's name\\*\\* after its seat, as \`<package>/${ARTEFACT[name].split('/')[0]}/reads/<seat>-<surface>\\.md\``), name);
+  }
+  assert.match(flat(reference('routes.md')), /Structure treats the flow as one thing; Detail and Look go surface by surface/);
+  const detailShort = flat(section(stageRef('detail', 'forms.md'), 'Routed `short`: an adjustment'));
+  assert.match(detailShort, /Where it skips Structure, the stage before this one is Cast: you read `<package>\/03-cast\.md`, and what its carry list names/);
+  // With no prototype builder cast there is no prototype and no picture, and the carry list names neither.
+  assert.match(detailShort, /\*\*With no prototype builder cast, no page is generated and none is photographed\.\*\* Step 5 of the skill is not run, the readers are handed the changed rows and strings, and the decision page gives each changed row and string as its option's line\. The carry list then has no line for the prototype's folder or the pictures' folder: neither exists/);
+  assert.ok(!kitCards()['maker.prototype-builder'].presets.includes('adjustment'));
+  assert.match(flat(section(stageRef('look', 'forms.md'), 'Routed `short`: an adjustment')), /\*\*With no prototype builder cast at Detail there is no prototype:\*\* no hand-over names its folder or its pictures/);
+  assert.match(flat(section(stageRef('detail', 'forms.md'), 'Sized `flow`: surface by surface')), /\*\*What every surface writes into, and is one for the flow:\*\* `states\.md`, `strings\.json`, so that one word stays one thing across the surfaces, and `prototype\/` with its one index\. In `DETAIL\.md`, a `### <surface>` under each heading that differs from one surface to the next/);
+
+  // A correction at Detail: no seat, the one thing changed as "is → becomes", the two pictures in their folder, one nod as the gate.
+  const correction = stageRef('detail', 'correction.md');
+  assert.deepEqual(headings(correction), ['What does not happen', 'Steps', 'The gate']);
+  const top = flat(correction.slice(0, correction.indexOf('\n## ')));
+  assert.match(top, /A design sized `correction` is one wrong thing put right: a label, a token or a spacing value\. Its route runs four stages, each in its short form, and this page is Detail's\. It costs one nod/);
+  assert.match(top, /is the conductor's: `skills\/design\/references\/routes\.md`, under "A correction"/);
+  assert.deepEqual(STAGES.filter(stage => routeFor('correction')[stage] === 'short'), ['frame', 'detail', 'handoff', 'acceptance']);
+  const not = flat(section(correction, 'What does not happen'));
+  assert.match(not, /\*\*No seat is cast\.\*\* No maker, no judge, no audience and no brief: none of the skill's steps 3 to 8 is run/);
+  assert.match(not, /\*\*If it turns out to touch more\*\* than a label, a token or a spacing value \(a state, the structure, another surface\), stop, say so to the founder, and resize/);
+  assert.match(flat(section(reference('routes.md'), 'A correction')), /\*\*If it turns out to touch more\*\* than a label, a token or a spacing value \(a state, the structure, another surface\), stop, say so, and resize/);
+  const steps = section(correction, 'Steps');
+  assert.deepEqual(boldSteps(steps).map(([, name]) => name), ['Begin,', 'Copy the template', 'Write the one thing changed, as "is → becomes",', 'Keep the before-and-after picture in `<package>/05-detail/correction/`', 'Build the page']);
+  // Built from the frame alone: no other stage of its route ran before it.
+  assert.match(flat(steps), /write `built-from` as the route gives it: the frame alone, `\[frame@<version>\]`, since no other stage ran before this one/);
+  assert.match(flat(steps), /what it is today, what it becomes, and where, by its screen, its element and the file that holds it\. As: the booking action reads "Reserve" → "Book room", on today, in the free rooms list\. Every other heading says "Unchanged by this correction"/);
+  assert.deepEqual(commandsOf(correction), ['node <kit root>/scripts/shots.mjs <package>/05-detail/correction/before.html <package>/05-detail/correction/after.html --out <package>/05-detail/correction --widths <primary>']);
+  // The one size where the session that conducts may also do the work, and only after his nod.
+  assert.match(flat(steps), /You make these two yourself: a correction is the one size where the session that conducts may also do the work/);
+  assert.match(flat(section(reference('routes.md'), 'A correction')), /It is the one size where the session that conducts may also do the work/);
+  assert.match(flat(steps), /one option, its two pictures named from the page, the one before first, as `correction\/before-1280-light\.png`, and its line the "is → becomes" of step 3; no seat, since none read it; one recommendation, with its one sentence of reason; one question\. Its identity is as `status` prints it, at the stage its route has it at: 2 of 4/);
+  assert.match(KIT.usage('scripts/page.mjs'), /one line per\s+seat/);
+  const gate = flat(section(correction, 'The gate'));
+  inOrder(gate, [/^ \*\*One nod\.\*\* Put the page in front of him, and record the question with the `await` of the skill's gate\. One question, about one thing: may this be changed so\? \*\*Stop: nothing is changed in the product before his nod\.\*\*/,
+    /\*\*Write the one-paragraph record\*\* under `## Reviewed by the founder`: what was wrong, what it is now, where, and his words, as he said them/,
+    /\*\*Write the carry list:\*\* the lines of the frame's own carry list, as they are, and a `- source:<path>` line, from the project's root, for each of the two pictures/,
+    /\*\*Stamp it,\*\* with the `stamp` of the skill's gate, in the words of his nod/, /\*\*After his nod, the session that conducts may make the change itself\.\*\* That is the build: Handoff and Acceptance, each in its short form, say how it is handed over and checked/], 'the gate of a correction');
+  // The skill's own Never keeps the exception: nothing is the session's to write but a correction, after his nod.
+  assert.match(flat(section(stageSkill('detail'), 'Never')), /\*\*Never write a state, a rule, a string or a page yourself,\*\* and never mend one\. A maker does: only a design sized `correction` is yours to apply, after his nod/);
+  assert.match(flat(conductor()), /except, in a design sized `correction`, to apply it after his nod/);
 });
 
 test('Detail and Look run as written: their own commands on a package Structure has stamped, the words asked before the prototype, the measures taken by the kit\'s script, each carry list as its skill gives it, and nothing of a fresh pass carried on', () => {
@@ -3934,11 +4073,11 @@ test('Detail and Look run as written: their own commands on a package Structure 
   const STATE = 'node <kit root>/scripts/state.mjs';
   const slugOf = (name, heading) => run(commandOf(name, 'state.mjs slug'), { '<heading text>': heading });
   // An output of the package: its template, with what it is built from and its carry list.
-  const write = (name, inputs, carry = []) => {
+  const write = (name, inputs, carry = [], base = pkg) => {
     const text = read(`templates/package/${ARTEFACT[name]}`);
     assert.ok(text.endsWith('\n## Carry\n') && text.includes('\nbuilt-from: []\n'), name);
-    mkdirSync(join(pkg, ARTEFACT[name], '..'), { recursive: true });
-    writeFileSync(join(pkg, ARTEFACT[name]), `${text.replace('built-from: []', `built-from: ${inputs}`)}\n${carry.join('\n')}\n`);
+    mkdirSync(join(base, ARTEFACT[name], '..'), { recursive: true });
+    writeFileSync(join(base, ARTEFACT[name]), `${text.replace('built-from: []', `built-from: ${inputs}`)}\n${carry.join('\n')}\n`);
   };
   const STAMPED = name => new RegExp(`^stamped ${name} approved at version 1 on \\d{4}-\\d\\d-\\d\\d$`);
   // What a stage's output is built from, as its skill gives it, each stage at the version `status` prints.
@@ -3985,7 +4124,7 @@ test('Detail and Look run as written: their own commands on a package Structure 
   pagesInto(join(detail, 'prototype'));
   // Step 5: the pictures are the picture script's to take, and its own tests drive the browser: here each is a stand-in, under
   // the name the script gives it. The picture the skill names as its example is one of them.
-  assert.equal(commandOf('detail', 'shots.mjs'), 'node <kit root>/scripts/shots.mjs <package>/05-detail/prototype --out <package>/05-detail/shots --widths <primary>,<phone>');
+  assert.equal(commandOf('detail', 'shots.mjs <package>/05-detail/prototype'), 'node <kit root>/scripts/shots.mjs <package>/05-detail/prototype --out <package>/05-detail/shots --widths <primary>,<phone>');
   const picturesInto = (folder, themes) => {
     mkdirSync(folder);
     for (const page of PAGES) for (const width of [FILL['<phone>'], FILL['<primary>']]) for (const theme of themes) writeFileSync(join(folder, `${page}-${width}-${theme}.png`), '');
@@ -4012,9 +4151,11 @@ test('Detail and Look run as written: their own commands on a package Structure 
   assert.doesNotMatch(asked, /these words/);
   // The carry list the skill gives: the chosen structure's own lines, two sections of it, the stage's files, and the package's
   // DECISIONS.md, where his gallery marks are. Built from the structure alone, the stamp refuses each line it cannot carry.
-  const detailCarry = [...chosenCarry, ...['The structure', 'What it is deliberately bad at'].map(heading => `- structure@1#${slugOf('detail', heading)}`),
+  const detailCarry = [...chosenCarry, ...['The structure', 'What it is deliberately bad at', 'What the readers found'].map(heading => `- structure@1#${slugOf('detail', heading)}`), '- source:design/today/04-structure/reads',
     ...['states.md', 'strings.json', 'prototype', 'shots', 'reads'].map(file => `- source:design/today/05-detail/${file}`), '- source:design/today/DECISIONS.md'];
   assert.ok(detailCarry.includes('- structure@1#the-structure') && detailCarry.includes('- context@1#the-founder-s-own-words'));
+  // What the handoff's coverage page needs is carried: what Structure's readers found, their ledgers, and the cast sheet's table for every stage.
+  for (const line of ['- structure@1#what-the-readers-found', '- source:design/today/04-structure/reads', '- cast@1#detail', '- cast@1#look', '- cast@1#acceptance']) assert.ok(detailCarry.includes(line), line);
   write('detail', '[structure@1]', detailCarry);
   assert.equal(refusedFor('detail', ['cast', 'intent', 'context']), chosenCarry.filter(line => /^- (?:cast|intent|context)@/.test(line)).length);
   write('detail', standingAt('detail'), detailCarry);
@@ -4037,7 +4178,7 @@ test('Detail and Look run as written: their own commands on a package Structure 
   assert.equal(commandOf('look', 'shots.mjs <package>/06-look/screens'), 'node <kit root>/scripts/shots.mjs <package>/06-look/screens --out <package>/06-look/shots --widths <primary>,<phone> --themes <themes>');
   picturesInto(join(look, 'shots'), FILL['<themes>'].split(','));
   assert.ok(existsSync(join(look, exampleOf('look'))), exampleOf('look'));
-  assert.match(run(commandOf('look', 'accept.mjs')), new RegExp(`^${checks.length} checks: 0 failed, ${checks.length} passed; results in \\S.*results\\.json$`));
+  assert.match(run(commandOf('look', 'accept.mjs prototype <package>/06-look/checks.json')), new RegExp(`^${checks.length} checks: 0 failed, ${checks.length} passed; results in \\S.*results\\.json$`));
   const results = JSON.parse(readFileSync(join(look, 'results.json'), 'utf8'));
   assert.deepEqual(results.map(result => result.id), checks.map(check => check.id));
   // The table of measured values is written from those results, never by eye: each contrast and each size is a result's `actual`,
@@ -4049,22 +4190,63 @@ test('Detail and Look run as written: their own commands on a package Structure 
   const rows = [`| \`book-action\` | its target | ${size.width} × ${size.height} | — | 390 | light |`, `| \`room-list\` | its contrast on its ground | ${contrast} | — | 1280 | dark |`];
   const [, tableHead] = /(\| Element \|[^\n]+\n\|[-|]+\n)/.exec(read(`templates/package/${ARTEFACT.look}`));
   writeFileSync(join(look, 'measures.md'), `## Measured values\n\n${tableHead}${rows.join('\n')}\n\n## Named extensions\n\nNone.\n`);
-  // With a fresh pass: the fresh screen is kept in fresh/ as it came and pictured there; the page shows it beside the system
-  // version, by the pictures fresh.md names; the question is recorded, and his answer puts the stage back in work. The outside
-  // engine's own command is never run here: it would reach a provider.
+  // With a fresh pass: the fresh screen is kept in fresh/ as it came and pictured there. The outside engine's own command is
+  // never run here: it would reach a provider.
   mkdirSync(join(look, 'fresh'));
   writeFileSync(join(look, 'fresh', 'outside-openai.html'), '<!doctype html>\n<title>Today</title>\n');
-  writeFileSync(join(look, 'fresh', 'outside-openai-1280-light.png'), '');
+  writeFileSync(join(look, 'fresh', 'outside-openai-1280-light.png'), 'the fresh screen');
   const [, system, came] = /as `(shots\/[\w-]+\.png)` and `(fresh\/[\w-]+\.png)`/.exec(flat(stageRef('look', 'fresh.md')));
-  assert.ok(existsSync(join(look, system)) && existsSync(join(look, came)), `${system}, ${came}`);
+  writeFileSync(join(look, system), 'the system version');
+  assert.ok(existsSync(join(look, came)), came);
+  // Ruling R142: the comparison is blind. The command fresh.md gives deals the letters itself, copies the two pictures into
+  // beside/ under them, writes which is which beside that folder and never in it, prints the letters alone, and deals once.
+  const [dealing] = fencedLines(section(stageRef('look', 'fresh.md'), '5. The letters'));
+  const pictures = { '<page>': 'today-default-en', '<name>': 'outside-openai' };
+  assert.equal(run(dealing, pictures), 'dealt A, B');
+  assert.deepEqual(readdirSync(join(look, 'beside')).filter(visible).sort(), ['A-1280-light.png', 'B-1280-light.png']);
+  const sealed = JSON.parse(readFileSync(join(look, 'BESIDE.sealed.json'), 'utf8'));
+  assert.deepEqual(Object.keys(sealed).sort(), ['A', 'B']);
+  assert.deepEqual(Object.values(sealed).sort(), [came, system].sort());
+  for (const [letter, source] of Object.entries(sealed)) assert.equal(readFileSync(join(look, 'beside', `${letter}-1280-light.png`), 'utf8'), readFileSync(join(look, source), 'utf8'), letter);
+  const twice = exec(dealing, pictures);
+  assert.equal(twice.status, 1, 'a beside folder that is there is not dealt again');
+  assert.match(twice.stderr, /EEXIST/);
+  // Over many deals the system's picture is not always under the same letter: the order of naming says nothing.
+  const dealt = new Set();
+  for (let i = 0; i < 40 && dealt.size < 2; i++) {
+    const scratch = join(scratchRoot, `a deal ${i}`);
+    for (const folder of ['shots', 'fresh']) mkdirSync(join(scratch, folder), { recursive: true });
+    for (const picture of [system, came]) writeFileSync(join(scratch, picture), '');
+    const filled = word => word.replace(/^"(.*)"$/, '$1').replace('<package>/06-look', scratch).replace('<page>', pictures['<page>']).replace('<name>', pictures['<name>']).replace('<primary>', FILL['<primary>']);
+    spawnSync(process.execPath, words(dealing).slice(1).map(filled), { encoding: 'utf8' });
+    dealt.add(Object.entries(JSON.parse(readFileSync(join(scratch, 'BESIDE.sealed.json'), 'utf8'))).find(([, source]) => source === system)[0]);
+  }
+  assert.deepEqual([...dealt].sort(), ['A', 'B']);
+  // The first question, ruling R145: the page shows the letters and nothing that says which is the system's; the question is
+  // recorded, and his answer puts the stage back in work.
+  const [, lettered] = /as `(beside\/[\w-]+\.png)`/.exec(flat(section(stageRef('look', 'fresh.md'), '7. The first question: what he would keep')));
+  assert.ok(existsSync(join(look, lettered)), lettered);
   const beside = { identity: { ...identity, stage: STAGES.indexOf('look') + 1 },
+    options: ['A', 'B'].map(letter => ({ letter, title: `Version ${letter}`, line: 'Today, free rooms first.', images: [`beside/${letter}-1280-light.png`] })),
+    seats: [{ seat: 'judge.truth', line: 'B offers a waiting list, which the product does not have.', option: 'B' }, { seat: 'audience.task-reader', line: 'She found a free room faster on A, by a slight gap.', option: 'A' }],
+    recommendation: { option: 'A', reason: 'The task reader and the profile judge both rank A first.' }, question: 'What would you keep from each of these?' };
+  assert.doesNotMatch(JSON.stringify(beside), /fresh|system|outside|shots\//);
+  writeFileSync(join(look, 'beside.json'), JSON.stringify(beside, null, 2));
+  assert.match(run(commandOf('look', 'page.mjs <package>/06-look/beside.json')), /^built \S.*beside\.html: 2 options, 2 seats, one question$/);
+  assert.doesNotMatch(readFileSync(join(look, 'beside.html'), 'utf8'), /outside-openai|shots\//);
+  assert.equal(run(commandOf('look', 'state.mjs await'), { '<the one question>': beside.question }), 'look awaits the founder');
+  assert.equal(run(commandOf('look', 'state.mjs begin')), 'look is in work');
+  // The second question: now by what each version is, with what each thing he marked would cost the system on the page.
+  const borrow = { identity: beside.identity,
     options: [{ letter: 'A', title: 'The system version', line: 'Today, free rooms first, on the clinic\'s own tokens.', images: [system] },
       { letter: 'B', title: 'Fresh, as it came', line: 'Taking it whole is a change of direction for this surface: Look runs again as a direction, and the screens drawn on the system are set aside.', images: [came] }],
-    seats: [{ seat: 'judge.truth', line: 'B offers a waiting list, which the product does not have.', option: 'B' }],
-    recommendation: { option: 'A', reason: 'The reads rank A first, and name one thing of B to borrow.' }, question: 'Which is it: nothing to borrow, named things to borrow, or the fresh concept as a whole?' };
-  writeFileSync(join(look, 'beside.json'), JSON.stringify(beside, null, 2));
-  assert.match(run(commandOf('look', 'page.mjs <package>/06-look/beside.json')), /^built \S.*beside\.html: 2 options, .*one question$/);
-  assert.equal(run(commandOf('look', 'state.mjs await'), { '<the one question>': beside.question }), 'look awaits the founder');
+    seats: [{ seat: 'judge.truth', line: 'The fresh screen offers a waiting list, which the product does not have.', option: 'B' }],
+    findings: [{ seat: 'judge.system-fidelity', line: 'The amber edge on a room about to free up: the system has no token for it, and it would enter as one new colour token.' }],
+    recommendation: { option: 'A', reason: 'The reads rank the system version first, and the one thing he marked costs one token.' }, question: 'Which is it: nothing to borrow, named things to borrow, or the fresh concept as a whole?' };
+  writeFileSync(join(look, 'borrow.json'), JSON.stringify(borrow, null, 2));
+  assert.match(run(commandOf('look', 'page.mjs <package>/06-look/borrow.json')), /^built \S.*borrow\.html: 2 options, 1 seat, 1 open finding, one question$/);
+  assert.equal(run(commandOf('look', 'state.mjs await'), { '<the one question>': borrow.question }), 'look awaits the founder');
+  assert.match(run(commandOf('look', 'state.mjs status')), /^## Open question\n\nlook: Which is it: nothing to borrow, named things to borrow, or the fresh concept as a whole\?$/m);
   assert.equal(run(commandOf('look', 'state.mjs begin')), 'look is in work');
   assert.match(run(commandOf('look', 'state.mjs status')), /^## Open question\n\nNone\.$/m);
   // The gate: one page, the finished screens as its one option, one question.
@@ -4075,10 +4257,11 @@ test('Detail and Look run as written: their own commands on a package Structure 
   assert.equal(run(commandOf('look', 'state.mjs await'), { '<the one question>': final.question }), 'look awaits the founder');
   // The carry list the skill gives: the detail's own lines but the one that names a file of a fresh folder, five sections of the
   // detail, the stage's files and the token file. Built from the detail alone, the stamp refuses each line it cannot carry.
-  const lookCarry = [...detailCarry.filter(line => !line.includes('/fresh/')), ...['Rules', 'Edge cases', 'Data map', 'Dependencies', 'Strings'].map(heading => `- detail@1#${slugOf('look', heading)}`),
+  const lookCarry = [...detailCarry.filter(line => !line.includes('/fresh/')), ...['Rules', 'Edge cases', 'Data map', 'Dependencies', 'Strings', 'What the readers found'].map(heading => `- detail@1#${slugOf('detail', heading)}`),
     ...['screens', 'shots', 'reads', 'measures.md', 'checks.json', 'results.json'].map(file => `- source:design/today/06-look/${file}`), '- source:design/kit/tokens.css'];
   assert.deepEqual(detailCarry.filter(line => !lookCarry.includes(line)), ['- source:design/today/04-structure/fresh/today-1.png']);
-  assert.ok(!lookCarry.some(line => line.includes('/fresh/')) && lookCarry.includes('- source:design/today/DECISIONS.md') && lookCarry.includes('- detail@1#data-map'));
+  assert.ok(!lookCarry.some(line => /\/(?:fresh|beside)\/|BESIDE/.test(line)) && lookCarry.includes('- source:design/today/DECISIONS.md') && lookCarry.includes('- detail@1#data-map'));
+  for (const line of ['- detail@1#what-the-readers-found', '- structure@1#what-the-readers-found', '- source:design/today/04-structure/reads', '- source:design/today/05-detail/reads', '- cast@1#look']) assert.ok(lookCarry.includes(line), line);
   write('look', '[detail@1]', lookCarry);
   assert.equal(refusedFor('look', ['structure', 'cast', 'intent', 'context']), lookCarry.filter(line => /^- (?:structure|cast|intent|context)@/.test(line)).length);
   write('look', standingAt('look'), lookCarry);
@@ -4090,4 +4273,39 @@ test('Detail and Look run as written: their own commands on a package Structure 
   assert.deepEqual(parse(readFileSync(join(pkg, ARTEFACT.look), 'utf8')).data['built-from'], ['detail@1', 'structure@1', 'cast@1', 'intent@1', 'context@1']);
   assert.deepEqual(readdirSync(join(look, 'fresh')).filter(visible).sort(), ['outside-openai-1280-light.png', 'outside-openai.html']);
   assert.ok(!readdirSync(join(look, 'screens')).some(name => name.includes('outside')));
+
+  // A correction, as references/correction.md gives it: a second design of the same project, sized correction. Its route runs
+  // Frame and then Detail; Detail is built from the frame alone, shows its one option with no seat, and one nod stamps it.
+  const fix = { '<package>': 'design/label' };
+  const small = join(project, 'design', 'label');
+  run(`${STATE} init <package> --design label --kind working-surface --foundation small-change --size correction`, fix);
+  run(`${STATE} begin <package> frame`, fix);
+  write('frame', '[]', ['- source:src/today/rooms.html'], small);
+  assert.match(run(`${STATE} stamp <package> frame --words "sí"`, fix), STAMPED('frame'));
+  assert.equal(run(`${STATE} next <package>`, fix), 'detail');
+  assert.equal(run(commandOf('detail', 'state.mjs begin'), fix), 'detail is in work');
+  assert.match(run(commandOf('detail', 'state.mjs status'), fix), /^\| detail \| short \| in-work \|/m);
+  const [correcting] = commandsOf(stageRef('detail', 'correction.md'));
+  assert.ok(takenBy('shots', words(correcting).slice(2).join(' ')), correcting);
+  mkdirSync(join(small, '05-detail', 'correction'), { recursive: true });
+  const [, beforePicture] = /as `(correction\/before-[\w-]+\.png)`/.exec(flat(stageRef('detail', 'correction.md')));
+  for (const picture of [beforePicture, beforePicture.replace('before', 'after')]) writeFileSync(join(small, '05-detail', picture), '');
+  const nod = { identity: { design: 'label', kind: 'working-surface', size: 'correction', stage: 2, of: 4 },
+    options: [{ letter: 'A', title: 'The booking action', line: '"Reserve" → "Book room", on today, in the free rooms list.', images: [beforePicture, beforePicture.replace('before', 'after')] }], seats: [],
+    recommendation: { option: 'A', reason: 'It is one label, and nothing else on the screen moves.' }, question: 'May this be changed so?' };
+  mkdirSync(join(small, '05-detail'), { recursive: true });
+  writeFileSync(join(small, '05-detail', 'decision.json'), JSON.stringify(nod, null, 2));
+  assert.match(run(commandOf('detail', 'page.mjs <package>/05-detail/decision.json'), fix), /^built \S.*decision\.html: 1 option, 0 seats, one question$/);
+  const pictureLines = [beforePicture, beforePicture.replace('before', 'after')].map(picture => `- source:design/label/05-detail/${picture}`);
+  // Built from nothing, it lacks the stage before it on its route; built from the frame, as the page says, it is stamped.
+  write('detail', '[]', ['- source:src/today/rooms.html', ...pictureLines], small);
+  assert.equal(run(commandOf('detail', 'state.mjs await'), { ...fix, '<the one question>': nod.question }), 'detail awaits the founder');
+  const unbuilt = exec(commandOf('detail', 'state.mjs stamp'), fix);
+  assert.deepEqual([unbuilt.status, unbuilt.stdout], [1, '']);
+  assert.match(unbuilt.stderr, /^detail cannot be stamped:\n- it must be built from frame, the stage before it on the route: add frame@1 to built-from\n$/);
+  const [, built] = /the frame alone, `(\[frame@<version>\])`/.exec(flat(stageRef('detail', 'correction.md')));
+  write('detail', built.replace('<version>', '1'), ['- source:src/today/rooms.html', ...pictureLines], small);
+  assert.match(run(commandOf('detail', 'state.mjs stamp'), fix), STAMPED('detail'));
+  assert.equal(run(`${STATE} validate <package>`, fix), 'ok');
+  assert.equal(run(`${STATE} next <package>`, fix), 'handoff');
 });

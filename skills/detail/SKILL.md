@@ -55,7 +55,7 @@ is the version a stage stands at, as `status` prints it: after a reopening it is
 ## Steps
 
 1. **Begin.** Check the state as step 1 of the loop says. A stage that is awaiting the founder is not
-   begun again: go to "Gate", with his answer. Otherwise mark it in work:
+   begun again: take his answer to "Gate", or to the step that asked for it. Otherwise mark it in work:
 
    ```
    node <kit root>/scripts/state.mjs begin <package> detail
@@ -85,8 +85,9 @@ is the version a stage stands at, as `status` prints it: after a reopening it is
    - **A state the intent does not name, a fact a string waits for, a state the structure cannot
      hold:** `references/seats.md` says what each asks of him, and which stage it may reopen.
 
-   Write each answer under `## Reviewed by the founder`, as he said it: an entry with no answer
-   there is still to be asked.
+   Record each question with the `await` of the gate, write his answer under
+   `## Reviewed by the founder`, as he said it, and put the stage back in work with the `begin` of
+   step 1. An entry with no answer there is still to be asked.
 5. **Photograph every page.** Once the prototype is generated, and again after every change to it:
 
    ```
@@ -126,13 +127,10 @@ is the version a stage stands at, as `status` prints it: after a reopening it is
    node <kit root>/scripts/page.mjs <package>/05-detail/decision.json --out <package>/05-detail/decision.html
    ```
 
-**Routed `short`** (an adjustment), Detail is what changes, and no more: only the seats of the sheet's
-"Detail" table run, on the screens, the states and the strings the change touches, and every other
-heading of `DETAIL.md` says "Unchanged by this adjustment". A stage the route skips is left out of
-`built-from` and of the carry list: where it skips Structure, the stage before this one is Cast, and
-you read `<package>/03-cast.md` and what its carry list names. Where no prototype builder sits, no
-page is generated, and the decision page gives each changed row and string as its option's line. A
-design sized `correction` casts no seat: `skills/design/references/routes.md`, under "A correction".
+**Routed `short`** (an adjustment), Detail is what changes, and no more. **Sized `flow`,** it goes
+surface by surface, steps 3 to 8 once for each, and is approved and stamped once.
+`references/forms.md` has both. **Sized `correction`,** it is one change and one nod, and casts no
+seat: `references/correction.md`.
 
 ## Gate
 
@@ -163,12 +161,14 @@ and you go no further without his words.**
   approved the prototype with, as he said them. A correction goes to the maker whose artefact it is
   on, a fresh sub-agent handed his words. The pages are generated and photographed again, and he
   sees them before the stamp. You change no rule, no string and no page yourself.
-- **Write the carry list,** `## Carry`: the lines of `CHOSEN.md`'s own carry list, as they are; a
-  `- structure@<version>#<slug>` line for "The structure" and for "What it is deliberately bad at";
-  and a `- source:<path>` line, from the project's root, for `states.md`, for `strings.json`, for
-  the prototype's folder, for the pictures' folder, for the reads' folder, and for the package's
-  `DECISIONS.md`: what he marked in a fresh gallery at Structure reaches Look through that file. A
-  heading's slug is printed by `node <kit root>/scripts/state.mjs slug "<heading text>"`.
+- **Write the carry list,** `## Carry`: the lines of `CHOSEN.md`'s own carry list, as they are,
+  the cast sheet's table for every stage among them; a `- structure@<version>#<slug>` line for "The
+  structure", for "What it is deliberately bad at" and for "What the readers found"; and a
+  `- source:<path>` line, from the project's root, for `<package>/04-structure/reads`, for
+  `states.md`, for `strings.json`, for the prototype's folder, for the pictures' folder, for the
+  reads' folder, and for the package's `DECISIONS.md`: what he marked in a fresh gallery at
+  Structure reaches Look through that file. A heading's slug is printed by
+  `node <kit root>/scripts/state.mjs slug "<heading text>"`.
 - **Stamp it,** in the words he approved it with:
 
   ```
@@ -180,7 +180,8 @@ and you go no further without his words.**
 
 ## Never
 
-- **Never write a state, a rule, a string or a page yourself,** and never mend one. A maker does.
+- **Never write a state, a rule, a string or a page yourself,** and never mend one. A maker does:
+  only a design sized `correction` is yours to apply, after his nod.
 - **Never take an element out because the product cannot supply it.** It is a dependency, and his.
 - **Never run a second fix round,** and never let a judge that read once read again: a re-read is a
   fresh sub-agent, handed its seat's earlier ledger to open after it has read cold.

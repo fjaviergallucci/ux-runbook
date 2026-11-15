@@ -17,7 +17,8 @@ Four names are used below, besides `<tokens>`, the project's token file as the s
 - "The states and the rules" are `<package>/05-detail/states.md`, and `<package>/05-detail/DETAIL.md`
   for the rules, the edge cases, the data map and the dependencies.
 - "The final screens" are `<package>/06-look/screens/`, the pages, and `<package>/06-look/measures.md`,
-  the table of measured values and the named extensions.
+  the table of measured values and the named extensions; with variants, `<package>/06-look/variants/`
+  too.
 - "What the project says of its design system" is the documents that "Design system" of the project
   profile names, each by its path. A seat is handed those files, and never the project profile.
 
@@ -46,6 +47,16 @@ Four names are used below, besides `<tokens>`, the project's token file as the s
   extensions", each in the shape `templates/package/06-look/LOOK.md` gives it. The pictures and the
   results of its own check go in `<package>/work/look-check/`: those of record are yours to take,
   in step 5 of the skill.
+- **Variants are photographed, measured and read like the screens.** A variant's page is named for
+  its screen and its variant, as `today-default-en-compact.html`, so that no picture of one takes a
+  screen's name; `variants/` holds a `checks.json` of its own; and each variant has its rows in
+  `measures.md`, which name it. In step 5 of the skill, with variants, two more commands follow the
+  two, one after the other:
+
+  ```
+  node <kit root>/scripts/shots.mjs <package>/06-look/variants --out <package>/06-look/shots --widths <primary>,<phone> --themes <themes>
+  node <kit root>/scripts/accept.mjs prototype <package>/06-look/variants/checks.json --root <package>/06-look/variants --out <package>/06-look/variants/results.json
+  ```
 - **It drives a browser,** and counts among the three.
 - **What it could not draw as approved** is in its reply: a string that does not fit, a state with
   no room. It goes to the founder with the gate, open: a string is the interface writer's, and
@@ -91,25 +102,36 @@ Its card, `pool/makers/outside-describer.md`, speaks to you: read it before the 
 
 The readers are started once the screens are photographed and measured: in one message, so that no
 ledger exists while another judge reads, and those that drive a browser three at a time at most.
-What each reads is named by what it is, never by who made it. Every reader's brief lists these under
-"Do not open":
+What each reads is named by what it is, never by who made it.
+
+`<seat>`, in the name of a reader's file, is the seat's id, and a seat that is loaded adds what it is
+loaded with, so that no two readers share a file: `judge.visual-craft`, `judge.profile-<name>` for
+each profession's profile, `audience.task-reader-<name>`.
+
+Three seats read twice when a fresh pass ran, each time as a fresh sub-agent: the truth judge and the
+profile judge read the beside comparison first, and the system fidelity judge writes the borrow list
+first, as `references/fresh.md` gives them. What this page gives is the main read, of step 7 of the
+skill. Every reader's brief lists these under "Do not open":
 
 - `<package>/work/`, where the makers' briefs and replies are;
 - `<package>/04-structure/MAP.sealed.json`, the author map, and `<package>/04-structure/CHOSEN.md`,
   which names who made which letter;
 - `<package>/03-cast.md`, the cast sheet: it holds each maker's lens and engine;
 - every file of `<package>/06-look/reads/` but its own, with `<package>/05-detail/reads/` and
-  `<package>/04-structure/reads/`;
+  `<package>/04-structure/reads/`. Its seat's read of the beside comparison, `<seat>-beside.md`,
+  and the borrow list are not its own: a main read opens neither;
 - `<package>/06-look/LOOK.md`, `<package>/06-look/decision.json`, `<package>/06-look/decision.html`,
   `<package>/06-look/beside.json` and `<package>/06-look/beside.html`, which sum up what the other
   seats said;
 - `<package>/06-look/BRIEF-fresh.md`, and the prompt kept beside a fresh screen;
-- `<package>/04-structure/earlier/`, and the board and the proposals folder beside it.
+- `<package>/04-structure/earlier/`, and the board and the proposals folder beside it, but
+  `<chosen>` where a seat is handed it.
 
 **On a re-read** the brief is the first read's, and says so. It names one file more: that seat's
 earlier ledger, the one file of `<package>/06-look/reads/` it opens besides its own, and only after
-it has read cold and written its findings. It writes `<seat>-reread.md`, beside the first read and
-never over it.
+it has read cold and written its findings. It writes its first read's name with `-reread` before
+`.md`, as `judge.visual-craft-reread.md` or `judge.profile-<name>-reread.md`, beside the first read
+and never over it.
 
 ### `judge.visual-craft`
 
@@ -130,7 +152,7 @@ never over it.
   says of its design system. The component source: the folder the project profile names under
   `components`. The sibling surfaces, by the paths the carry list names for them. And, after a
   fresh pass, what he marked in it, as he said it, with the fresh screen each mark is on, by its
-  path: its borrow list is written from them.
+  path: it checks what was rebuilt against them.
 - **Do not open:** the list above.
 - **Writes:** its ledger, `<package>/06-look/reads/<seat>.md`, in the shape of
   `templates/outputs/LEDGER.md`.
@@ -173,8 +195,9 @@ with a fresh pass, to rank the two.
   `<package>/05-detail/strings.json`, the strings.
 - **Do not open:** the list above: an audience's read is in it, and so is the ledger of another
   profile judge. And the pages themselves: it reads the screens as pictures.
-- **Writes:** its ledger, `<package>/06-look/reads/<seat>-<name>.md`, in the shape of
-  `templates/outputs/LEDGER.md`.
+- **Writes:** its ledger, `<package>/06-look/reads/<seat>.md`, in the shape of
+  `templates/outputs/LEDGER.md`: `judge.profile-<name>.md`, so that two profile judges never share
+  a file, in a first read or in a re-read.
 
 ### `audience.task-reader`
 
@@ -191,8 +214,10 @@ beside comparison, and nothing else of the stage.
 - **Do not open:** the list above, and with it: `<package>/02-intent.md`, and every other file of
   the package; her profession's profile itself; `<package>/06-look/screens/`,
   `<package>/06-look/shots/` and `<package>/06-look/fresh/`, which say which version is which;
-  everything in `<package>/04-structure/`; `<package>/05-detail/prototype/`,
+  `<package>/06-look/BESIDE.sealed.json`; everything in `<package>/04-structure/`;
+  `<package>/05-detail/prototype/`,
   `<package>/05-detail/states.md`, `<package>/05-detail/DETAIL.md` and
   `<package>/05-detail/strings.json`. A person cannot find a control by reading markup.
-- **Writes:** one task read, `<package>/06-look/reads/<seat>-<name>-beside.md`, in the shape of
-  `templates/outputs/TASK-READ.md`, with her ranking of the letters.
+- **Writes:** one task read, `<package>/06-look/reads/<seat>-beside.md`, in the shape of
+  `templates/outputs/TASK-READ.md`, with her ranking of the letters:
+  `audience.task-reader-<name>-beside.md`.

@@ -41,11 +41,20 @@ So a fresh maker draws that screen, with those words exactly, and chooses only t
 Put the brief in front of him whole. Say in the same message which seats would send it off this
 machine, each with its provider: every `maker.outside-describer` line, `model:openai` or
 `model:gemini`, and a `maker.screen-generator` on `tool:stitch`. One question, about one thing: may
-this brief go out as it is? **Nothing is sent before his yes: not to a sub-agent, and not off the
-machine.** Write what he changes into the brief, then his yes under `## Reviewed by the founder` of
-`LOOK.md`, as he said it, with the seats that send it out. A seat he holds back does not run. A
-provider that `engines-on` of the project profile does not list gets nothing, and you turn no engine
-on: without its tool, the screen generator's seat is taken by a Claude maker, as its card says.
+this brief go out as it is? Record it with the `await` of the skill's gate. **Nothing is sent before
+his yes: not to a sub-agent, and not off the machine.** Write what he changes into the brief, then
+his yes under `## Reviewed by the founder` of `LOOK.md`, as he said it, with the seats that send it
+out, and put the stage back in work with the `begin` of step 1 of the skill. A seat he holds back
+does not run. A provider that `engines-on` of the project profile does not list gets nothing, and
+you turn no engine on: without its tool, the screen generator's seat is taken by a Claude maker, as
+its card says.
+
+- **Until `LOOK.md` holds his yes to this brief, no fresh maker is started.** A session that resumes
+  and finds `BRIEF-fresh.md` with no yes to it written there is at this stop: it puts the brief to
+  him again, whole, and sends nothing.
+- **A fresh pass he asked for at the gate has no line on the cast sheet.** Then each of its seats,
+  the makers of step 4 and the readers of step 6, runs on the model and the effort its card
+  suggests. Say so to him at this stop, seat by seat: he may name another.
 
 ## 4. The fresh makers
 
@@ -73,25 +82,48 @@ draws: neither sees the other's work. What each is handed is in `references/seat
   node <kit root>/scripts/shots.mjs <package>/06-look/fresh/<name>.html --out <package>/06-look/fresh --widths <primary> --allow-errors
   ```
 - **Everything in `<package>/06-look/fresh/` stays as it came.** You mend nothing: not a label, not
-  a mark left around the page. An answer that is no page is kept too, and the page of step 6 says
-  that its seat returned no screen.
+  a mark left around the page. An answer that is no page is kept too: it gets no letter, and the
+  page of step 8 says that its seat returned no screen.
 
-## 5. The readers of the two
+## 5. The letters
 
-Once step 5 of the skill has photographed the system version. Each reads the same screen in the same
-state, twice: the system version's picture, from `<package>/06-look/shots/`, and each fresh screen's,
-from `<package>/06-look/fresh/`. They are fresh sub-agents, started in one message, each from a brief
-of its shelf's template, with the "Do not open" list of `references/seats.md`.
+Once step 5 of the skill has photographed the system version. The versions of the one screen are
+compared blind: the system's picture, from `<package>/06-look/shots/`, and each fresh screen's, from
+`<package>/06-look/fresh/`, at the primary width. Their names say which is which, and which engine
+made it, so nobody reads them there. This command copies each into `<package>/06-look/beside/` under
+a letter dealt at random, writes which letter is which into `<package>/06-look/BESIDE.sealed.json`,
+beside that folder, and prints the letters and nothing else:
 
-- **The truth judge** reads each fresh screen for anything the product cannot do: an element, a
-  label or a promise that the brief did not hold.
-- **The profile judge, and one audience when the cast sheet seats one at Look, rank the two.** Each
-  is handed the pictures alone, each under a letter, and its brief does not say which letter is the
-  system's. The judge writes its ranking in its ledger, with the size of each gap.
-- **The system fidelity judge reads later,** in step 7 of the skill, once he has said what he
-  borrows: its borrow list is written from his marks.
+```
+node -e "const fs=require('fs'),[dir,...pics]=process.argv.slice(1),ls=pics.map((p,i)=>String.fromCharCode(65+i));for(let i=ls.length;i>1;){const j=require('crypto').randomInt(i--);[ls[i],ls[j]]=[ls[j],ls[i]]}fs.mkdirSync(dir+'/beside');fs.writeFileSync(dir+'/BESIDE.sealed.json',JSON.stringify(Object.fromEntries(pics.map((p,i)=>(fs.copyFileSync(dir+'/'+p,dir+'/beside/'+ls[i]+p.slice(p.lastIndexOf('-',p.lastIndexOf('-')-1))),[ls[i],p])))));console.log('dealt '+ls.slice().sort().join(', '))" <package>/06-look shots/<page>-<primary>-light.png fresh/<name>-<primary>-light.png
+```
 
-## 6. The page, and the stop
+Name the system's picture and every fresh one after the folder, each by its path from it. The
+pictures land as `<package>/06-look/beside/A-1280-light.png`, and the letters do not follow the
+order you named them in. The command refuses a `beside/` that is already there: letters are dealt
+once. **Until his first answer is written, the sealed file is not opened, printed, searched or
+copied,** and you do not work out a letter by setting two pictures side by side.
+
+## 6. The readers of the two
+
+The seats the cast sheet's "Look" table says read the beside comparison: the truth judge, the profile
+judge for each profession's profile, and one task reader. Each is a fresh sub-agent on what its line
+names, started in one message, from a brief of its shelf's template.
+
+- **Of `<package>/06-look/`, each is handed `<package>/06-look/beside/` and nothing else:** the
+  pictures, by letter. Its brief says the letters are versions of one screen, and never which is
+  the system's. What else each is handed is its section of `references/seats.md`.
+- **Do not open, for this read:** `<package>/06-look/BESIDE.sealed.json`, `<package>/06-look/fresh/`,
+  `<package>/06-look/shots/` and `<package>/06-look/screens/`, with the list `references/seats.md`
+  gives every reader.
+- **The truth judge** flags, by letter, anything the product cannot do: an element, a label or a
+  promise that neither the context's inventory nor the approved strings hold. It is handed
+  `<package>/01-context.md` and `<package>/05-detail/strings.json` to hold the pictures to.
+- **The profile judge and the task reader rank the letters,** best first, with the size of each gap.
+- **Each writes `<package>/06-look/reads/<seat>-beside.md`,** a ledger or a task read. That file is
+  closed to the main read of step 7 of the skill.
+
+## 7. The first question: what he would keep
 
 Write `<package>/06-look/beside.json` in the shape of `templates/outputs/decision.json`, and build it:
 
@@ -99,22 +131,49 @@ Write `<package>/06-look/beside.json` in the shape of `templates/outputs/decisio
 node <kit root>/scripts/page.mjs <package>/06-look/beside.json --out <package>/06-look/beside.html
 ```
 
-- **The options:** the system version of the one screen first, then each fresh screen as it came,
-  its title saying that it is fresh. The pictures are named from the page, as
-  `shots/today-default-en-1280-light.png` and `fresh/outside-openai-1280-light.png`.
+- **The options are the letters,** in their order, each with its picture named from the page, as
+  `beside/A-1280-light.png`. No title and no line says which is the system's: he is as blind as the
+  readers were.
+- **One line for each seat,** by letter; **one recommendation,** resting on the reads; and **one
+  question:** what would you keep from each of these?
+
+Put the page in front of him, and record the question with the `await` of the skill's gate. **Stop.**
+Write what he marks, letter by letter, as he said it, under "Fresh pass" of `LOOK.md`, and put the
+stage back in work with the `begin` of step 1 of the skill. **Only now is the sealed file opened:**
+read `<package>/06-look/BESIDE.sealed.json`, and write beside each mark which version it is on. If
+nothing he marked is on a fresh screen, the outcome is the first of step 9, and no second question
+is asked.
+
+## 8. The second question: what is borrowed
+
+He chooses with the cost in front of him.
+
+- **The system fidelity judge writes the borrow list first.** A fresh sub-agent on what its line of
+  the cast sheet names, handed what `references/seats.md` gives its seat, his marks as he said
+  them, and the fresh screen each mark is on. Its brief says this read is the borrow list alone:
+  for each thing he marked, what the system has for it, and what it lacks, a token, a part, a
+  pattern or nothing. It writes `<package>/06-look/reads/judge.system-fidelity-borrow.md`.
+- **Then the page,** `<package>/06-look/borrow.json`, in the shape of
+  `templates/outputs/decision.json`, now by what each version is: the system version first, then
+  each fresh screen as it came, its title saying that it is fresh. The pictures are named from the
+  page, as `shots/today-default-en-1280-light.png` and `fresh/outside-openai-1280-light.png`.
+
+  ```
+  node <kit root>/scripts/page.mjs <package>/06-look/borrow.json --out <package>/06-look/borrow.html
+  ```
+- **The cost of each thing is on the page:** under `findings`, by seat, one line of the borrow list
+  for each thing he marked; what the truth judge flagged; each difference a fresh maker's reply
+  lists between its screen and the brief; and a seat that did not answer or was held back.
 - **The cost of the third outcome is on the page before he chooses:** the line of each fresh option
   says that taking it whole is a change of direction for this surface: Look runs again as a
   direction, and the screens drawn on the system are set aside.
-- **One line for each seat,** and under `findings`, by seat: what the truth judge flagged, each
-  difference a fresh maker's reply lists between its screen and the brief, and a seat that did not
-  answer or was held back.
 - **One recommendation,** resting on the reads, and **one question:** which is it: nothing to
   borrow, named things to borrow, or the fresh concept as a whole?
 
 Put the page in front of him, and record the question with the `await` of the skill's gate. **Stop:
 you borrow nothing, and you go no further without his words.**
 
-## 7. The three outcomes
+## 9. The three outcomes
 
 Write his answer under "Fresh pass" of `LOOK.md` and under `## Reviewed by the founder`, as he said
 it, and put the stage back in work with the `begin` of step 1 of the skill. There are three
@@ -128,10 +187,12 @@ outcomes, and no fourth: "a bit of both" names nothing. Ask him for the things, 
    extension of the system:** its name; what it is, a token, a part or a pattern; its values beside
    the system's own; where it is used; what it costs. It is written in `measures.md` and flagged in
    `LOOK.md`, under "Named extensions" in both, and the handoff lists it as a change to the system.
-   Then step 5 of the skill is run again, and the system fidelity judge is handed his marks.
+   Then step 5 of the skill is run again. In its main read the system fidelity judge is handed his
+   marks once more, and checks that what was rebuilt holds nothing taken from a fresh screen.
 3. **The fresh concept wins as a whole.** That is a change of direction for this surface:
    `references/direction.md`, under "When a fresh concept won as a whole". Even then the fresh
    screen is not handed off.
 
 **Never is a fresh screen handed off as it came.** Nothing of `<package>/06-look/fresh/` is copied
-into `<package>/06-look/screens/`, and no line of the carry list names it.
+into `<package>/06-look/screens/`, and no line of the carry list names it, or
+`<package>/06-look/beside/`.
