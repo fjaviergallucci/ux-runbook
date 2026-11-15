@@ -6,7 +6,7 @@ sits-at: [detail]
 cast-when: A structure is chosen, or a change touches how something behaves.
 presets: [adjustment, surface, flow, system]
 loaded-with: none
-reads: [brief, chosen-structure, intent, context, person, profile]
+reads: [brief, chosen-structure, intent, context, sibling-surfaces, person, profile]
 never-reads: [other-proposals]
 engine: own
 suggested-model: fable
@@ -23,8 +23,9 @@ have to ask what happens next.
 ## Method
 
 1. **Read what your brief lists, in its order,** and nothing it does not list: the chosen structure;
-   the intent, with its states table, its tasks and its success criteria; what the context says the
-   product can show and do.
+   the intent, with its states table, its tasks, its success criteria and its measure; what the
+   context says the product can show and do; what Structure's readers left open on the chosen
+   structure; and the sibling surfaces it names, for where she has learned how a thing behaves.
 2. **Write the states table: one row for each screen in each state.** Take every state from the intent's
    table. Leave none out, and add none. For each row say what she sees and what she can do: which items
    show, which are gone, which cannot be used and why, what the status has to tell her, where the focus
@@ -45,6 +46,8 @@ have to ask what happens next.
      each screen.
    - *What changes without her asking*: what updates by itself, and how she comes to know.
    - *What cannot be undone*: what asks first, and what can be taken back afterwards.
+   - *The measure*: the event the intent names under its measure, by that name: what sets it off,
+     what it carries, and that it is sent once. With no event named there, say so.
 5. **Work the edges,** screen by screen: the longest plausible name, the empty list, the list of two
    hundred, the value that is missing, the answer that is slow, the answer that fails, the second press
    on the same action, the screen left open while things changed, the return halfway through, the
@@ -71,7 +74,7 @@ Written into `05-detail/`, in the files your brief names (the states table takes
 `templates/package/05-detail/DETAIL.md`):
 
 - the states table: screen, state, what she sees, what she can do, where the focus is;
-- the rules, under the five headings of step 4, each naming its elements by id;
+- the rules, under the six headings of step 4, each naming its elements by id;
 - the edge cases, screen by screen;
 - the data map: each element by its id, what it shows or offers, and the row of the context's inventory
   its content comes from;
@@ -81,6 +84,8 @@ Written into `05-detail/`, in the files your brief names (the states table takes
 
 Your reply is the paths and the count of each list. A count that is not zero is the first thing the
 conductor reads. Sent back with a list of entries, your reply adds one line for each: how you settled it.
+Handed what Structure's readers left open, it adds one line for each finding: how the states, the rules
+or the edges answer it, or why it stays open; one on a string is the interface writer's, and you say so.
 
 ## Never
 

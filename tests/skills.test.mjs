@@ -2872,6 +2872,28 @@ test('structure: a judge is handed the board folder, an audience the pictures on
 
 // G1 of the final review: a sub-agent in the screen generator's seat is never handed the project profile, so its brief tells it,
 // from `engines-on`, whether its tool is on; at both stages, and a brief that does not say is off.
+// G6 of the final review: what the intent approves as "The measure" is built, and "The feeling" reaches the one seat it steers.
+test('the measure is a rule at Detail, a row of the spec, a slice\'s and a check made by hand; the feeling goes to the visual designer word for word', () => {
+  // Detail: the interaction designer writes it under "Rules", by the event's name.
+  const card = read('pool/makers/interaction-designer.md');
+  assert.match(flat(card), /- \*The measure\*: the event the intent names under its measure, by that name: what sets it off, what it carries, and that it is sent once\. With no event named there, say so\./);
+  assert.match(flat(card), /the rules, under the six headings of step 4/);
+  assert.match(section(outputOf('detail'), 'Rules'), /^### The measure$/m);
+  // Handoff: the spec, the slice that holds its trigger, and a check made by hand.
+  const folder = stageRef('handoff', 'folder.md');
+  assert.match(flat(section(folder, '`SPEC.md`')), /\*\*The measure:\*\* "The measure" of the intent, the event by its name, with the detail's rule for it, under "Rules": what sets it off, what it carries, and that it is sent once\. It is built in the slice of `HANDOFF\.md` that holds what sets it off, and checked by hand, as `ACCEPTANCE\.md` says/);
+  assert.match(flat(section(folder, '`HANDOFF.md`')), /The measure is built in the slice that holds what sets it off, and named in its done-when/);
+  assert.match(flat(section(folder, '`ACCEPTANCE.md` and `acceptance.json`')), /\*\*The measure is a check made by hand,\*\* under "Success criteria, as checks": the event, by its name, as "the event is sent once, on …, with …", from the detail's rule\. No script sends one or reads one/);
+  assert.match(flat(section(read('templates/package/07-handoff/ACCEPTANCE.md'), 'Success criteria, as checks')), /\{The measure, a check made by hand in the build: "the event is sent once, on …, with …", by its name, and who looks\. "None named" when the intent names none\.\}/);
+  assert.match(flat(read('templates/package/07-handoff/SPEC.md')), /the measure, by its event/);
+  assert.match(flat(stageRef('acceptance', 'driving.md')), /under "Success criteria, as checks", the measure: whether its event is sent once, when and with what the detail's rule says/);
+  // Look: the feeling, word for word, in the visual designer's brief, and its card says what it serves.
+  assert.match(flat(leads(subsection(stageRef('look', 'seats.md'), '`maker.visual-designer`'))['Its brief']), /And "The feeling" of the intent, copied word for word, in her word: what its hierarchy, its spacing and its emphasis serve/);
+  assert.match(flat(read('templates/briefs/maker.md')), /for a direction, its one screen; "The feeling" too\.\}/);
+  assert.match(flat(read('pool/makers/visual-designer.md')), /The feeling your brief gives, in her word, is what these choices serve/);
+  for (const name of ['The measure', 'The feeling']) assert.ok(headings(outputOf('intent')).includes(name), name);
+});
+
 test('the screen generator\'s brief says whether its tool is on, from engines-on, at Structure and at Look: off means no outside tool', () => {
   const template = flat(read('templates/briefs/maker.md'));
   assert.ok(template.includes('{A screen generator, from `engines-on`: "Your tool is on in this project", or "Your tool is not turned on in this project: work as your card\'s \'Without the tool\' says, and call no outside tool".}'));
@@ -3538,11 +3560,37 @@ test('detail: three makers one after another, each started on what the cast shee
   assert.match(read('pool/makers/outside-describer.md'), /Never use it at Detail/);
 });
 
+// G2 and G10 of the final review: what Structure's readers left open on the chosen structure reaches the makers who can answer it,
+// by the file and the heading, the rest of CHOSEN.md staying closed; each reply answers each in a line, and the session copies those
+// lines and writes none. The interaction designer is handed the sibling surfaces too.
+test('detail: what Structure\'s readers left open is handed by the file and the heading, answered in a line by a maker, and copied as it came', () => {
+  const seats = stageRef('detail', 'seats.md');
+  const common = forAll(section(seats, 'The makers'));
+  assert.ok(common.includes('`<package>/04-structure/CHOSEN.md`, which says who made which letter, but its heading "What the readers found" where a section below hands it; and `<package>/03-cast.md`;'));
+  const designer = leads(subsection(seats, '`maker.interaction-designer`'));
+  assert.ok(designer.Handed.includes('"What the readers found" of `<package>/04-structure/CHOSEN.md`, by the file and the heading, as "Accepted deviations" is handed to a judge: what Structure\'s readers left open on the chosen structure, each with its seat.'));
+  assert.ok(designer.Handed.includes('The sibling surfaces, by the paths the carry list names for them, where it names any.'));
+  assert.ok(designer['What Structure\'s readers left open is answered in its reply'].includes('one line for each finding of that heading: how the states, the rules or the edges answer it, or why it stays open. One on a string it names as the interface writer\'s; one on what the structure is stays open, for him. You copy those lines under "What the readers found" of `DETAIL.md`, as they came, and write none.'));
+  const writer = leads(subsection(seats, '`maker.interface-writer`'));
+  assert.ok(writer.Handed.includes('Where the interaction designer\'s reply named a finding of Structure\'s readers as the writer\'s: "What the readers found" of `<package>/04-structure/CHOSEN.md`, by the file and the heading, with those findings by where they sit.'));
+  assert.ok(writer['A finding of Structure\'s readers on a string'].includes('is answered in its reply the same way, one line for each: how a line answers it, or why it stays open. You copy it as it came.'));
+  // The skill: step 3 says the brief hands them and the reply answers each; step 9 copies the line a maker gave.
+  const steps = section(stageSkill('detail'), 'Steps');
+  assert.match(flat(stepOf(steps, 'Start the three makers')), /It answers in a line each finding Structure's readers left open, which its brief hands it\./);
+  assert.match(flat(stepOf(steps, 'Build the decision page')), /and each Structure carried on the chosen structure with the line a maker gave it\./);
+  // The cards say so, and the interaction designer reads the sibling surfaces.
+  assert.match(flat(read('pool/makers/interaction-designer.md')), /Handed what Structure's readers left open, it adds one line for each finding: how the states, the rules or the edges answer it, or why it stays open; one on a string is the interface writer's, and you say so/);
+  assert.match(flat(read('pool/makers/interface-writer.md')), /Handed findings that Structure's readers left open on a string, it adds one line for each: how a line answers it, or why it stays open/);
+  assert.ok(kitCards()['maker.interaction-designer'].reads.includes('sibling-surfaces'));
+  // Structure promises it, and the template has its place.
+  assert.match(flat(outputOf('structure')), /each finding on the chosen structure that is still open, with its seat: Detail answers each/);
+});
+
 // What a card's `reads` allows, as a seat's hand-over at Detail names it in this package.
 const HANDED_AT_DETAIL = Object.freeze({
   'chosen-structure': /`<chosen>`/, intent: /`<package>\/02-intent\.md`/, context: /`<package>\/01-context\.md`/, 'states-and-rules': /The states and the rules/, strings: /`<package>\/05-detail\/strings\.json`/,
   prototype: /`<package>\/05-detail\/prototype\/`/, kit: /`<kit dir>`, the shared kit, and `kit\/KIT-CONTRACT\.md`, its contract/, 'product-facts': /The project's facts document/, 'example-data': /The data the example rows come from, where "Project sources" of the context names such a file, by the path the carry list gives it/, pictures: /`<package>\/05-detail\/shots\//,
-  profile: /profession's profile, whole/, person: /\bher card\b/i, 'profile-traits': /Her profession's traits/,
+  profile: /profession's profile, whole/, person: /\bher card\b/i, 'profile-traits': /Her profession's traits/, 'sibling-surfaces': /The sibling surfaces, by the paths the carry list names for them/,
 });
 // What a card's `never-reads` names, as the seat's brief lists it at Detail.
 const KEPT_OUT_AT_DETAIL = Object.freeze({
@@ -3719,7 +3767,7 @@ test('detail: every command is one its script takes, in the order of the stage; 
   assert.match(page, /Fill the rest of `DETAIL\.md` as its template says: "What is in this folder", "Strings" with the writer's two lists, and "What the readers found", each finding fixed or open with the reason/);
   assert.match(page, /write `<package>\/05-detail\/decision\.json` in the shape of `templates\/outputs\/decision-approve\.json`: the prototype as its one option, its pictures named from the page, the phone width first, as `shots\/today-default-en-390-light\.png`/);
   assert.match(page, /one line for each seat that read it; each finding that stayed open under `findings`, by seat; one recommendation, resting on the reads; one question/);
-  assert.match(page, /Its identity is the design's name, kind and size, as `status` prints them, at stage 6 of 9/);
+  assert.match(page, /Its identity is as `status` prints it, its stage as the loop counts it\./);
   const sample = JSON.parse(read('templates/outputs/decision-approve.json'));
   assert.deepEqual([sample.identity.stage, sample.identity.of, sample.options.length], [STAGES.indexOf('detail') + 1, STAGES.length, 1]);
   for (const key of ['identity', 'options', 'seats', 'findings', 'recommendation', 'question']) assert.ok(Object.hasOwn(sample, key), key);
@@ -3824,14 +3872,15 @@ test('look: two modes; inside a system one visual designer on the project\'s tok
   assert.match(flat(read('pool/makers/visual-designer.md')), /\*\*Offer variants only on one named axis\.\*\*/);
   assert.match(flat(section(text, 'Never')), /\*\*Never ask for variants where the system leaves no real choice,\*\* or on more than one named axis/);
   // R191: the designer also writes the `in-viewport` check of each criterion its brief gives that says "without scrolling".
-  assert.match(designer, /`checks\.json`, one check for each contrast and each size its table states, and an `in-viewport` check for each criterion its brief gives that says "without scrolling", in a variant's own too, in the shape `scripts\/accept\.mjs` takes; and `measures\.md`, the table and the named extensions/);
+  // R185: a style and a gap are checks too, as a contrast and a size are.
+  assert.match(designer, /`checks\.json`, a check for each contrast, size, style and gap of its table, and an `in-viewport` check for each criterion its brief gives that says "without scrolling", in a variant's own too, in the shape `scripts\/accept\.mjs` takes; and `measures\.md`, the table and the named extensions/);
   // The measured values are written from what the two scripts return, never by eye; the session writes no value.
   const measure = stepOf(steps, 'Photograph and measure, one command after the other,');
   assert.match(measure, /^5\. \*\*Photograph and measure, one command after the other,\*\* never both at once:/);
   inOrder(measure, [/shots\.mjs <package>\/06-look\/screens --out <package>\/06-look\/shots --widths <primary>,<phone> --themes <themes>/, /accept\.mjs prototype <package>\/06-look\/checks\.json --root <package>\/06-look\/screens --out <package>\/06-look\/results\.json/,
     /The widths are those of "Constraints"; `<themes>` is `light`, or `light,dark` when `<tokens>` defines a dark theme/, /With variants, both are run on `variants\/` too: `references\/seats\.md`/,
     /\*\*The table of `measures\.md` is written from what these two scripts return, never by eye,\*\* and this run is what you hold it to/,
-    /Each contrast and each size is the `actual` of a result in `results\.json`, at its width and theme; any other value was read in the browser by a script of the visual designer's own, kept with its readings in `measure\/`/,
+    /Each contrast, size, style and gap is the `actual` of a result in `results\.json`, at its width and theme; any other value was read by a script the visual designer wrote on `scripts\/lib\/browser\.mjs`, kept with its readings in `measure\/`/,
     /A row with neither behind it, a value that differs, a line `error:` or `overflow:`, a check that failed, or a criterion with no check goes back to a fresh visual designer, once for each run of this step, before the readers start, as facts: each row by its result id and its measured value, a criterion in its words\. You write no value and no check, and correct none/,
     /Both commands are run again after every change to the screens/], 'photograph and measure');
   assert.match(KIT.usage('scripts/accept.mjs'), /\{ id, pass, actual, message, criterion, state, page, width, theme \}/);
@@ -3844,7 +3893,16 @@ test('look: two modes; inside a system one visual designer on the project\'s tok
   assert.match(KIT.usage('scripts/page.mjs'), /when a picture it names is not a file in the folder of --out/);
   assert.match(KIT.usage('scripts/accept.mjs'), /contrast\s+target, min \(1 to 21\)/);
   assert.match(KIT.usage('scripts/accept.mjs'), /min-size\s+target, minWidth, minHeight/);
-  assert.match(flat(read('pool/makers/visual-designer.md')), /`scripts\/accept\.mjs prototype` measures a contrast or a size by id: `--help` gives the form of a check, and a result's `actual` is the value\. For the rest, read the computed value in the browser with a script of your own/);
+  // G8 and R185 of the final review: two more check types measure most of the rest, and what no check measures is read by a script
+  // written on the kit's browser library, as Acceptance's driver is: never a browser the seat starts its own way.
+  assert.match(flat(read('pool/makers/visual-designer.md')), /`scripts\/accept\.mjs prototype` measures by id a contrast, a size, one computed style \(as `font-size`\) and the gap between two ids: `--help` gives the form of each check, and a result's `actual` is the value\. What no check measures, as the length of a line, is read by a script written on the kit's browser library, `scripts\/lib\/browser\.mjs`, as Acceptance's driver is/);
+  assert.doesNotMatch(flat(read('pool/makers/visual-designer.md')), /a script of your own/);
+  assert.doesNotMatch(flat(stageSkill('look')), /a script of the visual designer's own/);
+  for (const type of ['style', 'gap']) assert.match(KIT.usage('scripts/accept.mjs'), new RegExp(`\\n  ${type} {2,}`), type);
+  assert.match(flat(leads(subsection(stageRef('look', 'seats.md'), '`maker.visual-designer`')).Writes), /Its own measuring script, written on the kit's browser library, `scripts\/lib\/browser\.mjs`, for what no check measures, and what that script read, go in `<package>\/06-look\/measure\/`/);
+  // R108: the element that answers "without scrolling" is never a shape inside an svg, in the card as in the script's usage.
+  assert.ok(flat(read('pool/makers/visual-designer.md')).includes('The element that answers "without scrolling" is never a shape inside an `<svg>`: a drawing that is scaled is measured as if it were not.'));
+  assert.ok(flat(KIT.usage('scripts/accept.mjs')).includes('The element that answers "without scrolling" is never a shape inside an <svg>: a drawing that is scaled is measured as if it were not.'));
   assert.match(flat(read('pool/makers/visual-designer.md')), /Never write a value into the table that you did not measure/);
   assert.ok(nevers(text).includes('Never draw, redraw or restyle a screen yourself'));
   assert.match(flat(section(text, 'Never')), /\*\*Never draw, redraw or restyle a screen yourself,\*\* and never write or correct a measured value/);
@@ -3943,7 +4001,8 @@ test('look: each seat is handed what its card reads and no more; a fresh maker t
   }
   // What the visual designer's card reads, in full: the kit is the last of it, for the rebuild after a direction pick, where it is
   // handed the kit folder and its contract.
-  assert.deepEqual(cards['maker.visual-designer'].reads, ['brief', 'chosen-structure', 'states-and-rules', 'strings', 'prototype', 'tokens', 'design-system', 'fresh-marks', 'person', 'profile', 'kit']);
+  // G10 of the final review: the sibling surfaces, which a judge at Look blocks on, are handed to the maker who draws.
+  assert.deepEqual(cards['maker.visual-designer'].reads, ['brief', 'chosen-structure', 'states-and-rules', 'strings', 'prototype', 'tokens', 'design-system', 'sibling-surfaces', 'fresh-marks', 'person', 'profile', 'kit']);
   assert.match(flat(stageRef('look', 'direction.md')), /A fresh `maker\.visual-designer`, handed the token file, `<kit dir>` and `kit\/KIT-CONTRACT\.md`, restyles the kit's classes/);
   assert.doesNotMatch(leads(subsection(seats, '`maker.visual-designer`')).Handed, /`<kit dir>`|KIT-CONTRACT/, 'in its main hand-over the visual designer is free of the kit\'s parts, and is not handed them');
   assert.match(flat(read('pool/CARD-FORMAT.md')), /\| `kit` \| The shared kit, the project's or the grey one: its stylesheets, its parts and its contract\. \|/);
@@ -4250,7 +4309,7 @@ test('look: every command is one its script takes, in the order of the stage; th
   // What LOOK.md holds of the measures is what measures.md holds at the stamp: copied, and copied again after any later redraw.
   assert.match(page, /Fill `LOOK\.md` as its template says: "Measured values" and "Named extensions" are copied from `measures\.md`, each section whole, and copied again after any later redraw, before the stamp; "What the look decides" is copied from the visual designer's reply, never written by you/);
   assert.match(page, /With variants, in the shape of `templates\/outputs\/decision\.json`: each variant an option, by letter, its line what it buys and what it costs\. With one proposal, in the shape of `templates\/outputs\/decision-approve\.json`: the final screens as its one option/);
-  assert.match(page, /the pictures of each screen's default state, named from the page, the phone width first, as `shots\/today-default-en-390-light\.png`; one line for each seat; each open finding under `findings`, by seat, with what the visual designer could not draw; one recommendation, resting on the reads; one question\. Its identity is as `status` prints it, at stage 7 of 9/);
+  assert.match(page, /the pictures of each screen's default state, named from the page, the phone width first, as `shots\/today-default-en-390-light\.png`; one line for each seat; each open finding under `findings`, by seat, with what the visual designer could not draw; one recommendation, resting on the reads; one question\. Its identity is as `status` prints it, its stage as the loop counts it\./);
   assert.equal(STAGES.indexOf('look') + 1, 7);
   // The gate: the finished screens beside their measures; he picks or approves; nothing goes on without his words.
   const gate = flat(section(text, 'Gate'));
@@ -4691,7 +4750,9 @@ test('handoff: it opens what Look\'s carry list names and nothing else; a gap is
   const folder = stageRef('handoff', 'folder.md');
   assert.deepEqual(headings(folder), ['What the carry list hands you', '`prototype/`, and `tokens.css`', 'The folder stands alone, proved', '`IMPLEMENTER-GUIDE.md`, and `build/`', '`SPEC.md`', 'The strings', '`PARTS.md`', '`ACCEPTANCE.md` and `acceptance.json`', '`DECISIONS.md`', '`COVERAGE.md`', '`HANDOFF.md`']);
   const handed = tableRows(section(folder, 'What the carry list hands you')).slice(2);
-  assert.equal(handed.length, 15);
+  // G6 of the final review: "The measure" of the intent has a row of its own, and so reaches the spec, a slice and a check.
+  assert.equal(handed.length, 16);
+  assert.deepEqual(handed.find(([line]) => line.includes('"The measure"')).slice(2), ['`SPEC.md`, `HANDOFF.md`, `ACCEPTANCE.md`']);
   for (const [line] of handed) assert.match(line, /^`- (?:(?:intent|context|cast|structure|detail)@<version>#<slug>|source:)`/, line);
   // Each section it names is a heading of the stage's template, and one that stage's skill carries on.
   const carriedBy = { intent: stageSkill('cast'), context: stageSkill('intent'), structure: stageSkill('detail'), detail: stageSkill('look') };
@@ -4878,7 +4939,7 @@ test('handoff: the checks are written by stable id and run on the prototype firs
   assert.match(checks, /`acceptance\.json` is one object: `design`, the design's name, and `checks`\. Keep "A check" and "The check types" of the template whole/);
   assert.match(checks, /`<package>\/06-look\/checks\.json` is already in this shape: its checks are taken over, each with the criterion it holds/);
   assert.match(checks, /\*\*Every state is driven\.\*\* "States to drive" lists every row of `states\.md` with its page, and each state has at least one check/);
-  assert.match(checks, /\*\*Every measured value is held\.\*\* Each row of `measures\.md` has its check: a `contrast` with its `min`, a `min-size` with its `minWidth` and `minHeight`, at the row's width and theme/);
+  assert.match(checks, /\*\*Every measured value is held\.\*\* Each row of `measures\.md` has its check: a `contrast` with its `min`, a `min-size` with its `minWidth` and `minHeight`, a `style`/);
   assert.match(checks, /Where two screens carry the same id, the check names its `screen`, and the element is looked for inside the one element whose `data-screen` is that screen/);
   assert.match(checks, /A check needed at both widths is two checks, each with its own `id`/);
   assert.match(checks, /\*\*`failed: <id>: <why>`:\*\* the check is wrong, or the id is\. Fix the check\. A page is never changed to make a check pass\. Where the check says what the criterion says and the approved screen still does not meet it, neither is yours to change: it goes to the founder, open/);
@@ -4889,12 +4950,15 @@ test('handoff: the checks are written by stable id and run on the prototype firs
   assert.match(checks, /Write the last run into `ACCEPTANCE\.md`: the day and the counts, as "8 checks: 0 failed, 8 passed"\. The line the command prints goes on to say where its results are, in a folder the builder is never given: that part is left out, and so is the command/);
   assert.match(read('scripts/accept.mjs'), /process\.stdout\.write\(`\$\{counts\(results\)\}; results in \$\{out\}\\n`\)/);
   // M5: no check measures a gap, so such a row is listed for a person, with its value.
-  assert.match(checks, /No check measures a gap, a size of text or the length of a line: such a row is listed in `ACCEPTANCE\.md`, under "Measured values", with its value and "measured by a person" where its check would be/);
+  // R185: a size of text is a `style` check and a gap a `gap` check; only the length of a line is measured by a person.
+  assert.match(checks, /a `style` with its `property` and the value the browser gives as `equals`, a `gap` with its two `targets`, its `axis` and its `equals` in CSS pixels, at the row's width and theme/);
+  assert.match(checks, /No check measures the length of a line: such a row is listed in `ACCEPTANCE\.md`, under "Measured values", with its value and "measured by a person" where its check would be/);
   assert.match(flat(read('pool/makers/visual-designer.md')), /each level of text, the contrast of each pair of text and ground, each action's target, the space between the main regions, the length of a line of running text/);
   assert.match(read('scripts/accept.mjs'), /`failed: \$\{result\.id\}: \$\{result\.message\}\\n`/);
   // Every type and every key the page names is one the script takes.
   for (const [, span] of checks.matchAll(/`([a-zA-Z-]+)`/g)) {
-    if (Object.hasOwn(TYPES, span) || ['design', 'checks', 'criterion', 'state', 'page', 'width', 'theme', 'screen', 'id', 'data-ux', 'data-screen', 'min', 'minWidth', 'minHeight', 'visible', 'absent', '--allow-errors'].includes(span)) continue;
+    // A parameter of any type the script knows counts too: R185's `style` and `gap` take `property`, `targets`, `axis` and `equals`.
+    if (Object.hasOwn(TYPES, span) || Object.values(TYPES).flat().includes(span) || ['design', 'checks', 'criterion', 'state', 'page', 'width', 'theme', 'screen', 'id', 'data-ux', 'data-screen', 'visible', 'absent', '--allow-errors'].includes(span)) continue;
     assert.fail(`folder.md names \`${span}\` among the checks, and the acceptance script takes no such key or type`);
   }
   for (const type of ['visible', 'absent', 'contrast', 'min-size', 'in-viewport']) assert.ok(Object.hasOwn(TYPES, type), type);
@@ -5952,7 +6016,7 @@ test('the dry run, the loop again: a list is one question, what he accepted is p
   says(stepOf(lookSteps, 'Start the visual designer'), 'and an `in-viewport` check for each criterion its brief gives that says "without scrolling", in a variant\'s own too');
   assert.doesNotMatch(flat(stageSkill('look')), /add to `checks\.json`|`in-viewport` check (?:that step 5|Look adds)/);
   const lookDesigner = flat(subsection(stageRef('look', 'seats.md'), '`maker.visual-designer`'));
-  says(lookDesigner, 'gives four things.', 'And each success criterion of the intent that says "without scrolling", copied word for word, since the seat is not handed the intent: for each, it writes an `in-viewport` check of the element that answers it, at the width the criterion names, in `checks.json` and in a variant\'s own. Which element answers it is the seat\'s to choose, never yours.',
+  says(lookDesigner, 'gives five things.', 'And each success criterion of the intent that says "without scrolling", copied word for word, since the seat is not handed the intent: for each, it writes an `in-viewport` check of the element that answers it, at the width the criterion names, in `checks.json` and in a variant\'s own. Which element answers it is the seat\'s to choose, never yours.',
     'and the checks that failed, as facts, each by its result id and its measured value, and each criterion that has no `in-viewport` check, in its words;',
     'A table that still does not hold after its send-back, or a criterion still with no check, goes to the founder, open. You write no value and no check.',
     '**An `in-viewport` check that fails** is a check of step 5 that failed: it goes back to the visual designer in that send-back, and nobody but the visual designer changes a screen for it. One that still fails after the send-back is handed to the judges in their briefs, as "The readers" below says, and is listed on the decision page as an open finding under `findings`, its seat `check: <id>`.');
@@ -6005,9 +6069,9 @@ test('the dry run, Structure and Detail: a rule selects what a maker is given, t
   const detail = stageSkill('detail');
   says(stepOf(section(detail, 'Steps'), 'Photograph every page'), 'Light only: the themes are Look\'s.');
   says(stepOf(section(detail, 'Steps'), 'Start the readers'), 'Make that folder first: a seat never lists it. Every judge is handed the accepted deviations, as approved.');
-  says(stepOf(section(detail, 'Steps'), 'Build the decision page'), 'those Structure carried on the chosen structure among them, answered one by one. Delete the template\'s comment.');
+  says(stepOf(section(detail, 'Steps'), 'Build the decision page'), 'and each Structure carried on the chosen structure with the line a maker gave it. Delete the template\'s comment.');
   says(outputOf('structure'), 'Detail answers each, under its own "What the readers found".');
-  says(outputOf('detail'), 'Then each finding Structure carried on the chosen structure: how Detail answered it, or open with why.');
+  says(outputOf('detail'), 'Then each finding Structure carried on the chosen structure, with the line a maker\'s reply gave it, copied as it came: how Detail answered it, or open with why.');
   // F65, R175, F68, F69, R176: his answers are written once; the writer\'s round is run once.
   const at = stageRef('detail', 'seats.md');
   // M7 of the fix review: the line under the designer's list carries the outcome whole, since that heading is read without
@@ -6106,7 +6170,7 @@ test('the dry run, Look, Handoff and Acceptance: the table is held to the run, n
   says(section(driving, 'Accounts, data and secrets'), 'The project\'s own driver takes the sign-in from there: a driver you wrote opens files, and signs in nowhere.');
   says(setup(), 'A project with no script for a browser check reads "no script": Acceptance then writes one, on his yes, for a build that opens as files.');
   says(read('templates/project/PROFILE.md'), '"No script" is an answer: Acceptance then writes one, on his yes, if the build opens as files.');
-  says(driving, 'A row that says the build only draws the state, and cannot do what the state does, is not sent back', '`ACCEPTANCE.md` leaves three kinds of thing to a hand',
+  says(driving, 'A row that says the build only draws the state, and cannot do what the state does, is not sent back', '`ACCEPTANCE.md` leaves four kinds of thing to a hand',
     'press Tab until focus leaves the last stop', 'Set the root font size to 200%, and say in the entry what was set', 'needs a sideways scroll, or breaks a word across lines.',
     'a seat of the cast, the task reader where it names a person trying her task, or the founder. Where it names a language, a reader of that language looks.');
   says(read('templates/package/build/STATES.md'), 'A row leads to the state\'s behaviour, not only to its picture', 'One row for every row of `SPEC.md`\'s States, those that cannot occur marked so');

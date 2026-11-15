@@ -28,8 +28,8 @@ picture. A case inside a row that has no page of its own is written out here, an
 
 {Each as what sets it off, what the product does and what she sees.}
 
-{Validation · focus order · keyboard · what changes without her asking · what cannot be undone · what
-changes at each width · motion, and its reduced form.}
+{Validation · focus order · keyboard · what changes without her asking · what cannot be undone · the
+measure, by its event · what changes at each width · motion, and its reduced form.}
 
 ### Data map
 

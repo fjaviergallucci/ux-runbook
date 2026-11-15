@@ -68,9 +68,10 @@ is the version a stage stands at, as `status` prints it: after a reopening it is
    dash means the session's model, and you enforce none. Its brief is written from
    `templates/briefs/maker.md`, and hands it what `references/seats.md` gives its seat, and no more.
    Each waits for the one before it, since it reads what that one wrote:
-   - **`maker.interaction-designer`** writes `states.md` and, in `DETAIL.md`, the rules, the edge
-     cases, the data map and the dependencies. Its reply counts three lists: read them first, and
-     settle each entry with the founder, as step 4 says, before the next maker starts.
+   - **`maker.interaction-designer`** writes `states.md` and, in `DETAIL.md`, the rules, the edge cases,
+     the data map and the dependencies. Its reply counts three lists: read them first, and settle each
+     entry with the founder, as step 4 says, before the next maker starts. It answers in a line each
+     finding Structure's readers left open, which its brief hands it.
    - **`maker.interface-writer`** writes `strings.json`: every string, each language written for
      itself, each with its why-line. Its brief carries the founder's own lines, copied word for word
      from "The founder's own words" of the context: they are the bar its lines must meet.
@@ -119,14 +120,13 @@ is the version a stage stands at, as `status` prints it: after a reopening it is
    *partly* or *still present*, in `<package>/05-detail/reads/<seat>-reread.md`. **There is no
    second round:** what is still open goes to the founder with the gate.
 9. **Build the decision page.** Fill the rest of `DETAIL.md` as its template says: "What is in this
-   folder", "Strings" with the writer's two lists, and "What the readers found", each finding fixed
-   or open with the reason, those Structure carried on the chosen structure among them, answered
-   one by one. Delete the template's comment. Then write `<package>/05-detail/decision.json` in the
-   shape of `templates/outputs/decision-approve.json`: the prototype as its one option, its pictures
-   named from the page, the phone width first, as `shots/today-default-en-390-light.png`; one line
-   for each seat that read it; each finding that stayed open under `findings`, by seat; one
-   recommendation, resting on the reads; one question. Its identity is the design's name, kind and
-   size, as `status` prints them, at stage 6 of 9.
+   folder", "Strings" with the writer's two lists, and "What the readers found", each finding fixed or
+   open with the reason, and each Structure carried on the chosen structure with the line a maker gave
+   it. Delete the template's comment. Then write `<package>/05-detail/decision.json` in the shape of
+   `templates/outputs/decision-approve.json`: the prototype as its one option, its pictures named from
+   the page, the phone width first, as `shots/today-default-en-390-light.png`; one line for each seat
+   that read it; each finding that stayed open under `findings`, by seat; one recommendation, resting on
+   the reads; one question. Its identity is as `status` prints it, its stage as the loop counts it.
    ```
    node <kit root>/scripts/page.mjs <package>/05-detail/decision.json --out <package>/05-detail/decision.html
    ```

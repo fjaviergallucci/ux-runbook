@@ -35,7 +35,7 @@ gives it:
 
 ### `maker.visual-designer`
 
-- **Its brief,** from `templates/briefs/maker.md`, gives four things. Its lens: the skill its line of
+- **Its brief,** from `templates/briefs/maker.md`, gives five things. Its lens: the skill its line of
   the cast sheet names as its engine, to load if it is installed; inside a design system it shapes
   hierarchy and emphasis, not the palette. Whether motion is cast, as the sheet's "Look" table says;
   what the founder marked in a fresh gallery at Structure: his marks as he said them, copied word for
@@ -43,12 +43,14 @@ gives it:
   marked". And each success criterion of the intent that says "without scrolling", copied word for word,
   since the seat is not handed the intent: for each, it writes an `in-viewport` check of the element
   that answers it, at the width the criterion names, in `checks.json` and in a variant's own. Which
-  element answers it is the seat's to choose, never yours.
+  element answers it is the seat's to choose, never yours. And "The feeling" of the intent, copied
+  word for word, in her word: what its hierarchy, its spacing and its emphasis serve.
 - **Handed:** `<chosen>`. The states and the rules. `<package>/05-detail/strings.json`, the strings.
   `<package>/05-detail/prototype/`, the pages and the stable ids on them. `<tokens>`. What the
   project says of its design system. For each of his marks, its picture, where the carry list names
-  one. And the two lines the maker's brief template keeps for them: her card, by the path the carry
-  list names, and her profession's profile, whole. A fresh maker is handed neither.
+  one. The sibling surfaces, by the paths the carry list names for them, where it names any. And the
+  two lines the maker's brief template keeps for them: her card, by the path the carry list names, and
+  her profession's profile, whole. A fresh maker is handed neither.
 - **No kit is handed here.** Its card reads `kit` for the one time it restyles the kit, after a
   direction is picked: `references/direction.md`. Of the project kit it is handed `<tokens>` alone.
 - **Do not open:** its card closes nothing, and four things are kept from it all the same.
@@ -61,7 +63,8 @@ gives it:
   extensions", each in the shape `templates/package/06-look/LOOK.md` gives it. The pictures and the
   results of its own check go in `<package>/work/look-check/`: those of record are yours to take,
   in step 5 of the skill. A page of `screens/` is named as the prototype's page of the same
-  screen, state and language. Its own measuring script, and what that script read, go in
+  screen, state and language. Its own measuring script, written on the kit's browser library,
+  `scripts/lib/browser.mjs`, for what no check measures, and what that script read, go in
   `<package>/06-look/measure/`, and nothing of its tools lies beside the screens. It never writes
   `<package>/06-look/results.json`: that file is your run, and its brief says so.
 - **Variants are photographed, measured and read like the screens.** A variant's page is named for

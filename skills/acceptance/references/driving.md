@@ -134,9 +134,10 @@ line, which goes into "The checks" of `REPORT.md` with the table, or with its pa
 
 ## The checks made by hand
 
-`ACCEPTANCE.md` leaves three kinds of thing to a hand: under "Accessibility checks", those no script
+`ACCEPTANCE.md` leaves four kinds of thing to a hand: under "Accessibility checks", those no script
 makes, each with what holding looks like; under "Measured values", the rows that read "measured by a
-person"; and what `SPEC.md` holds with no page of its own. You make them through the driver where a
+person"; under "Success criteria, as checks", the measure: whether its event is sent once, when and
+with what the detail's rule says; and what `SPEC.md` holds with no page of its own. You make them through the driver where a
 driver can, and you write down what you did and what you saw, never an opinion:
 `<package>/08-acceptance/by-hand.md`, one entry for each check and state. A judge may quote that file
 as its evidence: an entry says what the driver read on every page it names, never what one picture
@@ -153,6 +154,8 @@ suggests of the rest.
   and on which element. A value that differs from the table's on a page that is the approved one
   is said so, with both ways of counting.
 - **Reduced motion.** It is set for every state: write what moved all the same.
+- **The measure.** Do what sets it off, once, and write whether the event went, how many times, and
+  what it carried, as the project's analytics or its log show it: never a person's data.
 - **A screen reader,** and anything else no driver can make, is listed as not run, with that reason.
   It is his to make, or to waive in his words.
 

@@ -74,7 +74,9 @@ The file holds the template's keys and nothing else: no note of yours, and no li
 short lists, each of which may be empty: "Waiting for a fact" (a string that needs something you were
 not given, such as a limit, a name, or what an error means, with what is missing) and "Nothing to say"
 (a state or an element for which no honest line exists, for the interaction designer). Your reply is
-the path, the number of strings in each language, both lists, and what the founder's lines do.
+the path, the number of strings in each language, both lists, and what the founder's lines do. Handed
+findings that Structure's readers left open on a string, it adds one line for each: how a line answers
+it, or why it stays open.
 
 ## Never
 

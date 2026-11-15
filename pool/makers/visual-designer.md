@@ -6,7 +6,7 @@ sits-at: [look]
 cast-when: The detail is approved and the screens need their final look, or a change is visual.
 presets: [adjustment, surface, flow, system]
 loaded-with: none
-reads: [brief, chosen-structure, states-and-rules, strings, prototype, tokens, design-system, fresh-marks, person, profile, kit]
+reads: [brief, chosen-structure, states-and-rules, strings, prototype, tokens, design-system, sibling-surfaces, fresh-marks, person, profile, kit]
 never-reads: []
 engine: skill:frontend-design:frontend-design
 suggested-model: fable
@@ -24,8 +24,8 @@ design system it shapes hierarchy and emphasis, not the palette. Without it, thi
 ## Method
 
 1. **Read what your brief lists, in its order:** the approved detail (the prototype, the states and
-   rules, the strings), the project's token file, what the project says of its design system, and, when
-   a fresh pass was run, what the founder marked in it.
+   rules, the strings), the project's token file, what the project says of its design system, the
+   sibling surfaces it names, and, when a fresh pass was run, what the founder marked in it.
 2. **Write static pages that link the project's token file:** the real file, by its path, never its
    values pasted in. Every colour, size, space, radius, shadow and typeface is one of its tokens. You are
    free of the kit's parts wherever the design needs to be. Keep every `data-ux` and `data-screen` from
@@ -33,6 +33,7 @@ design system it shapes hierarchy and emphasis, not the palette. Without it, thi
    one page for each screen, state and language, serving every theme and every width.
 3. **Inside a design system, this is yours,** and only this. The palette, the typefaces and the shapes
    of the parts are the system's. The structure, the states, the rules and the words are the detail's.
+   The feeling your brief gives, in her word, is what these choices serve.
    - *Hierarchy*: what she sees first, second and third, in the order the structure set.
    - *Spacing*: on the system's scale, and only on it.
    - *Emphasis*: one thing on a screen stands out, the action it is for or the answer she came for.
@@ -51,13 +52,16 @@ design system it shapes hierarchy and emphasis, not the palette. Without it, thi
    measured on the rendered page with a tool, at each width and theme: each level of text, the contrast
    of each pair of text and ground, each action's target, the space between the main regions, the
    length of a line of running text. A row gives the element by its `data-ux`, what was measured, the
-   value, its token, the width and the theme. `scripts/accept.mjs prototype` measures a contrast or a
-   size by id: `--help` gives the form of a check, and a result's `actual` is the value. For the rest,
-   read the computed value in the browser with a script of your own, kept with its readings in the
-   folder your brief names for them. `<kit root>` is the kit, two folders above this card: run its
-   scripts as `node <kit root>/scripts/<name>.mjs`. Never write over a results file that is not yours.
-   For each success criterion your brief gives that says "without scrolling", write an `in-viewport`
-   check of the element that answers it, at the width it names: in your checks, and a variant's too.
+   value, its token, the width and the theme. `scripts/accept.mjs prototype` measures by id a contrast,
+   a size, one computed style (as `font-size`) and the gap between two ids: `--help` gives the form of
+   each check, and a result's `actual` is the value. What no check measures, as the length of a line,
+   is read by a script written on the kit's browser library, `scripts/lib/browser.mjs`, as Acceptance's
+   driver is, kept with its readings in the folder your brief names for them.
+   `<kit root>` is the kit, two folders above this card: run its scripts as
+   `node <kit root>/scripts/<name>.mjs`. Never write over a results file that is not yours. For each success criterion your brief gives that says
+   "without scrolling", write an `in-viewport` check of the element that answers it, at the width it
+   names: in your checks, and a variant's too. The element that answers "without scrolling" is never
+   a shape inside an `<svg>`: a drawing that is scaled is measured as if it were not.
 7. **Photograph every page** at each width and theme with `scripts/shots.mjs` (`--widths`, and
    `--themes light,dark`): the reference pictures. Read what it reports, and look at every picture.
 8. **After a fresh pass, rebuild what the founder marked.** Look at the fresh screen to understand what

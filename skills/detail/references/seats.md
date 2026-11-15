@@ -28,7 +28,8 @@ under "Do not open":
 
 - everything in `<package>/04-structure/` but `<chosen>` and its pictures: the board, the proposals
   folder and `<package>/04-structure/earlier/`, and with them every proposal that was not chosen;
-- `<package>/04-structure/CHOSEN.md`, which says who made which letter, and `<package>/03-cast.md`;
+- `<package>/04-structure/CHOSEN.md`, which says who made which letter, but its heading "What the
+  readers found" where a section below hands it; and `<package>/03-cast.md`;
 - `<package>/work/`, but its own brief and, for the prototype builder, the folder of its own check;
   and `<package>/05-detail/reads/`, but a ledger the fix round hands it.
 
@@ -39,7 +40,10 @@ under "Do not open":
   rule selects them: you weigh none, and leave none out.
 - **Handed:** `<chosen>`, with its pictures. `<package>/02-intent.md`, the intent, for its states
   table, its tasks and its success criteria. `<package>/01-context.md`, the context, for the
-  inventory its data map traces to. Her card, and her profession's profile, whole.
+  inventory its data map traces to. "What the readers found" of `<package>/04-structure/CHOSEN.md`,
+  by the file and the heading, as "Accepted deviations" is handed to a judge: what Structure's
+  readers left open on the chosen structure, each with its seat. The sibling surfaces, by the paths
+  the carry list names for them, where it names any. Her card, and her profession's profile, whole.
 - **Do not open:** the list above.
 - **Writes:** `<package>/05-detail/states.md`, in the shape of its template, and in
   `<package>/05-detail/DETAIL.md` the headings its card names: "Rules", "Edge cases", "Data map",
@@ -56,6 +60,10 @@ under "Do not open":
     does not exist stays on the list.
   - *What the structure cannot hold.* Detail completes the structure, and does not mend it: tell
     him which screen breaks. He reopens Structure, or accepts it as a cost, in his words.
+- **What Structure's readers left open is answered in its reply,** one line for each finding of
+  that heading: how the states, the rules or the edges answer it, or why it stays open. One on a
+  string it names as the interface writer's; one on what the structure is stays open, for him. You
+  copy those lines under "What the readers found" of `DETAIL.md`, as they came, and write none.
 - **His answers are written once.** His words go under "Reviewed by the founder" of `DETAIL.md`,
   numbered, and under the list one line gives each outcome in full, the answer's number only beside
   it, as "A waiting list when no room is free: it does not exist, and the element goes (answer 12)".
@@ -77,8 +85,10 @@ under "Do not open":
   it. And the project's writing skill, where its line of the cast sheet names one.
 - **Handed:** `<chosen>`. The states and the rules. `<package>/02-intent.md`, the intent.
   `<package>/01-context.md`, the context, with the project's string files that its "Project
-  sources" lists, each by the path the carry list gives: the product's own vocabulary. Her card,
-  and her profession's profile, whole.
+  sources" lists, each by the path the carry list gives: the product's own vocabulary. Where the
+  interaction designer's reply named a finding of Structure's readers as the writer's: "What the
+  readers found" of `<package>/04-structure/CHOSEN.md`, by the file and the heading, with those
+  findings by where they sit. Her card, and her profession's profile, whole.
 - **Do not open:** the list above.
 - **Writes:** `<package>/05-detail/strings.json`, in the shape of its template: each key with its
   line in every language, its limit, where it appears, and its why-line, never blank. The file
@@ -93,6 +103,8 @@ under "Do not open":
   together, as he said them and as the designer left them. You write none. An entry he has
   already answered is not sent round again, and this round is run once: what is still open after
   it goes to him with the gate.
+- **A finding of Structure's readers on a string** is answered in its reply the same way, one line
+  for each: how a line answers it, or why it stays open. You copy it as it came.
 - **A line for an element the structure lacks,** which the writer names in its reply, is not
   written, by it or by you: it is a finding for the founder, with the gate.
 

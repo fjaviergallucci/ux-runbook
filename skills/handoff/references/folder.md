@@ -18,6 +18,7 @@ Two rules hold for every file:
 | Line of Look's carry list | What it is | Where it goes |
 |---|---|---|
 | `- intent@<version>#<slug>` for "The person in the moment", "The one job", "Success criteria", "States" | who it is for, her job, how done is known, the states | `HANDOFF.md`, `SPEC.md`, `ACCEPTANCE.md` |
+| `- intent@<version>#<slug>` for "The measure" | the event that will say it worked, by the name it is sent under | `SPEC.md`, `HANDOFF.md`, `ACCEPTANCE.md` |
 | `- intent@<version>#<slug>` for "What the readers found" | what the profile judge found reading the intent, where one read it | `COVERAGE.md` |
 | `- context@<version>#<slug>` for "What the product can show and do", "Constraints" | the inventory, and the two widths | `SPEC.md`, `ACCEPTANCE.md` |
 | `- context@<version>#<slug>` for "The problem, and why now", "What exists today", "What it must not become" | why it is built now, with what the judges found reading the surface as it is; what it replaces; what is out of scope | `HANDOFF.md`, `COVERAGE.md` |
@@ -170,6 +171,9 @@ One block for each surface, from `templates/package/07-handoff/SPEC.md`.
 - **Rules:** the detail's "Rules" and "Edge cases", whole. Where an action leads is read in the plain
   prototype's pages, by tool, and written as a rule. What changes at each width, and motion with its
   reduced form, are "What the look decides" of `LOOK.md`.
+- **The measure:** "The measure" of the intent, the event by its name, with the detail's rule for it,
+  under "Rules": what sets it off, what it carries, and that it is sent once. It is built in the slice
+  of `HANDOFF.md` that holds what sets it off, and checked by hand, as `ACCEPTANCE.md` says.
 - **Data map:** the detail's rows, with the row of the context's inventory each names written out:
   the field, the call or the state in the product, and where that is defined.
 - **Dependencies:** the detail's, each with what the founder settled for it, from `DECISIONS.md`, and
@@ -224,11 +228,15 @@ with the criterion it holds.
 - **Every state is driven.** "States to drive" lists every row of `states.md` with its page, and
   each state has at least one check: what must be `visible` in it, and what must be `absent`.
 - **Every measured value is held.** Each row of `measures.md` has its check: a `contrast` with its
-  `min`, a `min-size` with its `minWidth` and `minHeight`, at the row's width and theme. The `min`
-  of a `contrast` is the standard the row is held to: the measured value stands beside it, under
-  "Measured values" of `ACCEPTANCE.md`. No check measures a gap, a size of text or the length of a
-  line: such a row is listed in `ACCEPTANCE.md`, under "Measured values", with its value and
-  "measured by a person" where its check would be.
+  `min`, a `min-size` with its `minWidth` and `minHeight`, a `style` with its `property` and the value
+  the browser gives as `equals`, a `gap` with its two `targets`, its `axis` and its `equals` in CSS
+  pixels, at the row's width and theme. The `min` of a `contrast` is the standard the row is held to:
+  the measured value stands beside it, under "Measured values" of `ACCEPTANCE.md`. No check measures
+  the length of a line: such a row is listed in `ACCEPTANCE.md`, under "Measured values", with its
+  value and "measured by a person" where its check would be.
+- **The measure is a check made by hand,** under "Success criteria, as checks": the event, by its
+  name, as "the event is sent once, on …, with …", from the detail's rule. No script sends one or
+  reads one: a person does, in the build, and `ACCEPTANCE.md` says who.
 - **An element is named by its `data-ux`.** Where two screens carry the same id, the check names its
   `screen`, and the element is looked for inside the one element whose `data-screen` is that screen.
 - **A check names its `state`, its `page`, its `width`,** and its `theme` when it is not light. The
@@ -311,7 +319,8 @@ Written last, from `templates/package/07-handoff/HANDOFF.md`, since it sums up t
   binds a build, one line each.
 - **Slices:** in build order. Each is small enough to build, verify and commit alone, and names the
   screens and states it covers, a done-when someone can see, and the checks of `acceptance.json` it
-  must hold, by id. Every check belongs to a slice, and every state to one. Where the context
+  must hold, by id. Every check belongs to a slice, and every state to one. The measure is built in
+  the slice that holds what sets it off, and named in its done-when. Where the context
   corrected a fact of a project document, one slice mends that document: the decision Context
   appended names the fact and the file, and the slice says what the document must read.
 - **Out of scope:** "What it must not become" of the context, "What it is deliberately bad at" of

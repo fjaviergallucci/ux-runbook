@@ -562,8 +562,8 @@ test('DETAIL.md holds the rules, the data map and the dependencies, and takes wh
   assert.deepEqual(names.filter(name => wanted.includes(name)), wanted, 'in this order');
   assert.ok(names.indexOf('Dependencies') < names.indexOf('Reviewed by the founder'));
   assert.deepEqual(tableOf(section(text, 'Data map'), 'Element id').head, ['Element id', 'What it shows or offers', 'Row of the context\'s inventory']);
-  // The rules come under the five headings the interaction designer's card gives them.
-  const RULES = ['Validation', 'Focus order', 'Keyboard', 'What changes without her asking', 'What cannot be undone'];
+  // The rules come under the six headings the interaction designer's card gives them: the measure is the sixth (G6 of the final review).
+  const RULES = ['Validation', 'Focus order', 'Keyboard', 'What changes without her asking', 'What cannot be undone', 'The measure'];
   assert.deepEqual(headings(section(text, 'Rules'), 3), RULES);
   const designer = card('makers/interaction-designer.md');
   for (const name of RULES) assert.ok(designer.includes(`*${name}*`), `the interaction designer writes "${name}"`);

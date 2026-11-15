@@ -4,13 +4,11 @@ description: "Use when the interface design pipeline reaches Look: the finished 
 ---
 # Look: what it looks like, finished
 
-You have the approved detail given its finished appearance. Inside a design system, one visual
-designer draws it on the project's own tokens. Where there is none, a direction is chosen first. With
-a fresh pass, one screen is also drawn by makers who know nothing of the system, and shown beside the
-system's. You draw no screen, choose no variant and no direction, write no measured value and borrow
-nothing yourself. The conductor (`ux:design`) sent you, and its words are yours. Its loop is in
-`skills/design/references/loop.md`: this page says only what is Look's own. Read
-`skills/design/references/fresh-pass.md` before step 3.
+You have the approved detail given its finished appearance: inside a design system, one visual designer
+draws it on the project's own tokens; with none, a direction is chosen first. You draw no screen, choose
+no variant and no direction, write no measured value and borrow nothing yourself. The conductor
+(`ux:design`) sent you, and its words are yours. Its loop is in `skills/design/references/loop.md`: this
+page says only what is Look's own. Read `skills/design/references/fresh-pass.md` before step 3.
 
 The kit's root is two directories above this skill's own folder; run a script as
 `node <kit root>/scripts/<name>.mjs`. Run it from the project's root. `<packages>` is the folder that
@@ -55,7 +53,7 @@ the version a stage stands at, as `status` prints it: after a reopening it is no
 | `variants/` | where the system leaves a real choice: one screen, on one named axis, with its own `checks.json` and `results.json` | the visual designer; the acceptance script |
 | `checks.json`, `results.json` | what is measured, as checks, and what the script measured | the visual designer; the acceptance script |
 | `measures.md` | the table of measured values, and the named extensions | "Measured values" and "Named extensions" of the template |
-| `measure/` | the visual designer's own measuring script, and what it read: closed to every reader | the visual designer |
+| `measure/` | the visual designer's own script for what no check measures, written on `scripts/lib/browser.mjs`, and what it read: closed to every reader | the visual designer |
 | `shots/` | the reference pictures: every page, at each width and theme | the picture script |
 | `reads/` | one ledger for each reader, and each re-read | `templates/outputs/LEDGER.md` |
 | `directions/`, `tokens.css`, `earlier/` | in Direction mode: each direction, on the same detailed screen; the token file of a surface that leaves the system; screens set aside | `references/direction.md` |
@@ -77,7 +75,8 @@ the version a stage stands at, as `status` prints it: after a reopening it is no
      design system. Two or three directions are drawn, he picks one, and his pick becomes the
      tokens: `references/direction.md`. Then go on from step 3, on those tokens.
    - **Inside the design system,** otherwise. The palette, the typefaces and the shapes of the parts
-     are the system's: one visual designer, and variants only on one named axis.
+     are the system's: one visual designer, and variants only on one named axis. Before anything is
+     drawn, see that `<tokens>` is still the project's: `skills/setup/references/project-kit.md`.
 3. **With a fresh pass, write its brief and stop.** "Fresh pass" of the cast sheet says whether one
    runs at Look. Write `<package>/06-look/BRIEF-fresh.md` in its Look form: the one screen that
    carries the idea, its state, and its approved items in order, their words exactly as approved.
@@ -92,7 +91,7 @@ the version a stage stands at, as `status` prints it: after a reopening it is no
    - `variants/`, only where the system leaves a real choice, and then on one named axis, as how
      dense the list of rooms is: one screen, the same content, two or three times, each with what it
      buys and what it costs. Its reply names the axis, and the variant the screens are drawn in.
-   - `checks.json`, one check for each contrast and each size its table states, and an `in-viewport`
+   - `checks.json`, a check for each contrast, size, style and gap of its table, and an `in-viewport`
      check for each criterion its brief gives that says "without scrolling", in a variant's own too, in
      the shape `scripts/accept.mjs` takes; and `measures.md`, the table and the named extensions.
 5. **Photograph and measure, one command after the other,** never both at once:
@@ -105,13 +104,13 @@ the version a stage stands at, as `status` prints it: after a reopening it is no
    `measures.md` is written from what these two scripts return, never by eye,** and this run is what you
    hold it to. In the same way, see that `checks.json` holds an `in-viewport` check for each success
    criterion that says "without scrolling": the visual designer writes it, and you choose no element.
-   Each contrast and each size is the `actual` of a result in `results.json`, at its width and theme; any
-   other value was read in the browser by a script of the visual designer's own, kept with its readings
-   in `measure/`. A row with neither behind it, a value that differs, a line `error:` or `overflow:`, a
-   check that failed, or a criterion with no check goes back to a fresh visual designer, once for each
-   run of this step, before the readers start, as facts: each row by its result id and its measured
-   value, a criterion in its words. You write no value and no check, and correct none. Both commands are
-   run again after every change to the screens.
+   Each contrast, size, style and gap is the `actual` of a result in `results.json`, at its width and
+   theme; any other value was read by a script the visual designer wrote on `scripts/lib/browser.mjs`,
+   kept with its readings in `measure/`. A row with neither behind it, a value that differs, a line
+   `error:` or `overflow:`, a check that failed, or a criterion with no check goes back to a fresh
+   visual designer, once for each run of this step, before the readers start, as facts: each row by its
+   result id and its measured value, a criterion in its words. You write no value and no check, and
+   correct none. Both commands are run again after every change to the screens.
 6. **With a fresh pass, show the versions side by side, blind, and stop twice.** The system's picture of
    the one screen and each fresh one are copied under letters dealt at random into `beside/`, read by
    letter, and put to him: what would he keep? Then, with what each thing would cost the system on the
@@ -130,15 +129,15 @@ the version a stage stands at, as `status` prints it: after a reopening it is no
    a state or a rule is not Look's to fix: it goes to the founder, open.
 9. **Build the decision page.** Fill `LOOK.md` as its template says: "Measured values" and "Named
    extensions" are copied from `measures.md`, each section whole, and copied again after any later
-   redraw, before the stamp; "What the look decides" is copied from the visual designer's reply,
-   never written by you. Then write `decision.json`. With variants, in the shape of
-   `templates/outputs/decision.json`: each variant an option, by letter, its line what it buys and
-   what it costs. With one proposal, in the shape of `templates/outputs/decision-approve.json`: the
-   final screens as its one option. Either way: the pictures of each screen's default state, named
-   from the page, the phone width first, as `shots/today-default-en-390-light.png`; one line for
-   each seat; each open finding under `findings`, by seat, with what the visual designer could not
-   draw; one recommendation, resting on the reads; one question. Its identity is as `status` prints
-   it, at stage 7 of 9.
+   redraw, before the stamp; "What the look decides" is copied from the visual designer's reply, never
+   written by you. Then write `decision.json`. With variants, in the shape of
+   `templates/outputs/decision.json`: each variant an option, by letter, its line what it buys and what
+   it costs. With one proposal, in the shape of `templates/outputs/decision-approve.json`: the final
+   screens as its one option. Either way: the pictures of each screen's default state, named from the
+   page, the phone width first, as `shots/today-default-en-390-light.png`; one line for each seat; each
+   open finding under `findings`, by seat, with what the visual designer could not draw; one
+   recommendation, resting on the reads; one question. Its identity is as `status` prints it, its stage
+   as the loop counts it.
    ```
    node <kit root>/scripts/page.mjs <package>/06-look/decision.json --out <package>/06-look/decision.html
    ```

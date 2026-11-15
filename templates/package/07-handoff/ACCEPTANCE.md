@@ -19,6 +19,9 @@ check is judged by eye: say who looks, a seat of the cast or the founder, and at
 |---|---|---|
 | {the sentence} | {their ids} | {— · who looks, and at what} |
 
+{The measure, a check made by hand in the build: "the event is sent once, on …, with …", by its name,
+and who looks. "None named" when the intent names none.}
+
 ## States to drive
 
 {Every state of `SPEC.md`, and the page of `prototype/` that draws it. In the build, the builder's state

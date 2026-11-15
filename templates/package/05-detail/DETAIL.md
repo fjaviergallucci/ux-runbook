@@ -43,6 +43,11 @@ expansion opens; where it returns when that closes; where it goes after an error
 
 {What asks first, and what can be taken back afterwards.}
 
+### The measure
+
+{The event the intent names under its measure, by that name: what sets it off, what it carries, and
+that it is sent once. "None named" when the intent names none.}
+
 ## Edge cases
 
 {Screen by screen, what the structure shows at each of the edges the interaction designer's card names,
@@ -91,7 +96,8 @@ screen, element and state; and `note`, its why-line, which is part of the table 
 {One line for each seat that read the prototype, with its verdict. Then each finding: fixed, or open
 with the reason.}
 
-{Then each finding Structure carried on the chosen structure: how Detail answered it, or open with why.}
+{Then each finding Structure carried on the chosen structure, with the line a maker's reply gave it,
+copied as it came: how Detail answered it, or open with why.}
 
 ## Accepted deviations
 
