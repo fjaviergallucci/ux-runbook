@@ -62,7 +62,7 @@ project, setup in any real project, a worked example, replacing `master`, taggin
 
 ## Where the build stands (2026-11-15, the end of the build)
 
-**The build is finished, but for one paid run that waits for the founder's word.**
+**The build is finished, but for one paid run of one evaluation case that waits for the founder's word.**
 
 - All 21 tasks are complete. The dry run of Task 20 is written up in `docs/design/DRY-RUN.md`; the design
   document's § 25 holds what the build and the dry run changed in it.
@@ -78,11 +78,15 @@ project, setup in any real project, a worked example, replacing `master`, taggin
   faults of the cases (their graders are fixed); one, `brief-has-no-design`, for a fault of the kit that
   ruling R160 caused, corrected by R193 (`eval-run-4-diagnosis.md`, `eval-run-4-fix-report.md`).
 
-**Owed:** one paid run to see the judges pass R193's wording —
-`claude plugin eval . --no-publish --trust-plugin --ablation none --judge-model sonnet --runs 1 --max-cost-usd 1 --case brief-has-no-design --allow-tools Bash Write Edit`
-(about 0.73 US dollars; or all three cases that failed, about 1.81). Evaluations have cost 14.51 of the
-plan's 15: going past it is the founder's call. A case below 1.00 is a finding against the template, to
-be fixed by a sub-agent and run once more.
+**Run again on the founder's word (run 5):** `brief-has-no-design` 1.00 — the judges pass R193's wording;
+`resume-from-disk` 1.00; `fresh-brief-hides-the-system` passes every pattern grader, but its judge was
+skipped, because the run crossed the one-dollar ceiling the controller had set for it.
+
+**Owed:** that one case once more, with room for its judge —
+`claude plugin eval . --no-publish --trust-plugin --ablation none --judge-model sonnet --runs 1 --max-cost-usd 1.5 --case fresh-brief-hides-the-system --allow-tools Bash Write Edit`
+(about 1.05 US dollars). Evaluations have cost 16.43 against the plan's 15, past the cap on the founder's
+word: each further run is his call. A case below 1.00 is a finding against the template, to be fixed by
+a sub-agent and run once more.
 
 **Known, for the proving run:** stage 9 stops in a project whose product runs on a server unless the
 project keeps a browser script of its own (setup now says so at its gate, and the profile template and
