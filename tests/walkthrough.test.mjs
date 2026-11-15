@@ -511,6 +511,29 @@ test('the grey kit: greys, one font stack, one mid-grey kept for the primary act
   assert.doesNotMatch(parts, /<script|<style|\sstyle="|\ssrc=/, 'parts.html is drawn by kit.css alone');
 });
 
+// R161 of the dry run: the specimen is copied unchanged into every project kit, shown to the founder and read by
+// makers, and its room names and 12-hour times were taken for facts of the product.
+test('the specimen holds neutral words that name each part, no product\'s nouns, and its times in 24-hour zero-padded form', () => {
+  const { parts } = kit();
+  const visible = parts.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ');
+  // Nothing of the room-booking example the rest of the kit uses, in what is read or in an id.
+  const PRODUCT = /\b(?:rooms?|clinic|patients?|walk-ins?|book(?:ing|ed|s)?|desk|sala|jard[ií]n|gym|cleaned|occupied|waiting|floor plan|wall chart)\b/i;
+  assert.doesNotMatch(visible, PRODUCT);
+  for (const [, attribute, value] of parts.matchAll(/\s(data-ux|data-screen)="([^"]*)"/g)) assert.doesNotMatch(value.replace(/-/g, ' '), PRODUCT, `${attribute}="${value}"`);
+  assert.doesNotMatch(visible, /\b[A-Z][a-z]+ [A-Z]\.(?: |,|$)/, 'no person is named');
+  // The words name the part they stand in.
+  for (const words of ['Row title', 'Status', 'Primary action', 'Field label', 'Heading', 'Link']) assert.ok(visible.includes(words), words);
+  assert.match(parts, /<button class="ux-action is-primary" type="button">Primary action<\/button>/);
+  assert.match(parts, /<p class="ux-status" data-ux="[a-z-]+">Status\b[^<]*<\/p>/);
+  assert.match(visible, /The words name the part they stand in, and say nothing of any product/);
+  // Times: each written HH:MM on the 24-hour clock, zero-padded; one before ten and one after noon show both.
+  const times = visible.match(/\b\d{1,2}[:.h]\d{2}\b/g) ?? [];
+  assert.ok(times.length >= 2, `${times.length} times`);
+  for (const time of times) assert.match(time, /^(?:[01]\d|2[0-3]):[0-5]\d$/, time);
+  assert.ok(times.some(time => time < '10:00') && times.some(time => time >= '13:00'), times.join(' '));
+  assert.doesNotMatch(visible, /\b\d{1,2}(?::\d{2})? ?(?:a\.?m\.?|p\.?m\.?)\b/i, 'no 12-hour time');
+});
+
 test('no product name appears in the kit, the format or the fixtures', () => {
   const files = [
     'scripts/lib/walkthrough.mjs',
