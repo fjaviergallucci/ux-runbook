@@ -730,7 +730,11 @@ test('cold-implementer-finds-the-gap: a handoff folder that stands alone, with o
   const name = 'cold-implementer-finds-the-gap';
   const folder = join(PKG, '07-handoff');
   assert.deepEqual(list('evals', name, 'fixture', PKG), ['07-handoff', 'work'], 'the folder, and the brief beside it');
-  assert.deepEqual(list('evals', name, 'fixture', folder), ['ACCEPTANCE.md', 'COVERAGE.md', 'DECISIONS.md', 'HANDOFF.md', 'IMPLEMENTER-GUIDE.md', 'PARTS.md', 'SPEC.md', 'acceptance.json', 'prototype', 'strings.json', 'tokens.css'].sort());
+  assert.deepEqual(list('evals', name, 'fixture', folder), ['ACCEPTANCE.md', 'COVERAGE.md', 'DECISIONS.md', 'HANDOFF.md', 'IMPLEMENTER-GUIDE.md', 'PARTS.md', 'SPEC.md', 'accept-inpage.js', 'acceptance.json', 'prototype', 'strings.json', 'tokens.css'].sort());
+  // The guide names the in-page file of the checks, and the folder's own table lists it, as the template's does.
+  const inpageRow = table => table.split('\n').filter(line => line.startsWith('| `accept-inpage.js` |'));
+  assert.equal(inpageRow(read('templates/package/07-handoff/HANDOFF.md')).length, 1);
+  assert.deepEqual(inpageRow(inFixture(name, folder, 'HANDOFF.md')), inpageRow(read('templates/package/07-handoff/HANDOFF.md')));
   assert.deepEqual(alone(fixture(name, folder)).faults, []);
   for (const file of ['HANDOFF.md', 'ACCEPTANCE.md', 'COVERAGE.md', 'PARTS.md', 'DECISIONS.md']) {
     assert.deepEqual(h2(inFixture(name, folder, file)).filter(line => !/^## \d+ · /.test(line)), h2(read('templates/package/07-handoff', file)).filter(line => !/^## \d+ · /.test(line)), file);
@@ -778,6 +782,11 @@ test('no fixture holds a key, a keys file or an address on the web, and no case 
       // The implementer's guide is the kit's own, copied whole into a handoff folder, as Handoff copies it.
       if (file.endsWith('IMPLEMENTER-GUIDE.md')) {
         assert.equal(text, read('reference/IMPLEMENTER-GUIDE.md'), `${name}/${file}`);
+        continue;
+      }
+      // So is the in-page file of the checks, which the guide names: copied whole, as Handoff copies it.
+      if (file.endsWith('/accept-inpage.js')) {
+        assert.equal(text, read('scripts/inpage/accept-inpage.js'), `${name}/${file}`);
         continue;
       }
       assert.doesNotMatch(text, /https?:\/\/|\bsk-[A-Za-z0-9]{8}|api[_-]?key\s*[:=]|password\s*[:=]|BEGIN [A-Z ]*PRIVATE KEY/i, `${name}/${file}`);

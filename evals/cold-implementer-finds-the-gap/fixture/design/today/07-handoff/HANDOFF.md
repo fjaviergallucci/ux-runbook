@@ -21,6 +21,7 @@ above this title are the stamp of the session that designed it: they ask nothing
 | `strings.*` | Every string by key, in every language, final, with its limit and its why-line: `strings.json`: the project has no translation layer yet. |
 | `PARTS.md` | The token and the component each element uses, and anything new to the system. |
 | `ACCEPTANCE.md`, `acceptance.json` | What done is checked against, in words and as checks a script runs. |
+| `accept-inpage.js` | What makes those checks in a page: evaluate its text in a page of your build, then call `window.__uxAccept(checks)`. It changes nothing on the page, and the guide says how to run it. |
 | `DECISIONS.md` | What was chosen, why, and what each choice forces on the build. |
 | `COVERAGE.md` | Who read the design, which checks ran, and what became of each finding. |
 
