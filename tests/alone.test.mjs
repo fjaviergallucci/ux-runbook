@@ -71,17 +71,18 @@ const PAGE = 'prototype/today-empty-en.html';
 
 // ---- the command line
 
-test('--help prints the usage and exits 0: the form, the five kinds of reference, what is passed over, and the exit codes', () => {
+test('--help prints the usage and exits 0: the form, every kind of reference that is read, what is passed over, what is never printed, and the exit codes', () => {
   for (const flag of ['--help', '-h']) {
     const r = run(root, flag);
     assert.deepEqual([r.status, r.stderr], [0, '']);
     assert.match(r.stdout, /^Usage: node scripts\/alone\.mjs <folder>\n/);
-    for (const kind of ['href', 'src', 'srcset', 'url()', '@import']) assert.ok(r.stdout.includes(kind), kind);
+    for (const kind of ['href', 'xlink:href', 'src', 'srcset', 'imagesrcset', 'poster', 'the data of an object', 'url()', '@import', 'image-set()']) assert.ok(r.stdout.includes(kind), kind);
     assert.match(r.stdout, /every \.html and \.css file under the folder/);
     assert.match(r.stdout, /it leaves the folder/);
     assert.match(r.stdout, /it is remote/);
     assert.match(r.stdout, /the file is not there/);
-    assert.match(r.stdout, /A fragment \(#x\), a data: address and a mailto: address are passed over/);
+    assert.match(r.stdout, /A fragment \(#x\), an address that is only a query \(\?x\), and a data:, mailto:, tel: or sms: address are\npassed over/);
+    assert.match(r.stdout, /An address is printed without its query and its fragment, and without a sign-in written into it/);
     assert.match(r.stdout, /Exit codes: 0 every reference leads to a file inside the folder · 1 one does not, or a refusal .* · 2 bad usage\.\n$/s);
   }
 });
@@ -132,9 +133,10 @@ test('a link between two pages of the folder is fine, from any depth, and a path
   }, 'a clinic with spaces'), /^a clinic with spaces stands alone: 6 references in 3 files/);
 });
 
-test('a fragment, a data: address, a mailto: address and an empty address are passed over; a query and a fragment on a file of the folder are let be', () => {
+test('a fragment, a query alone, an empty address and a data:, mailto:, tel: or sms: address are passed over; a query and a fragment on a file of the folder are let be', () => {
   const dir = inPage(['<a href="#rooms">Rooms</a>', '<a href="">Here</a>', '<a href="mailto:desk@clinic.example">Write</a>', '<img src="data:image/png;base64,AAAA" alt="">',
-    '<a href="index.html?room=2#top">Room 2</a>', '<img srcset="data:image/png;base64,AAAA 1x" alt="">'].join('\n'));
+    '<a href="index.html?room=2#top">Room 2</a>', '<img srcset="data:image/png;base64,AAAA 1x" alt="">', '<a href="tel:+34600000000">Call the desk</a>', '<a href="SMS:+34600000000">Text it</a>',
+    '<a href="?lang=es">En español</a>', '<a href="?lang=es#rooms">Salas</a>'].join('\n'));
   // Passed over, they are not counted: the one counted is the link to the index.
   assert.equal(alone(dir).references, 8 + 1);
   stands(dir);
@@ -170,7 +172,7 @@ test('an absolute path and a file: address leave the folder, whatever they lead 
 
 test('a remote address is remote: http:, https:, and one that starts with two slashes', () => {
   fails(inPage('<script src="https://cdn.example/kit.js"></script>\n<link rel="stylesheet" href="//fonts.example/css?family=Desk">\n<img src="HTTP://clinic.example/logo.png" alt="">'),
-    `${PAGE}: https://cdn.example/kit.js: it is remote`, `${PAGE}: //fonts.example/css?family=Desk: it is remote`, `${PAGE}: HTTP://clinic.example/logo.png: it is remote`);
+    `${PAGE}: https://cdn.example/kit.js: it is remote`, `${PAGE}: //fonts.example/css (with a query): it is remote`, `${PAGE}: HTTP://clinic.example/logo.png: it is remote`);
   fails(withFile('tokens.css', '@import url("https://fonts.example/desk.css");\n:root {}\n'), 'tokens.css: https://fonts.example/desk.css: it is remote');
 });
 
@@ -179,9 +181,16 @@ test('an address of another kind is not guessed at: it is printed', () => {
     `${PAGE}: javascript:book(): an address of a kind this check does not know (javascript:)`);
 });
 
-test('a reference to a file that is not there, or to a folder, is printed', () => {
-  fails(inPage('<img src="shots/today-empty-en-390-light.png" alt="">\n<a href="shots/">Pictures</a>\n<a href="today-default-es.html#rooms">Spanish</a>'),
-    `${PAGE}: shots/today-empty-en-390-light.png: the file is not there`, `${PAGE}: shots/: the file is not there: it is a folder`, `${PAGE}: today-default-es.html#rooms: the file is not there`);
+test('a reference to a file that is not there is printed; a link to a folder of the folder is fine, and a folder is no file to load', () => {
+  fails(inPage('<img src="shots/today-empty-en-390-light.png" alt="">\n<img src="shots/" alt="">\n<a href="today-default-es.html#rooms">Spanish</a>\n<a href="pictures/">No such folder</a>'),
+    `${PAGE}: shots/today-empty-en-390-light.png: the file is not there`, `${PAGE}: shots/: the file is not there: it is a folder`, `${PAGE}: today-default-es.html: the file is not there`, `${PAGE}: pictures/: the file is not there`);
+  // A link, an href, may lead to a folder inside the folder: the one it is in, one beside it, the folder itself.
+  const linked = inPage('<a href="./">This folder</a>\n<a href="shots/">Pictures</a>\n<a href="../fonts">Fonts</a>\n<a href="..">The folder</a>\n<a href="../img/?sort=name">Sorted</a>');
+  assert.equal(alone(linked).references, 8 + 5);
+  stands(linked);
+  // One that climbs out is still out, and a stylesheet does not load a folder.
+  fails(inPage('<a href="../../">Above</a>'), `${PAGE}: ../../: it leaves the folder: ".." climbs above it`);
+  fails(withFile('tokens.css', ':root {}\nbody { background: url(img/); }\n'), 'tokens.css: img/: the file is not there: it is a folder');
   fails(withFile('fonts/faces.css', '@font-face { font-family: Desk; src: url(desk.woff) format("woff"), url("desk.woff2") format("woff2"); }\n'), 'fonts/faces.css: desk.woff: the file is not there');
 });
 
@@ -195,9 +204,11 @@ test('each attribute is read however it is quoted, and srcset candidate by candi
   // above is ".." alone.
   fails(inPage('<img alt="" srcset="../../i.png, ../../j.png 2x">\n<a href="  ../../k.html  ">K</a>\n<a title="rooms > desks" href="../../l.html">L</a>\n<a href="../..">Up</a>'),
     ...['i.png', 'j.png', 'k.html', 'l.html'].map(name => `${PAGE}: ../../${name}: it leaves the folder: ".." climbs above it`), `${PAGE}: ../..: it leaves the folder: ".." climbs above it`);
-  fails(fresh({ 'index.html': page('<a href="..">Up</a>\n<a href=".">Here</a>') }), 'index.html: ..: it leaves the folder: ".." climbs above it', 'index.html: .: the file is not there: it is a folder');
+  fails(fresh({ 'index.html': page('<a href="..">Up</a>\n<a href=".">Here</a>') }), 'index.html: ..: it leaves the folder: ".." climbs above it');
+  // An attribute with no value does not end the reading of its tag.
+  fails(inPage('<img hidden alt src="../../m.png">'), `${PAGE}: ../../m.png: it leaves the folder: ".." climbs above it`);
   // A backslash is a slash to a browser, and an svg's xlink:href is an href.
-  fails(inPage('<img src="..\\..\\h.png" alt="">\n<svg><use xlink:href="../../z.svg#mark"/></svg>'), `${PAGE}: ..\\..\\h.png: it leaves the folder: ".." climbs above it`, `${PAGE}: ../../z.svg#mark: it leaves the folder: ".." climbs above it`);
+  fails(inPage('<img src="..\\..\\h.png" alt="">\n<svg><use xlink:href="../../z.svg#mark"/></svg>'), `${PAGE}: ..\\..\\h.png: it leaves the folder: ".." climbs above it`, `${PAGE}: ../../z.svg: it leaves the folder: ".." climbs above it`);
   // An attribute of another name that ends the same way is not one of the three.
   stands(inPage('<button data-href="../../x.html" data-src="../../y.png" data-go="today-default-en.html">Book</button>'));
 });
@@ -212,11 +223,58 @@ test('what a comment holds is not loaded, and is not read; a base address is ref
   stands(withFile('tokens.css', '/* was: @import "../base.css"; url(../paper.png) */\n:root {}\n'));
   fails(inPage('<base href="https://clinic.example/">\n<a href="index.html">Index</a>'), `${PAGE}: https://clinic.example/: a base address moves every link of the page: take it out`);
   fails(inPage('<base href="../">'), `${PAGE}: ../: a base address moves every link of the page: take it out`);
+  // Whatever it says: one that names only a fragment is a base address all the same.
+  fails(inPage('<base href="#top">'), `${PAGE}: : a base address moves every link of the page: take it out`);
 });
 
 test('an address written with character references is read as the browser reads it', () => {
   stands(fresh({ 'index.html': page('<a href="rooms&amp;desks.html">Rooms</a>\n<a href="rooms&#38;desks.html">Again</a>'), 'rooms&desks.html': page('<p>Free</p>') }));
   fails(fresh({ 'index.html': page('<a href="..&#47;kit&#x2F;tokens.css">Tokens</a>') }), 'index.html: ../kit/tokens.css: it leaves the folder: ".." climbs above it');
+});
+
+test('what does not leave the folder is not refused: an address inside another attribute\'s value, a style attribute written with character references, a comment in a style element, a tag in a script\'s text', () => {
+  // The word src= inside a title is text, not an attribute.
+  stands(inPage('<a title=\'the src="../../x.png" attribute, and href=../../y.html\' href="index.html">Index</a>'));
+  assert.deepEqual(references('<a title=\'the src="../../x.png" attribute\' href="index.html">Index</a>', 'html'), ['index.html']);
+  // A style attribute is decoded before it is read, as the browser decodes it.
+  stands(inPage('<p style="background: url(&quot;shots/today-default-en-390-light.png&quot;)">Free</p>'));
+  fails(inPage('<p style="background: url(&quot;../../paper.png&quot;)">Free</p>'), `${PAGE}: ../../paper.png: it leaves the folder: ".." climbs above it`);
+  // A comment in a style element is passed over, as in a .css file; what follows it is read.
+  stands(inPage('<style>\n/* was: url(../../old.png) and @import "../../old.css"; */\nbody { margin: 0; }\n</style>'));
+  fails(inPage('<style>/* url(../../old.png) */ body { background: url(../../new.png); }</style>'), `${PAGE}: ../../new.png: it leaves the folder: ".." climbs above it`);
+  // What a script holds is its text: a tag written in a string is no tag of the page. The script's own src is.
+  stands(inPage('<script>const row = \'<a href="../../built-later.html">x</a>\'; const css = "url(../../later.png)";</script>'));
+  fails(inPage('<script src="../../kit.js">const a = \'<img src="../../q.png">\';</script>'), `${PAGE}: ../../kit.js: it leaves the folder: ".." climbs above it`);
+});
+
+test('a poster, the data of an object, an imagesrcset and the strings of an image-set() are read too', () => {
+  fails(inPage(['<video poster="../../still.png"></video>', '<object data="../../plan.svg"></object>', '<link rel="preload" as="image" imagesrcset="../../a.png 1x, ../../b.png 2x">', '<a data="../../not-read.html">An a has no data to load</a>',
+    '<p style="background: image-set(&quot;../../c.png&quot; 1x, url(../../d.png) 2x)">Free</p>'].join('\n')),
+  ...['still.png', 'plan.svg', 'a.png', 'b.png', 'c.png', 'd.png'].map(name => `${PAGE}: ../../${name}: it leaves the folder: ".." climbs above it`));
+  fails(withFile('tokens.css', 'body { background: -webkit-image-set("../x.png" 1x, "img/paper.png" 2x); background: image-set(\'../y.avif\' type("image/avif"), "img/paper.png" 1x); }\n'),
+    'tokens.css: ../x.png: it leaves the folder: ".." climbs above it', 'tokens.css: ../y.avif: it leaves the folder: ".." climbs above it');
+});
+
+test('a query, a fragment and a sign-in written into an address are never printed: a reference is named by its path, and the query is said in words', () => {
+  // A made-up value, standing where a key rides in the address of a font or a picture.
+  const SECRET = 'NOT-A-REAL-VALUE-7f3a';
+  const dir = fresh({
+    'tokens.css': `@import url("https://fonts.example/css?family=Desk&key=${SECRET}");\n@font-face { font-family: Desk; src: url("fonts/desk.woff2?v=${SECRET}#${SECRET}"); }\nbody { background: url(../paper.png?sig=${SECRET}); }\n`,
+    'index.html': page(`<img src="https://desk:${SECRET}@clinic.example/logo.png" alt="">\n<a href="/rooms?token=${SECRET}">Rooms</a>\n<a href="missing.html#${SECRET}">Missing</a>\n<base href="https://clinic.example/?k=${SECRET}">\n<a href="ftp://desk:${SECRET}@clinic.example/rooms.csv?k=${SECRET}">File</a>`),
+  });
+  const r = judge(dir);
+  assert.deepEqual([r.status, r.stdout], [1, '']);
+  assert.ok(!r.stderr.includes(SECRET) && !r.stdout.includes(SECRET), 'the value is in neither stream');
+  assert.deepEqual(r.stderr.trimEnd().split('\n').slice(0, -1), [
+    'index.html: https://clinic.example/logo.png (a sign-in taken out): it is remote', 'index.html: /rooms (with a query): it leaves the folder: an absolute path', 'index.html: missing.html: the file is not there',
+    'index.html: https://clinic.example/ (with a query): a base address moves every link of the page: take it out', 'index.html: ftp://clinic.example/rooms.csv (with a query, a sign-in taken out): an address of a kind this check does not know (ftp:)',
+    'tokens.css: https://fonts.example/css (with a query): it is remote', 'tokens.css: fonts/desk.woff2 (with a query): the file is not there', 'tokens.css: ../paper.png (with a query): it leaves the folder: ".." climbs above it']);
+  // As a module too: what alone() hands back is what is printed.
+  assert.ok(!JSON.stringify(alone(dir)).includes(SECRET));
+  // A question mark after the # is part of the fragment: there is no query to speak of.
+  fails(inPage('<a href="gone.html#rooms?free">Rooms</a>'), `${PAGE}: gone.html: the file is not there`);
+  // Two addresses of one file that differ only by what is not printed are one line.
+  fails(inPage(`<img src="gone.png?v=1" alt="">\n<img src="gone.png?v=2" alt="">`), `${PAGE}: gone.png (with a query): the file is not there`);
 });
 
 // ---- which files are read, and what is printed
@@ -257,7 +315,9 @@ test('a link in the folder that leads out of it leaves the folder', t => {
 test('references(text, kind) lists what a page or a stylesheet loads, in the order written, each once', () => {
   assert.deepEqual(references('<link href="a.css"><img src=\'b.png\' srcset="c.png 1x, d.png 2x"><a href="a.css">again</a><p style="background: url(e.png)">', 'html'), ['a.css', 'b.png', 'c.png', 'd.png', 'e.png']);
   assert.deepEqual(references('@import "a.css";\n@import url(b.css) screen;\na { background: url( \'c.png\' ) } b { src: url(d.woff2) format("woff2") }', 'css'), ['a.css', 'b.css', 'c.png', 'd.woff2']);
-  assert.deepEqual(references('<p>href="x" in words is not an attribute of a tag, and url(y) is read all the same</p>', 'html'), ['y']);
+  assert.deepEqual(references('<p>href="x" in words is not an attribute of a tag, and url(y) in words is no stylesheet</p>', 'html'), []);
+  assert.deepEqual(references('<video poster="a.png"></video><object data="b.svg"></object><link rel="preload" as="image" imagesrcset="c.png 1x, d.png 2x"><a data="e.html">not an object</a>', 'html'), ['a.png', 'b.svg', 'c.png', 'd.png']);
+  assert.deepEqual(references('a { background: image-set("a.png" 1x, url(b.png) 2x, \'c.avif\' type("image/avif")); } b { background: -webkit-image-set( "d.png" 1x ) } c { content: "e.png" }', 'css'), ['a.png', 'b.png', 'c.avif', 'd.png']);
   assert.deepEqual(references('', 'css'), []);
   assert.throws(() => references('a', 'js'), e => e instanceof TypeError && e.message === 'kind must be html or css; it is "js"');
   assert.throws(() => references(7, 'css'), e => e instanceof TypeError && e.message === 'text must be a string; it is 7');
