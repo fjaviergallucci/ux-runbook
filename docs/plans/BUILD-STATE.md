@@ -22,7 +22,7 @@ has passed and the founder says so. Everything is local to this machine.
 
 ## What is done
 
-Tasks 0–18 are complete: implemented, reviewed by an independent reviewer, fixed, re-reviewed.
+Tasks 0–19 are complete: implemented, reviewed by an independent reviewer, fixed, re-reviewed.
 
 | Task | What | Commits |
 |---|---|---|
@@ -45,17 +45,18 @@ Tasks 0–18 are complete: implemented, reviewed by an independent reviewer, fix
 | 16 | Structure skill; `state.mjs reopen` closes later questions | `f5fce0c..b578460` |
 | 17 | Detail and Look skills; `scripts/deal.mjs` (letters for a blind comparison) | `0495666..2509c3a` |
 | 18 | Handoff and Acceptance skills; the implementer's guide; `scripts/alone.mjs` (a folder stands alone) | `0e55e73..b03011a` |
+| 19 | `LESSONS.md`, `README.md`, nine evaluation cases — all nine score 1.00 | `0151986..3f33a65` |
 
-Last full test run (at `b03011a`): 801 tests — 800 pass, 1 skipped, no `todo`. The skipped test cannot
-run on this machine's NTFS mount. Every stage skill exists. Run the suite with `npm test` (about three
-and a half minutes; it runs one test file at a time).
+Last full test run (at `3f33a65`): 822 tests — 821 pass, 1 skipped, no `todo`. The skipped test cannot
+run on this machine's NTFS mount. `claude plugin validate . --strict` exits 0. The evaluation suite was run
+by the controller (three runs, 8.88 US dollars of the plan's 15): all nine cases score 1.00. Run the tests
+with `npm test` (about three and a half minutes; it runs one test file at a time).
 
 ## What is next, in order
 
 | Step | What | State |
 |---|---|---|
-| Task 19 | `LESSONS.md`, `README.md`, nine evaluation cases | **next** — see the last lines of `docs/build-log/progress.md` for whether it has started; rulings written. **Step 5 (running the paid evaluation suite) is the controller's own**, not a sub-agent's |
-| Task 20 | The dry run of the whole pipeline on a fictional project | not started. **Run by the controller** |
+| Task 20 | The dry run of the whole pipeline on a fictional project | **next** — see the last lines of `docs/build-log/progress.md` for how far it has gone. **Run by the controller** |
 | Final review | One review of the whole branch, on the most capable model | after Task 20 |
 | One fix wave | Everything parked and deferred, in one dispatch, then one scoped re-review | after the final review |
 | Report | The full list of rulings goes to the founder; then the branch is finished (no push without his word) | last |
@@ -112,7 +113,7 @@ implemented on the most capable model and reviewed on Opus. The reviewer is neve
 
 `docs/build-log/` is a committed copy of the build's working folder, taken at the date above:
 
-- `progress.md` — **the ledger**: every step, every ruling (R1–R151), every deferred minor, every parked
+- `progress.md` — **the ledger**: every step, every ruling (R1–R155), every deferred minor, every parked
   finding, in order. Search it for `Ruling R`, `minor (deferred)`, `parked`, `NOTE for Task`.
 - `task-N-brief.md` — the plan's section for that task, as extracted.
 - `task-N-rulings.md` — the controller's rulings for that task. **Those for Tasks 15–19 are ready to hand

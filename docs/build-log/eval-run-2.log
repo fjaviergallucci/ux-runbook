@@ -1,0 +1,122 @@
+Plugin under test: "ux" version "2.0.0-dev" at "/mnt/data/Downloads/Proyectos/ux-runbook-v2"
+Concurrency: up to 2 runs in flight (all children share your rate limit; progress lines interleave, results keep case order)
+  kept temp: /tmp/claude-eval-YgeFCh
+⚠ kept /tmp/claude-eval-YgeFCh: home/ and tmp/ in it were written by the plugin under test and are sealed in /tmp/claude-eval-YgeFCh/sealed (mode 000; the kept directory is read-only) — open them with `chmod 700 /tmp/claude-eval-YgeFCh /tmp/claude-eval-YgeFCh/sealed` to inspect, and do not run git (or anything that loads configuration from its working directory) anywhere inside the kept directory
+  audience-stays-blind run 1/1: score 1.00  $0.43
+    ✓ criteria (weight 2): judge votes: PASS PASS PASS
+    ✓ has-a-ranking (weight 1): matched ^#+\s*Ranking\s*$
+    ✓ intent-not-named-in-a-command (weight 1): Bash called 0x (expected 0..0)
+    ✓ intent-not-opened (weight 1): pattern absent as expected
+    ✓ intent-not-read (weight 1): Read called 0x (expected 0..0)
+    ✓ intent-not-searched (weight 1): Grep called 0x (expected 0..0)
+    ✓ opens-with-the-caveat (weight 1): matched ^\s*(?:>\s*)?A\s+(?:>\s*)?simulated\s+(?:>\s*)?person\s+(?:>\s*)?agrees\s+(?:>\s*)?too\s+(?:>\s*)?easily\s+(?:>\s*)?and\s+(?:>\s*)?understands\s+(?:>\s*)?what\s+(?:>\s*)?it\s+(?:>\s*)?was\s+(?… [+440 chars]
+✓ audience-stays-blind  score 1.00  (1 run)  $0.43
+  kept temp: /tmp/claude-eval-raqlMr
+⚠ kept /tmp/claude-eval-raqlMr: home/ and tmp/ in it were written by the plugin under test and are sealed in /tmp/claude-eval-raqlMr/sealed (mode 000; the kept directory is read-only) — open them with `chmod 700 /tmp/claude-eval-raqlMr /tmp/claude-eval-raqlMr/sealed` to inspect, and do not run git (or anything that loads configuration from its working directory) anywhere inside the kept directory
+  brief-has-no-design run 1/1: score 1.00  $0.68
+    ✓ criteria (weight 2): judge votes: PASS PASS PASS — note: long file (11909 chars); llm judges are noisy on long inputs, prefer a regex grader for large artifacts
+    ✓ gives-the-tasks (weight 1): matched ^## The tasks\n[^#]*?walked in[^#]*?Sala Jard[ií]n
+    ✓ names-the-person (weight 1): matched ^## The person\n[^#]*?\b(front desk|clinic)\b
+    ✓ no-component-or-layout-named (weight 1): pattern absent as expected
+    ✓ no-instruction-left (weight 1): pattern absent as expected
+    ✓ says-what-the-product-can-do (weight 1): matched ^## What the product can show and do\n[^#]*?being cleaned
+    ✓ states-the-job (weight 1): matched ^## The job\n[^#]*?\bwalk-in\b
+✓ brief-has-no-design  score 1.00  (1 run)  $0.68
+  kept temp: /tmp/claude-eval-vzj3c8
+⚠ kept /tmp/claude-eval-vzj3c8: home/ and tmp/ in it were written by the plugin under test and are sealed in /tmp/claude-eval-vzj3c8/sealed (mode 000; the kept directory is read-only) — open them with `chmod 700 /tmp/claude-eval-vzj3c8 /tmp/claude-eval-vzj3c8/sealed` to inspect, and do not run git (or anything that loads configuration from its working directory) anywhere inside the kept directory
+  correction-is-one-nod run 1/1: score 0.60  $0.23
+    ✓ at-most-one-question (weight 1): pattern absent as expected
+    ✗ criteria (weight 2): judge votes: FAIL FAIL FAIL
+    ✗ frame-invoked (weight 1): Skill called 0x (expected 1..∞)
+    ✗ names-a-foundation (weight 1): pattern not found in last_message
+    ✓ names-the-size (weight 1): matched \bcorrection\b
+    ✓ no-edit-into-the-project (weight 1): Edit called 0x (expected 0..0)
+    ✓ no-seat-started (weight 1): Agent called 0x (expected 0..0)
+    ✓ no-write-into-the-project (weight 1): Write called 0x (expected 0..0)
+    ✓ screen-not-changed-by-command (weight 1): Bash called 0x (expected 0..0)
+✗ correction-is-one-nod  score 0.60  (1 run)  $0.23
+  kept temp: /tmp/claude-eval-E1YN9I
+⚠ kept /tmp/claude-eval-E1YN9I: home/ and tmp/ in it were written by the plugin under test and are sealed in /tmp/claude-eval-E1YN9I/sealed (mode 000; the kept directory is read-only) — open them with `chmod 700 /tmp/claude-eval-E1YN9I /tmp/claude-eval-E1YN9I/sealed` to inspect, and do not run git (or anything that loads configuration from its working directory) anywhere inside the kept directory
+  cold-implementer-finds-the-gap run 1/1: score 1.00  $0.78
+    ✓ criteria (weight 2): judge votes: PASS PASS PASS — note: long file (15970 chars); llm judges are noisy on long inputs, prefer a regex grader for large artifacts
+    ✓ names-the-state-without-a-page (weight 1): matched today-booking-error-en\.html|error-recoverable
+    ✓ names-the-string-without-a-key (weight 1): matched undo-booking|["“'`]Undo["”'`]
+✓ cold-implementer-finds-the-gap  score 1.00  (1 run)  $0.78
+  kept temp: /tmp/claude-eval-0G0Aws
+⚠ kept /tmp/claude-eval-0G0Aws: home/ and tmp/ in it were written by the plugin under test and are sealed in /tmp/claude-eval-0G0Aws/sealed (mode 000; the kept directory is read-only) — open them with `chmod 700 /tmp/claude-eval-0G0Aws /tmp/claude-eval-0G0Aws/sealed` to inspect, and do not run git (or anything that loads configuration from its working directory) anywhere inside the kept directory
+  fresh-brief-hides-the-system run 1/1: score 1.00  $1.01
+    ✓ criteria (weight 2): judge votes: PASS PASS PASS — note: long file (11199 chars); llm judges are noisy on long inputs, prefer a regex grader for large artifacts
+    ✓ gives-the-tasks (weight 1): matched ^## The tasks\n[^#]*?walked in[^#]*?Sala Jard[ií]n
+    ✓ in-its-structure-form (weight 1): matched ^## The hardest state\s*$
+    ✓ names-the-person (weight 1): matched ^## The person\n[^#]*?\b(front desk|clinic)\b
+    ✓ no-instruction-left (weight 1): pattern absent as expected
+    ✓ not-in-its-look-form (weight 1): pattern absent as expected
+    ✓ nothing-planted-is-in-it (weight 1): pattern absent as expected
+    ✓ says-what-the-product-can-do (weight 1): matched ^## What the product can show and do\n[^#]*?being cleaned
+    ✓ states-the-job (weight 1): matched ^## The job\n[^#]*?\bwalk-in\b
+✓ fresh-brief-hides-the-system  score 1.00  (1 run)  $1.01
+  kept temp: /tmp/claude-eval-NgkI7p
+⚠ kept /tmp/claude-eval-NgkI7p: home/ and tmp/ in it were written by the plugin under test and are sealed in /tmp/claude-eval-NgkI7p/sealed (mode 000; the kept directory is read-only) — open them with `chmod 700 /tmp/claude-eval-NgkI7p /tmp/claude-eval-NgkI7p/sealed` to inspect, and do not run git (or anything that loads configuration from its working directory) anywhere inside the kept directory
+  judge-does-not-redraw run 1/1: score 1.00  $0.53
+    ✓ criteria (weight 2): judge votes: PASS PASS PASS — note: long file (11176 chars); llm judges are noisy on long inputs, prefer a regex grader for large artifacts
+    ✓ has-the-top-line (weight 1): matched ^\W*Verdict\W+she (can with changes|cannot|can)\b[^\n]*First fix\W+\S
+    ✓ lists-the-checks-not-run (weight 1): matched ^#+\s*Checks not run\s*$
+    ✓ no-edit-into-the-artefact (weight 1): Edit called 0x (expected 0..0)
+    ✓ no-markup-in-the-ledger (weight 1): pattern absent as expected
+    ✓ no-page-written (weight 1): pattern absent as expected
+    ✓ no-write-into-the-artefact (weight 1): Write called 0x (expected 0..0)
+    ✓ row-for-the-booking-nothing-takes-back (weight 1): matched ^\|[^\n]*(today-booked-en\.html|\bundo\b|undone|taken? back)[^\n]*(→|->)[^\n]*\|[ \t]*[^|\n\s—–-][^|\n]*\|[ \t]*$
+    ✓ row-for-the-state-with-nothing-to-do (weight 1): matched ^\|[^\n]*(today-none-free-en\.html|empty-filtered|no room is free)[^\n]*(→|->)[^\n]*\|[ \t]*[^|\n\s—–-][^|\n]*\|[ \t]*$
+✓ judge-does-not-redraw  score 1.00  (1 run)  $0.53
+  kept temp: /tmp/claude-eval-MTJAP9
+⚠ kept /tmp/claude-eval-MTJAP9: home/ and tmp/ in it were written by the plugin under test and are sealed in /tmp/claude-eval-MTJAP9/sealed (mode 000; the kept directory is read-only) — open them with `chmod 700 /tmp/claude-eval-MTJAP9 /tmp/claude-eval-MTJAP9/sealed` to inspect, and do not run git (or anything that loads configuration from its working directory) anywhere inside the kept directory
+  no-pick-without-the-founder run 1/1: score 0.86  $0.21
+    ✓ asks-one-question (weight 1): found 1 matches (expected 1)
+    ✗ criteria (weight 2): judge votes: FAIL FAIL PASS
+    ✓ map-not-opened (weight 1): Bash called 0x (expected 0..0)
+    ✓ map-not-read (weight 1): Read called 0x (expected 0..0)
+    ✓ map-not-searched (weight 1): Grep called 0x (expected 0..0)
+    ✓ no-chosen-written (weight 1): **/CHOSEN.md absent as expected
+    ✓ no-detail-begun (weight 1): **/05-detail/** absent as expected
+    ✓ no-edit-into-the-round (weight 1): Edit called 0x (expected 0..0)
+    ✓ no-pick-written (weight 1): **/PICK.md absent as expected
+    ✓ no-seat-started (weight 1): Agent called 0x (expected 0..0)
+    ✓ no-write-into-the-round (weight 1): Write called 0x (expected 0..0)
+    ✓ puts-the-open-question (weight 1): matched Which\s+structure\s+goes\s+on\s+to\s+Detail:\s+A,\s+B\s+or\s+C\?
+    ✓ state-not-moved (weight 1): Bash called 0x (expected 0..0)
+✗ no-pick-without-the-founder  score 0.86  (1 run)  $0.21
+  kept temp: /tmp/claude-eval-eCvojW
+⚠ kept /tmp/claude-eval-eCvojW: home/ and tmp/ in it were written by the plugin under test and are sealed in /tmp/claude-eval-eCvojW/sealed (mode 000; the kept directory is read-only) — open them with `chmod 700 /tmp/claude-eval-eCvojW /tmp/claude-eval-eCvojW/sealed` to inspect, and do not run git (or anything that loads configuration from its working directory) anywhere inside the kept directory
+  resume-from-disk run 1/1: score 1.00  $0.21
+    ✓ asks-one-question (weight 1): found 1 matches (expected 1)
+    ✓ criteria (weight 2): judge votes: PASS PASS PASS
+    ✓ names-the-heading (weight 1): matched The people
+    ✓ next-run (weight 1): Bash called 1x (expected 1..∞)
+    ✓ no-cast-for-two-professions-by-edit (weight 1): Edit called 0x (expected 0..0)
+    ✓ no-cast-for-two-professions (weight 1): Write called 0x (expected 0..0)
+    ✓ nothing-reopened (weight 1): Bash called 0x (expected 0..0)
+    ✓ validate-run (weight 1): Bash called 1x (expected 1..∞)
+✓ resume-from-disk  score 1.00  (1 run)  $0.21
+  kept temp: /tmp/claude-eval-o0PDZM
+⚠ kept /tmp/claude-eval-o0PDZM: home/ and tmp/ in it were written by the plugin under test and are sealed in /tmp/claude-eval-o0PDZM/sealed (mode 000; the kept directory is read-only) — open them with `chmod 700 /tmp/claude-eval-o0PDZM /tmp/claude-eval-o0PDZM/sealed` to inspect, and do not run git (or anything that loads configuration from its working directory) anywhere inside the kept directory
+  profile-judge-cannot-tell run 1/1: score 1.00  $0.62
+    ✓ cannot-tell-holds-the-point (weight 1): matched ^#+\s*Cannot tell\b[^#]*?(usage context|keyboard|device|what she uses)
+    ✓ criteria (weight 2): judge votes: PASS PASS PASS — note: long file (10156 chars); llm judges are noisy on long inputs, prefer a regex grader for large artifacts
+    ✓ has-a-cannot-tell-list (weight 1): matched ^#+\s*Cannot tell\b
+    ✓ no-finding-under-the-context-check (weight 1): pattern absent as expected
+✓ profile-judge-cannot-tell  score 1.00  (1 run)  $0.62
+
+CASE                            SCORE PASS% RUNS COST    NOTES
+audience-stays-blind            1.00  100%  1    $0.43   
+brief-has-no-design             1.00  100%  1    $0.68   
+cold-implementer-finds-the-gap  1.00  100%  1    $0.78   
+correction-is-one-nod           0.60  0%    1    $0.23   criteria: judge votes: FAIL FAIL FAIL
+fresh-brief-hides-the-system    1.00  100%  1    $1.01   
+judge-does-not-redraw           1.00  100%  1    $0.53   
+no-pick-without-the-founder     0.86  0%    1    $0.21   criteria: judge votes: FAIL FAIL PASS
+profile-judge-cannot-tell       1.00  100%  1    $0.62   
+resume-from-disk                1.00  100%  1    $0.21   
+
+9 case(s) · 438s · $4.70
+Report: /mnt/data/Downloads/Proyectos/ux-runbook-v2/evals/results/2026-11-15T06-22-54-824Z/report.html
+exit 1
