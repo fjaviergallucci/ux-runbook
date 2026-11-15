@@ -9,6 +9,12 @@
 //
 // A person is a card of another kind: someone in a moment (spec § 8), whom the makers design for and an
 // audience is seated as. validatePerson(text, { file }) reports the same way; `file` is persons/<name>.md.
+//
+// A profession's profile is a third: what is true of a profession, written from
+// templates/people/PROFILE-CARD.md, a test holding the two to each other. validateProfile(text, { file })
+// reports the same way; `file` is profiles/<name>.md. traitsOf(text, { file }) → { faults, copy, fields,
+// paragraphs }: the audience's copy of a profile, its traits without what a judge holds a design to; the
+// copy is null, with the faults, for a profile that fails its check or a copy that still says a criterion.
 import { FrontmatterError, parse } from './frontmatter.mjs';
 import { SIZES, STAGES } from './state.mjs';
 
@@ -40,6 +46,17 @@ export const PERSON_KEYS = Object.freeze(['id', 'profile', 'specialty', 'evidenc
 export const EVIDENCE = Object.freeze(['fact', 'guess', 'mixed']);
 export const PERSON_SECTIONS = Object.freeze(['The moment', 'The job', 'What she never does', 'The check']);
 
+// A profession's profile: the folder of pool/ that holds them, the one key of the header, the seven
+// characteristics every profile defines, in order, the two sections that close it, and the four fields of a
+// characteristic by their labels. The last field is the criterion: what a profile judge holds a design to,
+// and what an audience is never handed.
+export const PROFILE_FOLDER = 'profiles';
+export const PROFILE_KEYS = Object.freeze(['id']);
+export const CHARACTERISTICS = Object.freeze(['Scope', 'The work', 'Technological familiarity', 'Usage context', 'Time and attention', 'Error tolerance and stakes', 'Domain vocabulary']);
+export const PROFILE_CLOSING = Object.freeze(['Specialties', 'Optional characteristics']);
+export const FIELDS = Object.freeze(['What is true', 'Who it does not hold for', 'Evidence', 'So the interface must']);
+export const CRITERION = FIELDS.at(-1);
+
 // A skill is written as it is installed: its own name, or its plugin, a colon and its name.
 const SKILL = '[a-z0-9][a-z0-9_-]*';
 const ENGINE = new RegExp(`^(?:own|skill:${SKILL}(?::${SKILL})?|model:any|tool:[a-z0-9-]+)$`);
@@ -49,7 +66,19 @@ const FILE = new RegExp(`^(${Object.keys(FOLDERS).join('|')})/(${NAME})\\.md$`);
 // A person's id and file, and the profile she inherits: each a word, a dot or a folder, and a name.
 const PERSON_ID = new RegExp(`^person\\.(${NAME})$`);
 const PERSON_FILE = new RegExp(`^${PERSON_FOLDER}/(${NAME})\\.md$`);
-const PROFILE_ID = new RegExp(`^profile\\.${NAME}$`);
+const PROFILE_ID = new RegExp(`^profile\\.(${NAME})$`);
+const PROFILE_FILE = new RegExp(`^${PROFILE_FOLDER}/(${NAME})\\.md$`);
+// A field's label as it is written: the words and a colon, at the start of a line.
+const labelOf = field => `${field}:`;
+// A heading of any level, which ends whatever block stands above it.
+const ANY_HEADING = /^#{1,6} /;
+// A specialty and a characteristic of it, under "Specialties".
+const SPECIALTY = /^### +(.*\S)\s*$/;
+const SPECIALTY_CHARACTERISTIC = /^#### +(.*\S)\s*$/;
+// The words by which a paragraph of a profile's opening speaks of the fields themselves, and those no
+// copy for an audience may hold, in any case.
+const OF_THE_FIELDS = /\bfourth field\b|\bfour fields\b/i;
+const CRITERION_WORDS = /so the interface must/i;
 // The value that says there is none: no profile, no specialty.
 const NONE = 'none';
 const CORE_CHECKS = { least: 2, most: 6 };
@@ -93,6 +122,67 @@ export function validatePerson(text, { file } = {}) {
   return errors;
 }
 
+export function validateProfile(text, { file } = {}) {
+  const errors = [];
+  const name = profileOf(file, errors);
+  const card = open(text, 'a profession\'s profile', errors);
+  if (!card) return errors;
+  checkProfileHeader(card.data, name, errors);
+  checkProfileBody(card.body, errors);
+  return errors;
+}
+
+// The audience's copy of a profile: the profile as it is, without each field of the criterion, from its
+// label to the next blank line (or the next heading, or the end), and without each paragraph of its opening,
+// before the first section, that speaks of the fields themselves: the template's own account of the format.
+// The blank line above what is taken out goes with it. `fields` and `paragraphs` count what was taken out.
+export function traitsOf(text, { file } = {}) {
+  const refused = faults => ({ faults, copy: null, fields: 0, paragraphs: 0 });
+  const faults = validateProfile(text, { file });
+  if (faults.length > 0) return refused(faults);
+  const lines = text.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').split('\n');
+  const blank = i => lines[i].trim() === '';
+  const out = new Set();
+  // Takes out the lines from `from` up to `to`, and the blank lines above them.
+  const take = (from, to) => {
+    for (let i = from; i < to; i++) out.add(i);
+    for (let i = from - 1; i >= 0 && blank(i); i--) out.add(i);
+  };
+  // Where a block that starts at `from` ends: at a blank line, a heading or the end.
+  const endOf = from => {
+    let to = from + 1;
+    while (to < lines.length && !blank(to) && !ANY_HEADING.test(lines[to])) to++;
+    return to;
+  };
+  let fields = 0;
+  let paragraphs = 0;
+  // The opening ends at the first section, which a sound profile has. The header above it is a block that
+  // speaks of no field: an id holds no space.
+  const opening = lines.findIndex(line => HEADING.test(line));
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].startsWith(labelOf(CRITERION))) {
+      const to = endOf(i);
+      take(i, to);
+      fields += 1;
+      i = to - 1;
+    } else if (i < opening && !blank(i) && !ANY_HEADING.test(lines[i])) {
+      const to = endOf(i);
+      // Read as one line, so that the words are found across a line's end.
+      if (OF_THE_FIELDS.test(lines.slice(i, to).join(' '))) {
+        take(i, to);
+        paragraphs += 1;
+      }
+      i = to - 1;
+    }
+  }
+  const kept = lines.filter((_, i) => !out.has(i));
+  const left = kept.filter(line => CRITERION_WORDS.test(line));
+  if (left.length > 0) {
+    return refused(left.map(line => `copy: "${CRITERION.toLowerCase()}" is still written in ${show(line.trim())}: an audience is never handed what the interface must do`));
+  }
+  return { faults: [], copy: kept.join('\n'), fields, paragraphs };
+}
+
 // The header and the body of a text; `what` is the kind of card it should be. Without a header that can
 // be read it is not a card yet: that is one fault, nothing is returned, and the body waits.
 function open(text, what, errors) {
@@ -124,6 +214,15 @@ function personOf(file, errors) {
   const match = PERSON_FILE.exec(String(file).replace(/\\/g, '/'));
   if (match) return match[1];
   errors.push(`file: a person card is ${PERSON_FOLDER}/<name>.md, the name in lower-case words joined by hyphens; this is ${show(file)}`);
+  return undefined;
+}
+
+// Where the profile is: the profession's name, from its file's path under pool/.
+function profileOf(file, errors) {
+  if (file === undefined) return undefined;
+  const match = PROFILE_FILE.exec(String(file).replace(/\\/g, '/'));
+  if (match) return match[1];
+  errors.push(`file: a profession's profile is ${PROFILE_FOLDER}/<name>.md, the name in lower-case words joined by hyphens; this is ${show(file)}`);
   return undefined;
 }
 
@@ -235,6 +334,82 @@ function checkPersonHeader(data, name, errors) {
     },
     evidence: () => oneOf('evidence', EVIDENCE),
   }, fail);
+}
+
+// A profile's header: its id, profile.<name>, the name the file's. It holds nothing else.
+function checkProfileHeader(data, name, errors) {
+  const fail = message => {
+    errors.push(`header: ${message}`);
+  };
+  checkKeys(data, PROFILE_KEYS, {
+    id: () => {
+      const match = typeof data.id === 'string' ? PROFILE_ID.exec(data.id) : null;
+      if (!match) {
+        return fail(`"id" must be profile.<name>, the name in lower-case words joined by hyphens, as profile.front-desk-coordinator; it is ${show(data.id)}`);
+      }
+      if (name !== undefined && match[1] !== name) {
+        fail(`"id" names "${match[1]}", but the file is ${PROFILE_FOLDER}/${name}.md: it must be profile.${name}`);
+      }
+    },
+  }, fail);
+}
+
+// A profile's body: the seven characteristics, then any the project added, then the two closing sections;
+// each characteristic, and each one of a specialty, with its four fields; and the criterion's label nowhere
+// but at the start of a line, since that is the rule an audience's copy is made by.
+function checkProfileBody(body, errors) {
+  const fail = message => {
+    errors.push(`body: ${message}`);
+  };
+  const fixed = [...CHARACTERISTICS, ...PROFILE_CLOSING];
+  const added = [...new Set(sectionsOf(body).map(section => section.name).filter(name => !fixed.includes(name)))];
+  checkSections(body, [...CHARACTERISTICS, ...added, ...PROFILE_CLOSING], {
+    what: 'a profession\'s profile',
+    inside: (name, lines) => {
+      if (name === 'Specialties') checkSpecialties(lines, fail);
+      else if (!PROFILE_CLOSING.includes(name)) checkFields(lines, `"## ${name}"`, fail);
+    },
+  }, fail);
+  const label = labelOf(CRITERION);
+  for (const line of body.split('\n')) {
+    if (line.lastIndexOf(label) > 0) fail(`"${label}" is not at the start of its line in ${show(line.trim())}: the field would stay in an audience's copy`);
+  }
+}
+
+// The four fields of one characteristic, `where` naming it: each there once, its label at the start of a
+// line, and a block of its own, so that one field can be taken out and the others left.
+function checkFields(lines, where, fail) {
+  for (const field of FIELDS) {
+    const label = labelOf(field);
+    const at = lines.flatMap((line, i) => (line.startsWith(label) ? [i] : []));
+    if (at.length === 0) fail(`${where} lacks its field "${label}", the label at the start of a line`);
+    else if (at.length > 1) fail(`${where} has the field "${label}" ${at.length} times; a characteristic has each field once`);
+    else if (at[0] > 0 && lines[at[0] - 1].trim() !== '') fail(`${where}: the field "${label}" is not a block of its own: a field begins after a blank line and ends at the next`);
+  }
+}
+
+// Under "Specialties": each "####" heading is a characteristic of the "###" specialty above it.
+function checkSpecialties(lines, fail) {
+  let specialty = null;
+  let characteristic = null;
+  const close = () => {
+    if (characteristic) checkFields(characteristic.lines, `"#### ${characteristic.name}" of ${specialty === null ? 'no specialty' : `"### ${specialty}"`}`, fail);
+    characteristic = null;
+  };
+  for (const line of lines) {
+    const [, named] = SPECIALTY_CHARACTERISTIC.exec(line) ?? [];
+    const [, of] = SPECIALTY.exec(line) ?? [];
+    if (named !== undefined) {
+      close();
+      characteristic = { name: named, lines: [] };
+    } else if (of !== undefined) {
+      close();
+      specialty = of;
+    } else {
+      characteristic?.lines.push(line);
+    }
+  }
+  close();
 }
 
 // An id is <shelf>.<name>: the shelf the header gives, and the name of the file.

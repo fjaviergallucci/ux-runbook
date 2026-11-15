@@ -6,8 +6,8 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { validateAcceptance } from '../scripts/accept.mjs';
 import {
-  CARD_KEYS, CHECK_COLUMNS, EFFORTS, ENGINE_FORMS, EVIDENCE, FOLDERS, JUDGE_BLIND, JUDGE_SECTIONS, LOADED_WITH, MODELS, PERSON_FOLDER, PERSON_KEYS,
-  PERSON_SECTIONS, SECTIONS, SHELVES, validateCard, validatePerson,
+  CARD_KEYS, CHARACTERISTICS, CHECK_COLUMNS, CRITERION, EFFORTS, ENGINE_FORMS, EVIDENCE, FIELDS, FOLDERS, JUDGE_BLIND, JUDGE_SECTIONS, LOADED_WITH, MODELS, PERSON_FOLDER, PERSON_KEYS,
+  PERSON_SECTIONS, PROFILE_CLOSING, PROFILE_FOLDER, PROFILE_KEYS, SECTIONS, SHELVES, traitsOf, validateCard, validatePerson, validateProfile,
 } from '../scripts/lib/card.mjs';
 import { parse } from '../scripts/lib/frontmatter.mjs';
 import { SIZES, STAGES } from '../scripts/lib/state.mjs';
@@ -1282,7 +1282,198 @@ test('pool/INDEX.md lists the people too: exactly one row for each person, with 
   }
 });
 
-// ---- card.mjs check: a project's own cards and people, checked before they are cast
+// ---- a profession's profile: every rule of it is proven here, on a profession that exists nowhere else (R162)
+
+const PROFILE_FILE = 'profiles/front-desk.md';
+// The four fields of one characteristic, each a block of its own.
+const TRAITS = 'What is true: She stands at a counter, the phone at her ear.\n\nWho it does not hold for: The coordinator in a back office.\n\nEvidence: guess\n';
+const fieldsOf = (must = 'Be read at arm\'s length, standing.\nNever show a full name.') => `${TRAITS}\nSo the interface must: ${must}\n`;
+const DESCRIBED = 'The person who runs the front desk of a small clinic. Every characteristic below is a guess.\n';
+const EXPLAINED = [
+  'A profile is what is true of a profession. Every characteristic\nhas four fields, and the fourth is what a profile judge holds a design to.\n',
+  'No trait is invented. When an audience gets stuck where no fourth field predicted, a\ncharacteristic is missing here, and it is added.\n',
+];
+const SPECIALTIES = 'One `###` section for each specialty, each characteristic under a `####` heading with its four fields.\n\nNone yet.\n';
+const OPTIONAL = 'Those listed here are not defined yet.\n\n- **Physical conditions** — gloves, a dim room, eyesight.\n';
+const profileSections = (characteristic = fieldsOf()) => [...CHARACTERISTICS.map(name => [name, characteristic]), ['Specialties', SPECIALTIES], ['Optional characteristics', OPTIONAL]];
+// A profile as text: its header, its title, what its opening says, and each section in the order given.
+const profileText = ({ id = 'profile.front-desk', opening = [DESCRIBED, ...EXPLAINED], sections = profileSections() } = {}) =>
+  `---\nid: ${id}\n---\n\n# Front desk\n\n${opening.join('\n')}\n${sections.map(([name, text]) => `## ${name}\n\n${text}`).join('\n')}`;
+const profile = (change = {}) => validateProfile(profileText(change), { file: PROFILE_FILE });
+const withSection = (name, text) => profileSections().map(([n, t]) => [n, n === name ? text : t]);
+
+test('the lists a profession\'s profile is checked against', () => {
+  assert.equal(PROFILE_FOLDER, 'profiles');
+  assert.deepEqual(PROFILE_KEYS, ['id']);
+  assert.deepEqual(CHARACTERISTICS, ['Scope', 'The work', 'Technological familiarity', 'Usage context', 'Time and attention', 'Error tolerance and stakes', 'Domain vocabulary']);
+  assert.deepEqual(PROFILE_CLOSING, ['Specialties', 'Optional characteristics']);
+  assert.deepEqual(FIELDS, ['What is true', 'Who it does not hold for', 'Evidence', 'So the interface must']);
+  assert.equal(CRITERION, 'So the interface must');
+  for (const list of [PROFILE_KEYS, CHARACTERISTICS, PROFILE_CLOSING, FIELDS]) assert.ok(Object.isFrozen(list));
+});
+
+test('a good profile is valid: its id the file\'s, the template\'s sections in order, the four fields of each characteristic', () => {
+  assert.deepEqual(profile(), []);
+  assert.deepEqual(validateProfile(profileText()), [], 'without a file, the id is any profile\'s');
+  assert.deepEqual(validateProfile(profileText().replace(/\n/g, '\r\n'), { file: PROFILE_FILE }), [], 'CRLF');
+  assert.deepEqual(validateProfile(profileText(), { file: 'profiles\\front-desk.md' }), [], 'a path written with backslashes');
+  // A field may run over several lines, and a characteristic may say "Not known yet."
+  assert.deepEqual(profile({ sections: withSection('Scope', 'What is true: Not known yet.\n\nWho it does not hold for: Not known yet.\n\nEvidence: guess (the founder, 2026-11-14)\n\nSo the interface must: Not known yet.\n') }), []);
+  // Every profile the kit holds as a fixture is sound.
+  const fixtures = readdirSync(at('evals/')).flatMap(name => {
+    const folder = `evals/${name}/fixture/design/pool/profiles/`;
+    return existsSync(at(folder)) ? readdirSync(at(folder)).filter(file => file !== 'README.md').map(file => [`${folder}${file}`, `profiles/${file}`]) : [];
+  });
+  assert.ok(fixtures.length >= 7, `${fixtures.length} profiles among the fixtures`);
+  for (const [path, file] of fixtures) assert.deepEqual(validateProfile(read(path), { file }), [], path);
+});
+
+test('a profile\'s file is profiles/<name>.md, and its id is profile.<name>, the name the file\'s', () => {
+  only(validateProfile(profileText(), { file: 'profiles/front-office.md' }), /^header: "id" names "front-desk", but the file is profiles\/front-office\.md: it must be profile\.front-office$/);
+  for (const id of ['front-desk', 'person.front-desk', 'profile.Front-Desk', 'profile.', '""']) {
+    only(profile({ id }), /^header: "id" must be profile\.<name>, the name in lower-case words joined by hyphens, as profile\.front-desk-coordinator; it is /);
+  }
+  for (const file of ['front-desk.md', 'persons/front-desk.md', 'profiles/Front Desk.md', 'profiles/more/front-desk.md', 'profiles/front-desk.txt']) {
+    only(validateProfile(profileText(), { file }), /^file: a profession's profile is profiles\/<name>\.md, the name in lower-case words joined by hyphens; this is /);
+  }
+  // The header holds the id and nothing else, and without one the file is no profile yet.
+  only(validateProfile(profileText().replace('id: profile.front-desk\n', 'id: profile.front-desk\nevidence: guess\n'), { file: PROFILE_FILE }), /^header: unknown key "evidence"$/);
+  only(validateProfile(profileText().replace('id: profile.front-desk\n', 'name: front-desk\n'), { file: PROFILE_FILE }).slice(0, 1), /^header: "id" is missing$/);
+  only(validateProfile('# Front desk\n\n## Scope\n', { file: PROFILE_FILE }), /^header: a profession's profile opens with its header/);
+  assert.throws(() => validateProfile(undefined, { file: PROFILE_FILE }), TypeError);
+});
+
+test('a profile has the template\'s sections, once each, in order; a characteristic the project adds goes above "Specialties"', () => {
+  const order = 'Scope, The work, Technological familiarity, Usage context, Time and attention, Error tolerance and stakes, Domain vocabulary, Specialties, Optional characteristics';
+  for (const name of [...CHARACTERISTICS, ...PROFILE_CLOSING]) {
+    only(profile({ sections: profileSections().filter(([n]) => n !== name) }), new RegExp(`^body: "## ${name}" is missing`));
+  }
+  const swapped = profileSections();
+  [swapped[0], swapped[1]] = [swapped[1], swapped[0]];
+  only(profile({ sections: swapped }), /^body: the sections are out of order: The work, Scope, /, new RegExp(`the order is ${order}$`));
+  only(profile({ sections: [...profileSections(), ['Scope', fieldsOf()]] }), /^body: "## Scope" appears twice$/);
+  // An added characteristic: above "Specialties" it is one more, held to the four fields; anywhere else it is out of order.
+  const added = ['Physical conditions', fieldsOf()];
+  const at7 = sections => [...sections.slice(0, 7), added, ...sections.slice(7)];
+  assert.deepEqual(profile({ sections: at7(profileSections()) }), []);
+  only(profile({ sections: [...profileSections(), added] }), /^body: the sections are out of order: .*Optional characteristics, Physical conditions; the order is .*Domain vocabulary, Physical conditions, Specialties, Optional characteristics$/);
+  only(profile({ sections: [added, ...profileSections()] }), /^body: the sections are out of order: Physical conditions, Scope/);
+  only(profile({ sections: at7(profileSections()).map(([n, t]) => [n, n === 'Physical conditions' ? TRAITS : t]) }), /^body: "## Physical conditions" lacks its field "So the interface must:"/);
+  // A heading misspelt is a section missing, and one that is not in its place.
+  const errors = profile({ sections: profileSections().map(([n, t]) => [n === 'Usage context' ? 'Usage Context' : n, t]) });
+  assert.equal(errors.length, 2, errors.join('\n'));
+  assert.match(errors[0], /^body: "## Usage context" is missing/);
+  assert.match(errors[1], /^body: the sections are out of order/);
+  only(profile({ sections: withSection('Specialties', '') }), /^body: "## Specialties" has nothing under it$/);
+});
+
+test('each characteristic has its four fields once each, the label of each at the start of its line, after a blank line', () => {
+  for (const label of FIELDS) {
+    const lacking = fieldsOf().split('\n\n').filter(block => !block.startsWith(`${label}:`)).join('\n\n');
+    only(profile({ sections: withSection('The work', lacking) }), new RegExp(`^body: "## The work" lacks its field "${label}:", the label at the start of a line$`));
+    only(profile({ sections: withSection('The work', `${fieldsOf()}\n${label}: again.\n`) }), new RegExp(`^body: "## The work" has the field "${label}:" 2 times; a characteristic has each field once$`));
+  }
+  // The label is the words and the colon, as written: another spelling is no label.
+  only(profile({ sections: withSection('Scope', fieldsOf().replace('Evidence:', 'evidence:')) }), /^body: "## Scope" lacks its field "Evidence:"/);
+  only(profile({ sections: withSection('Scope', fieldsOf().replace('Evidence:', 'Evidence -')) }), /^body: "## Scope" lacks its field "Evidence:"/);
+  only(profile({ sections: withSection('Scope', fieldsOf().replace('Evidence:', '  Evidence:')) }), /^body: "## Scope" lacks its field "Evidence:"/);
+  // A field is a block of its own: its label follows a blank line, or the heading.
+  for (const label of FIELDS.slice(1)) {
+    only(profile({ sections: withSection('Scope', fieldsOf().replace(`\n\n${label}:`, `\n${label}:`)) }), new RegExp(`^body: "## Scope": the field "${label}:" is not a block of its own: a field begins after a blank line and ends at the next$`));
+  }
+  assert.deepEqual(validateProfile(profileText().replace('## Scope\n\nWhat is true:', '## Scope\nWhat is true:'), { file: PROFILE_FILE }), [], 'the first field may follow its heading');
+  // Every fault of a profile is said, each once.
+  const errors = profile({ sections: profileSections().map(([n, t]) => [n, n === 'Scope' ? TRAITS : n === 'The work' ? t.replace('\n\nEvidence:', '\nEvidence:') : t]) });
+  assert.deepEqual(errors, ['body: "## Scope" lacks its field "So the interface must:", the label at the start of a line', 'body: "## The work": the field "Evidence:" is not a block of its own: a field begins after a blank line and ends at the next']);
+});
+
+test('"So the interface must:" is written nowhere but at the start of a line: the field is taken out by that rule', () => {
+  const inside = text => profile({ sections: withSection('Scope', text) });
+  only(inside(fieldsOf().replace('Evidence: guess', 'Evidence: guess. So the interface must: say so.')), /^body: "So the interface must:" is not at the start of its line in "Evidence: guess\. So the interface must: say so\.": the field would stay in an audience's copy$/);
+  only(inside(fieldsOf('Say it. So the interface must: say it twice.')), /^body: "So the interface must:" is not at the start of its line in /);
+  // Indented, it is not at the start of its line either, and the characteristic lacks its field.
+  const indented = inside(fieldsOf().replace('So the interface must:', '  So the interface must:'));
+  assert.equal(indented.length, 2, indented.join('\n'));
+  assert.match(indented[0], /^body: "## Scope" lacks its field "So the interface must:", the label at the start of a line$/);
+  assert.match(indented[1], /^body: "So the interface must:" is not at the start of its line in "So the interface must: Be read/);
+  // In the opening, or under a closing section, the same.
+  only(profile({ opening: [DESCRIBED, 'Each ends with So the interface must: and what follows.\n'] }), /^body: "So the interface must:" is not at the start of its line in /);
+  only(profile({ sections: withSection('Optional characteristics', `${OPTIONAL}\nSee So the interface must: above.\n`) }), /^body: "So the interface must:" is not at the start of its line in /);
+});
+
+test('a specialty\'s characteristics, each under a "####" heading, are held to the four fields too', () => {
+  const specialty = (...characteristics) => `${SPECIALTIES.replace('None yet.\n', '')}### Physiotherapy\n\nWhat differs at a physiotherapy clinic.\n\n${characteristics.map(([name, text]) => `#### ${name}\n\n${text}`).join('\n')}`;
+  assert.deepEqual(profile({ sections: withSection('Specialties', specialty(['Usage context', fieldsOf()], ['Time and attention', fieldsOf()])) }), []);
+  only(profile({ sections: withSection('Specialties', specialty(['Usage context', TRAITS])) }), /^body: "#### Usage context" of "### Physiotherapy" lacks its field "So the interface must:", the label at the start of a line$/);
+  only(profile({ sections: withSection('Specialties', specialty(['Usage context', fieldsOf()], ['Time and attention', fieldsOf().replace('\n\nEvidence:', '\nEvidence:')])) }),
+    /^body: "#### Time and attention" of "### Physiotherapy": the field "Evidence:" is not a block of its own/);
+  only(profile({ sections: withSection('Specialties', `${specialty(['Usage context', TRAITS])}\n### Dentistry\n\n#### Usage context\n\n${fieldsOf()}`) }), /^body: "#### Usage context" of "### Physiotherapy" lacks its field "So the interface must:"/);
+  // Two specialties may override the same characteristic: each is its own.
+  const two = `${specialty(['Usage context', fieldsOf()])}\n### Dentistry\n\n#### Usage context\n\n${TRAITS}`;
+  only(profile({ sections: withSection('Specialties', two) }), /^body: "#### Usage context" of "### Dentistry" lacks its field "So the interface must:"/);
+});
+
+// ---- the audience's copy of a profile: its traits (R162)
+
+// What the copy of the sample is: no fourth field, and no paragraph of the opening that speaks of the fields.
+const TRAITS_COPY = profileText({ opening: [DESCRIBED], sections: profileSections(TRAITS) });
+
+test('traitsOf takes out each "So the interface must:" field, to the next blank line, and each paragraph of the opening that speaks of the fields; nothing else changes', () => {
+  const made = traitsOf(profileText(), { file: PROFILE_FILE });
+  assert.deepEqual(made, { faults: [], copy: TRAITS_COPY, fields: 7, paragraphs: 2 });
+  assert.doesNotMatch(made.copy, /interface must|fourth field|profile judge|an audience/);
+  // What it keeps: the header, the title, what the opening says of the profession, every heading, the three other fields, and the closing sections whole.
+  for (const kept of ['---\nid: profile.front-desk\n---\n', '# Front desk\n', DESCRIBED, SPECIALTIES, OPTIONAL, ...CHARACTERISTICS.map(name => `## ${name}\n\n${TRAITS}`)]) assert.ok(made.copy.includes(kept), kept);
+  assert.doesNotMatch(made.copy, /\n\n\n/, 'no hole is left where a field was');
+  // Pure: the same profile gives the same copy, and CRLF is read as LF.
+  assert.deepEqual(traitsOf(profileText(), { file: PROFILE_FILE }), made);
+  assert.equal(traitsOf(profileText().replace(/\n/g, '\r\n'), { file: PROFILE_FILE }).copy, TRAITS_COPY);
+  // A field that ends at a heading, with no blank line after it, takes nothing of the heading with it.
+  const tight = profileText().replace('Never show a full name.\n\n## The work', 'Never show a full name.\n## The work');
+  assert.equal(traitsOf(tight, { file: PROFILE_FILE }).copy, TRAITS_COPY.replace('Evidence: guess\n\n## The work', 'Evidence: guess\n## The work'));
+  // A field that is the last thing of the file, and one that is the first of its section.
+  const last = traitsOf(`${profileText()}\nSo the interface must: Keep this list short.\n`, { file: PROFILE_FILE });
+  assert.deepEqual([last.copy, last.fields], [TRAITS_COPY, 8]);
+  const first = profileText({ sections: withSection('Scope', `So the interface must: Say so.\n\n${TRAITS}`) });
+  assert.equal(traitsOf(first, { file: PROFILE_FILE }).copy, TRAITS_COPY);
+  // A specialty's fields go the same way.
+  const special = withSection('Specialties', `### Physiotherapy\n\n#### Usage context\n\n${fieldsOf('Say whether a room is free in words.')}`);
+  const specialCopy = traitsOf(profileText({ sections: special }), { file: PROFILE_FILE });
+  assert.deepEqual([specialCopy.fields, specialCopy.paragraphs], [8, 2]);
+  assert.ok(specialCopy.copy.includes(`### Physiotherapy\n\n#### Usage context\n\n${TRAITS}\n## Optional characteristics`));
+  // Only the opening's paragraphs go: "four fields" under a section is the section's own, and stays.
+  assert.ok(made.copy.includes('each characteristic under a `####` heading with its four fields.'));
+  // A paragraph of the opening that speaks of no field stays, and so does an opening with none to take out.
+  const plain = traitsOf(profileText({ opening: [DESCRIBED, 'Heard so far: nobody.\n'] }), { file: PROFILE_FILE });
+  assert.deepEqual([plain.fields, plain.paragraphs], [7, 0]);
+  assert.ok(plain.copy.includes(`${DESCRIBED}\nHeard so far: nobody.\n\n## Scope`));
+  // A field written in the opening is taken out as a field, whatever its lines say, and is not counted as a paragraph too.
+  const early = traitsOf(profileText({ opening: [DESCRIBED, 'So the interface must: Keep to the\nfour fields.\n', ...EXPLAINED] }), { file: PROFILE_FILE });
+  assert.deepEqual([early.copy, early.fields, early.paragraphs], [TRAITS_COPY, 8, 2]);
+  // The title is no paragraph, whatever stands under it.
+  const under = traitsOf(profileText().replace(`# Front desk\n\n${DESCRIBED}\n`, `# Front desk\n${EXPLAINED[0]}\n${DESCRIBED}\n`), { file: PROFILE_FILE });
+  assert.deepEqual([under.copy, under.paragraphs], [TRAITS_COPY, 3]);
+  for (const words of ['The Fourth Field is the judge\'s.\n', 'Each has four\nfields.\n']) {
+    assert.deepEqual(traitsOf(profileText({ opening: [DESCRIBED, words] }), { file: PROFILE_FILE }).paragraphs, 1, words);
+  }
+});
+
+test('traitsOf refuses a profile that fails its check, and a copy in which the words are still written', () => {
+  const faulty = profileText({ sections: withSection('Scope', TRAITS) });
+  assert.deepEqual(traitsOf(faulty, { file: PROFILE_FILE }), { faults: validateProfile(faulty, { file: PROFILE_FILE }), copy: null, fields: 0, paragraphs: 0 });
+  assert.equal(traitsOf(profileText(), { file: 'persons/front-desk.md' }).copy, null);
+  // The label written another way, inside a trait, passes the check and would reach her: the copy is refused, naming each line.
+  const leaking = profileText({ sections: withSection('Usage context', fieldsOf().replace('the phone at her ear.', 'the phone at her ear, so the interface must be read standing.')) });
+  assert.deepEqual(validateProfile(leaking, { file: PROFILE_FILE }), []);
+  assert.deepEqual(traitsOf(leaking, { file: PROFILE_FILE }), {
+    faults: ['copy: "so the interface must" is still written in "What is true: She stands at a counter, the phone at her ear, so the interface must be read standing.": an audience is never handed what the interface must do'],
+    copy: null, fields: 0, paragraphs: 0,
+  });
+  const shouting = profileText({ opening: [DESCRIBED, 'SO THE INTERFACE MUST stay plain.\n'] });
+  assert.match(traitsOf(shouting, { file: PROFILE_FILE }).faults[0], /^copy: "so the interface must" is still written in "SO THE INTERFACE MUST stay plain\."/);
+});
+
+// ---- card.mjs check: a project's own cards, people and professions, checked before they are cast
 
 const cli = fileURLToPath(at('scripts/card.mjs'));
 mkdirSync(fileURLToPath(at('tests/.tmp/')), { recursive: true });
@@ -1320,16 +1511,27 @@ const PERSON_CARD = write(PERSON_HEADER, PERSON_BODY);
 // What the command says of each file: a sound one, one passed over, one in no folder of cards, one unread.
 const ok = file => `${file}: ok\n`;
 const passedOver = file => `${file}: passed over: a README.md is never a card\n`;
-const noFolder = (file, folder) => `${file}: file: a card is in a folder named makers, judges or audiences, and a person in one named persons; this file is in "${folder}"\n`;
+const noFolder = (file, folder) => `${file}: file: a card is in a folder named makers, judges or audiences, a person in one named persons, and a profession's profile in one named profiles; this file is in "${folder}"\n`;
+const PROFILE_CARD = profileText();
 const unread = (file, why) => `${file}: file: cannot be read: ${why}\n`;
 const isFolder = file => `${file}: file: this is a folder, and files are checked one by one: name each file in it\n`;
 const faultsOf = (file, faults) => faults.map(fault => `${file}: ${fault}\n`).join('');
 
-test('card.mjs prints its usage for --help and -h, and the usage gives the one form it takes', () => {
-  assert.match(USAGE, /^Usage: node scripts\/card\.mjs check <file>\.\.\.\n\n/);
-  for (const args of [['--help'], ['-h'], ['check', '--help'], ['check', 'makers/room-lister.md', '-h']]) assert.deepEqual(check(args), [0, USAGE, ''], args.join(' '));
+test('card.mjs prints its usage for --help and -h, and the usage gives the two forms it takes', () => {
+  assert.match(USAGE, /^Usage: node scripts\/card\.mjs check <file>\.\.\.\n {7}node scripts\/card\.mjs traits <profile> --out <file>\n\n/);
+  for (const args of [['--help'], ['-h'], ['check', '--help'], ['check', 'makers/room-lister.md', '-h'], ['traits', '--help'], ['traits', 'profiles/front-desk.md', '--out', 'x.md', '-h']]) assert.deepEqual(check(args), [0, USAGE, ''], args.join(' '));
   // What it says of itself is what it does: the folders, the README, the three exit codes.
-  for (const folder of [...Object.keys(FOLDERS), PERSON_FOLDER]) assert.ok(USAGE.includes(`${folder}/`), folder);
+  for (const folder of [...Object.keys(FOLDERS), PERSON_FOLDER, PROFILE_FOLDER]) assert.ok(USAGE.includes(`${folder}/`), folder);
+  const usage = USAGE.replace(/\s+/g, ' ');
+  // R162: what a profession's profile is held to, and what its copy for an audience is.
+  assert.ok(usage.includes('a file in profiles/ is a profession\'s profile, held to the sections and the labels of templates/people/PROFILE-CARD.md'));
+  assert.ok(existsSync(at('templates/people/PROFILE-CARD.md')));
+  for (const said of [`its id is profile.<name>, the name its file's`, ...CHARACTERISTICS, ...PROFILE_CLOSING, ...FIELDS.map(field => `"${field}:"`),
+    'and "So the interface must:" is written nowhere but at the start of a line',
+    'traits writes the audience\'s copy of a profession\'s profile to --out', 'without each "So the interface must:" field, from its label to the next blank line',
+    'and without each paragraph before the first section that speaks of the fields themselves (one that says "fourth field" or "four fields")',
+    'It refuses a profile that fails check', 'and a copy in which the words "so the interface must" are still written, in any case',
+    '--out is not the profile itself; its folder is made when it is not there']) assert.ok(usage.includes(said), said);
   assert.match(USAGE, /A file named README\.md is never a card: it is\npassed over, and its line says so\. A path that cannot be reached, whatever its name, is a file that\ncannot be read/);
   assert.match(USAGE, /A folder is not checked: files are named one by one/);
   assert.match(USAGE, /pool\/CARD-FORMAT\.md/);
@@ -1406,8 +1608,9 @@ test('card.mjs check: the folder says what a file is: a seat in makers/, judges/
 
 test('card.mjs check: a file in any other folder is no card to check, which is a fault', () => {
   const pool = projectPool();
+  mkdirSync(join(pool, 'work'));
   const outside = [
-    [put(pool, 'profiles/front-desk.md', '---\nid: profile.front-desk\n---\n# Front desk\n'), 'profiles'],
+    [put(pool, 'work/front-desk.md', PROFILE_CARD), 'work'],
     // A sound card beside the folders, and one a folder too deep.
     [put(pool, 'room-lister.md', MAKER_CARD), 'pool'],
     [(mkdirSync(join(pool, 'makers', 'more')), put(pool, 'makers/more/room-lister.md', MAKER_CARD)), 'more'],
@@ -1416,7 +1619,7 @@ test('card.mjs check: a file in any other folder is no card to check, which is a
   // One that is not there is a file that cannot be read, here as in a folder of cards.
   const nowhere = join(pool, 'profiles', 'nowhere.md');
   assert.deepEqual(check(['check', nowhere]), [1, unread(nowhere, 'not found'), '']);
-  // A folder named like one of the four, with a prefix, is another folder.
+  // A folder named like one of the five, with a prefix, is another folder.
   mkdirSync(join(pool, 'my-makers'));
   const near = put(pool, 'my-makers/room-lister.md', MAKER_CARD);
   assert.deepEqual(check(['check', near]), [1, noFolder(near, 'my-makers'), '']);
@@ -1494,11 +1697,12 @@ test('card.mjs check: several files in one run are reported in the order given, 
   const judge = put(pool, FILE.judge, JUDGE_CARD);
   const person = put(pool, PERSON_FILE, PERSON_CARD);
   const faulty = put(pool, FILE.maker, MAKER_CARD.replace('engine: own\n', 'engine: magic\n'));
-  const profile = put(pool, 'profiles/front-desk.md', '# Front desk\n');
+  const profile = put(pool, 'profiles/front-desk.md', PROFILE_CARD);
+  const stray = put(pool, 'front-desk.md', PROFILE_CARD);
   const readme = join(pool, 'audiences', 'README.md');
   const fault = `${faulty}: header: "engine" must be own, skill:<name>, model:any or tool:<name>; it is "magic"\n`;
-  assert.deepEqual(check(['check', judge, faulty, readme, person, profile]), [1, `${ok(judge)}${fault}${passedOver(readme)}${ok(person)}${noFolder(profile, 'profiles')}`, '']);
-  assert.deepEqual(check(['check', person, readme, judge]), [0, `${ok(person)}${passedOver(readme)}${ok(judge)}`, '']);
+  assert.deepEqual(check(['check', judge, faulty, readme, person, profile, stray]), [1, `${ok(judge)}${fault}${passedOver(readme)}${ok(person)}${ok(profile)}${noFolder(stray, 'pool')}`, '']);
+  assert.deepEqual(check(['check', person, readme, judge, profile]), [0, `${ok(person)}${passedOver(readme)}${ok(judge)}${ok(profile)}`, '']);
   // A file named twice is checked twice: the command keeps no list of its own.
   assert.deepEqual(check(['check', judge, judge]), [0, `${ok(judge)}${ok(judge)}`, '']);
 });
@@ -1521,14 +1725,135 @@ test('card.mjs: bad usage says what is wrong, then prints the usage, and exits 2
   const pool = projectPool();
   const faulty = put(pool, FILE.maker, '# Not a card\n');
   for (const [args, message] of [
-    [[], 'no verb given: card.mjs takes check'],
-    [['validate', faulty], 'unknown verb "validate": card.mjs takes check'],
-    [[faulty], `unknown verb "${faulty}": card.mjs takes check`],
+    [[], 'no verb given: card.mjs takes check or traits'],
+    [['validate', faulty], 'unknown verb "validate": card.mjs takes check or traits'],
+    [[faulty], `unknown verb "${faulty}": card.mjs takes check or traits`],
     [['check'], 'check takes at least one <file>'],
     [['check', faulty, '--fix'], 'unknown flag --fix'],
     [['--strict', 'check', faulty], 'unknown flag --strict'],
     [['check', '--out=report.txt', faulty], 'unknown flag --out'],
   ]) assert.deepEqual(check(args), [2, '', `${message}\n\n${USAGE}`], args.join(' '));
+});
+
+test('card.mjs check: a file in profiles/ is a profession\'s profile, held to the profile checker, its faults printed as a card\'s are', () => {
+  const pool = projectPool();
+  const sound = put(pool, PROFILE_FILE, PROFILE_CARD);
+  assert.deepEqual(check(['check', sound]), [0, ok(sound), '']);
+  assert.deepEqual(check(['check', 'front-desk.md'], join(pool, 'profiles')), [0, ok('front-desk.md'), '']);
+  // The file's name is part of the check, and so is each characteristic's fourth label.
+  const renamed = put(pool, 'profiles/front-office.md', PROFILE_CARD);
+  assert.deepEqual(check(['check', renamed]), [1, `${renamed}: header: "id" names "front-desk", but the file is profiles/front-office.md: it must be profile.front-office\n`, '']);
+  const text = profileText({ sections: withSection('Scope', TRAITS).filter(([name]) => name !== 'Specialties') });
+  const faulty = put(pool, PROFILE_FILE, text);
+  const [status, printed, said] = check(['check', faulty]);
+  assert.deepEqual([status, said], [1, '']);
+  assert.equal(printed, faultsOf(faulty, validateProfile(text, { file: PROFILE_FILE })));
+  assert.equal(printed.trimEnd().split('\n').length, 2);
+  assert.match(printed, /: body: "## Specialties" is missing/);
+  assert.match(printed, /: body: "## Scope" lacks its field "So the interface must:", the label at the start of a line\n/);
+  assert.equal(readFileSync(faulty, 'utf8'), text, 'the file is left as it was');
+  // A person put among the profiles is held to a profile, and a profile among the persons to a person.
+  const person = put(pool, 'profiles/desk-cover.md', PERSON_CARD);
+  assert.equal(check(['check', person])[1], faultsOf(person, validateProfile(PERSON_CARD, { file: 'profiles/desk-cover.md' })));
+  const misplaced = put(pool, 'persons/front-desk.md', PROFILE_CARD);
+  assert.equal(check(['check', misplaced])[1], faultsOf(misplaced, validatePerson(PROFILE_CARD, { file: 'persons/front-desk.md' })));
+  // The README of profiles/ is passed over, as every folder's is.
+  assert.deepEqual(check(['check', join(pool, 'profiles', 'README.md')]), [0, passedOver(join(pool, 'profiles', 'README.md')), '']);
+});
+
+// ---- card.mjs traits: the audience's copy of a profession's profile (R162)
+
+const wrote = (file, out, fields = 7, paragraphs = ', and 2 paragraphs about the fields') => `wrote the traits of ${file} to ${out}: ${fields} "So the interface must:" fields taken out${paragraphs}\n`;
+const notWritten = (file, faults) => `no copy of ${file} is written:\n${faults.map(fault => `${file}: ${fault}\n`).join('')}`;
+
+test('card.mjs traits writes the copy of a sound profile to --out, in a folder it makes, and says what it took out', () => {
+  const pool = projectPool();
+  const file = put(pool, PROFILE_FILE, PROFILE_CARD);
+  const out = join(pool, '..', 'today', 'work', 'the traits.md');
+  assert.deepEqual(check(['traits', file, '--out', out]), [0, wrote(file, out), '']);
+  assert.equal(readFileSync(out, 'utf8'), TRAITS_COPY);
+  assert.equal(readFileSync(out, 'utf8'), traitsOf(PROFILE_CARD, { file: PROFILE_FILE }).copy);
+  assert.equal(readFileSync(file, 'utf8'), PROFILE_CARD, 'the profile is left as it was');
+  // Run again it writes the same copy over the first; --out=value is the same; a path is read from where it is run.
+  assert.deepEqual(check(['traits', `--out=${out}`, file]), [0, wrote(file, out), '']);
+  assert.deepEqual(check(['traits', 'profiles/front-desk.md', '--out', 'traits.md'], pool), [0, wrote('profiles/front-desk.md', 'traits.md'), '']);
+  assert.equal(readFileSync(join(pool, 'traits.md'), 'utf8'), TRAITS_COPY);
+  // One paragraph is said as one, and none is not said; an added characteristic's field is counted with the seven.
+  const one = put(pool, 'profiles/night-desk.md', profileText({ id: 'profile.night-desk', opening: [DESCRIBED, EXPLAINED[0]] }));
+  assert.deepEqual(check(['traits', one, '--out', join(pool, 'one.md')]), [0, wrote(one, join(pool, 'one.md'), 7, ', and 1 paragraph about the fields'), '']);
+  const sections = profileSections();
+  const none = put(pool, 'profiles/day-desk.md', profileText({ id: 'profile.day-desk', opening: [DESCRIBED], sections: [...sections.slice(0, 7), ['Physical conditions', fieldsOf()], ...sections.slice(7)] }));
+  assert.deepEqual(check(['traits', none, '--out', join(pool, 'none.md')]), [0, wrote(none, join(pool, 'none.md'), 8, ''), '']);
+  assert.doesNotMatch(readFileSync(join(pool, 'none.md'), 'utf8'), /interface must/);
+  // Every profile the kit holds as a fixture gives a copy with no criterion left, and with its seven fields gone.
+  const fixture = fileURLToPath(at('evals/audience-stays-blind/fixture/design/pool/profiles/front-desk-coordinator.md'));
+  const copy = join(pool, 'fixture-traits.md');
+  assert.deepEqual(check(['traits', fixture, '--out', copy]), [0, wrote(fixture, copy), '']);
+  const written = readFileSync(copy, 'utf8');
+  assert.doesNotMatch(written, /interface must|fourth field|profile judge|An audience/i);
+  assert.match(written, /^---\nid: profile\.front-desk-coordinator\n---\n\n# Front-desk coordinator\n\nThe person who runs the front desk of a small clinic\.[^\n]*\n\n## Scope\n\nWhat is true: /);
+  assert.equal(written.split('\nEvidence: guess\n').length - 1, 7);
+});
+
+test('card.mjs traits refuses a profile that fails its check, printing its faults as check does, and writes nothing', () => {
+  const pool = projectPool();
+  const text = profileText({ sections: withSection('Scope', TRAITS) });
+  const faulty = put(pool, PROFILE_FILE, text);
+  const out = join(pool, 'traits.md');
+  writeFileSync(out, 'An earlier copy.\n');
+  const faults = validateProfile(text, { file: PROFILE_FILE });
+  assert.equal(faults.length, 1);
+  assert.deepEqual(check(['traits', faulty, '--out', out]), [1, '', notWritten(faulty, faults)]);
+  assert.equal(readFileSync(out, 'utf8'), 'An earlier copy.\n', 'what was there is left');
+  assert.deepEqual(check(['traits', faulty, '--out', join(pool, 'none', 'traits.md')])[0], 1);
+  assert.ok(!existsSync(join(pool, 'none')), 'no folder is made for a copy that is not written');
+  // What is no profile: a file of another folder, a README, a folder, a file that is not there.
+  const person = put(pool, PERSON_FILE, PERSON_CARD);
+  const not = folder => `file: traits are taken from a profession's profile, a file in a folder named profiles; this file is in "${folder}"`;
+  assert.deepEqual(check(['traits', person, '--out', out]), [1, '', notWritten(person, [not('persons')])]);
+  const stray = put(pool, 'front-desk.md', PROFILE_CARD);
+  assert.deepEqual(check(['traits', stray, '--out', out]), [1, '', notWritten(stray, [not('pool')])]);
+  const readme = join(pool, 'profiles', 'README.md');
+  assert.deepEqual(check(['traits', readme, '--out', out]), [1, '', notWritten(readme, ['file: a README.md is never a card: it has no traits'])]);
+  const folder = join(pool, 'profiles');
+  assert.deepEqual(check(['traits', folder, '--out', out]), [1, '', notWritten(folder, ['file: this is a folder: name the profile in it'])]);
+  const nowhere = join(pool, 'profiles', 'nowhere.md');
+  assert.deepEqual(check(['traits', nowhere, '--out', out]), [1, '', notWritten(nowhere, ['file: cannot be read: not found'])]);
+  assert.equal(readFileSync(out, 'utf8'), 'An earlier copy.\n');
+});
+
+test('card.mjs traits refuses a copy in which the words are still written, naming the line, and writes nothing', () => {
+  const pool = projectPool();
+  const leaking = put(pool, PROFILE_FILE, profileText({ sections: withSection('Usage context', fieldsOf().replace('the phone at her ear.', 'the phone at her ear, so the interface must be read standing.')) }));
+  const out = join(pool, 'traits.md');
+  assert.deepEqual(check(['check', leaking]), [0, ok(leaking), ''], 'the profile is sound');
+  assert.deepEqual(check(['traits', leaking, '--out', out]), [1, '', notWritten(leaking, [
+    'copy: "so the interface must" is still written in "What is true: She stands at a counter, the phone at her ear, so the interface must be read standing.": an audience is never handed what the interface must do',
+  ])]);
+  assert.ok(!existsSync(out));
+});
+
+test('card.mjs traits: bad usage, and a copy that cannot be written', () => {
+  const pool = projectPool();
+  const file = put(pool, PROFILE_FILE, PROFILE_CARD);
+  const out = join(pool, 'traits.md');
+  for (const [args, message, cwd] of [
+    [['traits'], 'traits takes one <profile>, got 0'],
+    [['traits', file, file, '--out', out], 'traits takes one <profile>, got 2'],
+    [['traits', file], '--out is missing'],
+    [['traits', file, '--out'], '--out needs a value'],
+    [['traits', file, '--out', file], '--out is the profile itself: writing the copy would overwrite it'],
+    [['traits', 'front-desk.md', '--out', './front-desk.md'], '--out is the profile itself: writing the copy would overwrite it', join(pool, 'profiles')],
+    [['traits', file, '--out', out, '--force'], 'unknown flag --force'],
+    [['check', file, '--out', out], 'unknown flag --out'],
+  ]) assert.deepEqual(check(args, cwd), [2, '', `${message}\n\n${USAGE}`], args.join(' '));
+  assert.ok(!existsSync(out));
+  assert.equal(readFileSync(file, 'utf8'), PROFILE_CARD);
+  // --out under a file cannot be written: a refusal of the run, with the reason.
+  const under = join(file, 'traits.md');
+  const [status, printed, said] = check(['traits', file, '--out', under]);
+  assert.deepEqual([status, printed], [1, '']);
+  assert.match(said, /^cannot write .*traits\.md: /);
 });
 
 test('card.mjs check: every card and every person of the kit\'s own pool is sound, in one run from the kit\'s root', () => {

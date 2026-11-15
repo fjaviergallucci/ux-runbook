@@ -965,9 +965,9 @@ test('the conductor opens with the words it uses, and tells the project profile 
   assert.match(flat(opening), /\*\*The project profile\*\* is `PROFILE\.md`/);
   assert.match(flat(opening), /\*\*A profession's profile\*\* is a profile card/);
   assert.match(flat(opening), /No seat is ever handed the project profile/);
-  // Everywhere in the conductor the word is one of the two, the name of a judge, or the flag of a script.
+  // Everywhere in the conductor the word is one of the two, the name of a judge, or the flag or the slot of a script.
   for (const [file, text] of Object.entries(folderOf('design'))) {
-    const rest = flat(text).replace(/project profile|profession's profile|profile judges?|profile card|--profile|PROFILE\.md/g, '');
+    const rest = flat(text).replace(/project profile|profession's profile|profile judges?|profile card|--profile|traits <profile> --out|PROFILE\.md/g, '');
     assert.doesNotMatch(rest, /profile/i, `${file}: "profile" alone says neither the project profile nor a profession's profile`);
   }
 });
@@ -2136,11 +2136,11 @@ test('cast: a project\'s own cards are checked before one is read, a faulty one 
     [9, 'Show each seat\'s suggested model and effort, as its card has them'], [10, 'Say why each seat is here, in one line: what it catches, and what it costs'],
     [11, 'Fill the rest of the sheet'],
   ]);
-  // The check: every file of the four folders, in one run, as the command takes them.
+  // The check: every file of the five folders, in one run, as the command takes them (R162: a profession's profile is checked too).
   assert.ok(stageCommands('cast').includes('node <kit root>/scripts/card.mjs check <file>...'));
-  assert.match(steps, /Name every `\.md` file of the project's `makers\/`, `judges\/`, `audiences\/` and `persons\/` folders in one run, each by its path, as `<packages>\/pool\/judges\/booking-truth\.md`/);
+  assert.match(steps, /Name every `\.md` file of the project's `makers\/`, `judges\/`, `audiences\/`, `persons\/` and `profiles\/` folders in one run, each by its path, as `<packages>\/pool\/judges\/booking-truth\.md`/);
   const usage = KIT.usage('scripts/card.mjs');
-  for (const folder of ['makers/', 'judges/', 'audiences/', 'persons/']) assert.ok(usage.includes(folder), `card.mjs checks ${folder}`);
+  for (const folder of ['makers/', 'judges/', 'audiences/', 'persons/', 'profiles/']) assert.ok(usage.includes(folder), `card.mjs checks ${folder}`);
   assert.match(steps, /It prints one line for each file\. `ok`: the card is sound, and you may read it\. A file named `README\.md` is passed over: it is never a card/);
   assert.match(usage, /A file named README\.md is never a card: it is\s+passed over/);
   assert.match(flat(setup()), /each with a one-line `README\.md`/);
@@ -5705,7 +5705,12 @@ test('the dry run, the loop again: a list is one question, what he accepted is p
     'Where the seats rank the options differently it is one recommendation still, and its reason says that they rank them differently and that he settles it.');
   // R162: the copy of a profession\'s profile is made by the card script, never by hand.
   says(loop, 'The kit\'s card script, `scripts/card.mjs`, makes the copy, by its `traits` verb, from her profession\'s profile, at the path given after `--out`',
-    'with the paragraph that explains the field, and refuses a card that fails its check. The copy is never made by hand.');
+    'It takes out each field, from its label to the next blank line, with each paragraph of the opening that speaks of the fields. It refuses a profession\'s profile that fails its check, and a copy in which the words "so the interface must" are still written: then nothing is written, and what it printed goes to the founder.',
+    'The copy is never made by hand.');
+  // The command is given as the script takes it, and what the sentence says of it is what its usage says.
+  assert.ok(commandsOf(reference('loop.md')).includes('node <kit root>/scripts/card.mjs traits <profile> --out <file>'));
+  const cardUsage = KIT.usage('scripts/card.mjs').replace(/\s+/g, ' ');
+  for (const said of ['from its label to the next blank line', 'each paragraph before the first section that speaks of the fields themselves', 'It refuses a profile that fails check', 'a copy in which the words "so the interface must" are still written']) assert.ok(cardUsage.includes(said), said);
   // F53, F77, R177, R171: a brief has a name, the reads folder is made first, and a seat is told which pictures come first.
   says(loop, 'Its name is `<stage>-<seat>-brief.md`', '**Make the stage\'s `reads/` folder before you start its readers.** A seat writes its own file there, and never lists the folder',
     '**A seat handed more pictures than one read opens is told which come first:**', 'which pictures show the first screen only, as she meets it before any scrolling, and which the whole page.');

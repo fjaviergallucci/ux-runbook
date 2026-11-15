@@ -110,10 +110,17 @@ What it reads is named by its letter or by what it is, never by who made it.
   gives the person (her card), where she starts and what she wants, and pictures. Where she has a
   profession's profile, write a copy of it beside the brief with every `So the interface must:` field
   removed, and hand her that copy. The kit's card script, `scripts/card.mjs`, makes the copy, by its
-  `traits` verb, from her profession's profile, at the path given after `--out`: it takes out each
-  field, from its label to the next blank line, with the paragraph that explains the field, and
-  refuses a card that fails its check. The copy is never made by hand. List her profession's profile itself under "Do not
-  open", with the intent.
+  `traits` verb, from her profession's profile, at the path given after `--out`:
+
+  ```
+  node <kit root>/scripts/card.mjs traits <profile> --out <file>
+  ```
+
+  It takes out each field, from its label to the next blank line, with each paragraph of the
+  opening that speaks of the fields. It refuses a profession's profile that fails its check, and a
+  copy in which the words "so the interface must" are still written: then nothing is written, and
+  what it printed goes to the founder. The copy is never made by hand. List her profession's profile
+  itself under "Do not open", with the intent.
 - **A seat handed more pictures than one read opens is told which come first:** those its checks, or
   her tasks, need, by name. What it did not open, it lists. An audience's brief also says which
   pictures show the first screen only, as she meets it before any scrolling, and which the whole page.

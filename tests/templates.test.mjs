@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, 
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { TYPES, validateAcceptance } from '../scripts/accept.mjs';
-import { PERSON_KEYS, PERSON_SECTIONS, validatePerson } from '../scripts/lib/card.mjs';
+import { CHARACTERISTICS as PROFILE_CHARACTERISTICS, FIELDS as PROFILE_FIELDS, PERSON_KEYS, PERSON_SECTIONS, PROFILE_CLOSING, PROFILE_KEYS as PROFESSION_KEYS, traitsOf as profileTraits, validatePerson, validateProfile } from '../scripts/lib/card.mjs';
 import { carryProblems } from '../scripts/lib/carry.mjs';
 import { parse } from '../scripts/lib/frontmatter.mjs';
 import { MAP, PICK, SealedError, mergeProposals, openMap } from '../scripts/lib/merge.mjs';
@@ -886,6 +886,33 @@ test('people/PROFILE-CARD.md has the seven characteristics, each with its four f
   assert.equal(triggers.length, 8);
   const optional = section(body, 'Optional characteristics').split('\n').filter(line => line.startsWith('- ')).map(line => /^- \*\*(.+?)\*\*/.exec(line)?.[1].toLowerCase());
   assert.deepEqual(optional, triggers.map(name => name.toLowerCase()));
+});
+
+// R162: the checker and the copy of scripts/lib/card.mjs are held to the template, as the person's are.
+test('people/PROFILE-CARD.md, with its id filled, is a profile the checker takes, and its copy for an audience holds no criterion', () => {
+  const { data, body } = parse(template('people/PROFILE-CARD.md'));
+  assert.deepEqual(Object.keys(data), PROFESSION_KEYS);
+  assert.deepEqual(headings(body), [...PROFILE_CHARACTERISTICS, ...PROFILE_CLOSING]);
+  assert.deepEqual(PROFILE_CHARACTERISTICS, CHARACTERISTICS);
+  assert.deepEqual(PROFILE_FIELDS.map(field => `${field}:`), FIELDS);
+  const file = 'profiles/front-desk-coordinator.md';
+  const filled = template('people/PROFILE-CARD.md').replace(/^id: profile\.\{[^{}]+\}$/m, 'id: profile.front-desk-coordinator');
+  assert.deepEqual(validateProfile(filled, { file }), []);
+  // The checker is asked, not passed by: as the template stands its id is no id, and without a label a characteristic is faulty.
+  assert.equal(validateProfile(template('people/PROFILE-CARD.md'), { file }).length, 1);
+  assert.equal(validateProfile(filled.replace('\nSo the interface must: {', '\nSo it must: {'), { file }).length, 1);
+  // The copy: the seven fields and the example's gone, with the two paragraphs of the opening that explain the fields.
+  const made = profileTraits(filled, { file });
+  assert.deepEqual([made.faults, made.fields, made.paragraphs], [[], CHARACTERISTICS.length + 1, 2]);
+  assert.equal(count(made.copy.toLowerCase(), 'the interface must'), 0);
+  const opening = made.copy.slice(0, made.copy.indexOf('\n## '));
+  assert.doesNotMatch(opening, /fourth field|four fields|profile judge|An audience/);
+  assert.match(flat(opening).trim(), /\{A line or two: the profession this card speaks for, and how much of it is known and how much guessed\.\}$/);
+  assert.deepEqual(headings(made.copy), headings(filled), 'every heading stays');
+  for (const label of FIELDS.slice(0, -1)) assert.equal(count(made.copy, `\n${label}`), count(filled, `\n${label}`), `${label} stays`);
+  // Past the opening, it is what the rule of the audience's brief gives: every block that begins with the fourth label, and no other.
+  const past = text => text.slice(text.indexOf('\n## '));
+  assert.equal(past(made.copy), past(traitsOf(filled)));
 });
 
 test('a profile\'s "So the interface must" fields can be taken out by rule, leaving the traits and nothing of the criteria', () => {

@@ -55,8 +55,8 @@ a stage the route skips is deleted.
 2. **Read the intent, and what its carry list names.** Copy the template to `<package>/03-cast.md` and
    write `built-from`, unless the file is already there: then go on from what it holds.
 3. **Check the project's own cards before you read one.** Name every `.md` file of the project's
-   `makers/`, `judges/`, `audiences/` and `persons/` folders in one run, each by its path, as
-   `<packages>/pool/judges/booking-truth.md`:
+   `makers/`, `judges/`, `audiences/`, `persons/` and `profiles/` folders in one run, each by its
+   path, as `<packages>/pool/judges/booking-truth.md`:
 
    ```
    node <kit root>/scripts/card.mjs check <file>...
