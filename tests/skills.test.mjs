@@ -5044,7 +5044,7 @@ test('acceptance: an account is named by its role; no password, token or key is 
   assert.match(never, /\*\*Never write, print or copy a password, a token or a key:\*\* not into the package, a results file, a picture's name, a brief or a command line\. An account is named by its role and where its sign-in is kept\. Never open a keys file, and never print the environment/);
   assert.match(never, /\*\*Never photograph a real person's data\.\*\* A picture that would show it is not taken, and the report says so/);
   const secrets = flat(section(driving, 'Accounts, data and secrets'));
-  inOrder(secrets, [/\*\*An account is named by its role,\*\* as "the front-desk account of the test clinic", and `STATES\.md` or the project profile says where its sign-in is kept\. The driver takes the sign-in from there\. You never read it out, type it on a command line, print it, or write it anywhere/,
+  inOrder(secrets, [/\*\*An account is named by its role,\*\* as "the front-desk account of the test clinic", and `STATES\.md` or the project profile says where its sign-in is kept\. The project's own driver takes the sign-in from there: a driver you wrote opens files, and signs in nowhere\. You never read it out, type it on a command line, print it, or write it anywhere/,
     /\*\*Nothing that signs in is written down\.\*\* Not in a results file, a picture's name, a brief, the report or `by-hand\.md`/, /the address is written as its route, without the query, and the driver is not asked to print the address it opened/,
     /\*\*A credential found in a file\*\* .* is not copied and not repeated: tell the founder which file and which line, say that it is exposed and should be changed, and stop until the file no longer holds it/,
     /\*\*Seeded or test data only\.\*\* .* If a picture or a result would show a real person's data, it is not taken/, /\*\*Never open a keys file,\*\* and never print the environment, to find out why a sign-in failed/], 'accounts and secrets');
@@ -5938,13 +5938,39 @@ test('the dry run, Look, Handoff and Acceptance: the table is held to the run, n
     'One row for every row of the "States" tables of `SPEC.md`, those that cannot occur marked so', 'A row leads to the state\'s behaviour, not only to its picture.');
   // Acceptance: R159, R183, F104, F105, F107, F108, F110, R174.
   const acceptance = stageSkill('acceptance');
-  says(stepOf(section(acceptance, 'Steps'), 'Start the build and sign in'), '**Where the project profile names no script, there is no driver:** say so to the founder and, on his yes, write the project\'s driver, one script in the project, on the kit\'s `scripts/lib/browser.mjs`, and write its command into the project profile.');
+  // R189, which corrects R159: the kit writes a driver only for a build that opens as files, since its browser library opens
+  // local files and nothing else. A build that needs a server or a sign-in has no driver the kit can write: he is told, and the
+  // stage stops. No step has a session write code that fetches a sign-in.
+  const start = stepOf(section(acceptance, 'Steps'), 'Start the build and sign in');
+  says(start, '**Where the project profile names no script, there is no driver.** For a build that opens as files, say so to the founder and, on his yes, written under `## Reviewed by the founder` first, write the project\'s driver, one script in the project, on the kit\'s `scripts/lib/browser.mjs`, and write its command into the project profile.',
+    'For a build that needs a server or a sign-in the kit can write none: say so to him, open, and stop, as step 2 stops on a credential.');
   assert.ok(existsSync(at('scripts/lib/browser.mjs')) && existsSync(at('scripts/lib/chrome.mjs')));
+  // What the section rests on is true of the library: every page it opens is a local file.
+  const library = read('scripts/lib/browser.mjs');
+  assert.match(library, /pathToFileURL\(resolve\(file\)\)/);
+  assert.doesNotMatch(library, /https?:\/\//);
+  // M8: the library is among the skill's reads, for the case it is read in.
+  says(section(acceptance, 'Reads'), '`scripts/lib/browser.mjs`, where step 3 has you write a driver.');
   const driving = stageRef('acceptance', 'driving.md');
-  says(section(driving, 'When the project keeps no driver'), 'may you write the project\'s driver? On his yes, and never before:', 'Its header is its contract: read it, and use only what it gives.',
-    '**For each state, the driver does five things:**', '**It holds no sign-in.**', '**Its command goes into the project profile,** under "How a browser check is run here", once he has seen the line');
-  says(setup(), 'A project with no script for a browser check reads "no script": Acceptance then writes one, on his yes.');
-  says(read('templates/project/PROFILE.md'), '"No script" is an answer: Acceptance then writes one, on his yes.');
+  const noDriver = section(driving, 'When the project keeps no driver');
+  assert.match(flat(noDriver), /^ The kit can write a driver only for a build that opens as files: its browser library, `scripts\/lib\/browser\.mjs`, opens local files and nothing else\. This section is for that case alone\./);
+  says(noDriver, '**A build that needs a server or a sign-in has no driver the kit can write.** Say so to the founder, open',
+    'Then stop, as step 2 of the skill stops on a credential. You write no script that starts a server, opens an address or signs in, and none that takes a sign-in from where it is kept.',
+    // M8: one question, the path named in it; his yes in the artefact before anything is written.
+    '**For a build that opens as files,** say so to the founder, and ask one thing: may you write the project\'s driver, at the path you name?',
+    'Name the path in the question: where the project keeps its scripts, as its own documents show.',
+    'His answer is written under "Reviewed by the founder" of `REPORT.md`, as he said it, before the driver is written. On his yes, and never before:',
+    '**One script, in the project,** at the path of his answer.', 'Its header is its contract: read it, and use only what it gives.',
+    '**For each state, the driver does five things:** it opens the state\'s file, as its row of `STATES.md` names it',
+    '**It holds no sign-in, and makes none.** A build that opens as files asks for none: no password, token or key is written in it, read by it, printed by it, or passed to it on a command line.',
+    '**Its command goes into the project profile,** under "How a browser check is run here", once he has seen the line');
+  assert.doesNotMatch(flat(noDriver), /takes one from where it is kept|where he says the project keeps such scripts/);
+  assert.match(flat(section(acceptance, 'Never')), /\*\*Never write a script that signs in,\*\* or one that takes a sign-in from where it is kept\./);
+  assert.ok(headings(read('templates/package/08-acceptance/REPORT.md')).includes('Reviewed by the founder'));
+  // The sign-in of a build that has one is the project's own driver's to take, never a script's that a session wrote.
+  says(section(driving, 'Accounts, data and secrets'), 'The project\'s own driver takes the sign-in from there: a driver you wrote opens files, and signs in nowhere.');
+  says(setup(), 'A project with no script for a browser check reads "no script": Acceptance then writes one, on his yes, for a build that opens as files.');
+  says(read('templates/project/PROFILE.md'), '"No script" is an answer: Acceptance then writes one, on his yes, if the build opens as files.');
   says(driving, 'A row that says the build only draws the state, and cannot do what the state does, is not sent back', '`ACCEPTANCE.md` leaves three kinds of thing to a hand',
     'press Tab until focus leaves the last stop', 'Set the root font size to 200%, and say in the entry what was set', 'needs a sideways scroll, or breaks a word across lines.',
     'a seat of the cast, the task reader where it names a person trying her task, or the founder. Where it names a language, a reader of that language looks.');

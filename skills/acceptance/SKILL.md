@@ -40,7 +40,8 @@ Did what was built match what was approved?
 - **The project profile,** `<packages>/PROFILE.md`: `browser-check`, `languages`, `components`,
   `facts` and `decisions-log`, with "How a browser check is run here" and "Design system".
 - **Of the kit:** the templates named under "Writes", `templates/briefs/judge.md`,
-  `templates/briefs/audience.md`, and `skills/design/references/lessons.md`.
+  `templates/briefs/audience.md`, `skills/design/references/lessons.md`, and
+  `scripts/lib/browser.mjs`, where step 3 has you write a driver.
 - **Never** anything else of the package's history: no earlier stage's folder, no reads folder of
   another stage, `<package>/07-handoff-gate/`, the package's `work/` folder, or the chat. A file of
   those that a seat is handed is named by its path, and you do not open it.
@@ -81,10 +82,12 @@ handoff folder up to date with each deviation he accepts: "Gate" says how.
    "How a browser check is run here" how it is looked at: headless, reduced motion set. `STATES.md`
    names an account by its role, and says where its sign-in is kept: the driver takes it from there.
    Use seeded or test data, and nothing else. `references/driving.md` has the whole of this step and
-   the next. **Where the project profile names no script, there is no driver:** say so to the
-   founder and, on his yes, write the project's driver, one script in the project, on the kit's
-   `scripts/lib/browser.mjs`, and write its command into the project profile. That page says what
-   it must do for each state.
+   the next. **Where the project profile names no script, there is no driver.** For a build that
+   opens as files, say so to the founder and, on his yes, written under `## Reviewed by the founder`
+   first, write the project's driver, one script in the project, on the kit's
+   `scripts/lib/browser.mjs`, and write its command into the project profile. For a build that needs
+   a server or a sign-in the kit can write none: say so to him, open, and stop, as step 2 stops on a
+   credential. That page has both.
 4. **Put each state on screen, check it there, and photograph it.** For each row of "States to
    drive" in `ACCEPTANCE.md`, reach the state as its row of `STATES.md` says, at the width and in the
    theme its checks name, and stay at the top of the page. The kit's in-page file makes the checks,
@@ -183,6 +186,7 @@ node <kit root>/scripts/state.mjs await <package> acceptance --question "<the on
 - **Never write, print or copy a password, a token or a key:** not into the package, a results file,
   a picture's name, a brief or a command line. An account is named by its role and where its sign-in
   is kept. Never open a keys file, and never print the environment.
+- **Never write a script that signs in,** or one that takes a sign-in from where it is kept.
 - **Never photograph a real person's data.** A picture that would show it is not taken, and the
   report says so.
 - **Never open the package's history:** an earlier stage's folder, another stage's ledgers, `work/`.

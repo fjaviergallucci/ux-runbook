@@ -57,12 +57,12 @@ A file you write while working that is none of these goes in `<scratch>`: never 
 2. **Read the project.** Find its design system: the token files, the folder of the component source,
    its documents. Find the document that says what the product does (`facts`), the languages and the
    format of their strings (`languages`, `strings-format`), how a browser check is run here
-   (`browser-check`), the decision log (`decisions-log`). Note each by its path from the project's
-   root. What you cannot find stays empty: you never guess a path or a fact.
-   A project with no script for a browser check reads "no script": Acceptance then writes one, on his yes.
-   **When the project has no design system, say so.** `tokens` and `components` stay empty, "Design
-   system" says "None yet", the project kit is the grey kit as it is, and Look will run once as a
-   direction. You do not start one here.
+   (`browser-check`), the decision log (`decisions-log`). Note each by its path from the project's root.
+   What you cannot find stays empty: you never guess a path or a fact. A project with no script for a
+   browser check reads "no script": Acceptance then writes one, on his yes, for a build that opens as
+   files. **When the project has no design system, say so.** `tokens` and `components` stay empty,
+   "Design system" says "None yet", the project kit is the grey kit as it is, and Look will run once as
+   a direction. You do not start one here.
 3. **Start the project profile.** First, where it goes: if `design` at the project's root already
    holds something else, ask him where the packages go before you write anything, and write his answer
    as `packages`, with `kit` under it. Then copy `templates/project/PROFILE.md` to

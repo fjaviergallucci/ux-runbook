@@ -19,21 +19,35 @@ browser check is run here" of the project profile gives it.
 
 ## When the project keeps no driver
 
+The kit can write a driver only for a build that opens as files: its browser library,
+`scripts/lib/browser.mjs`, opens local files and nothing else. This section is for that case alone.
 "How a browser check is run here" of the project profile may name a way of looking and no script:
-"no script" is an answer at setup. Then nothing drives the build yet. Say so to the founder, and ask
-one thing: may you write the project's driver? On his yes, and never before:
+"no script" is an answer at setup. Then nothing drives the build yet.
 
-- **One script, in the project,** where he says the project keeps such scripts. It is the project's
-  from then on: it is no file of the package, and you write nothing else of the build.
+**A build that needs a server or a sign-in has no driver the kit can write.** Say so to the founder,
+open: this build cannot be driven until the project has a script of its own for a browser check,
+named in the project profile. Then stop, as step 2 of the skill stops on a credential. You write no
+script that starts a server, opens an address or signs in, and none that takes a sign-in from where
+it is kept.
+
+**For a build that opens as files,** say so to the founder, and ask one thing: may you write the
+project's driver, at the path you name? Name the path in the question: where the project keeps its
+scripts, as its own documents show. Record the question with the `await` of the skill's gate, and
+put the stage back in work with the `begin` of step 1 once he has answered. His answer is written
+under "Reviewed by the founder" of `REPORT.md`, as he said it, before the driver is written. On his
+yes, and never before:
+
+- **One script, in the project,** at the path of his answer. It is the project's from then on: it is
+  no file of the package, and you write nothing else of the build.
 - **On the kit's browser library,** `scripts/lib/browser.mjs`, with `scripts/lib/chrome.mjs`, which
   finds the machine's own Chrome. The library starts and stops its own browser, one at a time,
   headless, with reduced motion set. Its header is its contract: read it, and use only what it gives.
-- **For each state, the driver does five things:** it opens the state as its row of `STATES.md`
-  says, at the group's width and in its theme; it evaluates the in-page file; it calls
-  `window.__uxAccept` with the group's checks; it writes what comes back, as it came; and it takes
-  the picture. Steps 2 to 9 of "A state", below, are what it runs.
-- **It holds no sign-in.** It takes one from where it is kept, as the next section says: no
-  password, token or key is written in it, printed by it, or passed to it on a command line.
+- **For each state, the driver does five things:** it opens the state's file, as its row of
+  `STATES.md` names it, at the group's width and in its theme; it evaluates the in-page file; it
+  calls `window.__uxAccept` with the group's checks; it writes what comes back, as it came; and it
+  takes the picture. Steps 2 to 9 of "A state", below, are what it runs.
+- **It holds no sign-in, and makes none.** A build that opens as files asks for none: no password,
+  token or key is written in it, read by it, printed by it, or passed to it on a command line.
 - **Its command goes into the project profile,** under "How a browser check is run here", once he
   has seen the line: the next acceptance finds a driver there.
 
@@ -44,8 +58,9 @@ visit says of the page, and write that.
 ## Accounts, data and secrets
 
 - **An account is named by its role,** as "the front-desk account of the test clinic", and
-  `STATES.md` or the project profile says where its sign-in is kept. The driver takes the sign-in
-  from there. You never read it out, type it on a command line, print it, or write it anywhere.
+  `STATES.md` or the project profile says where its sign-in is kept. The project's own driver takes
+  the sign-in from there: a driver you wrote opens files, and signs in nowhere. You never read it
+  out, type it on a command line, print it, or write it anywhere.
 - **Nothing that signs in is written down.** Not in a results file, a picture's name, a brief, the
   report or `by-hand.md`. Where a sign-in rides in an address, as a ticket or a token in its query,
   the address is written as its route, without the query, and the driver is not asked to print the
