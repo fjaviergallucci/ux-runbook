@@ -13,8 +13,8 @@ finding. A profile judge lists first the "So the interface must" lines that feed
 
 ## On a re-read
 
-{On a first read: the one line "first read", and no table. On a re-read: read the artefact cold and
-write the findings below first.}
+{On a first read: the one line "first read", and no table. On a re-read, or at Acceptance with an
+earlier stage's ledger: read the artefact cold and write the findings below first.}
 
 {Only then open this seat's earlier ledger and mark each of its findings: fixed · partly · still
 present. A cold finding that matches one becomes its mark, and is not written twice.}
@@ -27,6 +27,9 @@ present. A cold finding that matches one becomes its mark, and is not written tw
 
 {One row for each finding, the most severe first, each pointing at a place and offering a fix. "None",
 under the table, when there is nothing.}
+
+{At Structure, "Where" opens with the letters the finding holds for, as "A, C ·". An accepted deviation
+of the brief is one row at most: its severity reads "accepted at" and the stage, and it has no fix.}
 
 | # | Check | Kind | Result | Where | Why it matters | Severity | Fix | Done when |
 |---|---|---|---|---|---|---|---|---|

@@ -7,6 +7,7 @@
 
 - **Read by:** {her id, as `person.<name>`} · evidence: {her card's `evidence`} · {the primary seat, or the contrast seat}
 - **Shown:** {the options, by letter, or the one screen} · {the width} · {the language} · pictures only
+- **Not opened:** {the pictures she was handed and did not open, by name, or "none"}
 
 ## {The task, in the brief's words}
 

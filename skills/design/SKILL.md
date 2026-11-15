@@ -178,7 +178,7 @@ node <kit root>/scripts/state.mjs route <package> <stage> <full|short|skipped> -
   you do neither, except, in a design sized `correction`, to apply it after his nod
   (`references/routes.md`).
 - **Never ask more than one question on a page.** One question about one thing at a time, on a decision
-  page and in the chat.
+  page and in the chat. A list a seat returns is one thing, asked as one question: `references/loop.md`.
 - **Never open the sealed map before `PICK.md` exists.** The map says who made which option. It opens
   after his pick is written, and only the way `references/blind.md` gives.
 - **Never put a key or a key file's path on a command line.** `scripts/describe.mjs` finds its key

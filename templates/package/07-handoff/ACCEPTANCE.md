@@ -13,7 +13,7 @@ design's own. Then say here when the checks last ran on the prototype, and the c
 ## Success criteria, as checks
 
 {Each success criterion, word for word, and the checks that hold it, by id. A criterion no script can
-check is judged by eye: say who looks, and at which picture.}
+check is judged by eye: say who looks, a seat of the cast or the founder, and at which picture.}
 
 | Criterion | Checks | Judged by eye |
 |---|---|---|
@@ -30,7 +30,8 @@ map says how to reach each.}
 
 ## Measured values
 
-{The sizes, the gaps and the contrast pairs a build must hit, each held by a check.}
+{The sizes, the gaps and the contrast pairs a build must hit, each held by a check. "Value" is what was
+measured; a `contrast` check's `min` is the standard the row is held to, never the measured value.}
 
 | Element | What is measured | Value | Width | Theme | Check |
 |---|---|---|---|---|---|

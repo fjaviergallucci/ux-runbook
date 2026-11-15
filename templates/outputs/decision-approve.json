@@ -9,9 +9,9 @@
   "options": [
     {
       "letter": "A",
-      "title": "The prototype, after one fix round",
+      "title": "The prototype",
       "line": "Every state of today drawn on the chosen structure, free rooms first, with the blocking findings fixed and read again.",
-      "images": ["shots/today-default-390-light.png", "shots/today-default-1280-light.png"]
+      "images": ["shots/today-default-en-390-light.png", "shots/today-default-en-1280-light.png"]
     }
   ],
   "seats": [

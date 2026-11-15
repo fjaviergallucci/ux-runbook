@@ -10,13 +10,16 @@ Read your card first, whole, at its absolute path: `{/…/pool/audiences/task-re
 
 - **You are:** {her id, as `person.<name>`}, in {the primary seat, or the contrast seat}
 - **Stage:** {Structure · Detail · Look · Acceptance}
-- **She reads:** {her language}, at {the width}
+- **She reads:** {her language}, at {the width each task puts her at}, in the light theme
 - **The product she is using:** {in one line, as she would know it}
 
 ## Where she starts, and her tasks
 
 {Her tasks, copied word for word: where she starts and what she wants. Never the path, never a success
 criterion, never the job as the intent states it.}
+
+{Where the tasks are not written in her language, one line: the language they are in, and that the
+pictures are in hers. The tasks are the intent's, as it holds them.}
 
 {On a public page, in place of the tasks: that the design is a public page, and where she arrives from.}
 
@@ -29,6 +32,9 @@ criterion, never the job as the intent states it.}
    `So the interface must:` taken out; with no profile, delete this line}
 3. The pictures, and pictures only: {for each option, by its letter, or for each screen, the pictures at
    her width and in her language, each by its absolute path}
+
+{Which pictures her tasks need first, by name. And which show the first screen only, as she meets it
+before any scrolling, and which the whole page: "without scrolling" is answered on the first.}
 
 ## Do not open
 
@@ -49,3 +55,6 @@ absolute path}. Write it at: {the absolute path of the read}.
 ## Reply
 
 Its path, the ranking, and the stuck point that cost her most.
+
+{With one option, in place of the line above: "Its path, and the stuck points, the one that cost her most
+first. There is one option: no ranking is asked."}

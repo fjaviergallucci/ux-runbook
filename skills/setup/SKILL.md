@@ -59,6 +59,7 @@ A file you write while working that is none of these goes in `<scratch>`: never 
    format of their strings (`languages`, `strings-format`), how a browser check is run here
    (`browser-check`), the decision log (`decisions-log`). Note each by its path from the project's
    root. What you cannot find stays empty: you never guess a path or a fact.
+   A project with no script for a browser check reads "no script": Acceptance then writes one, on his yes.
    **When the project has no design system, say so.** `tokens` and `components` stay empty, "Design
    system" says "None yet", the project kit is the grey kit as it is, and Look will run once as a
    direction. You do not start one here.

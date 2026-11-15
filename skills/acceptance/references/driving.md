@@ -12,9 +12,34 @@ browser check is run here" of the project profile gives it.
   before you judge anything: a blank page is usually a server that is not running. What you start,
   you stop yourself, through your own handle, when the stage ends.
 - **The driver is the project's.** Headless, with reduced motion set. The kit's picture script and
-  its `prototype` command open files: neither signs in, so neither is used on a build.
+  its `prototype` command open files: they are not for a build that needs a session or a server. For
+  a build that opens as files they are not forbidden.
 - **One browser, one state at a time.** Never more than three browsers at once on the machine, the
   kit's scripts and the seats counted, and no process is ever stopped by its name or by a pattern.
+
+## When the project keeps no driver
+
+"How a browser check is run here" of the project profile may name a way of looking and no script:
+"no script" is an answer at setup. Then nothing drives the build yet. Say so to the founder, and ask
+one thing: may you write the project's driver? On his yes, and never before:
+
+- **One script, in the project,** where he says the project keeps such scripts. It is the project's
+  from then on: it is no file of the package, and you write nothing else of the build.
+- **On the kit's browser library,** `scripts/lib/browser.mjs`, with `scripts/lib/chrome.mjs`, which
+  finds the machine's own Chrome. The library starts and stops its own browser, one at a time,
+  headless, with reduced motion set. Its header is its contract: read it, and use only what it gives.
+- **For each state, the driver does five things:** it opens the state as its row of `STATES.md`
+  says, at the group's width and in its theme; it evaluates the in-page file; it calls
+  `window.__uxAccept` with the group's checks; it writes what comes back, as it came; and it takes
+  the picture. Steps 2 to 9 of "A state", below, are what it runs.
+- **It holds no sign-in.** It takes one from where it is kept, as the next section says: no
+  password, token or key is written in it, printed by it, or passed to it on a command line.
+- **Its command goes into the project profile,** under "How a browser check is run here", once he
+  has seen the line: the next acceptance finds a driver there.
+
+The library keeps what a visit returned only while the document that was loaded is still in the tab.
+A key that sends the page elsewhere loses its value by design: read where it went from what the
+visit says of the page, and write that.
 
 ## Accounts, data and secrets
 
@@ -46,7 +71,9 @@ name a `language` and a `screen`. For one state:
    the way `BUILD.md` says the build takes a language.
 3. **Reach the state by its row of `STATES.md`,** step by step, in order: the address, the seed
    step, the network condition, the account. Do what the row says, and no more. A row that does not
-   lead to the state is the builder's to correct: say which, and leave its checks not run.
+   lead to the state is the builder's to correct: say which, and leave its checks not run. A row
+   that says the build only draws the state, and cannot do what the state does, is not sent back:
+   its checks are run on what is drawn, and what is missing is a deviation, written as one.
 4. **Stay at the top of the page.** Do not scroll before the checks: `in-viewport` asks about the
    first screen, and an element that sticks is misjudged after a scroll.
 5. **Evaluate the in-page file.** `node <kit root>/scripts/accept.mjs inpage` prints its absolute
@@ -92,19 +119,28 @@ line, which goes into "The checks" of `REPORT.md` with the table, or with its pa
 
 ## The checks made by hand
 
-`ACCEPTANCE.md` lists, under "Accessibility checks", those no script makes, each with what holding
-looks like. You make them through the driver where a driver can, and you write down what you did and
-what you saw, never an opinion: `<package>/08-acceptance/by-hand.md`, one entry for each check and
-state.
+`ACCEPTANCE.md` leaves three kinds of thing to a hand: under "Accessibility checks", those no script
+makes, each with what holding looks like; under "Measured values", the rows that read "measured by a
+person"; and what `SPEC.md` holds with no page of its own. You make them through the driver where a
+driver can, and you write down what you did and what you saw, never an opinion:
+`<package>/08-acceptance/by-hand.md`, one entry for each check and state. A judge may quote that file
+as its evidence: an entry says what the driver read on every page it names, never what one picture
+suggests of the rest.
 
-- **The keyboard alone.** From the top of the state, press Tab until focus returns, and write the
-  stable id focus lands on at each press. Then the keys `SPEC.md` gives a meaning: Enter, Escape.
-  What holding looks like is the focus order of `SPEC.md`.
-- **Text at 200%.** Set it, photograph the state, and write whether anything is cut off or needs a
-  sideways scroll.
+- **The keyboard alone.** From the top of the state, press Tab until focus leaves the last stop,
+  and write the stable id focus lands on at each press. Then the keys `SPEC.md` gives a meaning:
+  Enter, Escape. What holding looks like is the focus order of `SPEC.md`.
+- **Text at 200%.** Set the root font size to 200%, and say in the entry what was set: where the
+  build sizes its text in pixels that changes nothing, and the page is zoomed in its place, which
+  is said too. Photograph the state, and write whether anything is cut off, needs a sideways
+  scroll, or breaks a word across lines.
+- **A value measured by a person.** Read it through the driver, and write how: what was counted,
+  and on which element. A value that differs from the table's on a page that is the approved one
+  is said so, with both ways of counting.
 - **Reduced motion.** It is set for every state: write what moved all the same.
 - **A screen reader,** and anything else no driver can make, is listed as not run, with that reason.
   It is his to make, or to waive in his words.
 
 A criterion `ACCEPTANCE.md` marks as judged by eye is looked at by the one it names, at the picture
-it names: a judge of the cast, or the founder. You do not judge it.
+it names: a seat of the cast, the task reader where it names a person trying her task, or the
+founder. Where it names a language, a reader of that language looks. You do not judge it.

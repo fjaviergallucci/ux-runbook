@@ -15,6 +15,8 @@ trait without one is trivia. An audience is handed the traits and never the four
 taken out by that rule: so every label stays as it is written, at the start of its line.
 
 No trait is invented: what nobody has said is a guess or unknown, and stays so until it has a source.
+What only the founder said of the profession is a guess too, written `guess (the founder, <date>)`
+under "Evidence", until someone of that profession has been heard.
 The card never speaks for a country, a specialty or a setting outside its scope. When an audience gets
 stuck where no fourth field predicted, a characteristic is missing here, and it is added.
 

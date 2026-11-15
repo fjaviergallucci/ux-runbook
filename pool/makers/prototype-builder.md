@@ -6,7 +6,7 @@ sits-at: [detail]
 cast-when: The design has more than one state or more than one language to see before anyone builds.
 presets: [surface, flow, system]
 loaded-with: none
-reads: [brief, chosen-structure, states-and-rules, strings, kit, person, profile]
+reads: [brief, chosen-structure, states-and-rules, strings, kit, example-data, person, profile]
 never-reads: [other-proposals, component-source]
 engine: own
 suggested-model: opus
@@ -48,16 +48,18 @@ on other pages.
 6. **Make it clickable.** Where an action or a link leads to another screen or state, pressing it opens
    that page, in the same language. A link has its `href`. For a button, one shared script of a few
    lines that follows an attribute (say `data-go`, holding the page to open) is enough, and it is the
-   only script a page loads. An action that leads nowhere yet does nothing.
+   only script a page loads. An action that leads nowhere yet does nothing. A row, a name or a time a
+   page shows as an example comes from the data your brief hands you: you make none up.
 7. **Write the index,** `index.html`, generated like the rest: every page as a link, grouped by screen,
    then state, then language. Its words are the screens' titles and the names of the states and the
    languages: names, not interface words, and all of them already in what the script reads.
 8. **Count, then look.** The pages number screens times states times languages, less the rows the states
    table marks "cannot occur" times the number of languages. Put that sum in your reply. Then
-   photograph the pages once and read what the script reports:
+   photograph the pages once and read what the script reports. `<kit root>` is the kit, two folders
+   above this card, and the pictures go in the folder your brief gives for your own check:
 
    ```
-   node scripts/shots.mjs <prototype folder> --out <a folder for the pictures> --widths <primary>,<phone>
+   node <kit root>/scripts/shots.mjs <prototype folder> --out <your check folder> --widths <primary>,<phone>
    ```
 
    A page with an error is yours to fix, in the description or the script. A page wider than the screen
@@ -80,7 +82,8 @@ the folder, the count as a sum, and what you could not build as it was specified
 - Never run the project's real components or its build. The prototype is files that open from a folder.
 - Never add a state, an element or a behaviour the specification does not name, and never drop one.
 - Never fake a state with a script.
-- Never fill a page with placeholder content.
+- Never fill a page with placeholder content, and never with an example you made up.
+- Never point from a page, a description or the script to another file of the package.
 
 ## Borrowed
 

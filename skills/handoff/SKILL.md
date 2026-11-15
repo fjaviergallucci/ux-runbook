@@ -15,7 +15,8 @@ The kit's root is two directories above this skill's own folder; run a script as
 `node <kit root>/scripts/<name>.mjs`. Run it from the project's root. `<packages>` is the folder that
 holds the project's packages: `design` at the project's root, unless the project profile names another
 under `packages`. `<package>` is the folder of this design in it, as `design/today`. `<tokens>` is the
-project's token file, as Look's carry list names it. Two folders are yours: `<package>/07-handoff/`,
+project kit's copy of the token file, as Look's carry list names it: the file it was copied from is
+the project profile's `tokens`, named with its commit in `PARTS.md`. Two folders are yours: `<package>/07-handoff/`,
 the handoff folder, which is all a builder is given, and `<package>/07-handoff-gate/`, beside it and
 never in it, for what the gate needs and a builder does not.
 
@@ -34,8 +35,8 @@ Can a session that was not here build it without asking?
   package's `DECISIONS.md`. `references/folder.md` says which of these fills which file.
 - **The state:** `node <kit root>/scripts/state.mjs status <package>` prints the kind, the size, the
   version each stage stands at, and whether Handoff is routed full or short.
-- **The project profile,** `<packages>/PROFILE.md`: `product`, `components`, `strings-format` and
-  `languages`, with its "Standing rules", and nothing about a key.
+- **The project profile,** `<packages>/PROFILE.md`: `product`, `tokens`, `components`,
+  `strings-format` and `languages`, with its "Standing rules", and nothing about a key.
 - **The component source:** the folder the project profile names under `components`, read now.
 - **Of the kit:** the templates named under "Writes", `templates/briefs/judge.md`, and
   `reference/IMPLEMENTER-GUIDE.md`, which you copy. The cold implementer's card is read by its seat.
@@ -56,6 +57,7 @@ Each path is from `<package>/`. `<version>` is the version a stage stands at, as
 | `07-handoff/strings.json`, and the strings in the project's own format | every string by key, in every language, with its limit and its why-line | the detail's strings, copied |
 | `07-handoff/PARTS.md` | the component and the tokens of each element, and each change to the system | `templates/package/07-handoff/PARTS.md` |
 | `07-handoff/ACCEPTANCE.md`, `07-handoff/acceptance.json` | the checks, in words and as a script runs them | `templates/package/07-handoff/ACCEPTANCE.md`, `templates/package/07-handoff/acceptance.json` |
+| `07-handoff/accept-inpage.js` | what makes those checks in a page, so that a builder with no kit can run them | `scripts/inpage/accept-inpage.js`, copied whole |
 | `07-handoff/DECISIONS.md` | what was chosen, why, and what each choice forces on the build | `templates/package/07-handoff/DECISIONS.md` |
 | `07-handoff/COVERAGE.md` | every seat, its checks run and not run, every finding and what became of it | `templates/package/07-handoff/COVERAGE.md` |
 | `build/BUILD.md`, `build/STATES.md`, `build/DEVIATIONS.md` | the three pages the builder writes back, each still to fill | `templates/package/build/` |
@@ -65,7 +67,6 @@ Each path is from `<package>/`. `<version>` is the version a stage stands at, as
 
 1. **Begin.** Check the state as step 1 of the loop says. A stage that is awaiting the founder is not
    begun again: take his answer to "Gate", or to the step that asked. Otherwise mark it in work:
-
    ```
    node <kit root>/scripts/state.mjs begin <package> handoff
    ```
@@ -77,19 +78,21 @@ Each path is from `<package>/`. `<version>` is the version a stage stands at, as
 3. **Copy in what was approved, and prove the folder stands alone.** `references/folder.md` has each:
    - every page of `<package>/06-look/screens/` into `<package>/07-handoff/prototype/`, and the
      pictures of those pages into `<package>/07-handoff/prototype/shots/`;
-   - `<tokens>` to `<package>/07-handoff/tokens.css`, noting the path it came from and the commit
-     that last changed it; in each copied page the one link to `<tokens>` then names that copy, as
-     `../tokens.css`: a page changes there, and where an asset is copied in for it, and nowhere else;
+   - `<tokens>` to `<package>/07-handoff/tokens.css`, noting the path of the project's own token
+     file, which it was copied from, and the commit that last changed it; in each copied page the
+     one link to `<tokens>` then names that copy, as `../tokens.css`: a page changes there, and where
+     an asset is copied in for it, and nowhere else;
    - `<package>/07-handoff/prototype/index.html`: every page as a link, by screen, state, language;
-   - the guide, whole; and the three pages of `templates/package/build/` into `<package>/build/`.
-
+   - the guide, whole, and the in-page file of the checks, as `accept-inpage.js`; and the three
+     pages of `templates/package/build/` into `<package>/build/`.
    ```
    node <kit root>/scripts/alone.mjs <package>/07-handoff
    ```
-
-   It must print nothing. What the token file loads from outside is copied in beside it, or taken
-   out of the copy and listed in `HANDOFF.md` for the builder to supply. What a page loads that
-   cannot be copied in goes to the founder, open: no page is edited to pass.
+   It must exit 0, with its one line: the folder stands alone. What the token file loads from
+   outside is copied in beside it, or taken out of the copy and listed in `HANDOFF.md` for the
+   builder to supply. What a page loads that cannot be copied in goes to the founder, open: no page
+   is edited to pass. **Nothing may point back either,** in a comment or a note: no text file of the
+   folder names a file of the package that the folder does not hold.
 4. **Write `SPEC.md`, the strings and `DECISIONS.md`.** Each heading is filled from the approved
    section `references/folder.md` names for it, and whatever a builder needs is written out in full:
    nothing in the folder points back into the package. `strings.json` is the detail's, copied.
@@ -104,11 +107,9 @@ Each path is from `<package>/`. `<version>` is the version a stage stands at, as
 6. **Write the checks, and run them on the prototype first.** `ACCEPTANCE.md` and `acceptance.json`
    are written from the intent's success criteria, the states and the measured values, each element
    by its stable id, its `data-ux`, with `screen` where an id repeats: `references/folder.md`. Then:
-
    ```
    node <kit root>/scripts/accept.mjs prototype <package>/07-handoff/acceptance.json --root <package>/07-handoff/prototype --out <package>/07-handoff-gate/results.json
    ```
-
    The script refuses a file that is not valid, and names each fault. **A check that fails on the
    approved prototype is a wrong check:** rewrite the check, never the page, and run it again until
    none fails. A check answered `cannot be told:` or `cannot be measured:` is rewritten so that it
@@ -129,21 +130,23 @@ Each path is from `<package>/`. `<version>` is the version a stage stands at, as
    three ways, in the file its fix names: `references/seats.md` has them, and what every folder meets.
    - **The answer is in what the carry list hands you:** write it in the folder.
    - **It is how something is built:** write it under "Left to the builder", as the builder's.
-   - **Nobody decided it:** put it to the founder, one question at a time, with the default you
-     would propose. Record it with the `await` of the gate, write his answer under `## Reviewed by
-     the founder` and into the folder, as he said it, and put the stage back in work with the `begin`
-     of step 1. Where he leaves it open, the default is written, marked as one.
+   - **Nobody decided it:** put such items to the founder as one question, numbered, each with the
+     default you would take, marked "the conductor's proposal" and held first against the pages and
+     the checks it touches. One that changes what she sees or can do is put with its options, never
+     with a blanket default. Record it with the `await` of the gate, write his answers under
+     `## Reviewed by the founder` and into the folder, as he said them, and put the stage back in
+     work with the `begin` of step 1. Where he leaves one open, the default is written, marked as one.
 
    Run steps 3 and 6 again when a page or a check changed. **One re-read, when an item blocked:** a
    fresh sub-agent in the same seat reads the folder cold, then opens the earlier ledger. No second
-   round. **Its own row and items go into `COVERAGE.md` only after its last read.**
+   round: an item closed after it is listed as "closed after the re-read, not read again". **Its
+   own row and items go into `COVERAGE.md` only after its last read.**
 10. **Build the decision page.** Write `<package>/07-handoff-gate/decision.json` in the shape of
     `templates/outputs/decision-approve.json`: the folder as its one option, with two reference
     pictures named from the page, the phone width first, as
     `../07-handoff/prototype/shots/today-default-en-390-light.png`; the cold implementer's line;
     under `findings`, each item still open and each default, by seat; one recommendation; one
     question. Its identity is as `status` prints it, at stage 8 of 9.
-
     ```
     node <kit root>/scripts/page.mjs <package>/07-handoff-gate/decision.json --out <package>/07-handoff-gate/decision.html
     ```
@@ -157,11 +160,9 @@ seat. `references/forms.md` has the three.
 **He gives one go.** Put `<package>/07-handoff-gate/decision.html` in front of him, and the folder
 itself, `<package>/07-handoff/HANDOFF.md` first. Record the one question, so that a session resuming
 tomorrow asks the same:
-
 ```
 node <kit root>/scripts/state.mjs await <package> handoff --question "<the one question>"
 ```
-
 One question, about one thing: may this folder go to the session that builds it? **Stop: nothing is
 handed to a builder before his go, and you do not give it.**
 
@@ -169,7 +170,6 @@ handed to a builder before his go, and you do not give it.**
   the words of his go, as he said them. A correction that changes a string, a state, a rule, an id
   or a value is not Handoff's: ask him to reopen its stage, as the conductor's "Resuming" says.
 - **Stamp it,** in the words of his go:
-
   ```
   node <kit root>/scripts/state.mjs stamp <package> handoff --words "<the founder's words>"
   ```

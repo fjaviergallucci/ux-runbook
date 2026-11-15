@@ -25,12 +25,15 @@ what she never does. Then what is true of her profession, where it bears on this
 
 ## The hardest state
 
-{The one or two states every proposal must be played through, as: the list is empty; it has two hundred rows.}
+{Every state the intent says she must be told about, one line each, as: the list is empty; it has two
+hundred rows. The rule selects them: none is weighed, and none is left out.}
 
 ## What the product can show and do
 
-{The context's inventory, in the words she would read: the real labels, names and values, and the worst
-plausible rows. Nothing outside this list exists: a proposal that needs more is asking for a dependency.}
+{The context's inventory, in the words she would read: the real labels, names and values, with every row
+that states a limit, a delay or a failure. Nothing outside this list exists: more is a dependency.}
+
+{A real label that names a screen of today is given as the facts it states, never in its own words.}
 
 ## Language and device
 

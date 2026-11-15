@@ -23,7 +23,7 @@ Two rules hold for every file:
 | `- context@<version>#<slug>` for "The problem, and why now", "What exists today", "What it must not become" | why it is built now, with what the judges found reading the surface as it is; what it replaces; what is out of scope | `HANDOFF.md`, `COVERAGE.md` |
 | `- cast@<version>#<slug>` for the table of each stage | each seat, what it was loaded with, its checks on and off, its model and effort | `COVERAGE.md`; the "Handoff" table seats the cold implementer |
 | `- structure@<version>#<slug>` for "The structure", "What it is deliberately bad at", "What the readers found" | the regions and their order; what is out of scope; the findings | `SPEC.md`, `HANDOFF.md`, `COVERAGE.md` |
-| `- detail@<version>#<slug>` for "Rules", "Edge cases", "Data map", "Dependencies", "Strings", "What the readers found" | the rules and the rest, as approved | `SPEC.md`, `COVERAGE.md` |
+| `- detail@<version>#<slug>` for "Rules", "Edge cases", "Data map", "Dependencies", "Strings", "What the readers found", "Accepted deviations" | the rules and the rest, as approved; what he accepted as a cost | `SPEC.md`, `COVERAGE.md`, `HANDOFF.md` |
 | `- source:` the reads folders of Structure, Detail and Look | every ledger and every task read | `COVERAGE.md` |
 | `- source:` `states.md` and `strings.json` of the detail | the states table; the strings, with their why-lines | `SPEC.md`, `ACCEPTANCE.md`; `strings.json` |
 | `- source:` the detail's prototype folder | the plain prototype: where each action leads | `SPEC.md`, and nothing is copied from it |
@@ -49,17 +49,20 @@ the shared kit, and a builder would take its grey for the look.
 - **The pictures.** For each page copied, its pictures in `<package>/06-look/shots/`, every width and
   theme, into `<package>/07-handoff/prototype/shots/`, under their own names. A picture of a variant,
   or of anything else, stays where it is.
-- **The token file.** `<tokens>` is copied to `<package>/07-handoff/tokens.css`. Note two things for
-  `PARTS.md`: the path it was copied from, from the project's root, and the commit that last changed
-  it, as the project's history gives it for that file. A file with changes not yet committed, or a
-  project with no history, is said so in place of a commit.
+- **The token file.** `<tokens>`, the project kit's copy, is copied to
+  `<package>/07-handoff/tokens.css`. Note two things for `PARTS.md`, both of the project's own token
+  file, `tokens` of the project profile, which the kit's copy was made from: its path, from the
+  project's root, and the commit that last changed it, as the project's history gives it for that
+  file. A file with changes not yet committed, or a project with no history, is said so in place of
+  a commit.
 - **The one line that changes.** Each page links `<tokens>` by its path in the project. In the copy,
   that one link names the copy, `../tokens.css`. Change it by a script, in every page alike, and
   nothing else. A link left as it was still loads the project's file from here, since the copy sits
   as deep as the page it was copied from: no check on the pages would notice.
 - **The index.** `<package>/07-handoff/prototype/index.html`: every page as a link, grouped by
-  screen, then state, then language. Its words are the screens' names and the names of the states
-  and the languages, as `states.md` has them. Count the pages by tool: screens times states times
+  screen, then state, then language. Its words are the screens' names and the names of the states,
+  as `states.md` has them, and the languages by the codes `languages` of the project profile gives.
+  Count the pages by tool: screens times states times
   languages, less the rows that cannot occur.
 
 ## The folder stands alone, proved
@@ -73,10 +76,11 @@ node <kit root>/scripts/alone.mjs <package>/07-handoff
 It reads every page and stylesheet of the folder and prints one line for each address that does not
 lead to a file inside it: the file, the address, and why. It leaves the folder, it is remote, or the
 file is not there. It exits 0 when there is none, and step 6 of the skill is not run before it does.
+On success it prints one line, that the folder stands alone, with its counts: that line is not a fault.
 
 - **A page's link that leaves the folder** is the one line above, missed in that page: point it at
-  the copy, by the same script. A picture or a script a page loads from the project is copied in
-  beside the pages, and its address in the page made to lead to the copy. Those are the two
+  the copy, by the same script. A stylesheet, a picture or a script a page loads from the project is
+  an asset: it is copied in beside the pages, and its address in the page made to lead to the copy. Those are the two
   changes a copied page takes, and the only two: its link to the token file, and the address of an
   asset copied in.
 - **What a page loads that cannot be copied in,** as a script or a picture from another host: the
@@ -96,10 +100,28 @@ file is not there. It exits 0 when there is none, and step 6 of the skill is not
   token file, taken out and listed; or, in a page, put to the founder. None is left to load from
   outside, none is dropped in silence, and no page is edited to make the command pass.
 
+**Nothing points back, proved too.** An address is not the only way out. Every text file of the
+folder is read, its Markdown, its JSON, its stylesheets and the comments of its pages among them,
+for the name of any file or folder of the package that the folder does not itself hold: a stage's
+folder, a ledger, `measures.md`, a maker's notes. Each place found is put right before the cold
+implementer starts:
+
+- **In a file you wrote,** write out what the pointer stood for, and take the pointer out.
+- **In a file that was approved,** as a comment of a stylesheet or a row of the states that reads
+  "as answered", the file is not rewritten: what was approved does not change here. `PARTS.md`
+  says where the pointer is and what it stood for, under its token file line, so that a builder
+  who meets it finds its answer in the folder.
+
 ## `IMPLEMENTER-GUIDE.md`, and `build/`
 
 `reference/IMPLEMENTER-GUIDE.md` of the kit is copied whole, as it is, to
 `<package>/07-handoff/IMPLEMENTER-GUIDE.md`: the builder has no kit, and the folder stands alone.
+
+`scripts/inpage/accept-inpage.js` of the kit is copied whole, as it is, to
+`<package>/07-handoff/accept-inpage.js`: it is what makes the checks of `acceptance.json` in a page,
+and with it a builder can run them on the build, in whatever browser it drives. The template of
+`HANDOFF.md` has its row, and the guide says how it is used. The builder still has no kit: the file
+is one page of script, and needs nothing else.
 
 The three pages of `templates/package/build/` are copied to `<package>/build/`, as they are, unless
 they are already there. They are the builder's to fill. `HANDOFF.md` names them as `../build/`, and
@@ -112,8 +134,10 @@ One block for each surface, from `templates/package/07-handoff/SPEC.md`.
 - **Its job:** "The one job" and "The person in the moment" of the intent, in a sentence.
 - **Regions, in priority order:** "The structure" of the chosen structure, each region with its
   elements by their stable ids, as the final screens carry them.
-- **States:** the rows of `states.md`, each with its page in `prototype/`. A row that cannot occur
-  keeps its line and its reason, and has no page.
+- **States:** the rows of `states.md`, every column, each with its page in `prototype/`. A row that
+  cannot occur keeps its line and its reason, and has no page. A case inside a row that has no page
+  of its own, as three kinds of room in one row of a dialog, is written out here, and listed in
+  `ACCEPTANCE.md` as one a person looks at: it is no state, and no page is owed for it.
 - **Rules:** the detail's "Rules" and "Edge cases", whole. Where an action leads is read in the plain
   prototype's pages, by tool, and written as a rule. What changes at each width, and motion with its
   reduced form, are "What the look decides" of `LOOK.md`.
@@ -125,7 +149,9 @@ One block for each surface, from `templates/package/07-handoff/SPEC.md`.
 ## The strings
 
 `<package>/05-detail/strings.json` is copied to `<package>/07-handoff/strings.json`, whole: every key,
-every language, `max`, `where` and `note`, the why-line, which travels with the string.
+every language, `max`, `where` and `note`, the why-line, which travels with the string. The file
+holds the template's keys and nothing else. A note or a list of a maker's in it is no string: it is
+a fault in what was approved, and goes to the founder, open, before the file is copied.
 
 When the project profile names a `strings-format`, the same keys and the same strings are also
 written in that format, as the project's translation layer takes them: one file, or one for each
@@ -139,8 +165,10 @@ is the strings file, and `HANDOFF.md` says the project named none.
 Written from the component source, read in this session: the folder the project profile names under
 `components`. The tokens are read in `<tokens>`.
 
-- **The token file line:** its path in the folder, `tokens.css`; the path it was copied from; its
-  commit; and each file copied in with it, because the token file loads it, with where it came from.
+- **The token file line:** its path in the folder, `tokens.css`; the path of the project's own token
+  file, which it was copied from by way of the project kit; that file's commit; and each file
+  copied in with it, because the token file loads it, with where it came from. Under it, each
+  pointer an approved file still holds, with what it stood for.
 - **Existing parts:** one row for each element id of `SPEC.md`. The component's name is the source's
   own. The file is the one you opened. The tokens are the ones the final screens use for it.
 - **An element with no part in the system** has no row made up for it. It is a question for the
@@ -161,11 +189,14 @@ with the criterion it holds.
 
 - **A check for each success criterion a script can check,** in the intent's words, as its
   `criterion`. A criterion no script can check is judged by eye: `ACCEPTANCE.md` says who looks, and
-  at which picture.
+  at which picture. Who looks is a seat of the cast, the task reader for "a person trying her
+  task", or the founder; where a criterion names a language, a reader of that language.
 - **Every state is driven.** "States to drive" lists every row of `states.md` with its page, and
   each state has at least one check: what must be `visible` in it, and what must be `absent`.
 - **Every measured value is held.** Each row of `measures.md` has its check: a `contrast` with its
-  `min`, a `min-size` with its `minWidth` and `minHeight`, at the row's width and theme. No check
+  `min`, a `min-size` with its `minWidth` and `minHeight`, at the row's width and theme. The `min`
+  of a `contrast` is the standard the row is held to: the measured value stands beside it, under
+  "Measured values" of `ACCEPTANCE.md`. No check
   measures a gap, a size of text or the length of a line: such a row is listed in `ACCEPTANCE.md`,
   under "Measured values", with its value and "measured by a person" where its check would be.
 - **An element is named by its `data-ux`.** Where two screens carry the same id, the check names its
@@ -218,7 +249,9 @@ trace is in `COVERAGE.md`.
 - **Findings:** every finding of every ledger and every stuck point of every task read, one row each,
   with what became of it: fixed, accepted by the founder in his words, carried as a dependency, or
   open with why. "What the readers found" of each stage says which. A finding with no fate written
-  anywhere is open, and is said to be.
+  anywhere is open, and is said to be. Of Structure's ledgers, the findings on the chosen structure
+  have a row each, with what Detail answered; those that hold only for a letter not chosen are
+  counted in one line, and none is written out: a letter not chosen does not reach the folder.
 - **A read of a fresh pass,** a file of Look's reads whose name ends `-beside.md` or `-borrow.md`,
   is entered under its seat like any other. A version it names by a letter is written as what it
   was: "the version on the project's tokens", or "a fresh version, not handed off". Never the
@@ -248,10 +281,14 @@ Written last, from `templates/package/07-handoff/HANDOFF.md`, since it sums up t
   binds a build, one line each.
 - **Slices:** in build order. Each is small enough to build, verify and commit alone, and names the
   screens and states it covers, a done-when someone can see, and the checks of `acceptance.json` it
-  must hold, by id. Every check belongs to a slice, and every state to one.
+  must hold, by id. Every check belongs to a slice, and every state to one. Where the context
+  corrected a fact of a project document, one slice mends that document: the decision Context
+  appended names the fact and the file, and the slice says what the document must read.
 - **Out of scope:** "What it must not become" of the context, "What it is deliberately bad at" of
   the structure, and each element a decision took out.
 - **Must not change, and Left to the builder:** what is decided, and what is his: with it, each
   file the builder must supply, as the proof that the folder stands alone left it. What is in
-  neither is asked, never guessed.
+  neither is asked, never guessed. Under "Must not change" go the accepted deviations of `LOOK.md`,
+  each as approved: what it is, what it breaks, his words, the date. A build that mends one has
+  changed the design.
 - **Reviewed by the founder:** empty until the gate.

@@ -75,6 +75,9 @@ document: one path to a line, with what each is. Each is also an entry of the ca
 
 {Beside a file he has corrected: which point, and that the context holds.}
 
+{Beside a screen's file: "today's screen", the surface being redesigned as it is, or "a sibling
+surface", another surface of the product.}
+
 ## Reviewed by the founder
 
 {What he corrected, and the words he approved it with, as he said them.}

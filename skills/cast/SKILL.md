@@ -67,8 +67,9 @@ a stage the route skips is deleted.
    reported to the founder, with its lines, and left out**: it is not cast and not mended by you, and
    it is never skipped in silence: it has its line under "Left out". Where it carries the id of a kit
    card, the kit's card sits in its place, and the cast sheet says so: the line under "Left out" then
-   names the project's replacement, not the seat. A profession's profile has no checker, and is read
-   as it is written.
+   names the project's replacement, not the seat. A profession's profile, in the project's
+   `profiles/` folder, is checked in the same run: a faulty one is reported the same way, and no
+   seat is loaded with it.
 4. **Lay the two pools side by side.** The kit's seats and people are the rows of `pool/INDEX.md`. The
    project's are its sound cards: read each one's header. **A project card with the same id as a kit
    card replaces it for this project, and the cast sheet says so** on that seat's line. The same holds

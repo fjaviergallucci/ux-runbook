@@ -10,20 +10,24 @@ Read your card first, whole, at its absolute path: `{/…/pool/makers/<name>.md,
 
 {What this seat makes for this design, at this stage, in a sentence or two.}
 
-{Then what its card says its brief gives, and no more. Keep the line of this seat, filled:}
+{Then what the stage's `references/seats.md` says this seat's brief gives, and no more. Keep the line of
+this seat, filled:}
 
 - {A structure describer: its lens, fewest steps · guided · defaults first · in place, or "no lens".}
-- {An interaction designer: this product's worst cases.}
+- {An interaction designer: this product's worst cases, every row that states a limit, a delay or a
+  failure.}
 - {An interface writer: the founder's own lines, as he said them; the languages; the project's writing
   skill, when it has one.}
 - {A prototype builder: the folder of the kit, and the two widths.}
 - {A visual designer: the lens to load; whether motion is cast; what the founder marked in a fresh pass;
   for a direction, the one detailed screen to draw.}
+- {A maker started again: the founder's answers this seat waits for, as he said them; or the entries it
+  is sent back with, by where they sit.}
 
 ## Read, in this order
 
-{Only what the card's `reads` allows and this design gives it, each by its absolute path, with what it
-is. A describer: the Structure brief and `kit/KIT-CONTRACT.md`. A fresh maker: the fresh brief alone.}
+{What the stage's `references/seats.md` hands this seat, each by its absolute path, with what it is. A
+describer: the Structure brief and `kit/KIT-CONTRACT.md`. A fresh maker: the fresh brief alone.}
 
 1. {the absolute path} — {what it is}
 
@@ -35,8 +39,8 @@ is. A describer: the Structure brief and `kit/KIT-CONTRACT.md`. A fresh maker: t
 
 ## Do not open
 
-{Each thing the card's `never-reads` names, as this package holds it: a file or a folder, by its path.
-And whatever is not listed above.}
+{What the stage's `references/seats.md` lists for this seat under "Do not open": each a file or a folder,
+by its path. And whatever is not listed above.}
 
 - {the path} — {what it is}
 
@@ -49,4 +53,6 @@ process by name or by pattern.
 
 ## Reply
 
-{What the card's Output says the reply is, and no more.}
+What your card's Output says the reply is, and no more.
+
+{A designer sent back with a list: "And one line for each entry: how it was settled." Else delete this.}

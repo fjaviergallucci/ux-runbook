@@ -33,7 +33,7 @@ structure: it does not mend what was chosen knowingly.}
 ## What the readers found
 
 {One line for each seat that read the board, by option letter. Then each finding on the chosen structure
-that is still open, with its seat: Detail closes it, or says why not.}
+that is still open, with its seat: Detail answers each, under its own "What the readers found".}
 
 ## Marked in the fresh gallery
 
@@ -47,7 +47,8 @@ after the pick.}
 
 ## Reviewed by the founder
 
-{What he asked to be changed on the way to Detail. "Nothing".}
+{His yes to the brief, verbatim, with the seats that send it out. Then what he asked to be changed on
+the way to Detail, or "Nothing".}
 
 <!-- The carry list is the last section: what the next stage may open besides this output. It holds
      entries only, one to a line: `- source:<path>` for a file of the project, and

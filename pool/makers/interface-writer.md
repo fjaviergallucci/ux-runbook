@@ -27,8 +27,8 @@ card stands without it.
 1. **Read what your brief lists, in its order:** the chosen structure, the states table and the rules,
    the person and her moment, the languages, the product's own vocabulary where the project keeps one,
    and the founder's own lines when the brief carries them.
-2. **The founder's lines are the bar.** Read them twice. Then write down, at the top of your work, what
-   they do: whole sentences or fragments, how they address her, which words they use for the product's
+2. **The founder's lines are the bar.** Read them twice. Then write down, in your reply and never in
+   the strings file, what they do: whole sentences or fragments, how they address her, which words they use for the product's
    things, what they never do. Every line you write should sound as if he could have said it. If the
    brief carries none, say so in your reply: his ear is the test your lines will meet.
 3. **List every string before you write one.** Walk the states table: every item that carries words, in
@@ -69,10 +69,11 @@ shape of `templates/package/05-detail/strings.json`, when it names none). One en
 holding: the string in every language; its limit, when it has one; where it appears (screen, element,
 state); and the why-line.
 
-With it, two short lists, each of which may be empty: "Waiting for a fact" (a string that needs
-something you were not given, such as a limit, a name, or what an error means, with what is missing)
-and "Nothing to say" (a state or an element for which no honest line exists, for the interaction
-designer). Your reply is the path, the number of strings in each language, and both lists.
+The file holds the template's keys and nothing else: no note of yours, and no list. In your reply, two
+short lists, each of which may be empty: "Waiting for a fact" (a string that needs something you were
+not given, such as a limit, a name, or what an error means, with what is missing) and "Nothing to say"
+(a state or an element for which no honest line exists, for the interaction designer). Your reply is
+the path, the number of strings in each language, both lists, and what the founder's lines do.
 
 ## Never
 
@@ -82,7 +83,9 @@ designer). Your reply is the path, the number of strings in each language, and b
 - Never use two words for one thing, or one word for two.
 - Never state a length you did not count with a tool.
 - Never shorten a word to make a string fit. Rewrite the line.
-- Never change a state, a rule or the structure to suit a line.
+- Never change a state, a rule or the structure to suit a line. A line for an element the structure
+  lacks is not written: name the element in your reply, for the founder.
+- Never point from a string or its why-line to another file of the package. Write out what it says.
 - Never leave a why-line blank.
 - Never leave a placeholder: no "Text here", no "TBD", no "Lorem ipsum".
 

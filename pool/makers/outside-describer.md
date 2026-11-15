@@ -28,10 +28,10 @@ This card speaks to that session.
    may is the founder's decision, made once for the project. The script refuses too.
 2. **Send the same brief.** It is the file the structure describers were given, as the founder approved
    it, whole and unchanged; in a fresh pass, the fresh pass's brief. Add nothing to it: no opening line,
-   no example, no other proposal.
+   no example, no other proposal. `<kit root>` is the kit, two folders above this card.
 
    ```
-   node scripts/describe.mjs --provider <openai|gemini> --model <id> --brief <the brief> --out <proposals folder>/<name>.json --profile <PROFILE.md>
+   node <kit root>/scripts/describe.mjs --provider <openai|gemini> --model <id> --brief <the brief> --out <proposals folder>/<name>.json --profile <PROFILE.md>
    ```
 
    `--model` is the profile's `openai-model` or `gemini-model`. One call, one proposal.
@@ -55,7 +55,7 @@ came, not a proposal for the board, so the script is run with `--text`: it looks
 writes the answer whole at `--out`, which then names a `.txt`, `.md` or `.html` file.
 
 ```
-node scripts/describe.mjs --text --provider <openai|gemini> --model <id> --brief <the fresh brief> --out <fresh pass folder>/<name>.md --profile <PROFILE.md>
+node <kit root>/scripts/describe.mjs --text --provider <openai|gemini> --model <id> --brief <the fresh brief> --out <fresh pass folder>/<name>.md --profile <PROFILE.md>
 ```
 
 The concept is shown beside the system version, with anything it changed said beside it. It is never

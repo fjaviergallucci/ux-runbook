@@ -16,8 +16,9 @@ The kit's root is two directories above this skill's own folder; run a script as
 `node <kit root>/scripts/<name>.mjs`. Run it from the project's root. `<packages>` is the folder that
 holds the project's packages: `design` at the project's root, unless the project profile names another
 under `packages`. `<package>` is the folder of this design in it, as `design/today`. `<kit dir>` is the
-project's kit folder, the one the project profile names under `kit`, and `<tokens>` the project's token
-file in it, `<kit dir>/tokens.css`.
+project's kit folder, the one the project profile names under `kit`. `<tokens>` is the project kit's
+copy of the token file, `<kit dir>/tokens.css`: the file it was copied from is the project profile's
+`tokens`, named with its commit in `PARTS.md` at Handoff.
 
 ## Question
 
@@ -38,8 +39,9 @@ What does it look like, finished?
 - **The project profile,** `<packages>/PROFILE.md`: `kit`, `tokens`, `components`, `facts`,
   `languages`, `engines-on`, `openai-model` and `gemini-model`, with its "Design system", and nothing
   about a key.
-- **Of the kit:** the templates named under "Writes", the three of `templates/briefs/`, and one card:
-  `pool/makers/outside-describer.md`, which speaks to you. Every other card is read by its seat.
+- **Of the kit:** the templates named under "Writes", the three of `templates/briefs/`, and one card,
+  when the cast sheet names its seat: `pool/makers/outside-describer.md`, which speaks to you. Every
+  other card is read by its seat: a brief is filled from `references/seats.md`.
 - **Never** the package's `work/` folder, a letter that was not chosen, or the chat.
 
 ## Writes
@@ -54,6 +56,7 @@ the version a stage stands at, as `status` prints it: after a reopening it is no
 | `variants/` | where the system leaves a real choice: one screen, on one named axis, with its own `checks.json` and `results.json` | the visual designer; the acceptance script |
 | `checks.json`, `results.json` | what is measured, as checks, and what the script measured | the visual designer; the acceptance script |
 | `measures.md` | the table of measured values, and the named extensions | "Measured values" and "Named extensions" of the template |
+| `measure/` | the visual designer's own measuring script, and what it read: closed to every reader | the visual designer |
 | `shots/` | the reference pictures: every page, at each width and theme | the picture script |
 | `reads/` | one ledger for each reader, and each re-read | `templates/outputs/LEDGER.md` |
 | `directions/`, `tokens.css`, `earlier/` | in Direction mode: each direction, on the same detailed screen; the token file of a surface that leaves the system; screens set aside | `references/direction.md` |
@@ -64,7 +67,6 @@ the version a stage stands at, as `status` prints it: after a reopening it is no
 
 1. **Begin.** Check the state as step 1 of the loop says. A stage that is awaiting the founder is not
    begun again: take his answer to "Gate", or to the reference that asked. Otherwise mark it in work:
-
    ```
    node <kit root>/scripts/state.mjs begin <package> look
    ```
@@ -94,21 +96,20 @@ the version a stage stands at, as `status` prints it: after a reopening it is no
    - `checks.json`, one check for each contrast and each size its table states, in the shape
      `scripts/accept.mjs` takes, and `measures.md`, the table and the named extensions.
 5. **Photograph and measure, one command after the other,** never both at once:
-
    ```
    node <kit root>/scripts/shots.mjs <package>/06-look/screens --out <package>/06-look/shots --widths <primary>,<phone> --themes <themes>
    node <kit root>/scripts/accept.mjs prototype <package>/06-look/checks.json --root <package>/06-look/screens --out <package>/06-look/results.json
    ```
-
    The widths are those of "Constraints"; `<themes>` is `light`, or `light,dark` when `<tokens>`
    defines a dark theme. With variants, both are run on `variants/` too: `references/seats.md`.
    **The table of `measures.md` is written from what these two scripts return, never by eye,** and
    this run is what you hold it to. Each contrast and each size is the `actual` of a result in
    `results.json`, at its width and theme; any other value was read in the browser by a script of
-   the visual designer's own, kept beside the table. A row with neither behind it, a value that
-   differs, a line `error:` or `overflow:`, or a check that failed goes back to the visual designer,
-   once, before the readers start: you write no value, and correct none. Both commands are run again
-   after every change to the screens.
+   the visual designer's own, kept with its readings in `measure/`. A row with neither behind it, a
+   value that differs, a line `error:` or `overflow:`, or a check that failed goes back to a fresh
+   visual designer, once for each run of this step, before the readers start, as facts: each row by
+   its result id and its measured value. You write no value, and correct none. Both commands are
+   run again after every change to the screens.
 6. **With a fresh pass, show the versions side by side, blind, and stop twice.** The system's
    picture of the one screen and each fresh one are copied under letters dealt at random into
    `beside/`, read by letter, and put to him: what would he keep? Then, with what each thing would
@@ -117,24 +118,26 @@ the version a stage stands at, as `status` prints it: after a reopening it is no
    `references/fresh.md`. Then step 5 again.
 7. **Start the readers.** The judges of the cast sheet's "Look" table, each a fresh sub-agent on what
    its line names, in one message, and those that drive a browser three at a time at most. Each is
-   handed the final screens with `measures.md`, the pictures, and what else its card reads:
-   `references/seats.md` has it, with its "Do not open" list. Each writes one ledger in `reads/`.
+   handed what `references/seats.md` gives its seat, the accepted deviations with it, and its "Do
+   not open" list. Each writes one ledger in `reads/`: make that folder first.
 8. **One fix round, and one re-read.** The findings marked `blocks` go to a fresh visual designer,
-   handed the ledgers that hold them. Then step 5 again. Then, for each judge that marked one, a
-   fresh sub-agent in the same seat reads again: its brief names that seat's earlier ledger, to be
-   opened only after it has read cold, and it marks each earlier finding *fixed*, *partly* or
-   *still present*, in `<package>/06-look/reads/<seat>-reread.md`. **There is no second round.** A
-   finding on a string, a state or a rule is not Look's to fix: it goes to the founder, open.
+   handed the ledgers that hold them. Then step 5 again. Then, for each judge whose blocking finding
+   went to the fix round, a fresh sub-agent in the same seat reads again: its brief names that
+   seat's earlier ledger, to be opened only after it has read cold, and it marks each earlier
+   finding *fixed*, *partly* or *still present*, in `<package>/06-look/reads/<seat>-reread.md`.
+   **There is no second round** of fixes; the send-back of step 5 is not one. A finding on a string,
+   a state or a rule is not Look's to fix: it goes to the founder, open.
 9. **Build the decision page.** Fill `LOOK.md` as its template says: "Measured values" and "Named
-   extensions" are copied from `measures.md`, row for row, and copied again after any later redraw,
-   before the stamp. Then write `decision.json`. With
-   variants, in the shape of `templates/outputs/decision.json`: each variant an option, by letter,
-   its line what it buys and what it costs. With one proposal, in the shape of
-   `templates/outputs/decision-approve.json`: the final screens as its one option. Either way: the
-   pictures named from the page, the phone width first, as `shots/today-default-en-390-light.png`;
-   one line for each seat; each open finding under `findings`, by seat; one recommendation, resting
-   on the reads; one question. Its identity is as `status` prints it, at stage 7 of 9.
-
+   extensions" are copied from `measures.md`, each section whole, and copied again after any later
+   redraw, before the stamp; "What the look decides" is copied from the visual designer's reply,
+   never written by you. Then write `decision.json`. With variants, in the shape of
+   `templates/outputs/decision.json`: each variant an option, by letter, its line what it buys and
+   what it costs. With one proposal, in the shape of `templates/outputs/decision-approve.json`: the
+   final screens as its one option. Either way: the pictures of each screen's default state, named
+   from the page, the phone width first, as `shots/today-default-en-390-light.png`; one line for
+   each seat; each open finding under `findings`, by seat, with what the visual designer could not
+   draw; one recommendation, resting on the reads; one question. Its identity is as `status` prints
+   it, at stage 7 of 9.
    ```
    node <kit root>/scripts/page.mjs <package>/06-look/decision.json --out <package>/06-look/decision.html
    ```
@@ -148,11 +151,9 @@ surface by surface, steps 4, 5, 7 and 8 once for each, and is picked or approved
 **He picks, or approves, from pictures.** Put `<package>/06-look/decision.html` in front of him, and
 `<package>/06-look/measures.md` with it: the finished screens beside their measures. Record the one
 question, so that a session resuming tomorrow asks the same:
-
 ```
 node <kit root>/scripts/state.mjs await <package> look --question "<the one question>"
 ```
-
 One question, about one thing. With variants: which variant goes on to Handoff? With one proposal: do
 you approve these screens for Handoff? **Stop: you neither pick nor approve, and you go no further
 without his words.**
@@ -166,18 +167,17 @@ without his words.**
   his words, and step 5 is run again. You redraw nothing yourself.
 - **Write the carry list,** `## Carry`: the lines of the detail's own carry list, as they are, the
   cast sheet's tables among them, but any that names a file of a `fresh/` folder; a
-  `- detail@<version>#<slug>` line for "Rules", "Edge cases", "Data map", "Dependencies", "Strings"
-  and "What the readers found"; and a `- source:<path>` line for the screens' folder, the pictures'
+  `- detail@<version>#<slug>` line for "Rules", "Edge cases", "Data map", "Dependencies", "Strings",
+  "What the readers found" and "Accepted deviations"; and a `- source:<path>` line for the screens' folder, the pictures'
   folder, the reads' folder, `measures.md`, `checks.json`, `results.json` and `<tokens>`. **No line
   names `<package>/06-look/fresh/`, or anything else a fresh maker made: none of it is handed off.**
 - **Stamp it,** in the words he picked or approved with:
-
   ```
   node <kit root>/scripts/state.mjs stamp <package> look --words "<the founder's words>"
   ```
 
-  Then append the decision to the package's `DECISIONS.md`, each named extension with it, and ask
-  the state what is next, as step 9 of the loop says.
+  Then append the decision to the package's `DECISIONS.md`, each named extension and each accepted
+  deviation with it, and ask the state what is next, as step 9 of the loop says.
 
 ## Never
 

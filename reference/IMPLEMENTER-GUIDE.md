@@ -22,7 +22,7 @@ folder of the design, and no conversation about it.
 6. `PARTS.md`: the component and the tokens each element uses, as they were read in the project's
    source, and anything new to the system.
 7. `ACCEPTANCE.md` and `acceptance.json`: what your build will be checked against, in words and as
-   checks a script runs.
+   checks a script runs. `accept-inpage.js` is the file that makes those checks in a page.
 8. `DECISIONS.md`: what was chosen, why, and what each choice forces on the build.
 9. `COVERAGE.md`: who read the design, and what became of what they found. Open it when you wonder
    whether something was considered.
@@ -156,6 +156,12 @@ const cs = getComputedStyle(el);
 your build to each one yourself, by its id, before you write back. A check you could not make hold is
 a deviation, written down. It is never a check quietly left alone.
 
+`accept-inpage.js` makes the checks, in your build as it did in the prototype. Put a state on screen at
+the width and in the theme its checks name, without scrolling. Evaluate the file's text in the page,
+through the browser you drive, then call `window.__uxAccept(checks)` with that state's checks, each
+whole. It returns one result for each: `id`, `pass`, `actual`, `message`. It changes nothing on the
+page. The checks see what a page shows: they press nothing, load nothing and move no focus.
+
 Two things by hand, in every state: go through the screen with the keyboard alone and watch where
 focus goes and where it sticks, and set the text to 200% and see that it reflows.
 
@@ -167,7 +173,7 @@ page to fill. They are how your build is checked afterwards, by a session that w
 | File | What it holds |
 |---|---|
 | `BUILD.md` | What was built, slice by slice, with the commit that holds each. Where it lives: the files added or changed, and the address or the route of each surface. How to run it. |
-| `STATES.md` | The state map. One row for each state of `SPEC.md`: the steps that put it on screen in your build, in order. An address, a seed step, a network condition, an account. |
+| `STATES.md` | The state map. One row for every row of the "States" tables of `SPEC.md`, those that cannot occur marked so: the steps that put it on screen in your build, in order. An address, a seed step, a network condition, an account. A row leads to the state's behaviour, not only to its picture. |
 | `DEVIATIONS.md` | Everything that could not be built as drawn: where, as drawn, as built, and what stood in the way. "None" when the build is what was drawn. |
 
 The checks of `acceptance.json` are then run on your build, state by state, from your state map. A

@@ -5,8 +5,10 @@ card's `reads` allows and this page lists, each file by its absolute path, and l
 open" what its card's `never-reads` names, as this package holds it. Nothing is pasted into a brief
 but an audience's tasks, which its template asks for word for word. How a seat is started, on which
 model, and the rules of a shared machine are in `skills/design/references/loop.md`, under "Starting
-a seat". Every brief is written into `<package>/work/`, and keeps the template's last line: a seat
-that starts a browser stops only the one it started.
+a seat". Every brief is written into `<package>/work/`, named as the loop says, and keeps the
+template's last line: a seat that starts a browser stops only the one it started. For a judge, a
+folder of pictures is named by its path and its naming rule; an audience's pictures are named one
+by one. You fill a brief from this page and never from the seat's card, which you do not open.
 
 The seats are those of the cast sheet's "Acceptance" table, each on the model and the effort its line
 names: a dash means the session's model, and you enforce none. A card of the project's own that the
@@ -49,8 +51,14 @@ shows which stage that is: `<package>/06-look/reads/<seat>.md`,
 `<package>/04-structure/reads/<seat>.md`, with its re-read beside it, `<seat>-reread.md`, where there
 is one. It opens them only after it has read the build
 and written its findings, and then marks each earlier finding *fixed*, *partly* or *still present*
-in the build, in the table its ledger has for a re-read. A seat that never read before has no
-earlier ledger, and its brief names none.
+in the build, in the table its ledger has for a re-read: at Acceptance a first read of the build
+fills that table too, and the brief's line for the file reads "Your seat's earlier ledger". A seat
+that never read before has no earlier ledger, and its brief names none.
+
+**What he accepted is handed to every judge,** as part of what was approved: "Must not change" of
+`<package>/07-handoff/HANDOFF.md`, by the file and the heading, where the accepted deviations of
+the design are copied. A judge that still finds one writes it once, as "accepted at" and its
+stage: it is no deviation of the build. The audience is never handed it.
 
 Every judge's brief lists these under "Do not open":
 
@@ -82,7 +90,8 @@ Every judge's brief lists these under "Do not open":
 
 ### `judge.truth`
 
-- **Its brief,** from `templates/briefs/judge.md`, as the usability judge's.
+- **Its brief,** from `templates/briefs/judge.md`, as the usability judge's. It carries one line:
+  where the context and a source it is handed disagree, the context holds.
 - **Handed:** `<package>/01-context.md`, the context, for the inventory. `<package>/02-intent.md`,
   the intent. The project's facts document, where the project profile names one under `facts`. Of
   the approved design: `SPEC.md`, `strings.json` and `prototype/`. The pictures of the build, and
@@ -107,10 +116,13 @@ Every judge's brief lists these under "Do not open":
 ### `judge.accessibility`
 
 - **Its brief,** from `templates/briefs/judge.md`, as the usability judge's. It says the seat is
-  handed the pictures and the results, and does not drive the build.
+  handed the pictures and the results, and does not drive the build. And it lists the files of
+  the build, as the system fidelity judge's brief does, by the same rule: names and order are read
+  in the build's own source, never in the prototype's.
 - **Handed:** `<package>/02-intent.md`, the intent. Of the approved design: `SPEC.md`, for the focus
-  order and the keyboard, and `prototype/`. The pictures of the build. The results, with what the
-  keyboard did in `by-hand.md`. What the builder wrote back.
+  order and the keyboard, and `prototype/`. The pictures of the build. The files of the build its
+  brief lists. The results, with what the keyboard did and what was read at 200% in `by-hand.md`.
+  What the builder wrote back.
 - **Do not open:** the list above.
 - **Writes:** its ledger, `<package>/08-acceptance/reads/<seat>.md`, in the shape of
   `templates/outputs/LEDGER.md`. What no check measured and no hand made goes under what was not
@@ -164,18 +176,24 @@ One for each profession's profile the cast sheet's "Acceptance" table loads into
 
 One read, after the judges: the task reader the cast sheet's "Acceptance" table seats, as the person
 its line is loaded with, `person.<name>`. Where the table seats none, nobody reads as her, and the
-report says so.
+report says so. Where a criterion of `ACCEPTANCE.md` that is judged by eye names the pictures of
+another language, start one instance more for that language, the same person, and tell the founder
+that the sheet's count grows by it.
 
 ### `audience.task-reader`
 
-- **Its brief,** from `templates/briefs/audience.md`: who she is, her language and her width, the
-  product as she would know it, and her tasks, copied word for word from "Tasks for the audience" of
-  the intent. It says the pictures are of one build, in the states she would meet.
+- **Its brief,** from `templates/briefs/audience.md`: who she is, her language, the width each task
+  puts her at, in the light theme, the product as she would know it, and her tasks, copied word for
+  word from "Tasks for the audience" of the intent. It says the pictures are of one build, in the
+  states she would meet, and names first those her tasks need. Where the tasks are not written in
+  her language, it says so. There is one option: it asks no ranking, and asks for the stuck points.
 - **Handed:** her card, by the path the cast sheet's carry list names, or, for a person of the kit,
   who has no line there, in the kit's `pool/persons/`, by the id her line of the table gives. Her
   profession's traits: a copy of her profession's profile with every `So the interface must:` field
   removed, written beside the brief as the loop says, and the one file of `<package>/work/` she
-  opens. And the pictures of the build in her language at her width, each by its path, as
+  opens. You make that copy without opening her profession's profile: the loop's command takes its
+  path. And the pictures of the build in her language at the width each task puts her at, each by
+  its path, as
   `<package>/08-acceptance/shots/today-default-en-390-light.png`. The pictures, and pictures only.
 - **Do not open:** the list above, and with it: `<package>/02-intent.md`, and every other file of
   the package; `<package>/07-handoff/`, the handoff folder, whole; `<package>/build/`, and the build

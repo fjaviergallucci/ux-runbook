@@ -17,7 +17,7 @@ The kit's root is two directories above this skill's own folder; run a script as
 holds the project's packages: `design` at the project's root, unless the project profile names another
 under `packages`. `<package>` is the folder of this design in it, as `design/today`. "The driver" is
 the project's own way of driving a browser, as the project profile gives it under "How a browser check
-is run here".
+is run here". Where that names no script, there is none yet, and step 3 says what follows.
 
 ## Question
 
@@ -53,7 +53,7 @@ Everything below is in `<package>/08-acceptance/`, and the seats' briefs in `<pa
 | File or folder | What it holds | From |
 |---|---|---|
 | `REPORT.md` | the stage's output, with `built-from: [handoff@<version>]`: each item, *matches* or *deviates* | `templates/package/08-acceptance/REPORT.md` |
-| `results/<state>.json` | what the checks of one state returned in the build, as they came | the in-page file, through the driver |
+| `results/<state>.json` | what the checks of one state returned in the build, as they came; `<screen>-<state>.json` where two screens share a state's name | the in-page file, through the driver |
 | `checks.md` | the table of every check: failed, not run, passed | the acceptance script |
 | `by-hand.md` | each check made by hand: what was done, and what was seen | you, through the driver |
 | `shots/` | a picture of each state of the build, at each width and theme its checks name | the driver |
@@ -68,7 +68,6 @@ handoff folder up to date with each deviation he accepts: "Gate" says how.
 
 1. **Begin.** Check the state as step 1 of the loop says. A stage that is awaiting the founder is not
    begun again: take his answer to "Gate", or to the step that asked. Otherwise mark it in work:
-
    ```
    node <kit root>/scripts/state.mjs begin <package> acceptance
    ```
@@ -82,12 +81,14 @@ handoff folder up to date with each deviation he accepts: "Gate" says how.
    "How a browser check is run here" how it is looked at: headless, reduced motion set. `STATES.md`
    names an account by its role, and says where its sign-in is kept: the driver takes it from there.
    Use seeded or test data, and nothing else. `references/driving.md` has the whole of this step and
-   the next.
+   the next. **Where the project profile names no script, there is no driver:** say so to the
+   founder and, on his yes, write the project's driver, one script in the project, on the kit's
+   `scripts/lib/browser.mjs`, and write its command into the project profile. That page says what
+   it must do for each state.
 4. **Put each state on screen, check it there, and photograph it.** For each row of "States to
    drive" in `ACCEPTANCE.md`, reach the state as its row of `STATES.md` says, at the width and in the
    theme its checks name, and stay at the top of the page. The kit's in-page file makes the checks,
    and this prints its path:
-
    ```
    node <kit root>/scripts/accept.mjs inpage
    ```
@@ -98,7 +99,6 @@ handoff folder up to date with each deviation he accepts: "Gate" says how.
    the state's picture. One state at a time. A state that cannot be reached gets no file: its checks
    show as not run, and step 5 asks why.
 5. **Build the table of the checks.** Name every file of `results/`, one after another:
-
    ```
    node <kit root>/scripts/accept.mjs report <package>/08-acceptance/results/<state>.json --checks <package>/07-handoff/acceptance.json --out <package>/08-acceptance/checks.md
    ```
@@ -117,14 +117,17 @@ handoff folder up to date with each deviation he accepts: "Gate" says how.
    `DEVIATIONS.md`, and each difference a reader found: *matches* or *deviates*, with the check's id
    or the picture that shows it. A failed check deviates, as a booking action that reads "Reserve"
    where "Book room" was approved. So does a deviation the builder wrote down, however reasonable.
-   Where two seats disagree, both are written, each in its words.
+   Where two seats disagree, both are written, each in its words. What a reader found that the
+   approved design already had is no deviation: the report has a place of its own for it.
 8. **Build the decision page.** Write `<package>/08-acceptance/decision.json` in the shape of
    `templates/outputs/decision-approve.json`: the build as its one option, with two of its pictures
    named from the page, the phone width first, as `shots/today-default-en-390-light.png`; one line
-   for each seat that read; each deviation under `findings`, by the seat or the check that found
-   it; one recommendation, resting on the reads; one question: the first deviation's, or, with
-   none, whether he accepts the build. Its identity is as `status` prints it, at stage 9 of 9.
-
+   for each seat that read; each deviation under `findings`, by what found it, a seat,
+   `check: <id>` or `by hand`; one recommendation, resting on the reads; one question: the list of
+   the deviations, or, with none, whether he accepts the build. The option's line gives the count
+   of the checks, and says what they do not see: nothing is pressed, loaded, sent or focused, so
+   the keyboard pass and the builder's deviations stand beside the count. Its identity is as
+   `status` prints it, at stage 9 of 9.
    ```
    node <kit root>/scripts/page.mjs <package>/08-acceptance/decision.json --out <package>/08-acceptance/decision.html
    ```
@@ -137,10 +140,10 @@ and the session that applied it accepts it. **A fix that comes back** is checked
 ## Gate
 
 **He accepts.** Put `<package>/08-acceptance/decision.html` in front of him, with `checks.md` and the
-pictures. **Each deviation is his to decide, one at a time: is it accepted as built, or fixed?**
-Record each question, write his answer into `REPORT.md` as he said it, and put the stage back in work
-with the `begin` of step 1, before the next:
-
+pictures. **Each deviation is his to decide: is it accepted as built, or fixed?** The list is one
+question: the deviations numbered, each with what follows from each answer, answered by number in
+one message. Record it, write his answers into `REPORT.md` as he said them, and put the stage back in
+work with the `begin` of step 1. One he leaves unanswered stays open, and is asked again:
 ```
 node <kit root>/scripts/state.mjs await <package> acceptance --question "<the one question>"
 ```
@@ -164,12 +167,12 @@ node <kit root>/scripts/state.mjs await <package> acceptance --question "<the on
   entry from the handoff's `COVERAGE.md` and `DECISIONS.md`, this stage's reads and the state, never
   from memory. Name it under "Lessons" of `REPORT.md`, before the stamp.
 - **Stamp it,** in the words he accepted it with:
-
   ```
   node <kit root>/scripts/state.mjs stamp <package> acceptance --words "<the founder's words>"
   ```
 
-  Then ask the state what is next, as step 9 of the loop says. It prints `none`: the design is done.
+  Then append the decision to the package's `DECISIONS.md`, and ask the state what is next, as step
+  9 of the loop says. It prints `none`: the design is done.
 
 ## Never
 

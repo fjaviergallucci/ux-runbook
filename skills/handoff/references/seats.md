@@ -27,10 +27,11 @@ and you never read it for the gate yourself: the seat that tests the folder is o
 - **Do not open:** everything else in the package. By name: `<package>/work/`, where your notes and
   this brief's drafts are; `<package>/04-structure/MAP.sealed.json`, the author map, and
   `<package>/04-structure/CHOSEN.md`, which names who made which letter; every reads folder, and
-  `<package>/07-handoff-gate/`, which holds a ledger of this seat on a re-read; `<package>/03-cast.md`;
+  `<package>/07-handoff-gate/`, but its own earlier ledger there on a re-read; `<package>/03-cast.md`;
   every other stage's folder, from `<package>/00-frame.md` to `<package>/06-look/`;
   `<package>/DECISIONS.md`; `<package>/build/`; and the component source, with the rest of the
-  project's own source: where the folder sends it there, it lists the reference and does not follow.
+  project's own source, which is the project's code and not `<packages>`: where the folder sends it
+  there, it lists the reference and does not follow.
 - **Writes:** its ledger, `<package>/07-handoff-gate/judge.cold-implementer.md`, in the shape of
   `templates/outputs/LEDGER.md`: beside the folder, never in it, so that the folder a builder gets
   holds no ledger and a re-read finds none there.
@@ -48,7 +49,7 @@ of those.
 |---|---|
 | **The answer is in what the carry list hands you,** and the folder left it out or said it twice. | Write it in the folder, word for word where it is hers to read. Two files that disagree are made to agree with what was approved. |
 | **It is how something is built:** where a file goes, how state is held. | Write it under "Left to the builder" of `HANDOFF.md`: it is the builder's, and now says so. |
-| **Nobody decided it.** | Put it to the founder, one question at a time, as step 9 of the skill says. His answer is written into the folder as he said it. Where he leaves it open, write a default there, marked "Default:", with the line "nobody decided this: build it so, or write another way down as a deviation". |
+| **Nobody decided it.** | Put such items to the founder as one question, numbered, as step 9 of the skill says. His answers are written into the folder as he said them. Where he leaves one open, write a default there, marked "Default:", with the line "nobody decided this: build it so, or write another way down as a deviation". |
 
 Three items come up on every folder, and each is closed the first way:
 
@@ -58,14 +59,21 @@ Three items come up on every folder, and each is closed the first way:
 - **`../build/`.** It is the one way out of the folder, and it is meant: `HANDOFF.md` names it,
   under "What you write back", as where the build writes its three pages. See that the sentence
   says so plainly, and close the item with it. It is never taken out.
-- **A state with no page, or a string with no key.** A miss in the folder's own lists is yours to
-  put right when the approved design holds it. When the approved design itself lacks it, it is not
-  Handoff's: it goes to the founder, and the stage it belongs to is his to reopen.
+- **A row of `states.md` with no page, or a string with no key.** A miss in the folder's own lists
+  is yours to put right when the approved design holds it. When the approved design itself lacks
+  it, it is not Handoff's: it goes to the founder, and the stage it belongs to is his to reopen. A
+  case inside a row, as three kinds of room in one row of a dialog, is no state: `SPEC.md` holds
+  it, and `ACCEPTANCE.md` lists it as one a person looks at.
 
 And three things hold while you close them:
 
 - **A default is his to see.** Each one is listed on the decision page under `findings`, so that his
   go covers it. You propose a default in one line and never settle one in silence.
+- **A default is your proposal, and is held first.** Before it goes to him, hold it against the
+  pages and the checks it touches: a default that hides what an approved page draws, or fails a
+  check that passes, is no default. It is marked "the conductor's proposal" until he answers. An
+  item that changes what she sees or can do goes to him with its options, each with what follows,
+  and never under a blanket "use the written default".
 - **A page or a check that changed is proved again,** by the commands of steps 3 and 6 of the
   skill, before the re-read.
 - **Its row waits for its last read.** The seat, what it read, its four core checks, the model it
@@ -85,3 +93,8 @@ cold and written its lists. It marks each earlier item *fixed*, *partly* or *sti
 There is no second round. What is still present goes to the founder with the gate, as an open
 finding. The handoff is ready when the lists are empty, or every item left has its answer or its
 default written in the folder.
+
+An item of the re-read that you close in the folder afterwards is closed, and nobody reads it again:
+the decision page lists it under `findings`, by seat, as "closed after the re-read, not read again",
+with where it was closed. A pointer in an approved file is closed that way, by its line in
+`PARTS.md`.

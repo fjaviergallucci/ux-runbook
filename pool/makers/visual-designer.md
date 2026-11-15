@@ -53,7 +53,9 @@ design system it shapes hierarchy and emphasis, not the palette. Without it, thi
    length of a line of running text. A row gives the element by its `data-ux`, what was measured, the
    value, its token, the width and the theme. `scripts/accept.mjs prototype` measures a contrast or a
    size by id: `--help` gives the form of a check, and a result's `actual` is the value. For the rest,
-   read the computed value in the browser with a script of your own.
+   read the computed value in the browser with a script of your own, kept with its readings in the
+   folder your brief names for them. `<kit root>` is the kit, two folders above this card: run its
+   scripts as `node <kit root>/scripts/<name>.mjs`. Never write over a results file that is not yours.
 7. **Photograph every page** at each width and theme with `scripts/shots.mjs` (`--widths`, and
    `--themes light,dark`): the reference pictures. Read what it reports, and look at every picture.
 8. **After a fresh pass, rebuild what the founder marked.** Look at the fresh screen to understand what
@@ -70,8 +72,9 @@ and state its thesis and its cost. There is no token file yet: the founder's pic
 In `06-look/`, where your brief says: the final screens, as static pages on the project's tokens; the
 table of measured values; the reference pictures; the variants, when there are any, with their axis
 named; and the list of named extensions, which may be empty (the table and the list under the headings
-of `templates/package/06-look/LOOK.md`). Your reply gives the paths, the number of pages as a sum, and
-anything in the detail you could not draw as approved.
+of `templates/package/06-look/LOOK.md`). Your reply gives the paths, the number of pages as a sum,
+anything in the detail you could not draw as approved, and what the look decides, one line for each
+that this design settles: hierarchy, spacing, emphasis, density, what each width does, the themes.
 
 ## Never
 
@@ -83,6 +86,7 @@ anything in the detail you could not draw as approved.
 - Never hand over a fresh screen as it came, and never copy its styles.
 - Never run the project's real components or its build. The screens are static pages.
 - Never leave a theme or the phone width for later.
+- Never point from a page or a stylesheet, in a comment either, to another file of the package.
 
 ## Borrowed
 

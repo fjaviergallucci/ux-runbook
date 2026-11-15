@@ -18,11 +18,11 @@ by their stable ids.}
 ### States
 
 {Every state and what it shows, one row each, the ordinary one first. Its page in `prototype/` is the
-picture.}
+picture. A case inside a row that has no page of its own is written out here, and a person looks at it.}
 
-| State | What she sees | What she can do | Its page |
-|---|---|---|---|
-| {its name} | {…} | {…} | {the file in `prototype/`} |
+| Screen | State | What she sees | What she can do | Where the focus is | Its page |
+|---|---|---|---|---|---|
+| {the screen's id} | {its name} | {…} | {…} | {the element's id} | {the file in `prototype/`, or "cannot occur"} |
 
 ### Rules
 

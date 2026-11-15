@@ -34,6 +34,11 @@ with what shows it.}
 {One line for each judge that read pictures of the build, with its verdict. Then the audience's task
 read: its ranking, and the stuck point that cost her most.}
 
+### What the readers found that was approved as it is
+
+{Each finding on something the approved design already had, with its seat: the build matches there, and
+it is no deviation. Whether the design is reopened for it is his to say. "None".}
+
 ## Deviations accepted
 
 {Each deviation he accepts, in his words, and what in the package was brought up to date so that the

@@ -91,6 +91,16 @@ screen, element and state; and `note`, its why-line, which is part of the table 
 {One line for each seat that read the prototype, with its verdict. Then each finding: fixed, or open
 with the reason.}
 
+{Then each finding Structure carried on the chosen structure: how Detail answered it, or open with why.}
+
+## Accepted deviations
+
+Part of what was approved: every judge from this stage on is handed this section, and what it lists is
+not a finding again. An audience is never handed it.
+
+{Each breach of a standing rule or of the intent that he accepts as a cost: what it is, the rule or the
+line of the intent it breaks, his words, the date. "None".}
+
 ## Reviewed by the founder
 
 {What he corrected, and the words he approved the prototype with, as he said them. Where the words are

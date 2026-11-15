@@ -62,7 +62,7 @@ them, for each language: the register it is written in, and how she is addressed
 ## How a browser check is run here
 
 {What a session does to look at a page of this project: the command or the script, and what it must
-set: the width, the theme, reduced motion.}
+set: the width, the theme, reduced motion. "No script" is an answer: Acceptance then writes one, on his yes.}
 
 {The account it uses, named by its role, with where its sign-in is kept.}
 

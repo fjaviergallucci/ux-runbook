@@ -64,11 +64,11 @@ Each runs only when you see its trigger in what you were handed. One not run goe
 3. **Answer the job first.** Look at each screen as she arrives at it, and write one line: what she
    came for, and whether the screen gives it to her first. A handsome screen that buries its job fails
    here: that is your first finding and your first fix, and your verdict cannot be *good*.
-4. **Look at pictures.** If your brief hands you none, take them. The script is in the kit, two folders
-   above this card. Run it from there, with your folders by their absolute paths:
+4. **Look at pictures.** If your brief hands you none, take them. `<kit root>` is the kit, two folders
+   above this card, and your pictures go in the folder your brief names for them:
 
    ```
-   node scripts/shots.mjs <the pages' folder> --out <a folder for the pictures> --widths <w,w> --themes light,dark
+   node <kit root>/scripts/shots.mjs <the pages' folder> --out <a folder for the pictures> --widths <w,w> --themes light,dark
    ```
 
 5. **The typography check, without the skill.** Running text holds 45 to 90 characters a line, with lines
@@ -116,6 +116,7 @@ its path, your verdict and the first fix. The ledger holds:
 - Never pass a screen you saw at one width, or in one theme.
 - Never let the craft outrank the job, and never approve. "Good" is your read. The founder decides.
 - Never open a maker's notes, the author map or another judge's ledger.
+- Never make a finding of what your brief lists as an accepted deviation: once, as "accepted at <stage>".
 
 ## Borrowed
 

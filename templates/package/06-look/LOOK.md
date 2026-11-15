@@ -26,8 +26,8 @@ each serving every theme and width. Their number, as a sum.}
 
 ## What the look decides
 
-{One line for each that this design settles: hierarchy · spacing · emphasis · density · what each width
-does · themes · motion, only when it was cast.}
+{The visual designer's lines, copied as its reply gave them, one for each that this design settles:
+hierarchy · spacing · emphasis · density · what each width does · themes · motion, only when it was cast.}
 
 ## Measured values
 
@@ -59,6 +59,14 @@ the system's own; where it is used; what it costs. "None".}
 
 {One line for each seat that read the final screens, with its verdict. Then each finding: fixed, or
 open with the reason.}
+
+## Accepted deviations
+
+Part of what was approved: every judge from this stage on is handed this section, and what it lists is
+not a finding again. An audience is never handed it.
+
+{Those of the detail, copied as they stand. Then each breach he accepts here as a cost: what it is, the
+rule or the line of the intent it breaks, his words, the date. "None".}
 
 ## Reviewed by the founder
 

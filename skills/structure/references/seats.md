@@ -5,7 +5,12 @@ card's `reads` allows and this page lists, each file by its absolute path, and l
 open" what its card's `never-reads` names, as this package holds it. Nothing is pasted into a brief,
 and no brief says who made a letter. How a seat is started, on which model, and the rules of a shared
 machine are in `skills/design/references/loop.md`, under "Starting a seat". Every brief is written
-into `<package>/work/`.
+into `<package>/work/`, named as the loop says. You fill a brief from this page and never from the
+seat's card, which you do not open: where a template asks what the card gives, this page says it.
+
+"Today's screen" is the surface being redesigned, as it is, as a picture or as source. "A sibling
+surface" is another surface of the product. "Project sources" of the context says which a file is.
+The blind on today's screen ends at his pick: the carry list hands it on, and Detail may open it.
 
 A card of the project's own that the cast sheet seats here is handed what its header's `reads`
 allows, by the same rule, and of `<package>/04-structure/` no more than the kit's seats of its shelf.
@@ -97,8 +102,25 @@ together, or an outside answer left as `.raw.txt`. It is started once its source
 ## The readers
 
 The readers are started once the board is drawn and photographed: the judges in one message, so that
-no ledger exists while another judge reads, then the audiences. They read by letter. Every reader's
-brief lists these under "Do not open":
+no ledger exists while another judge reads, then the audiences. They read by letter. An audience is
+started once every judge has written its ledger, and not before.
+
+`<seat>`, in the name of a reader's file, is the seat's id, as `judge.usability`, and a seat that is
+loaded adds what it is loaded with, so that no two readers share a file: `judge.profile-<name>` for
+each profession's profile, `audience.task-reader-<name>` for each person.
+
+Each letter is on the board twice, and each page is pictured twice:
+
+- **Drawn with the makers' notes, and without them.** The judges read the pages with the notes: the
+  bet, the cost, what a letter is deliberately bad at, and the notes on its screens and items. The
+  audiences are handed the pictures of the pages drawn without them, and no other.
+- **The whole page, and its first screen alone.** A picture of the first screen is the window's
+  height, with no scrolling. A brief says which is which, and that "without scrolling" is answered on
+  the first.
+
+A judge's brief asks that the "Where" of each finding open with the letters it holds for, so that
+what is open on his pick can be read off the ledger. A brief names first the pictures the seat's
+checks, or her tasks, need. Every reader's brief lists these under "Do not open":
 
 - `<package>/work/`, where the makers' briefs and replies are;
 - `<package>/04-structure/MAP.sealed.json`, the author map;
@@ -126,10 +148,13 @@ brief lists these under "Do not open":
 
 ### `judge.truth`
 
-- **Its brief,** from `templates/briefs/judge.md`, as the usability judge's.
+- **Its brief,** from `templates/briefs/judge.md`, as the usability judge's. It carries one line:
+  where the context and a source it is handed disagree, the context holds.
 - **Handed:** `<package>/04-structure/board/`, the board folder, whole. `<package>/01-context.md`,
   the context, for the inventory it traces every element to. `<package>/02-intent.md`, the intent.
-  And the project's facts document, where the project profile names one under `facts`.
+  And the project's facts document, where the project profile names one under `facts`, with the
+  data the brief's example rows came from, where "Project sources" of the context names such a
+  file, by the path the carry list gives it.
 - **Do not open:** the list above.
 - **Writes:** its ledger, `<package>/04-structure/reads/<seat>.md`, in the shape of
   `templates/outputs/LEDGER.md`.
@@ -151,15 +176,18 @@ One for each profession's profile the cast sheet loads into this seat, as `profi
 One for each person the cast sheet seats it as, `person.<name>`: the primary person, and a contrast
 person the makers were not briefed on.
 
-- **Its brief,** from `templates/briefs/audience.md`: who she is, her language and her width, and her
-  tasks, copied word for word from "Tasks for the audience" of the intent: where she starts and what
-  she wants. Never the path, a criterion, or the job as the intent states it.
+- **Its brief,** from `templates/briefs/audience.md`: who she is, her language, the width each task
+  puts her at, in the light theme, and her tasks, copied word for word from "Tasks for the audience"
+  of the intent: where she starts and what she wants. Never the path, a criterion, or the job as the
+  intent states it. Where the tasks are not written in her language, the brief says so.
 - **Handed:** her card. Her profession's traits: a copy of her profession's profile with every
   `So the interface must:` field removed, written beside the brief as the loop says, and the one
-  file of `<package>/work/` she opens. And the pictures of every letter at her width, each by its
-  path, as `<package>/04-structure/board/A-390-light.png`. The pictures, and pictures only.
+  file of `<package>/work/` she opens. And the pictures of every letter drawn without the makers'
+  notes, at the width each task puts her at, each by its path in `<package>/04-structure/board/`:
+  the whole page, and its first screen alone. The pictures, and pictures only.
 - **Do not open:** the list above, and with it: `<package>/02-intent.md`, and every other file of the
-  package; her profession's profile itself; the pages and the letters' files of the board. A person
-  cannot find a control by reading markup.
+  package; her profession's profile itself; the pages and the letters' files of the board, with the
+  pictures of the pages that carry the makers' notes. A person cannot find a control by reading
+  markup, and must not be told what a letter means to do.
 - **Writes:** one task read, `<package>/04-structure/reads/<seat>-<name>.md`, in the shape of
   `templates/outputs/TASK-READ.md`.

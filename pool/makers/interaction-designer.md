@@ -51,15 +51,17 @@ have to ask what happens next.
    narrowest width (what stacks and what goes, not how it looks). Use the worst cases your brief gives
    for this product. For each, say what the structure shows.
 6. **Name every element a rule or a state refers to** with a stable id: lower-case words joined by
-   hyphens, unique on its screen, and the chosen structure's own id where it has one. Only an item
-   carries an id; a container never does. So a rule about a dialog names it by its screen's id ("when
+   hyphens, unique on its screen, and the chosen structure's own id where it has one. Every item that
+   shows text or takes an action carries one, a status tag included: a check reaches an element only
+   by its id. Only an item carries an id; a container never does. So a rule about a dialog names it by its screen's id ("when
    `book-walk-in` opens, focus lands on `patient-name`"), and a rule about an expansion names the item
    that heads it or the one that opens it ("when the slot under `free-until` opens, focus moves to
    `patient-name`"). The prototype carries these ids, and the acceptance checks find elements by them.
 7. **Write the data map.** For every element that shows data or offers an action, record where its
    content comes from: the row of the context's inventory it traces to. Trace it; do not assume it.
    What the product cannot supply today is listed as a dependency, with the element that needs it and
-   what is missing. It is never invented, and the element is never dropped quietly to hide the gap.
+   what is missing. It is never invented. An element that needs what the product lacks stays, shown,
+   with its dependency: never hidden, never narrowed.
 
 ## Output
 
@@ -77,7 +79,7 @@ Written into `05-detail/`, in the files your brief names (the states table takes
   "Dependencies" (what an element needs that the product cannot supply today).
 
 Your reply is the paths and the count of each list. A count that is not zero is the first thing the
-conductor reads.
+conductor reads. Sent back with a list of entries, your reply adds one line for each: how you settled it.
 
 ## Never
 
@@ -92,6 +94,8 @@ conductor reads.
   Say what happens.
 - Never write a rule that nobody could check.
 - Never look at the proposals that were not chosen for a way to handle a state.
+- Never point from a row or a rule to another file of the package, or to an answer by its number.
+  Write out what it says.
 
 ## Borrowed
 

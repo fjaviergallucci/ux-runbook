@@ -50,10 +50,11 @@ the project's profile lists `tool:stitch` in `engines-on`.
    to time out.
 6. **Wait, then fetch.** See the known behaviours below.
 7. **Keep each screen as it came:** its HTML, and the prompt that made it beside it. Change nothing in
-   it. Then take its picture from the saved file, so that every fresh screen is pictured the same way:
+   it. Then take its picture from the saved file, so that every fresh screen is pictured the same way
+   (`<kit root>` is the kit, two folders above this card):
 
    ```
-   node scripts/shots.mjs <the screen's file> --out <the same folder> --widths <the device's width> --allow-errors
+   node <kit root>/scripts/shots.mjs <the screen's file> --out <the same folder> --widths <the device's width> --allow-errors
    ```
 
    A screen as it came may ask for things that do not load. The picture is taken all the same, and your

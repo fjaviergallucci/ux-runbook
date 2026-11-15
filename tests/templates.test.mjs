@@ -667,6 +667,18 @@ test('SPEC.md carries the data map and the dependencies forward', () => {
   assert.deepEqual(names, ['Its job', 'Regions, in priority order', 'States', 'Rules', 'Data map', 'Dependencies']);
 });
 
+// The dry run, F94: the spec's rows are the states table's rows, copied, so a builder is given every column of them.
+test('SPEC.md\'s States table holds every column of the states table, and the page that draws each state', () => {
+  const states = tableOf(template('package/05-detail/states.md'), 'Screen');
+  const spec = tableOf(template('package/07-handoff/SPEC.md'), 'Screen');
+  assert.deepEqual(spec.head, [...states.head, 'Its page']);
+  assert.ok(spec.head.includes('Where the focus is') && spec.head.includes('Screen'), 'the two columns a builder was not given');
+  // One row of instructions, a cell for each column, and a row that cannot occur has no page.
+  assert.equal(spec.rows.length, 1);
+  assert.equal(spec.rows[0].length, spec.head.length);
+  assert.match(spec.rows[0].at(-1), /`prototype\/`[^}]*"cannot occur"/);
+});
+
 // The check types as the in-page file's header gives them: a line of its opening comment for each.
 const inpageTypes = () => [...read('scripts/inpage/accept-inpage.js').matchAll(/^\/\/ {3}([a-z-]+) {2,}\S/gm)].map(([, type]) => type);
 

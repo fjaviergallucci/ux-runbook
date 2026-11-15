@@ -109,15 +109,26 @@ What it reads is named by its letter or by what it is, never by who made it.
 - **An audience is handed the traits of her profession's profile, never the whole of it.** Its brief
   gives the person (her card), where she starts and what she wants, and pictures. Where she has a
   profession's profile, write a copy of it beside the brief with every `So the interface must:` field
-  removed, each from its label to the next blank line, and hand her that copy. List her profession's
-  profile itself under "Do not open", with the intent.
+  removed, and hand her that copy. The kit's card script, `scripts/card.mjs`, makes the copy, by its
+  `traits` verb, from her profession's profile, at the path given after `--out`: it takes out each
+  field, from its label to the next blank line, with the paragraph that explains the field, and
+  refuses a card that fails its check. The copy is never made by hand. List her profession's profile itself under "Do not
+  open", with the intent.
+- **A seat handed more pictures than one read opens is told which come first:** those its checks, or
+  her tasks, need, by name. What it did not open, it lists. An audience's brief also says which
+  pictures show the first screen only, as she meets it before any scrolling, and which the whole page.
+- **Make the stage's `reads/` folder before you start its readers.** A seat writes its own file there,
+  and never lists the folder: the names in it say who else read.
 
 ### Starting a seat
 
 - **A fresh sub-agent.** Start it with the Agent tool, type `general-purpose`, from the project's root
   directory. A seat never continues an earlier agent, and never sits in your own context.
 - **From a brief that names files.** Write the brief from its template, as a file in the package's
-  `work/` folder unless the stage's skill names another place, and start the seat with it, whole. The
+  `work/` folder unless the stage's skill names another place, and start the seat with it, whole. Its
+  name is `<stage>-<seat>-brief.md`: `<seat>` is the seat's id, with what it is loaded with where two
+  instances share an id, as `detail-audience.task-reader-<name>-<language>-brief.md`, and `-reread` or `-fix` after it
+  for a seat started again. The
   brief names the seat's card by its absolute path and says to read it first. It names each file the
   seat may read, by its absolute path, and what the seat must not open. Never paste a card or an
   artefact into a brief: name the file.
@@ -146,7 +157,8 @@ Each judge writes a ledger, and each audience a task read. You do three things w
 A gate is one of two kinds, and the stage's skill says which.
 
 - **He picks.** Every option goes in front of him, with the reads beside the options. Nothing is
-  shortlisted and no option is mended first: he picks from what the makers made.
+  shortlisted and no option is mended first: he picks from what the makers made. At a pick, a finding
+  marked `blocks` stays in its seat's line beside its option: nothing is mended, and nothing read again.
 - **He approves.** The findings a judge marked `blocks` are fixed first, then read again. Only those:
   a `should` or a `note` is never mended before the gate, by a maker or by you, however small the fix
   and even on a page that is yours to write. It goes to him open.
@@ -159,6 +171,16 @@ A gate is one of two kinds, and the stage's skill says which.
    that seat's earlier ledger, to be opened only after it has read the artefact cold. It marks each
    earlier finding *fixed*, *partly* or *still present*.
 3. What is still open goes to the founder with the gate, as open findings, with a recommendation.
+
+**What he has accepted is part of what was approved.** A breach of a standing rule or of the intent
+that he accepts as a cost is written under "Accepted deviations" of the stage's output: what it is,
+what it breaks, his words, the day. That section is carried on, and handed to every judge from that
+stage on as part of what was approved, never to an audience. A judge that still finds it writes it
+once, as "accepted at" and the stage: it goes to no fix round and does not count as blocking, and on
+the decision page it is listed apart from the open findings, its `seat` reading "accepted at" and
+the stage. Where only a part of a finding rests on an accepted deviation, split it into its parts,
+each quoted in the judge's words: the rest stands as it was marked. At the stamp, the decision you
+append names each accepted deviation.
 
 ## 7. The decision page
 
@@ -178,10 +200,20 @@ node <kit root>/scripts/page.mjs <decision.json> --out <decision.html>
 - **The page's question is the only question on it.** The script refuses data that asks two.
 - Each picture is named by its path from the page's folder, and must be there: the script refuses a
   picture it does not find.
-- You recommend, and never decide: one option, one sentence, resting on the reads.
+- You recommend, and never decide: one option, one sentence, resting on the reads. Where the seats
+  rank the options differently it is one recommendation still, and its reason says that they rank
+  them differently and that he settles it.
 
-One question about one thing at a time, on a page and in the chat. When the stage's output is in front
-of him, record the question, so that a session resuming tomorrow asks the same one:
+One question about one thing at a time, on a page and in the chat. **A list is one thing.** A list a
+maker or a reader returns (dependencies; states the intent does not name; what the structure cannot
+hold; facts a string waits for; items nobody decided; deviations) is put to him as one question: the
+entries numbered, each with what follows from each answer, answered by number in one message, with
+one `await`. An entry he leaves unanswered stays open, and is listed so. What step 8 catches, an
+answer that meets a standing rule, a fact of the product or an output he approved, is still asked on
+its own, at once.
+
+When the stage's output is in front of him, record the question, so that a session resuming tomorrow
+asks the same one:
 
 ```
 node <kit root>/scripts/state.mjs await <package> <stage> --question "<the one question>"

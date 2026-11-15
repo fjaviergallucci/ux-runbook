@@ -5,22 +5,31 @@ One section for each seat of the kit whose card sits at Look. A brief hands a se
 its card's `never-reads` names, as this package holds it. Nothing is pasted into a brief but the
 founder's own words, where a brief template asks for them as he said them. How a seat is started, on
 which model, and the rules of a shared machine are in `skills/design/references/loop.md`, under
-"Starting a seat". Every brief is written into `<package>/work/`, and keeps the template's last line:
-a seat that starts a browser stops only the one it started.
+"Starting a seat". Every brief is written into `<package>/work/`, named as the loop says, and keeps
+the template's last line: a seat that starts a browser stops only the one it started. You fill a
+brief from this page and never from the seat's card, which you do not open.
 
 A card of the project's own that the cast sheet seats here is handed what its header's `reads`
 allows, by the same rule.
 
-Four names are used below, besides `<tokens>`, the project's token file as the skill gives it:
+Five names are used below, besides `<tokens>`, the project kit's copy of the token file as the skill
+gives it:
 
 - `<chosen>` is the chosen proposal's file, as the carry list names it.
 - "The states and the rules" are `<package>/05-detail/states.md`, and `<package>/05-detail/DETAIL.md`
-  for the rules, the edge cases, the data map and the dependencies.
+  for the rules, the edge cases, the data map and the dependencies. A brief names those four
+  headings, with "Accepted deviations" for a judge, and says that "What the readers found" of that
+  file is not the seat's to read: it quotes every ledger of Detail.
 - "The final screens" are `<package>/06-look/screens/`, the pages, and `<package>/06-look/measures.md`,
   the table of measured values and the named extensions; with variants, `<package>/06-look/variants/`
   too.
 - "What the project says of its design system" is the documents that "Design system" of the project
   profile names, each by its path. A seat is handed those files, and never the project profile.
+  They are the system's documents, its token files and its component files, all of them: a
+  decision log that section cites, as for a date, is not one, and is never handed.
+- "Today's screen" is the surface being redesigned, as it is. "A sibling surface" is another
+  surface of the product: "Project sources" of the context says which a file is. A new surface
+  has no screen of today, and the surface it sits beside is a sibling.
 
 ## The makers
 
@@ -37,6 +46,8 @@ Four names are used below, besides `<tokens>`, the project's token file as the s
   project says of its design system. For each of his marks, its picture, where the carry list names
   one. And the two lines the maker's brief template keeps for them: her card, by the path the carry
   list names, and her profession's profile, whole. A fresh maker is handed neither.
+- **No kit is handed here.** Its card reads `kit` for the one time it restyles the kit, after a
+  direction is picked: `references/direction.md`. Of the project kit it is handed `<tokens>` alone.
 - **Do not open:** its card closes nothing, and four things are kept from it all the same.
   `<package>/work/`, but its own brief. `<package>/06-look/reads/`, but the ledgers a fix round
   hands it. `<package>/04-structure/earlier/`. And, until he has said what he borrows,
@@ -46,7 +57,10 @@ Four names are used below, besides `<tokens>`, the project's token file as the s
   any; `checks.json`; and `measures.md`, under the two headings "Measured values" and "Named
   extensions", each in the shape `templates/package/06-look/LOOK.md` gives it. The pictures and the
   results of its own check go in `<package>/work/look-check/`: those of record are yours to take,
-  in step 5 of the skill.
+  in step 5 of the skill. A page of `screens/` is named as the prototype's page of the same
+  screen, state and language. Its own measuring script, and what that script read, go in
+  `<package>/06-look/measure/`, and nothing of its tools lies beside the screens. It never writes
+  `<package>/06-look/results.json`: that file is your run, and its brief says so.
 - **Variants are photographed, measured and read like the screens.** A variant's page is named for
   its screen and its variant, as `today-default-en-compact.html`, so that no picture of one takes a
   screen's name; `variants/` holds a `checks.json` of its own; and each variant has its rows in
@@ -60,12 +74,20 @@ Four names are used below, besides `<tokens>`, the project's token file as the s
 - **It drives a browser,** and counts among the three.
 - **What it could not draw as approved** is in its reply: a string that does not fit, a state with
   no room. It goes to the founder with the gate, open: a string is the interface writer's, and
-  Detail's to reopen. You change none.
-- **When it is started again,** for a fix round, a variant he picked, a correction of his or a
-  thing he borrows, it is a fresh sub-agent with the same hand-over, the screens as they stand, and
-  what it is started for: the ledgers that hold its findings, each by its path with the findings'
-  numbers, or his words as he said them. For a thing he borrows it is also handed the fresh screen
-  he marked it on, to understand what he liked: it copies none of its code or its values.
+  Detail's to reopen. You change none. On the decision page each item is one line under
+  `findings`, by seat.
+- **What the look decides** is in its reply too, one line for each that this design settles. You
+  copy those lines into `LOOK.md` as they came: you never write them from the stylesheet.
+- **When it is started again,** for the send-back of step 5, a fix round, a variant he picked, a
+  correction of his or a thing he borrows, it is a fresh sub-agent with the same hand-over, the
+  screens as they stand, and what it is started for: the rows of the table that your run does not
+  bear out, as facts, each by its result id and its measured value; the ledgers that hold its
+  findings, each by its path with the findings' numbers; or his words as he said them. For a thing
+  he borrows it is also handed the fresh screen he marked it on, to understand what he liked: it
+  copies none of its code or its values.
+- **The send-back of step 5 is run once for each run of that step,** before any reader starts or
+  reads again, and it is no fix round: the fix round is the readers', and there is one. A table
+  that still does not hold after its send-back goes to the founder, open. You write no value.
 - **Cast for a direction,** it has no token file and no design system to read:
   `references/direction.md`.
 
@@ -111,9 +133,14 @@ each profession's profile, `audience.task-reader-<name>`.
 Three seats read twice when a fresh pass ran, each time as a fresh sub-agent: the truth judge and the
 profile judge read the beside comparison first, and the system fidelity judge writes the borrow list
 first, as `references/fresh.md` gives them. What this page gives is the main read, of step 7 of the
-skill. Every reader's brief lists these under "Do not open":
+skill. Make `<package>/06-look/reads/` before you start the first reader: a seat writes its own
+file there, and never lists the folder. Every judge's brief hands it "Accepted deviations" of
+`DETAIL.md`, by the file and the heading, as part of what was approved, when that section holds
+any. A brief names first the pictures the seat's checks need. Every reader's brief lists these
+under "Do not open":
 
-- `<package>/work/`, where the makers' briefs and replies are;
+- `<package>/work/`, where the makers' briefs and replies are, and `<package>/06-look/measure/`,
+  the visual designer's own tools;
 - `<package>/04-structure/MAP.sealed.json`, the author map, and `<package>/04-structure/CHOSEN.md`,
   which names who made which letter;
 - `<package>/03-cast.md`, the cast sheet: it holds each maker's lens and engine;
@@ -173,9 +200,11 @@ and never over it.
 It reads at Look where the cast sheet seats it: always on a public page, and with a fresh pass. It
 looks for what Look could have added that the approved detail did not hold.
 
-- **Its brief,** from `templates/briefs/judge.md`, as the visual craft judge's, without a lens.
+- **Its brief,** from `templates/briefs/judge.md`, as the visual craft judge's, without a lens. It
+  carries one line: where the context and a source it is handed disagree, the context holds.
 - **Handed:** `<package>/01-context.md`, the context, for the inventory. `<package>/02-intent.md`,
   the intent. The project's facts document, where the project profile names one under `facts`.
+  The data the example rows come from, where "Project sources" of the context names such a file.
   `<chosen>`. The states and the rules. `<package>/05-detail/strings.json`, the strings.
   `<package>/05-detail/prototype/`, the approved pages. The final screens.
   `<package>/06-look/shots/`, the pictures.

@@ -56,13 +56,13 @@ is the version a stage stands at, as `status` prints it: after a reopening it is
 
 1. **Begin.** Check the state as step 1 of the loop says. A stage that is awaiting the founder is not
    begun again: take his answer to "Gate", or to the step that asked for it. Otherwise mark it in work:
-
    ```
    node <kit root>/scripts/state.mjs begin <package> detail
    ```
 2. **Read the chosen structure, and what its carry list names.** Copy the template to
-   `<package>/05-detail/DETAIL.md` and write `built-from`, unless the file is already there: then go
-   on from what the folder holds, at the first step whose file is missing.
+   `<package>/05-detail/DETAIL.md`, and write `built-from` and the title, unless the file is already
+   there: then go on from what the folder holds, at the first step whose file is missing. The
+   template's comment stays until step 9.
 3. **Start the three makers, one after another.** Each is a fresh sub-agent, started as "Starting a
    seat" in the loop says, on the model and the effort its line of the approved cast sheet names: a
    dash means the session's model, and you enforce none. Its brief is written from
@@ -76,8 +76,9 @@ is the version a stage stands at, as `status` prints it: after a reopening it is
      from "The founder's own words" of the context: they are the bar its lines must meet.
    - **`maker.prototype-builder`** generates `prototype/` in the shared kit, `<kit dir>`: one page
      for each screen, state and language, and the index.
-4. **Put what a maker could not decide to the founder, one question at a time,** as soon as its
-   reply names it, and before the next maker starts. You supply none of it, and you drop nothing:
+4. **Put what a maker could not decide to the founder, one list at a time,** as soon as its reply
+   names it, and before the next maker starts: a list is one question, its entries answered by
+   number, as step 7 of the loop says. You supply none of it, and you drop nothing:
    - **A dependency:** an element needs something the product cannot supply today, as a waiting
      list when no room is free. It stays on its screen, and on its line under `## Dependencies`. Ask
      him: is it to be built with the design, or does the element go? If it goes, the interaction
@@ -85,11 +86,12 @@ is the version a stage stands at, as `status` prints it: after a reopening it is
    - **A state the intent does not name, a fact a string waits for, a state the structure cannot
      hold:** `references/seats.md` says what each asks of him, and which stage it may reopen.
 
-   Record each question with the `await` of the gate, write his answer under
-   `## Reviewed by the founder`, as he said it, and put the stage back in work with the `begin` of
-   step 1. An entry with no answer there is still to be asked.
-5. **Photograph every page.** Once the prototype is generated, and again after every change to it:
-
+   Record the question with the `await` of the gate, write his answers under
+   `## Reviewed by the founder`, numbered, as he said them, and put the stage back in work with the
+   `begin` of step 1. An entry he leaves unanswered stays open. A breach of a standing rule or of
+   the intent that he accepts as a cost goes under `## Accepted deviations`: `references/seats.md`.
+5. **Photograph every page.** Light only: the themes are Look's. Once the prototype is generated, and
+   again after every change to it:
    ```
    node <kit root>/scripts/shots.mjs <package>/05-detail/prototype --out <package>/05-detail/shots --widths <primary>,<phone>
    ```
@@ -102,7 +104,8 @@ is the version a stage stands at, as `status` prints it: after a reopening it is
    rules and the strings as its card reads them. The words judge is handed the strings with their
    why-lines, which are part of the strings, and its brief carries the founder's own lines. An
    audience is handed pictures only, in one language. What each is handed, and what its brief lists
-   under "Do not open", is in `references/seats.md`. Each writes one file in `reads/`.
+   under "Do not open", is in `references/seats.md`. Each writes one file in `reads/`. Make that
+   folder first: a seat never lists it. Every judge is handed the accepted deviations, as approved.
 7. **One fix round.** Send each finding marked `blocks` to the maker whose artefact it is on: a
    state, a rule or the data map to the interaction designer, a string to the interface writer, a
    page to the prototype builder. Each is a fresh sub-agent in that seat, handed the findings and the
@@ -116,13 +119,13 @@ is the version a stage stands at, as `status` prints it: after a reopening it is
    second round:** what is still open goes to the founder with the gate.
 9. **Build the decision page.** Fill the rest of `DETAIL.md` as its template says: "What is in this
    folder", "Strings" with the writer's two lists, and "What the readers found", each finding fixed
-   or open with the reason. Then write `<package>/05-detail/decision.json` in the shape of
-   `templates/outputs/decision-approve.json`: the prototype as its one option, its pictures named
-   from the page, the phone width first, as `shots/today-default-en-390-light.png`; one line for
-   each seat that read it; each finding that stayed open under `findings`, by seat; one
+   or open with the reason, those Structure carried on the chosen structure among them, answered
+   one by one. Delete the template's comment. Then write `<package>/05-detail/decision.json` in the
+   shape of `templates/outputs/decision-approve.json`: the prototype as its one option, its pictures
+   named from the page, the phone width first, as `shots/today-default-en-390-light.png`; one line
+   for each seat that read it; each finding that stayed open under `findings`, by seat; one
    recommendation, resting on the reads; one question. Its identity is the design's name, kind and
    size, as `status` prints them, at stage 6 of 9.
-
    ```
    node <kit root>/scripts/page.mjs <package>/05-detail/decision.json --out <package>/05-detail/decision.html
    ```
@@ -139,7 +142,6 @@ words are a question of their own, asked first: the first point below. Then put
 `<package>/05-detail/decision.html` in front of him, and the prototype itself,
 `<package>/05-detail/prototype/index.html`, to open and click through. Record the one question, so
 that a session resuming tomorrow asks the same:
-
 ```
 node <kit root>/scripts/state.mjs await <package> detail --question "<the one question>"
 ```
@@ -153,7 +155,6 @@ and you go no further without his words.**
   words? Build it, put it in front of him with `strings.json`, and record it with the same `await`.
   His answer is written apart under `## Reviewed by the founder`. Only then is the prototype's page
   put to him.
-
   ```
   node <kit root>/scripts/page.mjs <package>/05-detail/words.json --out <package>/05-detail/words.html
   ```
@@ -170,13 +171,12 @@ and you go no further without his words.**
   marked in a fresh gallery at Structure reaches Look through that file. A heading's slug is printed
   by `node <kit root>/scripts/state.mjs slug "<heading text>"`.
 - **Stamp it,** in the words he approved it with:
-
   ```
   node <kit root>/scripts/state.mjs stamp <package> detail --words "<the founder's words>"
   ```
 
-  Then append the decision to the package's `DECISIONS.md`, each dependency he settled with it, and
-  ask the state what is next, as step 9 of the loop says.
+  Then append the decision to the package's `DECISIONS.md`, each dependency he settled and each
+  accepted deviation with it, and ask the state what is next, as step 9 of the loop says.
 
 ## Never
 

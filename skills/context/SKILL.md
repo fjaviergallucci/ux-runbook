@@ -127,7 +127,8 @@ What is true before anyone has an idea?
      the recommendation says where his answer will be written and what the package already holds on it.
    - "Project sources": the files a later stage may open directly, as the token files, the component
      source and the product-facts document. One path to a line, from the project's root, with what it
-     is. A file you leave out is closed to every later stage. The project kit is not one, and never a
+     is: a file of the surface being redesigned, as it is, is "today's screen", and one of another
+     surface of the product "a sibling surface". A file you leave out is closed to every later stage. The project kit is not one, and never a
      source of facts about the product: the stages that draw reach it by `kit` of the project profile.
 6. **Put the questions to him before the gate, one at a time.** Each of the "Questions for the
    founder", with its recommendation. Write each answer into the context as it comes, in his words,

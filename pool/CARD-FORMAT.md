@@ -156,6 +156,7 @@ use. A card that needs another adds its row here.
 | `strings` | The strings table: every string in every language, each with its why-line. The why-line is part of the table and goes with it to the handoff: it is not a maker's note. |
 | `prototype` | The plain prototype: its pages, and the stable ids on them. |
 | `kit` | The shared kit, the project's or the grey one: its stylesheets, its parts and its contract. |
+| `example-data` | The project source the context names for the rows its inventory gives as examples: a seeded day, a fixture, a sample file. Where the project keeps none, nothing is handed. |
 | `tokens` | The project's token file. |
 | `design-system` | The project's design system: its tokens, parts, patterns and conventions. |
 | `fresh-marks` | What the founder marked in a fresh pass, with the fresh screens he marked it on. |
@@ -201,6 +202,10 @@ The header is flat frontmatter, as a seat's is. Every key is required, and no ot
 | `profile` | `profile.<name>` · `none` | The profile of her profession, by its id: what is true of the whole group, which she inherits. With `none` she has no profession, as the kit's five have none. |
 | `specialty` | a name · `none` | Her specialty within that profile, named as the profile names it. With `none` she is of the profile's base alone. It is `none` always when `profile` is `none`. |
 | `evidence` | `fact` · `guess` · `mixed` | What the card rests on. `fact`: every line has a source, someone who said it or saw it, and the card names it. `guess`: no line has one yet. `mixed`: some lines have, and the card marks which. |
+
+What only the founder said of her profession is a guess, however sure he is: the line that rests on it
+is marked `guess (the founder, <date>)`, as a profession's profile marks it, until someone of that
+profession has been heard.
 
 After the header come a title and a line or two saying who she is. A card that is a guess says so there.
 Then four sections, under these exact names, in this order, each with text under it. A person card has

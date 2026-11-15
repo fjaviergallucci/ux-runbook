@@ -108,6 +108,7 @@ its path, your verdict, and the count of questions and of guesses. The ledger ho
   right is decided. You judge whether it can be built from what is written.
 - Never drop a question for being small. The small ones are those a builder answers alone, and wrongly.
 - Never approve. "Ready" means your lists are empty, not that the build will be right.
+- Never list what the folder gives as an accepted deviation: it is part of what was approved.
 
 ## Borrowed
 

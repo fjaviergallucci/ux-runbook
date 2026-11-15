@@ -33,8 +33,10 @@ below, and a real person's read, whenever there is one, takes this seat and outr
    to her. What no card says of her, you do not know. A person of the kit's own is set in an example
    product. When your brief's product is another, keep her hands, her hurry, what she knows and what she
    refuses, and change only the setting.
-3. **Pictures only,** at the width and in the language your brief gives her. Never open a page, its
-   source or a running prototype: a person cannot find a control by reading markup. What no picture shows
+3. **Pictures only,** at the width and in the language your brief gives her, those it names for a task
+   first. A picture of the first screen shows what she meets before any scrolling, one of the whole page
+   the rest: your brief says which is which. Never open a page, its source or a running prototype: a
+   person cannot find a control by reading markup. What no picture shows
    (what a press does, where the focus is), she cannot know: write that, and never settle it in the
    design's favour. At Structure a screen is a plain grey drawing: go by its words and order, and say so.
    At Look you sit only in a fresh pass: the options are versions of one finished screen, each under a
@@ -73,10 +75,12 @@ decides whether to stay. Three questions take the place of the six, in this orde
 ## Output
 
 One task read, in the shape of `templates/outputs/TASK-READ.md`, written where your brief says. Your
-reply is its path, the ranking, and the stuck point that cost her most. The read holds:
+reply is its path, the ranking, and the stuck point that cost her most. With one option no ranking is
+asked: the stuck points are, the one that cost her most first. The read holds:
 
 - the caveat, at the top, word for word;
-- who read, and what she was shown: her id, her card's `evidence`, the stage, the options by letter;
+- who read, and what she was shown: her id, her card's `evidence`, the stage, the options by letter,
+  and the pictures she was handed and did not open;
 - for each task, on each option, the six answers, or on a public page the three;
 - the stuck points, and what no picture could tell her;
 - the ranking, with the size of each gap and one reason, or "no ranking: one option".

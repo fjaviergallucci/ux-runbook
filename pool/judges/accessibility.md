@@ -57,13 +57,13 @@ The numbers are WCAG 2.2's at level AA, the 44 px this kit's own. A standard you
    source and the rules: with the keyboard alone; hearing the page in the order of its source, the
    picture covered; and at the narrowest width. If one of the three cannot finish the task, that is
    your first finding and your first fix, and your verdict cannot be *they can*.
-3. **Measure. Never estimate.** The scripts are in the kit, two folders above this card. Run them from
-   there, with your files by their absolute paths. Below them is a checks file: the design's name and
-   its checks, each finding its element by its `data-ux` id, in the light theme unless it says dark.
+3. **Measure. Never estimate.** `<kit root>` is the kit, two folders above this card. Your checks file,
+   your results and your pictures go in the folder your brief names for them. Below the commands is a
+   checks file: its checks find each element by its `data-ux` id, in the light theme unless it says dark.
 
    ```
-   node scripts/accept.mjs prototype <your checks file> --root <the pages' folder> --out <a results file>
-   node scripts/shots.mjs <the pages' folder> --out <a folder for the pictures> --widths <w,w> --themes light,dark
+   node <kit root>/scripts/accept.mjs prototype <your checks file> --root <the pages' folder> --out <a results file>
+   node <kit root>/scripts/shots.mjs <the pages' folder> --out <a folder for the pictures> --widths <w,w> --themes light,dark
    ```
 
    ```json
@@ -74,7 +74,7 @@ The numbers are WCAG 2.2's at level AA, the 44 px this kit's own. A standard you
        "page": "today-default-en.html", "width": 390, "type": "min-size", "target": "book-action", "minWidth": 44, "minHeight": 44 } ] }
    ```
 
-   `node scripts/accept.mjs --help` gives every type and its keys; `actual` in a result is the measured
+   `node <kit root>/scripts/accept.mjs --help` gives every type and its keys; `actual` is the measured
    value. Non-text contrast (a border, an icon) and text over a picture are not measured: they go under
    what was not looked at. Without Chrome nothing runs: the measured checks go under "Checks not run".
 4. **Run the three core checks, every time. Then test every trigger yourself,** on what is in front
@@ -87,9 +87,10 @@ The numbers are WCAG 2.2's at level AA, the 44 px this kit's own. A standard you
    *Should*: they finish, with more effort than anyone else. *Note*: worth knowing. The fix is one line,
    "what it is → what it should be", with a "done when" the maker can test.
 6. **Know your stage.** At *Detail* you read the plain prototype: names, order, what colour is asked
-   to carry. Its colours and sizes are the kit's, so nothing is measured. At *Look* you read the final
-   screens and the measured checks run. At *Acceptance* your brief hands you the build's pictures and
-   the results of the checks run in it: you do not drive it, and what nobody measured was not looked at.
+   to carry. Its colours and sizes are the kit's, so neither is measured there: reflow and focus are. At
+   *Look* you read the final screens and the measured checks run. At *Acceptance* your brief hands you
+   the build's pictures, its files as built, and the results of the checks and of what was done by
+   hand: you do not drive it, and what nobody measured was not looked at.
 7. **Leave the other seats their jobs.** Whether a faint colour looks right is the visual craft judge's:
    you say only whether it can be read. Name anything else in one line under what was not looked at.
 8. **On a re-read, read cold first.** Read every page as if for the first time, measure again, and write
@@ -118,6 +119,7 @@ its path, your verdict and the first fix. The ledger holds:
 - Never mend the page, and never propose another design. A fix is one line: the maker writes the markup.
 - Never write "accessible", "compliant" or "passes", and never approve. The ledger quotes its numbers.
 - Never open a maker's notes, the author map or another judge's ledger.
+- Never make a finding of what your brief lists as an accepted deviation: once, as "accepted at <stage>".
 
 ## Borrowed
 

@@ -6,7 +6,7 @@ sits-at: [structure, detail, look, acceptance]
 cast-when: The design shows data or offers actions the product must really have, and always when it is a public page.
 presets: [surface, flow, system]
 loaded-with: none
-reads: [brief, context, intent, product-facts, options, chosen-structure, states-and-rules, strings, prototype, final-screens, pictures, build, earlier-ledger]
+reads: [brief, context, intent, product-facts, example-data, options, chosen-structure, states-and-rules, strings, prototype, final-screens, pictures, build, earlier-ledger]
 never-reads: [maker-notes, author-map, other-ledgers]
 engine: own
 suggested-model: opus
@@ -50,8 +50,8 @@ Each runs only when you see its trigger in what you were handed. One not run goe
 **The job before the craft:** first, is she led to expect only what is so; only then, row by row.
 
 1. **Read your brief, then the standards, then the artefact,** and nothing your brief does not list.
-   The standards are the context's inventory of what the product can show and do, and the project's
-   facts document when your brief hands you one. Read them first, so that each element meets a row
+   The standards are the context's inventory of what the product can show and do, and, when your brief
+   hands them, the project's facts document and the data its example rows came from. Read them first, so that each element meets a row
    already in mind: a row looked up afterwards gets found for an element you already believe. Then
    the intent, then the artefact. If the project has a claims skill of its own, your brief names it:
    load it as your lens. This card stands without it.
@@ -116,6 +116,7 @@ its path, your verdict and the first fix. The ledger holds:
 - Never rule on how a thing reads or looks.
 - Never approve. "True" says what you traced, not that it may ship.
 - Never open a maker's notes, the author map or another judge's ledger.
+- Never make a finding of what your brief lists as an accepted deviation: once, as "accepted at <stage>".
 
 ## Borrowed
 

@@ -10,11 +10,13 @@ Read your card first, whole, at its absolute path: `{/…/pool/judges/<name>.md,
 {The artefact, by letter or by what it is, never by who made it: the options A to D · the prototype ·
 the final screens · the handoff folder · the build. Its widths, themes and languages.}
 
-{Then what its card says its brief carries, and no more. Keep the lines that apply, filled:}
+{Then what the stage's skill, or its `references/seats.md`, says this seat's brief carries, and no more.
+Keep the lines that apply, filled:}
 
 - {At Context, where no intent exists yet: who she is and her tasks, in a few lines.}
 - {A words judge: the founder's own lines, as he said them.}
 - {A skill the project keeps for this seat, by its name, to load as its lens.}
+- {A truth judge: "Where the context and a source you are handed disagree, the context holds."}
 
 ## Checks
 
@@ -26,8 +28,8 @@ again on the artefact itself.
 
 ## Read, in this order
 
-{Only what the card's `reads` allows and this design gives it, each by its absolute path, with what it
-is. Of the lines under the list, keep those that apply: a profile judge's profile line becomes item 1.}
+{What the stage's skill, or its `references/seats.md`, hands this seat, each by its absolute path. Of
+the lines under the list, keep those that apply: a profile judge's profile line becomes item 1.}
 
 1. {the absolute path} — {what it is}
 
@@ -35,15 +37,19 @@ is. Of the lines under the list, keep those that apply: a profile judge's profil
   no specialty its base alone: {its absolute path}
 - **The strings, with their why-lines**, which are part of the strings and not a maker's note: {the
   absolute path}
-- **On a re-read, your earlier ledger**, to be opened only after you have read the artefact cold and
-  written your findings: {its absolute path}
+- **Your seat's earlier ledger**, on a re-read or at Acceptance, to be opened only after you have read the
+  artefact cold and written your findings: {its absolute path}
+- **The pictures to open first**, where there are more than one read opens: {those this seat's checks
+  need, by name; what is not opened goes under "Not looked at"}
+- **The accepted deviations**, part of what was approved and not a finding again: {the file and the
+  heading that hold them, from Detail on; with none, delete this line}
 
 ## Do not open
 
 - The makers' notes and replies: {where they are}
 - The author map: {where it is}
 - The other judges' ledgers and, for a profile judge, the audiences' reads: {where they are}
-- {Anything else the card's `never-reads` names, as this package holds it, by its path.}
+- {Anything else the stage's skill, or its `references/seats.md`, lists for this seat, by its path.}
 - {A profile judge at Intent: the person's card, by its path. It is not this read's.}
 
 A seat that starts a browser stops only the one it started, through its own handle, and never stops a
@@ -56,4 +62,4 @@ path}. Write it at: {the absolute path of the ledger}.
 
 ## Reply
 
-{What the card's Output says the reply is: the ledger's path, the verdict and the first fix.}
+What your card's Output says the reply is: the ledger's path, the verdict and the first fix.

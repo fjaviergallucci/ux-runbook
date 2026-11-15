@@ -1,7 +1,8 @@
 # What becomes of a deviation
 
-Every item of the report that *deviates* is the founder's to decide, one at a time: accepted as
-built, or fixed. This page says what you do with each answer. `<kit root>` and `<package>` are as
+Every item of the report that *deviates* is the founder's to decide: accepted as built, or fixed.
+The deviations are put to him as one question, numbered, and he answers by number, as the gate of
+the skill says. This page says what you do with each answer. `<kit root>` and `<package>` are as
 the skill gives them.
 
 ## He accepts it

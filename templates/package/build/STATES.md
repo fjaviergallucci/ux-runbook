@@ -6,7 +6,11 @@
 A row may name an address, a seed step, a network condition, and an account by its role with where its
 sign-in is kept. No password, token or key is ever written in this file.
 
-{One row for each state of the handoff's spec: how to put it on screen in the build.}
+A row leads to the state's behaviour, not only to its picture: where the build can only draw a state,
+the row says so, and `DEVIATIONS.md` holds it.
+
+{One row for every row of `SPEC.md`'s States, those that cannot occur marked so: how to put each on
+screen in the build.}
 
 | Screen | State | How to reach it |
 |---|---|---|
