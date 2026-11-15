@@ -157,3 +157,85 @@ test('serialize quotes a list item holding a closing bracket', () => {
 test('a fence may carry trailing whitespace', () => {
   assert.deepEqual(parse('--- \nstage: intent\n---\t\nBody\n'), { data: { stage: 'intent' }, body: 'Body\n' });
 });
+
+// R170 of the dry run: a stamp wrote `words: "Approved. One remark: "right now" means …"`, which the kit read
+// back and a YAML reader refused. What serialize writes is also YAML: two quoted forms, and no escapes in either.
+
+test('serialize writes a value that holds a double quote in single quotes, each single quote inside it doubled', () => {
+  const written = data => serialize(data, '').split('\n').slice(1, -2);
+  assert.deepEqual(
+    written({
+      remark: 'Approved. One remark: "right now" means the next hour',
+      both: 'She said "it\'s fine", twice',
+      plain: 'say "hi" now',
+      opens: '"quoted',
+      wrapped: '"x"',
+      alone: '"',
+    }),
+    [
+      'remark: \'Approved. One remark: "right now" means the next hour\'',
+      'both: \'She said "it\'\'s fine", twice\'',
+      'plain: \'say "hi" now\'',
+      'opens: \'"quoted\'',
+      'wrapped: \'"x"\'',
+      'alone: \'"\'',
+    ],
+  );
+  // A backslash is an escape inside YAML's double quotes and plain text inside its single ones.
+  assert.deepEqual(written({ path: 'C:\\rooms, today', free: 'a\\b' }), ["path: 'C:\\rooms, today'", 'free: a\\b']);
+  // Without a double quote or a backslash, a value that needs quotes is wrapped in double quotes, as it always was.
+  assert.deepEqual(written({ a: 'x: y', b: "it's here, now", c: '' }), ['a: "x: y"', 'b: "it\'s here, now"', 'c: ""']);
+});
+
+test('parse reads a value in single quotes, two single quotes inside it as one; nothing else is an escape', () => {
+  const read = line => parse(`---\n${line}\n---\n`).data;
+  assert.deepEqual(read('words: \'Approved. One remark: "right now" means the next hour\''), { words: 'Approved. One remark: "right now" means the next hour' });
+  assert.deepEqual(read("words: 'She said \"it''s fine\"'"), { words: 'She said "it\'s fine"' });
+  assert.deepEqual(read("words: ''"), { words: '' });
+  assert.deepEqual(read("words: ''''"), { words: "'" });
+  assert.deepEqual(read("words: 'a''''b'"), { words: "a''b" });
+  assert.deepEqual(read("path: 'C:\\rooms\\n'"), { path: 'C:\\rooms\\n' });
+  // What is inside quotes is text: not a number, not a list.
+  assert.deepEqual(read("id: '007'"), { id: '007' });
+  assert.deepEqual(read("id: '42'"), { id: '42' });
+  assert.deepEqual(read("title: '[a, b]'"), { title: '[a, b]' });
+  // A single quote that does not wrap the whole value, or is not doubled inside it, is no quoted form:
+  // the value is read as it is written, as it was before there was one.
+  assert.deepEqual(read("words: 'yes' and 'no'"), { words: "'yes' and 'no'" });
+  assert.deepEqual(read("words: 'tis so"), { words: "'tis so" });
+  assert.deepEqual(read("words: it's"), { words: "it's" });
+  assert.deepEqual(read("words: '"), { words: "'" });
+  assert.deepEqual(read("words: 'a'b'"), { words: "'a'b'" });
+  assert.deepEqual(read("words: '''"), { words: "'''" });
+  // What an earlier stamp wrote is still read as it was: double quotes wrap the value as it is.
+  assert.deepEqual(read('words: "Approved. One remark: "right now" means the next hour"'), { words: 'Approved. One remark: "right now" means the next hour' });
+  assert.deepEqual(read('words: ""quoted"'), { words: '"quoted' });
+  assert.deepEqual(read('words: "it\'s here, now"'), { words: "it's here, now" });
+});
+
+test('serialize quotes a value that YAML would not read as plain text: one that opens with one of its marks', () => {
+  const written = value => serialize({ words: value }, '').split('\n')[1].slice('words: '.length);
+  // … or that a YAML reader keeps for itself (= and <<), or stumbles on (a tab).
+  const quoted = ["'tis so", "'yes'", '*approved*', '&go', '!yes', '|go', '> go', '%go', '@desk says yes', '`npm test` passes', '{go}', '}go', ']go', '- yes', '? yes', '-', '?', '=', '<<', 'yes\tgo'];
+  for (const value of quoted) assert.equal(written(value), `"${value}"`, value);
+  for (const value of ['-yes', '?yes', 'a - b', 'yes?', "it's", 'a*b', 'a > b', 'go!', '50%', 'a@b', 'a{b}c', 'a]b', 'sí continúa', 'a = b', '==', '<', '<<<']) assert.equal(written(value), value, value);
+  const all = Object.fromEntries([...quoted, 'say "hi"', "'say' \"hi\"", 'a\\b: c', "'"].map((value, i) => [`k${i}`, value]));
+  assert.deepEqual(parse(serialize(all, '')).data, all);
+});
+
+test('a list item that opens with one of YAML\'s marks, or holds a brace or a question mark, is wrapped in double quotes, its one quoted form; one holding a double quote is still refused', () => {
+  const data = { tags: ["'c", '*b', '- d', 'a{b}', '}', 'plain', "it's", 'free?', 'a\\b, c', 'a\\b'] };
+  assert.equal(serialize(data, ''), '---\ntags: ["\'c", "*b", "- d", "a{b}", "}", plain, it\'s, "free?", "a\\b, c", a\\b]\n---\n');
+  assert.deepEqual(parse(serialize(data, '')).data, data);
+  refused(() => serialize({ tags: ['say "hi"'] }, ''), /"tags"/, /double quote/);
+  // A list item has the one quoted form: single quotes are part of the item.
+  assert.deepEqual(parse("---\ntags: ['a', b]\n---\n").data, { tags: ["'a'", 'b'] });
+});
+
+test('the header of the library says what the grammar is: a subset of YAML, and its two quoted forms', async () => {
+  const { readFileSync } = await import('node:fs');
+  const source = readFileSync(new URL('../scripts/lib/frontmatter.mjs', import.meta.url), 'utf8');
+  const header = source.slice(0, source.indexOf('\nexport ')).replace(/\n\/\/ ?/g, ' ').replace(/\s+/g, ' ');
+  for (const said of ['a subset of YAML', 'in double quotes', 'in single quotes', 'each single quote inside it doubled', 'no escapes']) assert.ok(header.includes(said), said);
+  assert.doesNotMatch(header, /quotes only wrap a value/);
+});

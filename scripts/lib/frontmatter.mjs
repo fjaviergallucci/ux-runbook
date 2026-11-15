@@ -1,7 +1,21 @@
 // Flat frontmatter: the header of stage outputs, pool cards and a project's profile.
 // Its limits: one `key: value` per line between two `---` lines, keys ^[a-z][a-z0-9-]*$; a value is a
-// string, a whole number or an inline list `[a, b]` of strings; nothing nested; no escapes (quotes only
-// wrap a value, so a list item cannot hold a `"`); an unquoted list item cannot hold `[` or `]` (quote it).
+// string, a whole number or an inline list `[a, b]` of strings; nothing nested.
+// The grammar is a subset of YAML: a header that serialize writes is one a YAML reader takes too, with the
+// same text in every string (it may take a plain `true`, `null`, `1.5` or a date for more than text; here
+// they are text). A string is written plain, or in one of two quoted forms, with no escapes in either but
+// the one named:
+//   in double quotes   "sí, continúa"         the value as it is; never one that holds a `"` or a `\`
+//   in single quotes   'he said "it''s so"'   for a value that holds a `"`, or a `\` and needs quotes: the
+//                                             value as it is, each single quote inside it doubled
+// A value is quoted when plain it would read as something else, here or in YAML: one that holds `:`, `#`,
+// `[`, `,`, `"` or a tab; is empty, all digits, `=` or `<<`, or padded with spaces; or opens with a mark
+// YAML gives a meaning. A list item is quoted for a `]`, a brace or a `?` too.
+// A list item has the first form only, so it cannot hold a `"`, and one that needs quotes and holds a `\`
+// is not YAML's; an unquoted list item cannot hold `[` or `]` (quote it).
+// parse also reads what was written before there were two forms: double quotes wrap a value as it is,
+// whatever it holds; and a single quote that does not wrap the whole value, each one inside it doubled,
+// is part of the value.
 
 export class FrontmatterError extends Error {
   constructor(message) {
@@ -21,6 +35,8 @@ const toLf = text => text.replace(/\r\n/g, '\n');
 const isFence = line => line.trimEnd() === FENCE;
 const isQuoted = s => s.length >= 2 && s.startsWith('"') && s.endsWith('"');
 const unquote = s => (isQuoted(s) ? s.slice(1, -1) : s);
+// In single quotes: wrapped in them, and every single quote inside is one of a pair.
+const isSingleQuoted = s => s.length >= 2 && s.startsWith("'") && s.endsWith("'") && !s.slice(1, -1).replace(/''/g, '').includes("'");
 
 export function parse(text) {
   const lf = toLf(text.replace(/^\uFEFF/, ''));
@@ -53,6 +69,7 @@ export function parse(text) {
 function readValue(value, at, key) {
   if (value.startsWith('[') && value.endsWith(']')) return readList(value.slice(1, -1), at);
   if (isQuoted(value)) return unquote(value);
+  if (isSingleQuoted(value)) return value.slice(1, -1).replace(/''/g, "'");
   if (!DIGITS.test(value)) return value;
   const number = Number(value);
   if (!Number.isSafeInteger(number) || String(number) !== value) {
@@ -112,19 +129,31 @@ function writeValue(key, value) {
   return writeString(key, value);
 }
 
-// A list is split on commas outside quotes, with no escapes: an item holding a quote cannot be written.
+// A list is split on commas outside double quotes, with no escapes: an item holding one cannot be written.
 function writeItem(key, item) {
   if (typeof item === 'string' && item.includes('"')) throw new FrontmatterError(`"${key}": a list item cannot hold a double quote`);
-  return writeString(key, item, itemNeedsQuotes);
+  return writeString(key, item, itemNeedsQuotes, inDoubleQuotes);
 }
 
-function writeString(key, s, quoteWhen = needsQuotes) {
+function writeString(key, s, quoteWhen = needsQuotes, quote = inQuotes) {
   if (typeof s !== 'string') throw new FrontmatterError(`"${key}": a value is a string, a whole number or a list of strings`);
   if (/[\r\n\u2028\u2029]/.test(s)) throw new FrontmatterError(`"${key}": a value must fit on one line`);
-  return quoteWhen(s) ? `"${s}"` : s;
+  return quoteWhen(s) ? quote(s) : s;
 }
 
-// The brief's four characters, plus every string that would not read back as itself unquoted.
-const needsQuotes = s => /[:#\[,]/.test(s) || s === '' || DIGITS.test(s) || s !== s.trim() || s.startsWith('"');
-// A list item also needs them for a `]`, which only a quoted item may hold (see readItem).
-const itemNeedsQuotes = s => needsQuotes(s) || s.includes(']');
+// The two quoted forms. YAML reads a backslash inside double quotes as an escape, and a double quote as
+// their end: a value that holds either goes in single quotes, where only the single quote is doubled.
+const inDoubleQuotes = s => `"${s}"`;
+const inQuotes = s => (/["\\]/.test(s) ? `'${s.replace(/'/g, "''")}'` : inDoubleQuotes(s));
+
+// The marks YAML reads at the start of a value as something other than text: a quote, an anchor, an alias,
+// a tag, a block, a directive, a reserved mark, a flow bracket; and a dash or a question mark on its own.
+const YAML_OPENS = /^(?:['&*!|>%@`{}\]]|[-?](?: |$))/;
+// Two values YAML 1.1 keeps for itself, and a reader of it refuses as text.
+const YAML_WORDS = ['=', '<<'];
+// The brief's four characters, plus every string that would not read back as itself unquoted, here or in
+// YAML: a double quote anywhere puts the value in single quotes.
+const needsQuotes = s => /[:#\[,"\t]/.test(s) || s === '' || DIGITS.test(s) || s !== s.trim() || YAML_OPENS.test(s) || YAML_WORDS.includes(s);
+// A list item also needs them for a `]`, which only a quoted item may hold (see readItem), and for a brace
+// or a question mark, which YAML reads inside a list as the edge or the key of a map.
+const itemNeedsQuotes = s => needsQuotes(s) || /[\]{}?]/.test(s);

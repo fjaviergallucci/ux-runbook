@@ -455,6 +455,45 @@ test('stamp writes the words on one line: each line break becomes a single space
   assert.equal(p.state().stages.frame.words, 'sí, continúa ya');
 });
 
+// R170 of the dry run: his words held a double quote, and the header a stamp wrote was not YAML.
+test('stamp writes words that hold a double quote in single quotes, his words unchanged; begin, await and validate read them back', () => {
+  const said = 'Approved. One remark: "right now" means the next hour, and it\'s fine';
+  const p = pkg();
+  p.write('frame');
+  stamp(p.dir, 'frame', { words: said, date: DAY });
+  const header = readFileSync(p.file('frame'), 'utf8').split('\n').slice(0, 8);
+  assert.deepEqual(header, ['---', 'stage: frame', 'version: 1', 'status: approved', `approved: ${DAY}`,
+    'words: \'Approved. One remark: "right now" means the next hour, and it\'\'s fine\'', 'built-from: []', '---']);
+  assert.equal(p.read('frame').data.words, said);
+  assert.equal(p.state().stages.frame.words, said);
+  assert.deepEqual(validate(p.dir), { ok: true, problems: [] });
+  // The next stage is built on it, and a reopened stage keeps a header that still reads.
+  p.write('context');
+  awaitFounder(p.dir, 'context', { question: 'Is "today" the surface?', date: DAY });
+  stamp(p.dir, 'context', { words: '"yes"', date: DAY });
+  assert.equal(readFileSync(p.file('context'), 'utf8').split('\n')[5], 'words: \'"yes"\'');
+  assert.deepEqual(validate(p.dir), { ok: true, problems: [] });
+  reopen(p.dir, 'frame', { reason: 'r', date: DAY });
+  assert.deepEqual([p.read('frame').data.words, p.read('frame').data.status], ['', 'draft']);
+  // Words without one are written as they always were.
+  const q = pkg();
+  q.write('frame');
+  stamp(q.dir, 'frame', { words: WORDS, date: DAY });
+  assert.equal(readFileSync(q.file('frame'), 'utf8').split('\n')[5], `words: "${WORDS}"`);
+});
+
+// A header stamped before there were two quoted forms is read as it was, and validate does not take it for changed.
+test('a header stamped in the earlier form, double quotes around words that hold one, still reads and validates', () => {
+  const said = 'Approved. One remark: "right now" means the next hour';
+  const p = pkg();
+  p.write('frame');
+  stamp(p.dir, 'frame', { words: said, date: DAY });
+  p.edit('frame', text => text.replace(`words: '${said}'`, `words: "${said}"`));
+  assert.equal(readFileSync(p.file('frame'), 'utf8').split('\n')[5], `words: "${said}"`);
+  assert.equal(p.read('frame').data.words, said);
+  assert.deepEqual(validate(p.dir), { ok: true, problems: [] });
+});
+
 test('stamp reads a CRLF artefact and writes it back with LF', () => {
   const p = pkg();
   p.write('frame');
