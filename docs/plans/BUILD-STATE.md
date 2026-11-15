@@ -4,7 +4,7 @@
 and how each step is run. It is written so that a session with no memory of the build — a person, or any
 coding agent — can carry on.
 
-Last updated: 2026-11-14.
+Last updated: 2026-11-15, during Task 20's last step (see "Where Task 20 stands").
 
 ## Where everything is
 
@@ -56,13 +56,37 @@ with `npm test` (about three and a half minutes; it runs one test file at a time
 
 | Step | What | State |
 |---|---|---|
-| Task 20 | The dry run of the whole pipeline on a fictional project | **next** — see the last lines of `docs/build-log/progress.md` for how far it has gone. **Run by the controller** |
+| Task 20 | The dry run of the whole pipeline on a fictional project | **in its last step** — see "Where Task 20 stands" below |
 | Final review | One review of the whole branch, on the most capable model | after Task 20 |
 | One fix wave | Everything parked and deferred, in one dispatch, then one scoped re-review | after the final review |
 | Report | The full list of rulings goes to the founder; then the branch is finished (no push without his word) | last |
 
 Not part of this build (the plan names them so nobody does them by momentum): the proving run in a real
 project, setup in any real project, a worked example, replacing `master`, tagging version 1, pushing.
+
+## Where Task 20 stands (2026-11-15)
+
+The dry run itself is finished: all nine stages approved on the fictional project, 39 seats, 21 stops for
+the controller, 1302 acceptance checks passing. It is written up in `docs/design/DRY-RUN.md`.
+
+| Step | State |
+|---|---|
+| The run (setup, nine stages, a stand-in build) | done — ledger lines `Task 20, <STAGE>: done` |
+| The notes sorted: 274 notes → 111 items (`task-20-findings.md`) | done |
+| The controller's rulings on the 27 items that needed a decision: R159–R191 (`task-20-fix-rulings.md`, `task-20-fix-round-1.md`, the ledger) | done |
+| Three fix waves: words A1, words A2 with the document, scripts B (`task-20-fix-*-report.md`) | done — commits `36aa794..557e6e1` |
+| Two reviews (`task-20-fix-review-words.md`, `-scripts.md`) and fix round 1 (`task-20-fix-round-1-report.md`) | done — commits `65aacd5..3f4654d`; 880 tests, 879 pass, 1 skipped |
+| Scoped re-review of round 1, by the same two reviewers | **in flight** — each appends `## Re-review of fix round 1` to its review file |
+| Fix round 2: ruling R191 (the visual designer, not the conductor, writes the `in-viewport` check for a "without scrolling" criterion) and whatever the re-reviews find | next |
+| Gates (`npm test`, `claude plugin validate . --strict`, clean tree), then `Task 20: complete` in the ledger | after round 2 |
+
+To resume: read the last lines of `docs/build-log/progress.md`; if the two review files have no
+`## Re-review of fix round 1` section, ask for that re-review again (the diff is
+`git diff 557e6e1..3f4654d`); then write `task-20-fix-round-2.md` and hand it to one implementer.
+
+After Task 20, unchanged: one review of the whole branch, one fix wave (below), one scoped re-review,
+one re-run of the evaluation suite (the skills changed widely; about 5 of the 6.12 US dollars left under
+the plan's cap of 15), the list of rulings to the founder.
 
 ## How each task is run
 
@@ -113,7 +137,7 @@ implemented on the most capable model and reviewed on Opus. The reviewer is neve
 
 `docs/build-log/` is a committed copy of the build's working folder, taken at the date above:
 
-- `progress.md` — **the ledger**: every step, every ruling (R1–R155), every deferred minor, every parked
+- `progress.md` — **the ledger**: every step, every ruling (R1–R191), every deferred minor, every parked
   finding, in order. Search it for `Ruling R`, `minor (deferred)`, `parked`, `NOTE for Task`.
 - `task-N-brief.md` — the plan's section for that task, as extracted.
 - `task-N-rulings.md` — the controller's rulings for that task. **Those for Tasks 15–19 are ready to hand
@@ -135,11 +159,15 @@ Each has its fix decided; the ledger has the detail.
 | R109 | `scripts/inpage/accept-inpage.js` | A label that cannot be pointed at inside a clipping pill gets `cannot be told:`. Compute corner radii as CSS does (all four scaled by one factor). |
 | R132 | `scripts/merge.mjs` and the tests of `shots` and `merge` | A check that a folder is empty must pass over what a mount or an operating system leaves behind (`.fuse_hidden*`, `.DS_Store`, `Thumbs.db`, `desktop.ini`). |
 
-About forty deferred minors are in the ledger (`minor (deferred)`), for the same wave.
+| R184 | `scripts/lib/state.mjs` | A stamp guards only the stage's output file. It should hash every file of the stage's folder (passing over R132's leftovers), `validate` should report a change to any, and `reopen` should name the stages it recalled. |
+| R185 | `scripts/accept.mjs` | No check type measures a font size, a gap or a line's length (Task 17's deferred M2). |
 
-One amendment to the design document is owed, by the controller, at the end: § 12 still says a project kit
-"links the project's real token file"; what was built copies the tokens into the kit folder (the renderer
-copies only the stylesheets it finds there). `kit/KIT-CONTRACT.md` already says so.
+R154 is no longer parked: it was built in Task 20 (`render.mjs --without-notes`, `shots.mjs --first-screen`).
+
+About forty-five deferred minors are in the ledger (`minor (deferred)`), for the same wave.
+
+The design document's amendments are written: its § 25 holds the seven things the build and the dry run
+changed, each with its ruling.
 
 ## For the two steps the controller runs itself
 
