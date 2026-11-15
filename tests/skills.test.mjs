@@ -2068,7 +2068,8 @@ test('intent: the success-criteria test, tasks as a starting situation and a goa
   assert.match(gate, /Findings of the profile judge that stayed open go with it, each with your recommendation/);
   const carried = /for each section of the context a later stage is written from: its ((?:"[^"]+"(?:, | and )?)+)\./.exec(gate);
   assert.ok(carried, 'the sections of the context it carries');
-  assert.deepEqual([...carried[1].matchAll(/"([^"]+)"/g)].map(([, heading]) => heading), ['The people', 'What the product can show and do', 'Constraints', 'The founder\'s own words']);
+  // Ruling R151: with them, why it is built now, what exists today and what it must not become, so that the handoff's entry is written from the context and not from memory.
+  assert.deepEqual([...carried[1].matchAll(/"([^"]+)"/g)].map(([, heading]) => heading), ['The people', 'What the product can show and do', 'Constraints', 'The founder\'s own words', 'The problem, and why now', 'What exists today', 'What it must not become']);
   for (const [, heading] of carried[1].matchAll(/"([^"]+)"/g)) assert.ok(headings(outputOf('context')).includes(heading), `01-context.md: ## ${heading}`);
   assert.match(gate, /A `- source:<path>` line, from the project's root, for her card, for her profession's profile and for each project source of the context/);
   for (const rule of ['Never give the path in a task', 'Never leave a state out', 'Never write a criterion two people could disagree about', 'Never put in her card what is true of her whole profession', 'Never read the world again, and never take from the chat']) {
@@ -2189,7 +2190,9 @@ test('cast: each seat explained in one line, the checks on and off, the fresh pa
   assert.match(gate, /A seat he takes out moves to "Left out", in his words/);
   assert.match(gate, /\*\*After the gate the sheet is his\.\*\* A later stage may add a seat or a check when the artefact calls for it, and says so\. Nothing is removed silently: a seat on the approved sheet sits, or he is told why it cannot, and the sheet changes with his yes/);
   // What it carries on: the intent, section by section, and what the intent itself carried.
-  assert.match(gate, /A `- intent@1#<slug>` line for each section of the intent but "What the readers found" and the two last\. The `- context@1#<slug>` and `- source:<path>` lines of the intent's own carry list, as they are/);
+  // Ruling R151: the readers' findings of the intent go on too, and the read of the surface as it is travels in the context's first section.
+  assert.match(gate, /A `- intent@1#<slug>` line for each section of the intent but the two last: "What the readers found" goes on too, so that the handoff covers every seat\. The `- context@1#<slug>` and `- source:<path>` lines of the intent's own carry list, as they are: the read of the surface as it is travels in "The problem, and why now"/);
+  assert.match(flat(read('templates/package/01-context.md')), /## The problem, and why now \{What is wrong or missing today, for whom, and why it is worth doing now\. When the surface already exists: what the cast's judges found reading it as it is/);
   assert.match(gate, /And a `- source:<path>` line for each profession's profile that is loaded into a seat, and for each card and each person of the project's own that sits: a card of the kit is found in the kit, by its id/);
 });
 
@@ -2405,7 +2408,7 @@ test('the four opening stages run as written: each state and card command with i
   assert.equal(run(commandOf('intent', 'state.mjs begin')), 'intent is in work');
   const [, carried] = /a later stage is written from: its ((?:"[^"]+"(?:, | and )?)+)\./.exec(flat(section(stageSkill('intent'), 'Gate')));
   const contextLines = [...carried.matchAll(/"([^"]+)"/g)].map(([, heading]) => `- context@1#${slugOf('intent', heading)}`);
-  assert.equal(contextLines.length, 4);
+  assert.equal(contextLines.length, 7);
   assert.ok(contextLines.includes('- context@1#the-people'), 'who it is for goes on to Cast');
   const sources = ['- source:design/pool/persons/desk-cover.md', SOURCE];
   write('intent', [...sources, ...contextLines]);
@@ -2420,8 +2423,9 @@ test('the four opening stages run as written: each state and card command with i
   ].sort((a, b) => files.indexOf(a.split(': ')[0]) - files.indexOf(b.split(': ')[0])));
   assert.equal(run(commandOf('cast', 'state.mjs begin')), 'cast is in work');
   assert.match(run(commandOf('cast', 'state.mjs status')), /^- Kind: working-surface\n- Foundation: new-surface\n- Size: surface$/m);
-  const intentLines = headings(outputOf('intent')).slice(0, -2).filter(heading => heading !== 'What the readers found').map(heading => `- intent@1#${slugOf('cast', heading)}`);
-  assert.equal(intentLines.length, 10);
+  const intentLines = headings(outputOf('intent')).slice(0, -2).map(heading => `- intent@1#${slugOf('cast', heading)}`);
+  assert.equal(intentLines.length, 11);
+  assert.ok(intentLines.includes('- intent@1#what-the-readers-found'), 'the readers\' findings of the intent go on to the handoff');
   // Built from the intent alone, the sheet could not carry a section of the context: the stamp refuses it, and says why.
   write('cast', [...intentLines, ...contextLines, ...sources], '[intent@1]');
   const refused = exec(commandOf('cast', 'state.mjs stamp'));
@@ -4361,7 +4365,7 @@ const INTO_THE_PACKAGE = /\b0[0-6]-[a-z]+|08-acceptance|07-handoff-gate|\bwork\/
 test('handoff and acceptance: the six sections and no other, the question the conductor gives each, and the conductor\'s rules pointed to, never copied', () => {
   for (const [name, title, does, gate, files] of [
     ['handoff', 'Handoff', 'gives one go', ' **He gives one go.**', ['SKILL.md', 'references/folder.md', 'references/forms.md', 'references/seats.md']],
-    ['acceptance', 'Acceptance', 'accepts', ' **He accepts.**', ['SKILL.md', 'references/driving.md', 'references/forms.md', 'references/seats.md']],
+    ['acceptance', 'Acceptance', 'accepts', ' **He accepts.**', ['SKILL.md', 'references/deviations.md', 'references/driving.md', 'references/forms.md', 'references/seats.md']],
   ]) {
     const text = stageSkill(name);
     assert.deepEqual(headings(text), STAGE_SECTIONS, name);
@@ -4404,7 +4408,7 @@ test('handoff: it opens what Look\'s carry list names and nothing else; a gap is
   // Ruling 11: each thing on Look's carry list, by name.
   assert.match(reads, /\*\*The look,\*\* `<package>\/06-look\/LOOK\.md`, approved, and exactly what its carry list names/);
   for (const carried of ['the cast sheet\'s table for every stage, with each seat\'s model and effort', 'the carried sections of the intent and the context',
-    '"What the readers found" of the structure, the detail and the look, with the reads folders of the three', 'the states, the strings with their why-lines, the rules, the edge cases, the data map and the dependencies',
+    '"What the readers found" of the intent, the structure, the detail and the look, with the reads folders of the last three', 'the states, the strings with their why-lines, the rules, the edge cases, the data map and the dependencies',
     'the measured values and the named extensions', 'the final screens, their pictures, the plain prototype and `<tokens>`', 'the package\'s `DECISIONS.md`']) assert.ok(reads.includes(carried), carried);
   // What Look's own skill carries is what is named here: its gate, line by line.
   const lookCarry = leads(section(stageSkill('look'), 'Gate'))['Write the carry list'];
@@ -4417,7 +4421,7 @@ test('handoff: it opens what Look\'s carry list names and nothing else; a gap is
   assert.match(reads, /\*\*The component source:\*\* the folder the project profile names under `components`, read now/);
   assert.match(reads, /`reference\/IMPLEMENTER-GUIDE\.md`, which you copy\. The cold implementer's card is read by its seat/);
   // Ruling 12: nothing a fresh maker made is opened, copied or named.
-  assert.match(reads, /\*\*Never\*\* `<package>\/06-look\/fresh\/`, `<package>\/06-look\/beside\/` or the sealed file beside it; `<package>\/04-structure\/earlier\/`; a letter that was not chosen; the package's `work\/` folder; the chat\. What is on no line of the carry list is not yours to open/);
+  assert.match(reads, /\*\*Never\*\* `<package>\/06-look\/fresh\/`, `<package>\/06-look\/beside\/` or the sealed file beside it; `<package>\/04-structure\/earlier\/`; a letter not chosen; the package's `work\/` folder; the chat\.\s*$/);
   assert.ok(nevers(text).includes('Never copy into the folder, or name in it, anything a fresh maker made:'));
   assert.ok(nevers(text).includes('Never open what is on no line of Look\'s carry list'));
   // A gap in the carry list stops the stage: it is said to him, and never filled from the package's history.
@@ -4425,9 +4429,9 @@ test('handoff: it opens what Look\'s carry list names and nothing else; a gap is
 
   // folder.md: every line of the carry list, with the file of the folder it fills.
   const folder = stageRef('handoff', 'folder.md');
-  assert.deepEqual(headings(folder), ['What the carry list hands you', '`prototype/`, and `tokens.css`', '`IMPLEMENTER-GUIDE.md`, and `build/`', '`SPEC.md`', 'The strings', '`PARTS.md`', '`ACCEPTANCE.md` and `acceptance.json`', '`DECISIONS.md`', '`COVERAGE.md`', '`HANDOFF.md`']);
+  assert.deepEqual(headings(folder), ['What the carry list hands you', '`prototype/`, and `tokens.css`', 'The folder stands alone, proved', '`IMPLEMENTER-GUIDE.md`, and `build/`', '`SPEC.md`', 'The strings', '`PARTS.md`', '`ACCEPTANCE.md` and `acceptance.json`', '`DECISIONS.md`', '`COVERAGE.md`', '`HANDOFF.md`']);
   const handed = tableRows(section(folder, 'What the carry list hands you')).slice(2);
-  assert.equal(handed.length, 13);
+  assert.equal(handed.length, 15);
   for (const [line] of handed) assert.match(line, /^`- (?:(?:intent|context|cast|structure|detail)@<version>#<slug>|source:)`/, line);
   // Each section it names is a heading of the stage's template, and one that stage's skill carries on.
   const carriedBy = { intent: stageSkill('cast'), context: stageSkill('intent'), structure: stageSkill('detail'), detail: stageSkill('look') };
@@ -4439,15 +4443,25 @@ test('handoff: it opens what Look\'s carry list names and nothing else; a gap is
       if (stage !== 'intent') assert.ok(flat(section(carriedBy[stage], 'Gate')).includes(`"${heading}"`), `${stage}: "${heading}" is carried on`);
     }
   }
-  // The intent's sections travel through the cast sheet's carry list: every one but its readers' findings and the two last.
-  assert.match(flat(section(carriedBy.intent, 'Gate')), /A `- intent@1#<slug>` line for each section of the intent but "What the readers found" and the two last/);
+  // The intent's sections travel through the cast sheet's carry list: every one but the two last, its readers' findings among them.
+  assert.match(flat(section(carriedBy.intent, 'Gate')), /A `- intent@1#<slug>` line for each section of the intent but the two last: "What the readers found" goes on too, so that the handoff covers every seat/);
+  // Ruling R151: why it is built now, what exists today and what it must not become reach the handoff, each by its line.
+  const fromContext = handed.find(([line]) => line.includes('"The problem, and why now"'));
+  assert.deepEqual(fromContext.slice(0, 1), ['`- context@<version>#<slug>` for "The problem, and why now", "What exists today", "What it must not become"']);
+  assert.equal(fromContext[2], '`HANDOFF.md`, `COVERAGE.md`');
+  assert.deepEqual(handed.find(([line]) => line.includes('intent@') && line.includes('"What the readers found"')).slice(2), ['`COVERAGE.md`']);
+  assert.match(flat(section(folder, '`HANDOFF.md`')), /\*\*Context:\*\* the product in one sentence, `product` of the project profile; who it is for and her moment; her one job; and why now, from "The problem, and why now" of the context/);
+  assert.match(flat(section(folder, '`HANDOFF.md`')), /What they replace is "What exists today" of the context/);
+  assert.match(flat(section(folder, '`HANDOFF.md`')), /\*\*Out of scope:\*\* "What it must not become" of the context, "What it is deliberately bad at" of the structure, and each element a decision took out/);
+  assert.doesNotMatch(folder, /not carried into this folder/);
   const top = flat(section(folder, 'What the carry list hands you'));
   assert.match(top, /`LOOK\.md` itself is yours whole/);
   assert.match(top, /A section or a file that is on no line, and is not in `LOOK\.md`, is not handed to you: you do not open it, and where a file of the folder cannot be written without it, that is the stop of step 2 of the skill/);
-  // What is known to come without a line is said where it is missed.
-  assert.match(top, /\*\*The reads of Context and of Intent\*\* came before the cast\. `COVERAGE\.md` says so in one line/);
-  assert.match(top, /\*\*Why the design is built now\*\* is the context's own, under "The problem, and why now"\. `HANDOFF\.md` gives it only from a line that hands it to you/);
-  assert.ok(headings(outputOf('context')).includes('The problem, and why now'));
+  assert.match(top, /A package stamped before the carry list named a section the table gives is such a case: say which line is missing, and never write the section from memory/);
+  // Every seat is covered: those of Context and of Intent have a row too, from the two sections that hold what they found.
+  assert.match(flat(section(folder, '`COVERAGE.md`')), /\*\*The seats of Context and of Intent\*\* read before there was a cast sheet, and have a row each all the same: the judges that read the surface as it is, from "The problem, and why now" of the context, and the profile judge that read the intent, from its "What the readers found"/);
+  assert.match(flat(section(folder, '`COVERAGE.md`')), /Their ledgers are not carried: what such a section does not record of a seat reads "not recorded"/);
+  for (const heading of ['The problem, and why now', 'What exists today', 'What it must not become']) assert.ok(headings(outputOf('context')).includes(heading), heading);
   const rules = flat(folder.slice(0, folder.indexOf('\n## ')));
   assert.match(rules, /\*\*Nothing points back into the package\.\*\* No path of a stage's folder, no letter of the board, no name of a seat's ledger file, no "as decided at Detail"/);
   assert.match(rules, /\*\*What she reads is copied, never retold\.\*\* A string, a state's name, an id and a measured value are written exactly as approved/);
@@ -4465,24 +4479,44 @@ test('handoff: the folder holds the eight files, the prototype, the token file a
   for (const file of filesUnder('templates/package/07-handoff/')) assert.ok(section(text, 'Writes').includes(`\`templates/package/07-handoff/${file}\``), file);
   assert.deepEqual(filesUnder('templates/package/build/'), ['BUILD.md', 'DEVIATIONS.md', 'STATES.md']);
   assert.match(rows[0][1], /`built-from: \[look@<version>, detail@<version>, structure@<version>, cast@<version>, intent@<version>, context@<version>\]`/);
-  assert.match(flat(section(text, 'Writes')), /Each path below is from `<package>\/`\. `<version>` is the version a stage stands at, as `status` prints it: after a reopening it is not 1/);
+  assert.match(flat(section(text, 'Writes')), /Each path is from `<package>\/`\. `<version>` is the version a stage stands at, as `status` prints it\./);
+  // M12: the token file is in the folder, so the entry's own table says so.
+  assert.equal(rows[3][1], 'the token file the screens were drawn on, with a row of its own added to the table of `HANDOFF.md`');
+  assert.match(flat(section(stageRef('handoff', 'folder.md'), '`HANDOFF.md`')), /\*\*What is in this folder:\*\* the template's table, with one row more, for `tokens\.css`: the token file the prototype is drawn on, copied in, with what it loads/);
+  assert.ok(!listed.includes('`tokens.css`'), 'the template has no row for it');
   assert.deepEqual(rows[1].slice(1), ['how a builder turns the prototype into the project\'s components', '`reference/IMPLEMENTER-GUIDE.md`, copied whole']);
   // Ruling 10: an output that is already there is not copied over.
   const steps = section(text, 'Steps');
-  assert.deepEqual(boldSteps(steps).map(([, name]) => name), ['Begin', 'Read the look, and what its carry list names', 'Copy in what was approved, and change one line of it', 'Write `SPEC.md`, the strings and `DECISIONS.md`',
+  assert.deepEqual(boldSteps(steps).map(([, name]) => name), ['Begin', 'Read the look, and what its carry list names', 'Copy in what was approved, and prove the folder stands alone', 'Write `SPEC.md`, the strings and `DECISIONS.md`',
     'Write `PARTS.md` from the component source, read now', 'Write the checks, and run them on the prototype first', 'Write `COVERAGE.md`, and fill `HANDOFF.md`', 'Start the cold implementer', 'Answer every question and every guess in the folder', 'Build the decision page']);
   assert.match(stepOf(steps, 'Read the look'), /Copy the template to `<package>\/07-handoff\/HANDOFF\.md` and write `built-from`, unless the file is already there: then go on from what the folder holds, at the first step whose file is missing/);
   // The final screens, their pictures, the token file with where it came from, the one link, the index, the guide and the builder's pages.
   const copy = stepOf(steps, 'Copy in what was approved');
   inOrder(copy, [/every page of `<package>\/06-look\/screens\/` into `<package>\/07-handoff\/prototype\/`, and the pictures of those pages into `<package>\/07-handoff\/prototype\/shots\/`/,
     /`<tokens>` to `<package>\/07-handoff\/tokens\.css`, noting the path it came from and the commit that last changed it/, /in each copied page the one link to `<tokens>` then names that copy, as `\.\.\/tokens\.css`, and nothing else of a page changes/,
-    /`<package>\/07-handoff\/prototype\/index\.html`: every page as a link, by screen, state, language/, /the guide, whole; and the three pages of `templates\/package\/build\/` into `<package>\/build\/`/], 'what is copied in');
+    /`<package>\/07-handoff\/prototype\/index\.html`: every page as a link, by screen, state, language/, /the guide, whole; and the three pages of `templates\/package\/build\/` into `<package>\/build\/`/,
+    /``` node <kit root>\/scripts\/alone\.mjs <package>\/07-handoff ```/, /It prints every address a page or a stylesheet of the folder loads from outside it/,
+    /What the token file loads, a font or a picture, is copied in beside it and its address rewritten, or taken out of the copy and listed in `HANDOFF\.md` for the builder to supply\. Run it until it prints none/], 'what is copied in');
+  // Ruling R148: the kit's own script proves the folder stands alone, after the copy and before the checks.
+  const proving = 'node <kit root>/scripts/alone.mjs <package>/07-handoff';
+  assert.ok(fencedLines(text).includes(proving) && fencedLines(stageRef('handoff', 'folder.md')).includes(proving), proving);
+  assert.ok(takenBy('alone', words(proving).slice(2).join(' ')), proving);
+  assert.ok(fencedLines(text).indexOf(proving) < fencedLines(text).findIndex(line => line.includes('accept.mjs prototype')), 'it is run before the checks');
+  const stands = flat(section(stageRef('handoff', 'folder.md'), 'The folder stands alone, proved'));
+  inOrder(stands, [/^ Once the pages, the token file and the index are in, and again after any of them changes/, /prints one line for each address that does not lead to a file inside it: the file, the address, and why\. It leaves the folder, it is remote, or the file is not there\. It exits 0 when there is none, and step 6 of the skill is not run before it does/,
+    /\*\*What the token file loads,\*\* a font or a picture, by `url\(\)` or `@import`: copy the file into the folder, beside `tokens\.css`, and make the address in the copy of the token file lead to it: kept where the file sits at the same path from the copy, rewritten where it does not/,
+    /\*\*What cannot be copied,\*\* .* take the line that loads it out of the copy, and list it in `HANDOFF\.md`, under "Left to the builder", as a file the builder must supply: its name, what loads it, and where the project gets it/,
+    /\*\*Never leave one unsaid\.\*\* Every address the command printed is copied in, or taken out and listed\. None is left to load from outside, and none is dropped in silence/], 'the folder stands alone');
+  for (const why of ['it leaves the folder', 'it is remote', 'the file is not there']) assert.ok(KIT.usage('scripts/alone.mjs').includes(why), why);
+  assert.ok(headings(read('templates/package/07-handoff/HANDOFF.md')).includes('Left to the builder'));
   const folder = stageRef('handoff', 'folder.md');
   const proto = flat(section(folder, '`prototype/`, and `tokens.css`'));
   assert.match(proto, /The folder's `prototype\/` is the final screens\. The plain prototype of Detail is not copied: it wears the shared kit, and a builder would take its grey for the look/);
   assert.match(proto, /A variant he did not pick is not a screen, and nothing of `<package>\/06-look\/variants\/` is copied/);
   assert.match(proto, /Note two things for `PARTS\.md`: the path it was copied from, from the project's root, and the commit that last changed it, as the project's history gives it for that file\. A file with changes not yet committed, or a project with no history, is said so in place of a commit/);
-  assert.match(proto, /Change it by a script, in every page alike, and nothing else: step 6 of the skill then proves it, since a page whose stylesheet does not load fails its checks/);
+  // The sentence that said the prototype run proves it is gone: a link left as it was still loads the project's file.
+  assert.match(proto, /Change it by a script, in every page alike, and nothing else\. A link left as it was still loads the project's file from here, since the copy sits as deep as the page it was copied from: no check on the pages would notice/);
+  assert.doesNotMatch(flat(stageRef('handoff', 'folder.md')), /then proves it, since a page whose stylesheet does not load/);
   assert.match(read('templates/package/07-handoff/PARTS.md'), /Token file: \{its path in this folder, beside the prototype; the path it was copied from in the project;\s+its version\}/);
   // The visual designer's pages link the real token file by its path: that is the one line a copy must change.
   assert.match(flat(read('pool/makers/visual-designer.md')), /\*\*Write static pages that link the project's token file:\*\* the real file, by its path, never its values pasted in/);
@@ -4508,10 +4542,19 @@ test('handoff: the folder holds the eight files, the prototype, the token file a
   assert.match(coverage, /\*\*Findings:\*\* every finding of every ledger and every stuck point of every task read, one row each, with what became of it: fixed, accepted by the founder in his words, carried as a dependency, or open with why/);
   assert.match(coverage, /A finding with no fate written anywhere is open, and is said to be/);
   assert.match(coverage, /No row names a ledger's file: the builder cannot open it/);
+  // I1: the folder is told the counts and the day, never a command or a path that leaves it.
+  assert.match(coverage, /Under the table, the checks of `acceptance\.json`: the day they last ran on the prototype, the counts, failed and passed, and each check taken out as one a person must look at\. No command and no path: neither is the folder's/);
+  assert.match(stepOf(steps, 'Write `COVERAGE.md`, and fill `HANDOFF.md`'), /Coverage: every seat that read, from Context on, with what it read, the model it ran on and its checks run and not run; every finding with what became of it; and the counts step 6 printed, with the day: never a command, or a path out of the folder/);
+  // M9: a read of a fresh pass is entered under its seat, its versions named by what they were.
+  assert.match(coverage, /\*\*A read of a fresh pass,\*\* a file of Look's reads whose name ends `-beside\.md` or `-borrow\.md`, is entered under its seat like any other\. A version it names by a letter is written as what it was: "the version on the project's tokens", or "a fresh version, not handed off"\. Never the letter, never the maker, the engine or the model, and never where the fresh screen is/);
+  // I3: the cold implementer's own row waits for its last read.
+  assert.match(coverage, /\*\*The cold implementer's own row and its items are added only after its last read:\*\* after the re-read when there is one, never between the two, since a re-read reads the folder cold/);
   assert.deepEqual(headings(read('templates/package/07-handoff/COVERAGE.md')), ['Seats', 'Checks not run', 'Findings']);
   const entry = flat(section(folder, '`HANDOFF.md`'));
   assert.match(entry, /\*\*Slices:\*\* in build order\. Each is small enough to build, verify and commit alone, and names the screens and states it covers, a done-when someone can see, and the checks of `acceptance\.json` it must hold, by id\. Every check belongs to a slice, and every state to one/);
-  assert.match(entry, /Where they live in the product, and what they replace, are read now in the project sources the carry list names, never written from memory/);
+  assert.match(entry, /Where they live in the product is read now in the project sources the carry list names, never written from memory/);
+  // M4: the project's own gates are read now, where the project writes them down, and a command not found there is asked, never guessed.
+  assert.match(entry, /\*\*Verify:\*\* the project's own gates, by the commands the project uses\. No carried section holds them: read them now, in "Standing rules" of the project profile and in the project's own documents, as its contributor's guide or its package file\. A command you did not find written there is asked of the founder, at step 9 of the skill\. It is never guessed/);
   for (const heading of ['Context', 'Task', 'Done when', 'Verify', 'Constraints', 'Slices', 'Out of scope', 'Must not change', 'Left to the builder', 'What you write back', 'Reviewed by the founder']) assert.ok(headings(read('templates/package/07-handoff/HANDOFF.md')).includes(heading), heading);
   // No credential is ever written into the folder.
   assert.ok(nevers(text).includes('Never write a password, a token or a key into the folder'));
@@ -4528,7 +4571,7 @@ test('handoff: the checks are written by stable id and run on the prototype firs
   assert.ok(takenBy('accept', words(command).slice(2).join(' ')), command);
   inOrder(step, [/The script refuses a file that is not valid, and names each fault/, /\*\*A check that fails on the approved prototype is a wrong check:\*\* rewrite the check, never the page, and run it again until none fails/,
     /A check answered `cannot be told:` or `cannot be measured:` is rewritten so that it can be made, or taken out and listed in `ACCEPTANCE\.md` as one a person must look at/,
-    /`--allow-errors` is passed only with its reason written beside the command in `COVERAGE\.md`/], 'the checks');
+    /`--allow-errors` is passed only with its reason written in `COVERAGE\.md`, as a sentence/], 'the checks');
   assert.ok(nevers(text).includes('Never hand off a check that was not run on the prototype'));
   // The two answers the in-page file gives when it will not guess, word for word, and the switch the script takes.
   const inpage = readFileSync(INPAGE, 'utf8');
@@ -4544,7 +4587,13 @@ test('handoff: the checks are written by stable id and run on the prototype firs
   assert.match(checks, /A check needed at both widths is two checks, each with its own `id`/);
   assert.match(checks, /\*\*`failed: <id>: <why>`:\*\* the check is wrong, or the id is\. Fix the check\. A page is never changed to make a check pass\. Where the check says what the criterion says and the approved screen still does not meet it, neither is yours to change: it goes to the founder, open/);
   assert.match(checks, /\*\*`cannot be told:`\*\* an `in-viewport` check where pointing cannot say\. \*\*`cannot be measured:`\*\* a `contrast` over a picture, an opacity, a filter or a blend/);
-  assert.match(checks, /`--allow-errors` turns it into a warning: pass it only when the error is known and harmless, and write the reason beside the command in `COVERAGE\.md`/);
+  assert.match(checks, /`--allow-errors` turns it into a warning: pass it only when the error is known and harmless, and write the reason in `COVERAGE\.md`, as a sentence: which page, which error, and why it is harmless/);
+  // I1: the last run is written as the day and the counts; what the command prints after them names the gate's folder, and is left out.
+  assert.match(checks, /Write the last run into `ACCEPTANCE\.md`: the day and the counts, as "8 checks: 0 failed, 8 passed"\. The line the command prints goes on to say where its results are, in a folder the builder is never given: that part is left out, and so is the command/);
+  assert.match(read('scripts/accept.mjs'), /process\.stdout\.write\(`\$\{counts\(results\)\}; results in \$\{out\}\\n`\)/);
+  // M5: no check measures a gap, so such a row is listed for a person, with its value.
+  assert.match(checks, /No check measures a gap, a size of text or the length of a line: such a row is listed in `ACCEPTANCE\.md`, under "Measured values", with its value and "measured by a person" where its check would be/);
+  assert.match(flat(read('pool/makers/visual-designer.md')), /each level of text, the contrast of each pair of text and ground, each action's target, the space between the main regions, the length of a line of running text/);
   assert.match(read('scripts/accept.mjs'), /`failed: \$\{result\.id\}: \$\{result\.message\}\\n`/);
   // Every type and every key the page names is one the script takes.
   for (const [, span] of checks.matchAll(/`([a-zA-Z-]+)`/g)) {
@@ -4591,10 +4640,21 @@ test('handoff: the cold implementer is handed the folder only, every item is clo
   const answer = stepOf(steps, 'Answer every question and every guess in the folder');
   inOrder(answer, [/\*\*The answer is in what the carry list hands you:\*\* write it in the folder/, /\*\*It is how something is built:\*\* write it under "Left to the builder", as the builder's/,
     /\*\*Nobody decided it:\*\* put it to the founder, one question at a time, with the default you would propose\. Record it with the `await` of the gate, write his answer under `## Reviewed by the founder` and into the folder, as he said it, and put the stage back in work with the `begin` of step 1/,
-    /Where he leaves it open, the default is written, marked as one\. None is settled in silence/, /Then run step 6 again when a check changed/,
-    /\*\*One re-read, when an item blocked:\*\* a fresh sub-agent in the same seat reads the folder cold, then opens the earlier ledger\. No second round/], 'closing the items');
+    /Where he leaves it open, the default is written, marked as one/, /Run steps 3 and 6 again when a page or a check changed/,
+    /\*\*One re-read, when an item blocked:\*\* a fresh sub-agent in the same seat reads the folder cold, then opens the earlier ledger\. No second round\. \*\*Its own row and items go into `COVERAGE\.md` only after its last read\.\*\*/], 'closing the items');
+  // M8: one count, in the skill and in its reference: three ways.
+  assert.match(answer, /Each item of its ledger is closed one of three ways, in the file its fix names: `references\/seats\.md` has them, and what every folder meets/);
+  assert.equal(section(text, 'Steps').split('\n').filter(line => /^ {3}- \*\*(?:The answer|It is how|Nobody)/.test(line)).length, 3);
+  assert.equal(tableRows(section(seats, 'Closing its items')).slice(2).length, 3);
+  assert.deepEqual(tableRows(section(seats, 'Closing its items')).slice(2).map(([item]) => /^\*\*(.+?)[.:,]?\*\*/.exec(item)[1]), ['The answer is in what the carry list hands you', 'It is how something is built', 'Nobody decided it']);
   const closing = flat(section(seats, 'Closing its items'));
-  assert.match(closing, /Every item of the ledger is closed in the folder, in the file its fix names\. Nothing is answered in your reply to the founder, in the chat or in the ledger: a builder gets none of those/);
+  assert.match(closing, /Every item of the ledger is closed in the folder, in the file its fix names, one of three ways\. Nothing is answered in your reply to the founder, in the chat or in the ledger: a builder gets none of those/);
+  // M13: the one way out of the folder is meant, and the item it raises on every run is closed by saying so.
+  assert.match(closing, /\*\*`\.\.\/build\/`\.\*\* It is the one way out of the folder, and it is meant: `HANDOFF\.md` names it, under "What you write back", as where the build writes its three pages\. See that the sentence says so plainly, and close the item with it\. It is never taken out/);
+  assert.match(flat(read('pool/judges/cold-implementer.md')), /\*\*Every reference that points outside the folder\.\*\*/);
+  // I3: its row waits for its last read.
+  assert.match(closing, /\*\*Its row waits for its last read\.\*\* .* go into `COVERAGE\.md` once it will not read again: after the re-read when an item blocked, and otherwise once its items are closed\. A re-read that found its own first findings in the folder would not be reading cold/);
+  assert.match(closing, /\*\*A page or a check that changed is proved again,\*\* by the commands of steps 3 and 6 of the skill, before the re-read/);
   assert.match(closing, /write a default there, marked "Default:", with the line "nobody decided this: build it so, or write another way down as a deviation"/);
   assert.match(closing, /\*\*A default is his to see\.\*\* Each one is listed on the decision page under `findings`, so that his go covers it/);
   const reread = flat(section(seats, 'The re-read'));
@@ -4602,6 +4662,7 @@ test('handoff: the cold implementer is handed the folder only, every item is clo
   assert.match(reread, /`<package>\/07-handoff-gate\/judge\.cold-implementer-reread\.md`, beside the first and never over it/);
   assert.match(reread, /There is no second round\. .* The handoff is ready when the lists are empty, or every item left has its answer or its default written in the folder/);
   assert.ok(nevers(text).includes('Never give the cold implementer anything but the folder'));
+  assert.match(flat(section(text, 'Never')), /\*\*Never let the folder point outside itself:\*\* no path into the package or the gate's folder, no command that names them, no "as discussed", no address on the web/);
   assert.ok(nevers(text).includes('Never settle a default in silence'));
 
   // The decision page, the one question, his go in the artefact, the stamp, and what he is told.
@@ -4614,13 +4675,13 @@ test('handoff: the cold implementer is handed the folder only, every item is clo
   inOrder(gate, [/^ \*\*He gives one go\.\*\* Put `<package>\/07-handoff-gate\/decision\.html` in front of him, and the folder itself, `<package>\/07-handoff\/HANDOFF\.md` first/, /state\.mjs await <package> handoff --question/,
     /One question, about one thing: may this folder go to the session that builds it\? \*\*Stop: nothing is handed to a builder before his go, and you do not give it\.\*\*/,
     /\*\*Write what he says under `## Reviewed by the founder`,\*\* in `HANDOFF\.md`: what he corrected, and the words of his go, as he said them/,
-    /One that changes a string, a state, a rule, an id or a value is not Handoff's: ask him to reopen the stage it belongs to, as the conductor's "Resuming" says/,
-    /\*\*No carry list\.\*\* `HANDOFF\.md` has none: Acceptance reads this folder, and what the builder writes back/, /state\.mjs stamp <package> handoff --words/, /Then append the decision to the package's `DECISIONS\.md`/,
-    /\*\*Tell him what happens now\.\*\* The session that builds is given `<package>\/07-handoff\/` and nothing else, and writes back into `<package>\/build\/`\. Acceptance \(`ux:acceptance`\) runs afterwards, in a session of its own: you do not build, and the session that builds does not accept its own work/], 'the gate');
+    /A correction that changes a string, a state, a rule, an id or a value is not Handoff's: ask him to reopen its stage, as the conductor's "Resuming" says/,
+    /state\.mjs stamp <package> handoff --words/, /Then append the decision to the package's `DECISIONS\.md`/, /`HANDOFF\.md` has no carry list: Acceptance reads this folder, and `build\/`/,
+    /\*\*Tell him what happens now\.\*\* The session that builds is given `<package>\/07-handoff\/` and nothing else, and writes back into `<package>\/build\/`\. Acceptance then runs in a session of its own/], 'the gate');
   assert.doesNotMatch(read('templates/package/07-handoff/HANDOFF.md'), /^## Carry$/m);
   // Every command it gives is one its script takes, in the order of the stage.
-  assert.deepEqual(stageCommands('handoff').map(command => words(command).slice(1, 3).join(' ').replace('<kit root>/scripts/', '')),
-    ['state.mjs begin', 'accept.mjs prototype', 'page.mjs <package>/07-handoff-gate/decision.json', 'state.mjs await', 'state.mjs stamp', 'state.mjs status']);
+  assert.deepEqual([...new Set(stageCommands('handoff'))].map(command => words(command).slice(1, 3).join(' ').replace('<kit root>/scripts/', '')),
+    ['state.mjs begin', 'alone.mjs <package>/07-handoff', 'accept.mjs prototype', 'page.mjs <package>/07-handoff-gate/decision.json', 'state.mjs await', 'state.mjs stamp', 'state.mjs status']);
   // The other forms: an adjustment, a flow, a correction.
   const forms = stageRef('handoff', 'forms.md');
   assert.deepEqual(headings(forms), ['Routed `short`: an adjustment', 'Sized `flow`: one folder, surface by surface', 'Sized `correction`: one paragraph, and no seat']);
@@ -4635,10 +4696,15 @@ test('handoff: the cold implementer is handed the folder only, every item is clo
   assert.match(flow, /\*\*One cold implementer, one decision page, one go, one stamp\.\*\*/);
   // A correction costs one nod, and he gave it at Detail: no seat, one paragraph, built from the detail, stamped in the words of that nod.
   const correction = flat(section(forms, 'Sized `correction`: one paragraph, and no seat'));
-  assert.match(correction, /\*\*No seat is cast,\*\* so no cold implementer reads, and no brief is written\. Steps 3 to 9 of the skill are not run, and no folder is filled/);
+  assert.match(correction, /\*\*No seat is cast,\*\* so no cold implementer reads, and no brief is written\. Steps 3 to 10 of the skill are not run, and no folder is filled/);
   assert.match(correction, /write `built-from` as the route gives it: `\[detail@<version>, frame@<version>\]`, each at the version `status` prints/);
   assert.match(correction, /\*\*His nod is the go\.\*\* A correction costs one nod, and he gave it at Detail\. Write under `## Reviewed by the founder` that the go is his nod at Detail, with its words, copied as `DETAIL\.md` has them, and stamp with those words/);
-  assert.match(correction, /\*\*After the stamp, the session that conducts applies the change,\*\* as the paragraph says, and nothing else\. That is the build/);
+  assert.match(correction, /\*\*After the stamp, the session that conducts applies the change,\*\* as the paragraph says, and nothing else\. That is the build\. The same session then accepts it, in Acceptance's short form: a correction is the one design where the session that built also accepts/);
+  // Ruling R149: no script checks a correction, and no acceptance file is written for one.
+  assert.match(correction, /\*\*No script checks a correction\.\*\* No `acceptance\.json` is written, and no command of the skill is run but those of the state: a correction has no page of a prototype for a check to open\. Its record is the picture of before and after, and the one-paragraph record Detail wrote\. "Verify" says so: the build is held to the picture after, by eye/);
+  assert.doesNotMatch(correction, /write the one check/);
+  // A check needs a page of the prototype: the script refuses one without.
+  assert.ok(validateAcceptance({ design: 'label', checks: [{ id: 'label', criterion: 'The action reads Book room.', state: 'default', width: 1280, type: 'text', target: 'book-action', equals: 'Book room' }] }).some(fault => /\.page: must be a non-empty string/.test(fault)));
   assert.match(flat(reference('routes.md')), /A correction costs one nod\. It is the one size where the session that conducts may also do the work/);
   assert.match(flat(stageRef('detail', 'correction.md')), /That is the build: Handoff and Acceptance, each in its short form, say how it is handed over and checked/);
   assert.ok(!cards['judge.cold-implementer'].presets.includes('correction'));
@@ -4656,6 +4722,11 @@ test('acceptance: a separate session that reads the handoff folder and what the 
     /\*\*Never\*\* anything else of the package's history: no earlier stage's folder, no reads folder of another stage, `<package>\/07-handoff-gate\/`, the package's `work\/` folder, or the chat\. A file of those that a seat is handed is named by its path, and you do not open it/], 'what Acceptance reads');
   for (const key of ['browser-check', 'languages', 'components', 'facts', 'decisions-log']) assert.ok(profileKeys().includes(key), key);
   assert.ok(headings(outputOf('cast')).includes('Acceptance') && headings(outputOf('intent')).includes('Tasks for the audience'));
+  // Ruling R150: the conductor's loop says what Acceptance reads, in one sentence, and the skill's narrow reading is that sentence.
+  assert.match(flat(section(reference('loop.md'), '2. Read the package, not the chat')), /Acceptance alone reads otherwise: it runs in a session of its own, after the build, and reads the handoff folder, what the build wrote back, and, of the package, only the cast sheet's "Acceptance" table with the lines for the person and her profession's profile that it names, and the intent's tasks for the audience\.\s*$/);
+  // M10: a settings file, and anything else that holds a sign-in, is never opened. M11: the one entry of the package's decisions it reads.
+  assert.match(reads, /the files `BUILD\.md` lists as built or changed, but a settings file and anything else that holds a sign-in: those are never opened/);
+  assert.match(reads, /And of the package's `DECISIONS\.md`, its last entry alone, for the number of the one you append/);
   assert.ok(nevers(text).includes('Never open the package\'s history:'));
   // What it writes: the report built from the handoff, the results by state, the table, the pictures, the reads, the fixes, the page.
   const rows = tableRows(section(text, 'Writes')).slice(2);
@@ -4687,6 +4758,8 @@ test('acceptance: a separate session that reads the handoff folder and what the 
   assert.match(table, /Name every file of `results\/`, one after another/);
   assert.match(table, /It prints the count: failed, not run, passed\. A check with no result shows as \*\*not run\*\*\. \*\*Every check not run has its reason written in `REPORT\.md`,\*\* under "The checks", or it is run: you never report an acceptance with a check not run and unexplained/);
   assert.ok(nevers(text).includes('Never report an acceptance with a check not run and unexplained'));
+  // M3: a state that cannot be driven is said, with its reason: what is never reported is one left out without a word.
+  assert.match(flat(section(text, 'Never')), /\*\*Never report an acceptance with a check not run and unexplained,\*\* or with a state not driven and unexplained\./);
   assert.match(KIT.usage('scripts/accept.mjs'), /a check with no result is listed as not run, after the failed\s+ones and before the passed, and counted/);
   assert.ok(headings(read('templates/package/08-acceptance/REPORT.md')).includes('The checks'));
 
@@ -4801,7 +4874,9 @@ test('acceptance: the seats are the cast sheet\'s; a judge is handed pictures of
   assert.match(flat(stageRef('detail', 'seats.md')), /`judge\.usability`, `judge\.profile-<name>` for each profession's profile, `audience\.task-reader-<name>-<language>` for each person and language/);
   // Cold first, then the seat's earlier ledger, found without opening a reads folder: by the coverage page of the handoff folder.
   assert.match(common, /\*\*Each judge reads cold first, then opens its seat's earlier ledger\.\*\* Its brief says this is the seat's first read of the build, and names one file more: the ledger its seat wrote at the last stage it read at, in that stage's reads folder/);
-  assert.match(common, /The "Seats" table of `<package>\/07-handoff\/COVERAGE\.md` shows which stage that is: `<package>\/06-look\/reads\/<seat>\.md`, or `<package>\/05-detail\/reads\/<seat>\.md`, with its re-read beside it, `<seat>-reread\.md`, where there is one/);
+  assert.match(common, /The "Seats" table of `<package>\/07-handoff\/COVERAGE\.md` shows which stage that is: `<package>\/06-look\/reads\/<seat>\.md`, `<package>\/05-detail\/reads\/<seat>\.md` or, for a seat that last read the options, `<package>\/04-structure\/reads\/<seat>\.md`, with its re-read beside it, `<seat>-reread\.md`, where there is one/);
+  // M6: each seat that sits at Acceptance sat at one of those three stages before, or at none.
+  for (const [id, card] of Object.entries(cards)) assert.ok(card['sits-at'].some(stage => ['structure', 'detail', 'look'].includes(stage)), id);
   assert.match(common, /It opens them only after it has read the build and written its findings, and then marks each earlier finding \*fixed\*, \*partly\* or \*still present\* in the build/);
   assert.match(common, /A seat that never read before has no earlier ledger, and its brief names none/);
   for (const path of ['<package>/work/', `<package>/04-structure/${MAP}`, '<package>/06-look/BESIDE.sealed.json', '<package>/04-structure/CHOSEN.md', '<package>/DECISIONS.md', '<package>/03-cast.md', '<package>/08-acceptance/reads/', '<package>/07-handoff-gate/',
@@ -4845,7 +4920,7 @@ test('acceptance: the seats are the cast sheet\'s; a judge is handed pictures of
   assert.match(leads(subsection(seats, '`judge.accessibility`'))['Its brief'], /It says the seat is handed the pictures and the results, and does not drive the build/);
   assert.match(flat(read('pool/judges/accessibility.md')), /At \*Acceptance\* your brief hands you the build's pictures and the results of the checks run in it: you do not drive it, and what nobody measured was not looked at/);
   // The system fidelity judge reads the files its brief lists as built or changed.
-  assert.match(leads(subsection(seats, '`judge.system-fidelity`'))['Its brief'], /It lists the files of the build, each by its path, as "Where it lives" of `BUILD\.md` gives them: built or changed/);
+  assert.match(leads(subsection(seats, '`judge.system-fidelity`'))['Its brief'], /It lists the files of the build, each by its path, as "Where it lives" of `BUILD\.md` gives them: built or changed\. A settings file, and any other file that holds a sign-in, is left off the list, and the brief names it under "Do not open"/);
   assert.match(flat(read('pool/judges/system-fidelity.md')), /\*Acceptance\* you read the build: the files your brief lists as built or changed/);
   assert.ok(headings(read('templates/package/build/BUILD.md')).includes('Where it lives'));
   // One audience read: the task reader, pictures only, her card and her profession's traits; never the intent, the handoff folder or the build.
@@ -4853,7 +4928,10 @@ test('acceptance: the seats are the cast sheet\'s; a judge is handed pictures of
   assert.match(audience, /One read, after the judges: the task reader the cast sheet's "Acceptance" table seats, as the person its line is loaded with, `person\.<name>`\. Where the table seats none, nobody reads as her, and the report says so/);
   const reader = leads(subsection(seats, '`audience.task-reader`'));
   assert.match(reader['Its brief'], /her tasks, copied word for word from "Tasks for the audience" of the intent/);
-  assert.match(reader.Handed, /^her card, by the path the cast sheet's carry list names\. Her profession's traits: a copy of her profession's profile with every `So the interface must:` field removed, written beside the brief as the loop says, and the one file of `<package>\/work\/` she opens/);
+  // M7: a person of the kit has no line on a carry list: her card is in the kit's own pool, by her id.
+  assert.match(flat(section(stageSkill('cast'), 'Gate')), /for each card and each person of the project's own that sits: a card of the kit is found in the kit, by its id/);
+  assert.ok(existsSync(at('pool/persons/first-timer.md')));
+  assert.match(reader.Handed, /^her card, by the path the cast sheet's carry list names, or, for a person of the kit, who has no line there, in the kit's `pool\/persons\/`, by the id her line of the table gives\. Her profession's traits: a copy of her profession's profile with every `So the interface must:` field removed, written beside the brief as the loop says, and the one file of `<package>\/work\/` she opens/);
   assert.match(reader.Handed, /each by its path, as `<package>\/08-acceptance\/shots\/today-default-en-390-light\.png`\. The pictures, and pictures only/);
   assert.deepEqual(cards['audience.task-reader'].reads, ['brief', 'person', 'profile-traits', 'pictures']);
   for (const kept of ['intent', 'package', 'handoff-folder', 'build', 'profile']) assert.ok(cards['audience.task-reader']['never-reads'].includes(kept), kept);
@@ -4875,9 +4953,9 @@ test('acceptance: each item matches or deviates and he decides each; an accepted
   const gate = flat(section(text, 'Gate'));
   inOrder(gate, [/^ \*\*He accepts\.\*\* Put `<package>\/08-acceptance\/decision\.html` in front of him, with `checks\.md` and the pictures/, /\*\*Each deviation is his to decide, one at a time: is it accepted as built, or fixed\?\*\*/,
     /Record each question, write his answer into `REPORT\.md` as he said it, and put the stage back in work with the `begin` of step 1, before the next/, /state\.mjs await <package> acceptance --question/,
-    /\*\*A deviation he accepts\*\* is written under "Deviations accepted", in his words, and appended to the package's `DECISIONS\.md`, and to the project's own log where `decisions-log` names one and the product changed/,
-    /Then the handoff folder is brought up to date, so that the design on disk is what shipped: the row of `SPEC\.md`, the string, the row of `PARTS\.md` and the check, in `ACCEPTANCE\.md` and in `acceptance\.json`, each changed to what was built\. The changed check is run again/,
-    /A page of `prototype\/` is never redrawn here/,
+    /\*\*A deviation he accepts\*\* is written under "Deviations accepted", in his words, and appended to the package's `DECISIONS\.md` and to the folder's own/,
+    /Then the handoff folder is brought up to date, so that the design on disk is what shipped and no file of it contradicts another: the check is rewritten to hold the build as accepted, and run again/,
+    /`references\/deviations\.md` has every file it touches, and how a stamped `HANDOFF\.md` is changed/,
     /\*\*A deviation to fix\*\* goes out in `<package>\/08-acceptance\/FIXES\.md`, written like a slice of the handoff: \*Context · Task · Done when · Verify\*, so that any session can take it knowing nothing else\. You do not build it\. \*\*The stage is not stamped while a fix is out:\*\*/,
     /\*\*A fix the size of a correction,\*\* a wrong label, token or spacing value, may be applied by you, after his nod on a picture of before and after, and never before\. Its state is then checked again/,
     /\*\*When no deviation is left undecided and no fix is out,\*\* ask the last question, with the same `await`: do you accept this build\? \*\*Stop: you do not accept it, and you go no further without his words\.\*\*/,
@@ -4888,24 +4966,48 @@ test('acceptance: each item matches or deviates and he decides each; an accepted
   assert.match(flat(reference('lessons.md')), /\*\*Seats whose findings changed a decision\.\*\* One row for each, with the model it ran on/);
   assert.match(flat(reference('lessons.md')), /`LESSONS\.md`, in the folder that holds the project's packages, beside the project profile/);
   // What it must never do: build, decide, bend a check, or touch a stamped output.
-  for (const never of ['Never implement, mend or restyle the build', 'Never settle a deviation yourself', 'Never edit `HANDOFF.md`, or an earlier stage\'s output', 'Never change a check to make a build pass', 'Never tell a judge what to find', 'Never ask two things at once']) {
+  for (const never of ['Never implement, mend or restyle the build', 'Never settle a deviation yourself', 'Never edit a stamped output as it stands:', 'Never change a check to make a build pass', 'Never tell a judge what to find', 'Never ask two things at once']) {
     assert.ok(nevers(text).includes(never), never);
   }
-  assert.match(flat(section(text, 'Never')), /\*\*Never edit `HANDOFF\.md`, or an earlier stage's output\.\*\* Each is stamped\. Where an accepted deviation makes one false, ask him to reopen it, as the conductor's "Resuming" says/);
+  assert.match(flat(section(text, 'Never')), /\*\*Never edit a stamped output as it stands:\*\* `HANDOFF\.md`, or an earlier stage's\. Where an accepted deviation makes one false, it is reopened first: `references\/deviations\.md`/);
+  // M2: deviations.md. An accepted deviation is logged in the package's decisions and in the folder's own, every file of the folder that
+  // it makes false is brought to the build, the check is rewritten to hold the build as accepted, and a stamped HANDOFF.md is reopened.
+  const deviations = stageRef('acceptance', 'deviations.md');
+  assert.deepEqual(headings(deviations), ['He accepts it', 'He wants it fixed', 'A fix the size of a correction']);
+  const accepted = section(deviations, 'He accepts it');
+  assert.deepEqual(boldSteps(accepted).map(([, name]) => name), ['Write it in the report,', 'Log it, twice', 'Bring the folder\'s files up to date,', 'Run the changed check again,', 'A page of `prototype/` is never redrawn here']);
+  inOrder(flat(accepted), [/after this, the handoff folder describes what shipped, and no file of it contradicts another/, /Append it to the package's `DECISIONS\.md`, in the shape of `templates\/package\/DECISIONS\.md`, numbered after the last entry, which is the one entry of that file you read/,
+    /And append it to the folder's own, `<package>\/07-handoff\/DECISIONS\.md`, in that file's shape, written out in full/, /it is also logged where `decisions-log` of the project profile says/,
+    /the check, in `acceptance\.json`: rewritten to hold the build as accepted, never deleted\. A check of 44 by 44 on a booking action he accepted at 40 by 40 becomes one of 40 by 40/,
+    /the item in `ACCEPTANCE\.md`: its new value, and beside it the line "the build as accepted differs from the page this names", with what differs and the day he accepted it/,
+    /"Must not change" of `HANDOFF\.md` may name the very thing he has just accepted as changed\. It then says so, beside that item: "the build as accepted differs from the page this names", with what differs/,
+    /`HANDOFF\.md` is stamped, so it is reopened first, changed, and stamped again\. His accepting the deviation is the yes a reopening needs, and its reason/,
+    /Handoff now stands at a new version\. Write that version into `built-from` of `REPORT\.md`, as `status` prints it: a report built from the old one is refused at its own stamp/], 'an accepted deviation');
+  assert.deepEqual(fencedLines(deviations), ['node <kit root>/scripts/state.mjs reopen <package> handoff --reason "<why>"', 'node <kit root>/scripts/state.mjs stamp <package> handoff --words "<the founder\'s words>"']);
+  assert.match(flat(conductor()), /Three commands change where a design stands\. Each needs the founder's yes first/);
+  assert.match(flat(section(deviations, 'He wants it fixed')), /Any session can take it knowing nothing else: it is handed `FIXES\.md` and the handoff folder, and nothing of the package besides/);
+  assert.match(flat(section(deviations, 'A fix the size of a correction')), /\*\*After his nod, and never before, make the change:\*\* that one thing, in the file `BUILD\.md` names, and nothing beside it/);
   assert.match(flat(section(text, 'Never')), /\*\*Never ask two things at once,\*\* and never stamp while a fix is out/);
   // Every command it gives is one its script takes, in the order of the stage.
   assert.deepEqual([...new Set(stageCommands('acceptance'))].map(command => words(command).slice(1, 3).join(' ').replace('<kit root>/scripts/', '')),
-    ['state.mjs begin', 'accept.mjs inpage', 'accept.mjs report', 'page.mjs <package>/08-acceptance/decision.json', 'state.mjs await', 'state.mjs stamp', 'state.mjs status']);
+    ['state.mjs begin', 'accept.mjs inpage', 'accept.mjs report', 'page.mjs <package>/08-acceptance/decision.json', 'state.mjs await', 'state.mjs stamp', 'state.mjs status', 'state.mjs reopen', 'state.mjs stamp']);
+  // The two stamps are of two stages: its own, and the handoff an accepted deviation reopened.
+  assert.deepEqual([...new Set(stageCommands('acceptance'))].filter(command => command.includes('state.mjs stamp')).map(command => words(command)[4]), ['acceptance', 'handoff']);
   // The other forms.
   const forms = stageRef('acceptance', 'forms.md');
   assert.deepEqual(headings(forms), ['Routed `short`: an adjustment', 'Sized `flow`: every surface, accepted once', 'Sized `correction`: one picture beside another', 'A fix that comes back']);
-  assert.match(flat(steps), /\*\*Routed `short`\*\* \(an adjustment\), Acceptance is what changed, and no more\. \*\*Sized `flow`,\*\* every surface is driven, and it is accepted once\. \*\*Sized `correction`,\*\* it is one picture beside another\. \*\*A fix that comes back\*\* is checked again where it was\. `references\/forms\.md` has the four/);
+  assert.match(flat(steps), /\*\*Routed `short`\*\* \(an adjustment\), Acceptance is what changed, and no more\. \*\*Sized `flow`,\*\* every surface is driven, and it is accepted once\. \*\*Sized `correction`,\*\* it is one picture beside another, and the session that applied it accepts it\. \*\*A fix that comes back\*\* is checked again where it was\. `references\/forms\.md` has the four/);
   for (const size of ['adjustment', 'correction']) assert.equal(routeFor(size).acceptance, 'short', size);
   const short = flat(section(forms, 'Routed `short`: an adjustment'));
   assert.match(short, /^ Acceptance is what changed, and no more\./);
   assert.match(short, /\*\*One more thing is looked at: what was not meant to change\.\*\*/);
   const correction = flat(section(forms, 'Sized `correction`: one picture beside another'));
-  assert.match(correction, /\*\*No seat is cast,\*\* so nobody reads, and no brief is written\. Steps 6 and 8 of the skill are not run/);
+  // Ruling R149: no script checks a correction; it is compared by eye with the picture he nodded at; and the session that applied it accepts it.
+  assert.match(correction, /\*\*The session that applied it accepts it\.\*\* The skill opens by saying you did not build what you read\. A correction is the one case where that does not hold: the session that conducts made the change after his nod, and the same session checks it/);
+  assert.match(correction, /\*\*No seat is cast,\*\* so nobody reads, and no brief is written\. \*\*No script checks a correction:\*\* the handoff wrote no `acceptance\.json`, and there is no page of a prototype for a check to open\. Steps 4 to 6 and 8 of the skill are not run/);
+  assert.match(correction, /\*\*Compare it with the "becomes" side, by eye:\*\* the one thing reads, or measures, as the paragraph says it becomes, and nothing else on the screen moved from the picture he nodded at/);
+  assert.match(correction, /\*\*One item in the report:\*\* the change, \*matches\* or \*deviates\*, with the two pictures that show it: the one he nodded at, and the one as built\. "The checks" says that no script checks a correction, and that it was compared by eye/);
+  assert.doesNotMatch(correction, /run it as steps 4 and 5/);
   assert.match(correction, /\*\*When it matches, his nod covers it\.\*\* A correction costs one nod\. Write under `## Reviewed by the founder` that the build is what he nodded at, with the words of that nod as `HANDOFF\.md` has them, show him the picture as built, and stamp with those words/);
   assert.match(correction, /\*\*When it deviates, it is his to decide,\*\* by the one question of the skill's gate: accepted as built, or put right\? You put right only what the correction was/);
   const back = section(forms, 'A fix that comes back');
@@ -5057,8 +5159,9 @@ test('Handoff and Acceptance run as written: the folder assembled from a package
   // The package as Look leaves it: seven outputs approved, each carry list as its stage's skill gives it, so that Look's is what
   // the three stages before it carried on, five sections of the detail, the stage's own files and the token file.
   run(`${STATE} init <package> --design today --kind working-surface --foundation new-surface --size surface`);
-  const castCarry = [...['The person in the moment', 'The one job', 'Success criteria', 'Tasks for the audience', 'States'].map(heading => `- intent@1#${slug(heading)}`),
-    ...['What the product can show and do', 'Constraints', 'The founder\'s own words'].map(heading => `- context@1#${slug(heading)}`), '- source:design/pool/persons/desk-cover.md', '- source:src/today/rooms.html'];
+  const castCarry = [...['The person in the moment', 'The one job', 'Success criteria', 'Tasks for the audience', 'States', 'What the readers found'].map(heading => `- intent@1#${slug(heading)}`),
+    ...['The people', 'What the product can show and do', 'Constraints', 'The founder\'s own words', 'The problem, and why now', 'What exists today', 'What it must not become'].map(heading => `- context@1#${slug(heading)}`),
+    '- source:design/pool/persons/desk-cover.md', '- source:src/today/rooms.html'];
   const chosenCarry = [...castCarry, ...['Detail', 'Look', 'Handoff', 'Acceptance', 'Blind rules', 'Fresh pass'].map(heading => `- cast@1#${slug(heading)}`), '- source:design/today/04-structure/board/B.json', `- source:design/today/04-structure/${PICK}`];
   const detailCarry = [...chosenCarry, '- cast@1#structure', ...['The structure', 'What it is deliberately bad at', 'What the readers found'].map(heading => `- structure@1#${slug(heading)}`), '- source:design/today/04-structure/reads',
     ...['states.md', 'strings.json', 'prototype', 'shots', 'reads'].map(file => `- source:design/today/05-detail/${file}`), '- source:design/today/DECISIONS.md'];
@@ -5076,15 +5179,21 @@ test('Handoff and Acceptance run as written: the folder assembled from a package
     '- structure@1#what-the-readers-found', '- detail@1#rules', '- detail@1#data-map', '- detail@1#dependencies', '- detail@1#what-the-readers-found', '- source:design/today/04-structure/reads', '- source:design/today/05-detail/reads',
     '- source:design/today/06-look/reads', '- source:design/today/05-detail/states.md', '- source:design/today/05-detail/strings.json', '- source:design/today/05-detail/prototype', '- source:design/today/06-look/screens', '- source:design/today/06-look/shots',
     '- source:design/today/06-look/measures.md', '- source:design/today/06-look/checks.json', '- source:design/kit/tokens.css', '- source:design/today/DECISIONS.md', '- source:src/today/rooms.html']) assert.ok(lookCarry.includes(line), line);
-  // And what folder.md says comes without a line has none: why now, and the reads of Context and Intent.
-  assert.ok(!lookCarry.some(line => /the-problem-and-why-now|what-it-must-not-become|intent@1#what-the-readers-found/.test(line)));
+  // Ruling R151: why it is built now, what exists today, what it must not become, and what the readers of Context and of Intent
+  // found reach the handoff too, carried on from Intent's gate and from Cast's as they are.
+  for (const line of ['- context@1#the-problem-and-why-now', '- context@1#what-exists-today', '- context@1#what-it-must-not-become', '- intent@1#what-the-readers-found']) assert.ok(lookCarry.includes(line), line);
+  const [, fromIntent] = /a later stage is written from: its ((?:"[^"]+"(?:, | and )?)+)\./.exec(flat(section(stageSkill('intent'), 'Gate')));
+  for (const [, heading] of fromIntent.matchAll(/"([^"]+)"/g)) assert.ok(castCarry.includes(`- context@1#${slug(heading)}`), heading);
 
   // What Look left on disk: the final screens, each linking the project's token file by its path; their pictures, and one of a
   // variant he did not pick; the checks its measures rest on; the strings; and what a fresh maker made, with the sealed file.
   const PAGES = ['today-default-en', 'today-default-es', 'today-empty-en'];
   const [look, detail] = [join(pkg, '06-look'), join(pkg, '05-detail')];
   mkdirSync(join(project, 'design', 'kit'), { recursive: true });
-  copyFileSync(at('tests/fixtures/prototype/kit.css'), join(project, 'design', 'kit', 'tokens.css'));
+  // The project's token file loads a font of its own, by a path from its own folder.
+  mkdirSync(join(project, 'design', 'kit', 'fonts'));
+  writeFileSync(join(project, 'design', 'kit', 'fonts', 'desk.woff2'), 'a font');
+  writeFileSync(join(project, 'design', 'kit', 'tokens.css'), `${read('tests/fixtures/prototype/kit.css')}\n@font-face { font-family: Desk; src: url("fonts/desk.woff2") format("woff2"); }\n`);
   const TOKENS = '../../../kit/tokens.css';
   for (const folder of ['screens', 'shots', 'fresh', 'beside']) mkdirSync(join(look, folder));
   for (const page of PAGES) writeFileSync(join(look, 'screens', `${page}.html`), read(`tests/fixtures/prototype/${page}.html`).replace('href="kit.css"', `href="${TOKENS}"`));
@@ -5106,20 +5215,35 @@ test('Handoff and Acceptance run as written: the folder assembled from a package
   assert.match(unbuilt.stderr, /^handoff cannot be stamped:\n- it must be built from look, the stage before it on the route: add look@1 to built-from\n$/);
   write('handoff', standingAt('handoff'));
   const [handoff, gate] = [join(pkg, '07-handoff'), join(pkg, '07-handoff-gate')];
-  // Step 3: the final screens copied, with the one link changed and nothing else; the pictures of those pages and no other; the
-  // token file; the index; the guide, whole; and the builder's three pages, still to fill.
+  // Step 3: the final screens copied; the pictures of those pages and no other; the token file; the index; the guide, whole; and
+  // the builder's three pages, still to fill.
   mkdirSync(join(handoff, 'prototype', 'shots'), { recursive: true });
+  for (const file of list(join(look, 'screens'))) {
+    copyFileSync(join(look, 'screens', file), join(handoff, 'prototype', file));
+    const pictures = new RegExp(`^${file.replace(/\.html$/, '')}-\\d+-(?:light|dark)\\.png$`);
+    for (const picture of list(join(look, 'shots')).filter(name => pictures.test(name))) copyFileSync(join(look, 'shots', picture), join(handoff, 'prototype', 'shots', picture));
+  }
+  copyFileSync(join(project, 'design', 'kit', 'tokens.css'), join(handoff, 'tokens.css'));
+  writeFileSync(join(handoff, 'prototype', 'index.html'), `<!doctype html>\n<html lang="en">\n<title>Today: the prototype</title>\n<ul>\n${PAGES.map(page => `<li><a href="${page}.html">${page}</a></li>`).join('\n')}\n</ul>\n`);
+  // Ruling R148: copied as they came, the pages still load the project's token file, which is there on this disk: the copy sits
+  // as deep as the page it was copied from. Nothing but the kit's script sees it, and it sees what the token file loads too.
+  const proving = exec(commandOf('handoff', 'alone.mjs'));
+  assert.deepEqual([proving.status, proving.stdout], [1, '']);
+  assert.ok(existsSync(join(handoff, 'prototype', TOKENS)), 'the link a copied page keeps still resolves');
+  assert.deepEqual(proving.stderr.trimEnd().split('\n'), [...PAGES.map(page => `prototype/${page}.html: ${TOKENS}: it leaves the folder: ".." climbs above it`), 'tokens.css: fonts/desk.woff2: the file is not there',
+    '4 references of design/today/07-handoff do not lead to a file inside it']);
+  // The one link of each page is changed, by script, and nothing else of it; the font is copied in beside the token file, under
+  // the path the token file loads it by. Then the folder stands alone.
   for (const file of list(join(look, 'screens'))) {
     const page = readFileSync(join(look, 'screens', file), 'utf8');
     const copy = page.split(TOKENS).join('../tokens.css');
     writeFileSync(join(handoff, 'prototype', file), copy);
     const [was, is] = [page.split('\n'), copy.split('\n')];
     assert.deepEqual(was.map((line, i) => (line === is[i] ? null : [line, is[i]])).filter(Boolean), [[`<link rel="stylesheet" href="${TOKENS}">`, '<link rel="stylesheet" href="../tokens.css">']], `${file}: one line changes`);
-    const pictures = new RegExp(`^${file.replace(/\.html$/, '')}-\\d+-(?:light|dark)\\.png$`);
-    for (const picture of list(join(look, 'shots')).filter(name => pictures.test(name))) copyFileSync(join(look, 'shots', picture), join(handoff, 'prototype', 'shots', picture));
   }
-  copyFileSync(join(project, 'design', 'kit', 'tokens.css'), join(handoff, 'tokens.css'));
-  writeFileSync(join(handoff, 'prototype', 'index.html'), `<!doctype html>\n<html lang="en">\n<title>Today: the prototype</title>\n<ul>\n${PAGES.map(page => `<li><a href="${page}.html">${page}</a></li>`).join('\n')}\n</ul>\n`);
+  mkdirSync(join(handoff, 'fonts'));
+  copyFileSync(join(project, 'design', 'kit', 'fonts', 'desk.woff2'), join(handoff, 'fonts', 'desk.woff2'));
+  assert.equal(run(commandOf('handoff', 'alone.mjs')), `design/today/07-handoff stands alone: ${PAGES.length * 2 + 1} references in ${PAGES.length + 2} files, each to a file inside it`);
   copyFileSync(at('reference/IMPLEMENTER-GUIDE.md'), join(handoff, 'IMPLEMENTER-GUIDE.md'));
   mkdirSync(join(pkg, 'build'));
   for (const file of filesUnder('templates/package/build/')) copyFileSync(at(`templates/package/build/${file}`), join(pkg, 'build', file));
@@ -5128,14 +5252,33 @@ test('Handoff and Acceptance run as written: the folder assembled from a package
   assert.equal(readFileSync(join(handoff, 'IMPLEMENTER-GUIDE.md'), 'utf8'), guide());
   // Steps 4, 5 and 7, stood in for: each file of the folder as its template, and the strings as the detail's, copied.
   copyFileSync(join(detail, 'strings.json'), join(handoff, 'strings.json'));
-  for (const file of ['SPEC.md', 'PARTS.md', 'ACCEPTANCE.md', 'DECISIONS.md', 'COVERAGE.md']) copyFileSync(at(`templates/package/07-handoff/${file}`), join(handoff, file));
+  for (const file of ['SPEC.md', 'PARTS.md', 'DECISIONS.md']) copyFileSync(at(`templates/package/07-handoff/${file}`), join(handoff, file));
+  // M12: the entry's table gains the row of the token file, which the template does not have.
+  const entry = readFileSync(join(handoff, 'HANDOFF.md'), 'utf8');
+  const partsRow = '| `PARTS.md` | The token and the component each element uses, and anything new to the system. |\n';
+  assert.ok(entry.includes(partsRow));
+  // The template's own comment, which says to delete it, names the state script: it goes, as it does in a real folder.
+  writeFileSync(join(handoff, 'HANDOFF.md'), entry.replace(/<!-- Template\.[^]*?-->\n/, '').replace(partsRow, `| \`tokens.css\` | The token file the prototype is drawn on, copied in, with the font it loads in \`fonts/\`. |\n${partsRow}`));
   // Step 6: Look's checks are taken over, the file is valid as the script reads it, and the checks are run on the folder's own
   // prototype first: once, through the kit's own script, by the command the skill gives. The results lie beside the folder.
   const data = JSON.parse(readFileSync(join(look, 'checks.json'), 'utf8'));
   assert.deepEqual(validateAcceptance(data), []);
   writeFileSync(join(handoff, 'acceptance.json'), `${JSON.stringify(data, null, 2)}\n`);
   const total = data.checks.length;
-  assert.equal(run(commandOf('handoff', 'accept.mjs prototype')), `${total} checks: 0 failed, ${total} passed; results in design/today/07-handoff-gate/results.json`);
+  const printed = run(commandOf('handoff', 'accept.mjs prototype'));
+  assert.equal(printed, `${total} checks: 0 failed, ${total} passed; results in design/today/07-handoff-gate/results.json`);
+  // I1: what goes into the folder is the day and the counts. What the command prints after them names the gate's folder, and the
+  // command names the package: neither is written into ACCEPTANCE.md or COVERAGE.md.
+  const [counts] = printed.split(';');
+  assert.equal(counts, `${total} checks: 0 failed, ${total} passed`);
+  const lastRun = /\{The one check in `acceptance\.json` is an example[^}]*\}/;
+  assert.match(read('templates/package/07-handoff/ACCEPTANCE.md'), lastRun);
+  writeFileSync(join(handoff, 'ACCEPTANCE.md'), read('templates/package/07-handoff/ACCEPTANCE.md').replace(lastRun, `Last run on the prototype on 2026-11-14: ${counts}.`));
+  const coverageOf = rows => read('templates/package/07-handoff/COVERAGE.md').replace('\n## Findings\n', `\nThe checks of \`acceptance.json\` last ran on the prototype on 2026-11-14: ${counts}. None was taken out.\n\n## Findings\n`)
+    .replace(/\| \{the stage\} \| \{the seat's id\}[^\n]*\n/, rows.join(''));
+  const seatRows = ['| Context | `judge.usability` | — | today\'s screen, as pictures | not recorded | not recorded | The count is below the fold. |\n', '| Look | `judge.accessibility` | — | the final screens | contrast, target-size | `opus` | Passes. |\n'];
+  writeFileSync(join(handoff, 'COVERAGE.md'), coverageOf(seatRows));
+  assert.ok(readFileSync(join(handoff, 'COVERAGE.md'), 'utf8').includes(`last ran on the prototype on 2026-11-14: ${counts}.`));
   const came = JSON.parse(readFileSync(join(gate, 'results.json'), 'utf8'));
   assert.deepEqual(came.map(result => [result.id, result.pass]), data.checks.map(check => [check.id, true]));
   // The pages were measured on the copy of the token file: a page whose stylesheet did not load would have failed its checks,
@@ -5143,15 +5286,22 @@ test('Handoff and Acceptance run as written: the folder assembled from a package
   assert.ok(came.find(result => result.id === 'list-contrast-dark').actual >= 4.5);
   // The folder is what the skill's table lists, and stands alone: no file of it names a stage's folder, the gate's folder, the
   // scratch folder or the package, and nothing a fresh maker made is in it or named in it (ruling 12).
-  assert.deepEqual(list(handoff), ['ACCEPTANCE.md', 'COVERAGE.md', 'DECISIONS.md', 'HANDOFF.md', 'IMPLEMENTER-GUIDE.md', 'PARTS.md', 'SPEC.md', 'acceptance.json', 'prototype', 'strings.json', 'tokens.css']);
-  const inFolder = walk(handoff);
-  assert.equal(inFolder.length, 10 + PAGES.length + 1 + PAGES.length * 4);
-  for (const file of inFolder.filter(name => /\.(?:md|json|html|css)$/.test(name))) {
-    const body = readFileSync(join(handoff, file), 'utf8');
-    assert.doesNotMatch(body, INTO_THE_PACKAGE, file);
-    assert.doesNotMatch(body, /outside-openai|BESIDE|\bfresh\/|\bbeside\//, file);
-  }
-  assert.ok(!inFolder.some(name => /outside|sealed|compact|ledger|judge\.|decision\.(?:json|html)/i.test(name)));
+  const FOLDER = ['ACCEPTANCE.md', 'COVERAGE.md', 'DECISIONS.md', 'HANDOFF.md', 'IMPLEMENTER-GUIDE.md', 'PARTS.md', 'SPEC.md', 'acceptance.json', 'fonts', 'prototype', 'strings.json', 'tokens.css'];
+  assert.deepEqual(list(handoff), FOLDER);
+  // No file of the folder names a path that leaves it, and nothing the gate keeps is in it: asked again each time the folder changes.
+  const namesNothingOutside = () => {
+    const inFolder = walk(handoff);
+    assert.equal(inFolder.length, 10 + 1 + PAGES.length + 1 + PAGES.length * 4);
+    for (const file of inFolder.filter(name => /\.(?:md|json|html|css)$/.test(name))) {
+      const body = readFileSync(join(handoff, file), 'utf8');
+      assert.doesNotMatch(body, INTO_THE_PACKAGE, file);
+      assert.doesNotMatch(body, /scripts\/[a-z]+\.mjs|<kit root>|results\.json/, `${file} names a command of the kit, or the gate's results`);
+      assert.doesNotMatch(body, /outside-openai|BESIDE|\bfresh\/|\bbeside\//, file);
+    }
+    assert.ok(!inFolder.some(name => /outside|sealed|compact|ledger|judge\.|decision\.(?:json|html)/i.test(name)));
+    assert.equal(exec(commandOf('handoff', 'alone.mjs')).status, 0, 'the folder stands alone');
+  };
+  namesNothingOutside();
   for (const page of PAGES) assert.doesNotMatch(readFileSync(join(handoff, 'prototype', `${page}.html`), 'utf8'), /kit\/tokens\.css/, page);
   // The one path that leaves the folder is the builder's own, and its three pages are there to fill.
   assert.match(readFileSync(join(handoff, 'HANDOFF.md'), 'utf8'), /in `\.\.\/build\/`, beside this folder/);
@@ -5168,9 +5318,14 @@ test('Handoff and Acceptance run as written: the folder assembled from a package
   assert.ok(brief.includes(`1. ${handoff}/ — the handoff folder, whole`));
   const [, ledgerAt] = /^its ledger, `(<package>\/07-handoff-gate\/[\w.-]+\.md)`/.exec(seat.Writes);
   const ledger = join(project, filled(ledgerAt, FILL));
+  // I3: while it reads, and until its last read, the folder says nothing of this seat: a re-read reads the folder cold.
+  assert.doesNotMatch(readFileSync(join(handoff, 'COVERAGE.md'), 'utf8'), /cold-implementer/);
   writeFileSync(ledger, read('templates/outputs/LEDGER.md'));
   assert.ok(ledger.startsWith(`${gate}/`) && !ledger.startsWith(`${handoff}/`));
-  assert.equal(list(handoff).length, 11, 'the folder a builder gets holds no ledger');
+  assert.deepEqual(list(handoff), FOLDER, 'the folder a builder gets holds no ledger');
+  // Nothing blocked, so it does not read again: its row goes in now, and the folder still names nothing outside itself.
+  writeFileSync(join(handoff, 'COVERAGE.md'), coverageOf([...seatRows, '| Handoff | `judge.cold-implementer` | — | this folder | its four core checks | `opus` | Ready with defaults. |\n']));
+  namesNothingOutside();
   // Step 10 and the gate: one page, beside the folder, its pictures the folder's own; one question, recorded; his go; the stamp.
   const approve = JSON.parse(read('templates/outputs/decision-approve.json'));
   const [, picture] = /as `(\.\.\/07-handoff\/prototype\/shots\/[\w-]+\.png)`/.exec(flat(stageSkill('handoff')));
@@ -5264,19 +5419,49 @@ test('Handoff and Acceptance run as written: the folder assembled from a package
   const third = report(states);
   assert.equal(third.stdout.trim(), `${total} checks: 0 failed, 0 not run, ${total} passed; report in design/today/08-acceptance/checks.md`);
   assert.ok(table().every(([result]) => result === 'pass'));
-  // The last question, the lessons appended to the project's file, and the stamp: the design is done.
+  // A second deviation, one the builder wrote down, and he accepts it: deviations.md. It is logged in the package's decisions and in
+  // the folder's own, and the check that held the approved value is rewritten to hold the build as accepted, never taken out.
+  const accepted = { '<the one question>': 'Is the list of rooms accepted as built, twelve to a page, or fixed?', '<the founder\'s words>': 'aceptado así, doce por página', '<why>': 'he accepted twelve rooms to a page, and "Must not change" names the list' };
+  assert.equal(run(commandOf('acceptance', 'state.mjs await'), accepted), 'acceptance awaits the founder');
+  assert.equal(run(commandOf('acceptance', 'state.mjs begin')), 'acceptance is in work');
+  for (const file of [join(pkg, 'DECISIONS.md'), join(handoff, 'DECISIONS.md')]) {
+    if (!existsSync(file)) copyFileSync(at('templates/package/DECISIONS.md'), file);
+    writeFileSync(file, `${readFileSync(file, 'utf8')}\n## The list of rooms shows twelve to a page\n\n**Decision.** Accepted as built at Acceptance.\n`);
+  }
+  const rewritten = { ...data, checks: data.checks.map(check => (check.id === 'two-free-rooms-listed' ? { ...check, criterion: 'The free rooms are listed, twelve to a page, as accepted.' } : check)) };
+  assert.deepEqual(validateAcceptance(rewritten), []);
+  assert.equal(rewritten.checks.length, total, 'the check is rewritten, never deleted');
+  writeFileSync(join(handoff, 'acceptance.json'), `${JSON.stringify(rewritten, null, 2)}\n`);
+  // "Must not change" names the list, and HANDOFF.md is stamped: it is reopened by the command the page gives, the line is written
+  // beside the item, and it is stamped again in the words he accepted the deviation with. Handoff then stands at version 2.
+  assert.match(run(commandOf('acceptance', 'state.mjs reopen'), accepted), /^reopened handoff at version 2; stale: none$/);
+  const reopened = readFileSync(join(handoff, 'HANDOFF.md'), 'utf8');
+  assert.match(reopened, /^version: 2\nstatus: draft$/m);
+  writeFileSync(join(handoff, 'HANDOFF.md'), reopened.replace('\n## Left to the builder\n', '\nThe list of rooms: the build as accepted differs from the page this names. It shows twelve to a page.\n\n## Left to the builder\n'));
+  assert.match(run(commandOf('acceptance', 'state.mjs stamp <package> handoff'), accepted), /^stamped handoff approved at version 2 on \d{4}-\d\d-\d\d$/);
+  const third2 = report(states);
+  assert.equal(third2.stdout.trim(), `${total} checks: 0 failed, 0 not run, ${total} passed; report in design/today/08-acceptance/checks.md`);
+  // The last question, the lessons appended to the project's file, and the stamp: the design is done. A report still built from the
+  // handoff as it stood before the reopening is refused at its own stamp; built from the version the state prints, it is stamped.
   const final = { ...more, '<the one question>': 'Do you accept this build?' };
   assert.equal(run(commandOf('acceptance', 'state.mjs await'), final), 'acceptance awaits the founder');
   const lessons = join(project, 'design', 'LESSONS.md');
   copyFileSync(at('templates/project/LESSONS.md'), lessons);
   writeFileSync(lessons, `${readFileSync(lessons, 'utf8')}\n## 2026-11-14 · today · working-surface, surface\n\n| \`judge.accessibility\` | \`opus\` | The booking action was 40 by 40 at 390 px. | The build was sent back once. |\n`);
-  assert.match(run(commandOf('acceptance', 'state.mjs stamp'), final), STAMPED('acceptance'));
+  const stale = exec(commandOf('acceptance', 'state.mjs stamp <package> acceptance'), final);
+  assert.deepEqual([stale.status, stale.stdout], [1, '']);
+  assert.match(stale.stderr, /^acceptance cannot be stamped:\n- built from handoff@1, but handoff is at version 2: a stale input; rebuild on handoff@2 or re-confirm it\n$/);
+  assert.equal(standingAt('acceptance'), '[handoff@2]');
+  const reportText = readFileSync(join(acceptance, 'REPORT.md'), 'utf8');
+  writeFileSync(join(acceptance, 'REPORT.md'), reportText.replace('built-from: [handoff@1]', `built-from: ${standingAt('acceptance')}`));
+  assert.match(run(commandOf('acceptance', 'state.mjs stamp <package> acceptance'), final), STAMPED('acceptance'));
   assert.equal(run(`${STATE} validate <package>`), 'ok');
   assert.equal(run(`${STATE} next <package>`), 'none');
   assert.match(run(commandOf('acceptance', 'state.mjs status')), /^## Open question\n\nNone\.$/m);
   assert.deepEqual(list(acceptance), ['FIXES.md', 'REPORT.md', 'checks.md', 'decision.html', 'decision.json', 'reads', 'results', 'shots']);
-  // Nothing was written into the handoff folder while the build was accepted, and no credential into anything the stage wrote.
-  assert.equal(list(handoff).length, 11);
+  // The folder holds what it held, names nothing outside itself still, and no credential is in anything the stage wrote.
+  assert.deepEqual(list(handoff), FOLDER);
+  namesNothingOutside();
   for (const file of walk(acceptance).filter(name => /\.(?:md|json)$/.test(name))) assert.doesNotMatch(readFileSync(join(acceptance, file), 'utf8'), /password\s*[:=]|token\s*[:=]|\?[\w-]*(?:ticket|token|key)=/i, file);
 
   // A correction, as each skill's forms.md gives it: its route runs Frame, Detail, Handoff and Acceptance, each short. Handoff is
@@ -5300,7 +5485,7 @@ test('Handoff and Acceptance run as written: the folder assembled from a package
   assert.equal(run(commandOf('acceptance', 'state.mjs begin'), fix), 'acceptance is in work');
   assert.equal(standingAt('acceptance', fix), '[handoff@1]');
   write('acceptance', standingAt('acceptance', fix), undefined, small2);
-  assert.match(run(commandOf('acceptance', 'state.mjs stamp'), fix), STAMPED('acceptance'));
+  assert.match(run(commandOf('acceptance', 'state.mjs stamp <package> acceptance'), fix), STAMPED('acceptance'));
   assert.equal(run(`${STATE} validate <package>`, fix), 'ok');
   assert.equal(run(`${STATE} next <package>`, fix), 'none');
 });

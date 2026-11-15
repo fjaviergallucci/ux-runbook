@@ -29,12 +29,14 @@ Did what was built match what was approved?
   order its guide gives.
 - **What the builder wrote back,** in `<package>/build/`: `BUILD.md`, what was built, where it lives
   and how to run it; `STATES.md`, the state map; `DEVIATIONS.md`, what could not be built as drawn.
-- **The running build,** through the driver, and the files `BUILD.md` lists as built or changed.
+- **The running build,** through the driver, and the files `BUILD.md` lists as built or changed,
+  but a settings file and anything else that holds a sign-in: those are never opened.
 - **The state:** `node <kit root>/scripts/state.mjs status <package>` prints the kind, the size, the
   version Handoff stands at, and whether Acceptance is routed full or short.
 - **Of the cast sheet,** `<package>/03-cast.md`: its "Acceptance" table, and the lines of its carry
   list that name a person's card, a profession's profile and "Tasks for the audience" of the intent,
-  with that one section. They seat the readers, and you open nothing else of either.
+  with that one section. They seat the readers, and you open nothing else of either. And of the
+  package's `DECISIONS.md`, its last entry alone, for the number of the one you append.
 - **The project profile,** `<packages>/PROFILE.md`: `browser-check`, `languages`, `components`,
   `facts` and `decisions-log`, with "How a browser check is run here" and "Design system".
 - **Of the kit:** the templates named under "Writes", `templates/briefs/judge.md`,
@@ -128,8 +130,9 @@ handoff folder up to date with each deviation he accepts: "Gate" says how.
    ```
 
 **Routed `short`** (an adjustment), Acceptance is what changed, and no more. **Sized `flow`,** every
-surface is driven, and it is accepted once. **Sized `correction`,** it is one picture beside another.
-**A fix that comes back** is checked again where it was. `references/forms.md` has the four.
+surface is driven, and it is accepted once. **Sized `correction`,** it is one picture beside another,
+and the session that applied it accepts it. **A fix that comes back** is checked again where it was.
+`references/forms.md` has the four.
 
 ## Gate
 
@@ -143,12 +146,10 @@ node <kit root>/scripts/state.mjs await <package> acceptance --question "<the on
 ```
 
 - **A deviation he accepts** is written under "Deviations accepted", in his words, and appended to
-  the package's `DECISIONS.md`, and to the project's own log where `decisions-log` names one and
-  the product changed. Then the handoff folder is brought up to date, so that the design on disk is
-  what shipped: the row of `SPEC.md`, the string, the row of `PARTS.md` and the check, in
-  `ACCEPTANCE.md` and in `acceptance.json`, each changed to what was built. The changed check is run
-  again, as steps 4 and 5 say. A page of `prototype/` is never redrawn here: the report names the
-  page that no longer shows what shipped, and the build's picture beside it.
+  the package's `DECISIONS.md` and to the folder's own. Then the handoff folder is brought up to
+  date, so that the design on disk is what shipped and no file of it contradicts another: the
+  check is rewritten to hold the build as accepted, and run again. `references/deviations.md` has
+  every file it touches, and how a stamped `HANDOFF.md` is changed.
 - **A deviation to fix** goes out in `<package>/08-acceptance/FIXES.md`, written like a slice of the
   handoff: *Context · Task · Done when · Verify*, so that any session can take it knowing nothing
   else. You do not build it. **The stage is not stamped while a fix is out:** `references/forms.md`
@@ -174,15 +175,16 @@ node <kit root>/scripts/state.mjs await <package> acceptance --question "<the on
 
 - **Never implement, mend or restyle the build,** but a fix the size of a correction, after his nod.
 - **Never settle a deviation yourself,** and never call one too small to report.
-- **Never report an acceptance with a check not run and unexplained,** or with a state not driven.
+- **Never report an acceptance with a check not run and unexplained,** or with a state not driven
+  and unexplained.
 - **Never write, print or copy a password, a token or a key:** not into the package, a results file,
   a picture's name, a brief or a command line. An account is named by its role and where its sign-in
   is kept. Never open a keys file, and never print the environment.
 - **Never photograph a real person's data.** A picture that would show it is not taken, and the
   report says so.
 - **Never open the package's history:** an earlier stage's folder, another stage's ledgers, `work/`.
-- **Never edit `HANDOFF.md`, or an earlier stage's output.** Each is stamped. Where an accepted
-  deviation makes one false, ask him to reopen it, as the conductor's "Resuming" says.
+- **Never edit a stamped output as it stands:** `HANDOFF.md`, or an earlier stage's. Where an
+  accepted deviation makes one false, it is reopened first: `references/deviations.md`.
 - **Never change a check to make a build pass.** A check changes only with a deviation he accepted.
 - **Never hand an audience a page, its source, a result or a ledger.** Pictures only.
 - **Never tell a judge what to find,** and never hand one judge another's ledger.

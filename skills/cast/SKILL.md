@@ -152,11 +152,12 @@ One question, about one thing: which seat, check, model or effort would you chan
   A seat he takes out moves to "Left out", in his words. A model he names is written as he named it:
   nothing here refuses it, and nothing puts the suggestion back.
 - **Write the carry list,** `## Carry`: what Structure and the stages after it may open besides the
-  cast sheet. A `- intent@1#<slug>` line for each section of the intent but "What the readers found"
-  and the two last. The `- context@1#<slug>` and `- source:<path>` lines of the intent's own carry
-  list, as they are. And a `- source:<path>` line for each profession's profile that is loaded into
-  a seat, and for each card and each person of the project's own that sits: a card of the kit is
-  found in the kit, by its id. A heading's slug is printed by
+  cast sheet. A `- intent@1#<slug>` line for each section of the intent but the two last: "What the
+  readers found" goes on too, so that the handoff covers every seat. The `- context@1#<slug>` and
+  `- source:<path>` lines of the intent's own carry list, as they are: the read of the surface as it
+  is travels in "The problem, and why now". And a `- source:<path>` line for each profession's
+  profile that is loaded into a seat, and for each card and each person of the project's own that
+  sits: a card of the kit is found in the kit, by its id. A heading's slug is printed by
   `node <kit root>/scripts/state.mjs slug "<heading text>"`.
 - **Stamp it,** in the words he approved it with:
 

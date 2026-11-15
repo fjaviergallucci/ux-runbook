@@ -140,7 +140,8 @@ One question, about one thing: do you approve this intent?
   A `- source:<path>` line, from the project's root, for her card, for her profession's profile and
   for each project source of the context. And a `- context@1#<slug>` line for each section of the
   context a later stage is written from: its "The people", "What the product can show and do",
-  "Constraints" and "The founder's own words". A heading's slug is printed by
+  "Constraints", "The founder's own words", "The problem, and why now", "What exists today" and
+  "What it must not become". A heading's slug is printed by
   `node <kit root>/scripts/state.mjs slug "<heading text>"`.
 - **Stamp it,** in the words he approved it with:
 

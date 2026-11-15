@@ -41,7 +41,7 @@ A correction is one wrong thing put right: a label, a token or a spacing value. 
 before and after, and he nodded. What a correction is, and when it stops being one, is the
 conductor's: `skills/design/references/routes.md`, under "A correction".
 
-- **No seat is cast,** so no cold implementer reads, and no brief is written. Steps 3 to 9 of the
+- **No seat is cast,** so no cold implementer reads, and no brief is written. Steps 3 to 10 of the
   skill are not run, and no folder is filled.
 - **Begin,** as step 1 of the skill says. Copy the template to `<package>/07-handoff/HANDOFF.md`, and
   write `built-from` as the route gives it: `[detail@<version>, frame@<version>]`, each at the
@@ -55,11 +55,12 @@ conductor's: `skills/design/references/routes.md`, under "A correction".
   `## Reviewed by the founder` that the go is his nod at Detail, with its words, copied as `DETAIL.md`
   has them, and stamp with those words, by the `stamp` of the skill's gate. Nothing is asked again,
   and no decision page is built.
-- **No check is written by guess.** Where the element carries a stable id on the screen as it is,
-  write the one check that holds the change, as a `text` check for a label. Where it carries none,
-  say under "Verify" that the picture after is what the change is held to, and that no script checks
-  it.
+- **No script checks a correction.** No `acceptance.json` is written, and no command of the skill
+  is run but those of the state: a correction has no page of a prototype for a check to open. Its
+  record is the picture of before and after, and the one-paragraph record Detail wrote. "Verify"
+  says so: the build is held to the picture after, by eye.
 - **After the stamp, the session that conducts applies the change,** as the paragraph says, and
-  nothing else. That is the build. Acceptance, in its short form, then checks it.
+  nothing else. That is the build. The same session then accepts it, in Acceptance's short form:
+  a correction is the one design where the session that built also accepts.
 - **If it turns out to touch more** than a label, a token or a spacing value, stop, say so to the
   founder, and resize, as the conductor's "Resuming" says.

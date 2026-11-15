@@ -46,6 +46,11 @@ Never the chat, never the package's `work/` folder, never an option that was not
 stage needs is in none of these, it is missing from the package: say so, and ask to go back (the
 conductor's "Resuming"). Do not supply it from the conversation.
 
+Acceptance alone reads otherwise: it runs in a session of its own, after the build, and reads the
+handoff folder, what the build wrote back, and, of the package, only the cast sheet's "Acceptance"
+table with the lines for the person and her profession's profile that it names, and the intent's tasks
+for the audience.
+
 ## 3. Write what the stage writes
 
 Each stage's output starts from its template under `templates/package/`, as

@@ -44,9 +44,10 @@ profession's profile, `audience.task-reader-<name>-<language>` for the person an
 **Each judge reads cold first, then opens its seat's earlier ledger.** Its brief says this is the
 seat's first read of the build, and names one file more: the ledger its seat wrote at the last stage
 it read at, in that stage's reads folder. The "Seats" table of `<package>/07-handoff/COVERAGE.md`
-shows which stage that is: `<package>/06-look/reads/<seat>.md`, or
-`<package>/05-detail/reads/<seat>.md`, with its re-read beside it, `<seat>-reread.md`, where there is
-one. It opens them only after it has read the build
+shows which stage that is: `<package>/06-look/reads/<seat>.md`,
+`<package>/05-detail/reads/<seat>.md` or, for a seat that last read the options,
+`<package>/04-structure/reads/<seat>.md`, with its re-read beside it, `<seat>-reread.md`, where there
+is one. It opens them only after it has read the build
 and written its findings, and then marks each earlier finding *fixed*, *partly* or *still present*
 in the build, in the table its ledger has for a re-read. A seat that never read before has no
 earlier ledger, and its brief names none.
@@ -130,7 +131,9 @@ Every judge's brief lists these under "Do not open":
 ### `judge.system-fidelity`
 
 - **Its brief,** from `templates/briefs/judge.md`, as the usability judge's. It lists the files of
-  the build, each by its path, as "Where it lives" of `BUILD.md` gives them: built or changed.
+  the build, each by its path, as "Where it lives" of `BUILD.md` gives them: built or changed. A
+  settings file, and any other file that holds a sign-in, is left off the list, and the brief
+  names it under "Do not open".
 - **Handed:** `<package>/02-intent.md`, the intent. Of the approved design: `prototype/`, `PARTS.md`
   for the changes to the system, and `tokens.css`. What the project says of its design system. The
   component source: the folder
@@ -168,10 +171,11 @@ report says so.
 - **Its brief,** from `templates/briefs/audience.md`: who she is, her language and her width, the
   product as she would know it, and her tasks, copied word for word from "Tasks for the audience" of
   the intent. It says the pictures are of one build, in the states she would meet.
-- **Handed:** her card, by the path the cast sheet's carry list names. Her profession's traits: a
-  copy of her profession's profile with every `So the interface must:` field removed, written
-  beside the brief as the loop says, and the one file of `<package>/work/` she opens. And the
-  pictures of the build in her language at her width, each by its path, as
+- **Handed:** her card, by the path the cast sheet's carry list names, or, for a person of the kit,
+  who has no line there, in the kit's `pool/persons/`, by the id her line of the table gives. Her
+  profession's traits: a copy of her profession's profile with every `So the interface must:` field
+  removed, written beside the brief as the loop says, and the one file of `<package>/work/` she
+  opens. And the pictures of the build in her language at her width, each by its path, as
   `<package>/08-acceptance/shots/today-default-en-390-light.png`. The pictures, and pictures only.
 - **Do not open:** the list above, and with it: `<package>/02-intent.md`, and every other file of
   the package; `<package>/07-handoff/`, the handoff folder, whole; `<package>/build/`, and the build

@@ -39,18 +39,24 @@ A correction is one wrong thing put right. The handoff is one paragraph, and the
 conducts applied the change itself. What a correction is, and when it stops being one, is the
 conductor's: `skills/design/references/routes.md`, under "A correction".
 
-- **No seat is cast,** so nobody reads, and no brief is written. Steps 6 and 8 of the skill are not
-  run.
+- **The session that applied it accepts it.** The skill opens by saying you did not build what you
+  read. A correction is the one case where that does not hold: the session that conducts made the
+  change after his nod, and the same session checks it. That is why it is held to a picture he has
+  already seen, and to nothing of your own judgment.
+- **No seat is cast,** so nobody reads, and no brief is written. **No script checks a correction:**
+  the handoff wrote no `acceptance.json`, and there is no page of a prototype for a check to open.
+  Steps 4 to 6 and 8 of the skill are not run.
 - **Begin,** as step 1 of the skill says. Copy the template to `<package>/08-acceptance/REPORT.md`,
   with `built-from` as the skill gives it. You read `<package>/07-handoff/HANDOFF.md`: its one
-  paragraph, and the picture it names as done.
+  paragraph, "is → becomes", and the picture it names as done.
 - **Photograph the place as built,** at the width she uses, through the driver, into
-  `<package>/08-acceptance/shots/`. Where the handoff wrote a check, run it as steps 4 and 5 of the
-  skill say. Where it wrote none, "The checks" of the report says that no script checks this
-  correction, and why.
-- **One row in the report:** the change, *matches* or *deviates*, with the two pictures that show
-  it: the one after, which he nodded at, and the one as built. Every other heading says "Not needed
-  for this correction".
+  `<package>/08-acceptance/shots/`: the picture after, of the build.
+- **Compare it with the "becomes" side, by eye:** the one thing reads, or measures, as the paragraph
+  says it becomes, and nothing else on the screen moved from the picture he nodded at.
+- **One item in the report:** the change, *matches* or *deviates*, with the two pictures that show
+  it: the one he nodded at, and the one as built. "The checks" says that no script checks a
+  correction, and that it was compared by eye. Every other heading says "Not needed for this
+  correction".
 - **When it matches, his nod covers it.** A correction costs one nod. Write under
   `## Reviewed by the founder` that the build is what he nodded at, with the words of that nod as
   `HANDOFF.md` has them, show him the picture as built, and stamp with those words, by the `stamp`
