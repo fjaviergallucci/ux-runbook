@@ -962,7 +962,7 @@ test('the screen generator calls its tool only when its brief says it is on: a b
   assert.match(flat(sectionOf(text, 'Never')), /Never call the tool, or any outside tool, unless your brief says the tool is on: a tool your session lists is not one the project turned on/);
   // Its engine is the one setup turns on only on his yes, and the brief that tells it is a maker's brief.
   assert.equal(cards.find(card => card.data.id === 'maker.screen-generator').data.engine, 'tool:stitch');
-  assert.match(flat(read('templates/briefs/maker.md')), /\{A screen generator: its engine, as `engines-on` of the project profile has it, on or off\. On: "Your tool is on in this project\." Off: "Your tool is not turned on in this project: work as your card's 'Without the tool' says, and call no outside tool\." Never leave this line out\.\}/);
+  assert.match(flat(read('templates/briefs/maker.md')), /\{A screen generator, from `engines-on`: "Your tool is on in this project", or "Your tool is not turned on in this project: work as your card's 'Without the tool' says, and call no outside tool"\.\}/);
 });
 
 test('the outside describer never mentions a key', () => {

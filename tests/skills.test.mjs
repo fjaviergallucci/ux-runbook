@@ -2874,7 +2874,7 @@ test('structure: a judge is handed the board folder, an audience the pictures on
 // from `engines-on`, whether its tool is on; at both stages, and a brief that does not say is off.
 test('the screen generator\'s brief says whether its tool is on, from engines-on, at Structure and at Look: off means no outside tool', () => {
   const template = flat(read('templates/briefs/maker.md'));
-  assert.ok(template.includes('{A screen generator: its engine, as `engines-on` of the project profile has it, on or off. On: "Your tool is on in this project." Off: "Your tool is not turned on in this project: work as your card\'s \'Without the tool\' says, and call no outside tool." Never leave this line out.}'));
+  assert.ok(template.includes('{A screen generator, from `engines-on`: "Your tool is on in this project", or "Your tool is not turned on in this project: work as your card\'s \'Without the tool\' says, and call no outside tool".}'));
   for (const [stage, seats] of [['structure', structureRef('seats.md')], ['look', stageRef('look', 'seats.md')]]) {
     const brief = leads(subsection(seats, '`maker.screen-generator`'))['Its brief'];
     assert.ok(brief, `${stage}: the screen generator's brief`);
