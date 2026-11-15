@@ -7,10 +7,17 @@
 //
 // visitPages(chrome, runs, { timeout, act, Refusal }, done) opens each page of each run and hands what it
 // found to `done`; the caller decides what a page's fault means for it.
+//
+// The kit's one dependency, playwright-core, is loaded where the first browser of a run is started, and
+// nowhere else: a script that imports this file still prints its --help, and does whatever opens no page,
+// in a kit whose dependency was never installed. There, starting a browser is refused in one line, which
+// says where to run npm install.
 import { randomBytes } from 'node:crypto';
 import { basename, dirname, relative, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { chromium, errors as playwright } from 'playwright-core';
+
+// The kit's root, where its package file is and its dependency is installed: two folders above this one.
+const KIT_ROOT = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
 
 // Every page is opened on a screen this high.
 export const HEIGHT = 900;
@@ -42,7 +49,8 @@ export const contextOptions = (width, theme) => ({ viewport: { width, height: HE
 //            timeout, file, run) → a promise of the value kept, failed: what is said when run fails ("the
 //            picture could not be taken"), during: what is said of a page that left while it ran (" while it
 //            was being pictured"), unread: what is said when the page cannot be read once run }
-//   Refusal  the class of the error thrown when Chrome does not start, keeps stopping, or opens no page
+//   Refusal  the class of the error thrown when Chrome does not start, keeps stopping, or opens no page,
+//            and when the kit's dependency is not installed
 //   done     done(file, visit, run), awaited, for each file of each run in order, once it is done with:
 //            visit is { fault, read, value, reports, closing } (see visitPage), or { lost: true } when its
 //            browser stopped twice before the page could be opened in it
@@ -92,6 +100,8 @@ const AGAIN_VISIT = Object.freeze({ next: AGAIN });
 class Browsers {
   #executablePath;
   #Refusal;
+  // playwright-core, once the first browser has been asked for: { chromium, errors }.
+  #library = null;
   // The browser of the moment: its server, the client connected to it, whether its process has ended, and
   // a promise kept when it ends.
   #session = null;
@@ -119,10 +129,30 @@ class Browsers {
     this.#unused = 0;
   }
 
+  // Whether an error is the library's own for a step that ran out of time; no browser was started when
+  // the library was never loaded.
+  timedOut(error) {
+    return this.#library !== null && error instanceof this.#library.errors.TimeoutError;
+  }
+
+  // The library, loaded when the first browser is started. Not installed, it is a refusal that says what
+  // to do; any other failure to load it is a fault of the kit, and is thrown as it is.
+  async #load() {
+    if (this.#library !== null) return this.#library;
+    try {
+      this.#library = await import('playwright-core');
+    } catch (e) {
+      if (e?.code !== 'ERR_MODULE_NOT_FOUND' || !String(e.message).includes('playwright-core')) throw e;
+      throw new this.#Refusal(`playwright-core is not installed in ${KIT_ROOT}: run npm install there`);
+    }
+    return this.#library;
+  }
+
   async start() {
     if (this.#unused === STARTS) {
       throw new this.#Refusal(`Chrome at ${this.#executablePath} keeps stopping: ${STARTS} browsers in a row were started, and none opened a page`);
     }
+    const { chromium } = await this.#load();
     this.#unused++;
     let server;
     try {
@@ -316,7 +346,7 @@ async function visitPage(context, file, { timeout, act, browsers, run }) {
     await answer(page.goto(target, { timeout }), timeout + CLOSE_MS);
   } catch (e) {
     const unfinished = `${basename(file)} did not finish loading within ${timeout} ms${headed === null ? '' : `: it had set off for ${heading()}`}`;
-    fault = e instanceof playwright.TimeoutError ? unfinished : `the page did not open: ${firstLine(e.message)}`;
+    fault = browsers.timedOut(e) ? unfinished : `the page did not open: ${firstLine(e.message)}`;
   }
   if (!fault && !(await settle())) fault = `the page kept moving for ${timeout} ms, last to ${moving && headed !== null ? heading() : where()}`;
   if (!fault) {

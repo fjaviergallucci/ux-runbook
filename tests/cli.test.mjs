@@ -1,7 +1,8 @@
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import * as browser from '../scripts/lib/browser.mjs';
@@ -106,4 +107,65 @@ test('readTimeout reads --timeout as a whole number of milliseconds from 1, and 
     assert.throws(() => readTimeout({ timeout: value }), e => e instanceof UsageError && e.message === `--timeout must be at most 2147483647 milliseconds, the longest a timer can wait; it is "${value}"`, value);
   }
   assert.ok(!('readTimeout' in browser), 'the browser library does not parse a command line');
+});
+
+// ---- the kit with no dependency installed (G5): as a stranger's machine has it, installed from a marketplace
+
+test('with no dependency installed, every script still prints its --help, accept inpage and accept report still run, and a script that must start a browser refuses in one line that says where to run npm install', t => {
+  // A copy of the scripts, the grey kit and the package file, in a folder of the system's own: no folder
+  // above it holds a node_modules, as none does above an installed plugin.
+  const kit = join(here, '..');
+  const bare = realpathSync(mkdtempSync(join(tmpdir(), 'ux-bare-')));
+  after(() => rmSync(bare, { recursive: true, force: true }));
+  for (const folder of ['scripts', 'kit']) cpSync(join(kit, folder), join(bare, folder), { recursive: true });
+  cpSync(join(kit, 'package.json'), join(bare, 'package.json'));
+  assert.ok(!existsSync(join(bare, 'node_modules')));
+  const node = (...args) => spawnSync(process.execPath, args, { cwd: bare, encoding: 'utf8', timeout: 60_000 });
+  const found = node('--input-type=module', '-e', "await import('playwright-core')");
+  if (found.status === 0) {
+    t.skip(`a folder above ${bare} holds playwright-core: the kit cannot be tried without it here`);
+    return;
+  }
+  assert.match(found.stderr, /ERR_MODULE_NOT_FOUND/);
+  const scripts = readdirSync(join(bare, 'scripts')).filter(name => name.endsWith('.mjs')).sort();
+  assert.deepEqual(scripts, ['accept.mjs', 'alone.mjs', 'card.mjs', 'deal.mjs', 'describe.mjs', 'merge.mjs', 'page.mjs', 'render.mjs', 'shots.mjs', 'state.mjs']);
+  for (const script of scripts) {
+    const help = node(join('scripts', script), '--help');
+    assert.deepEqual([help.status, help.stderr], [0, ''], `${script} --help`);
+    assert.ok(help.stdout.startsWith(`Usage: node scripts/${script}`), `${script}: ${help.stdout.slice(0, 80)}`);
+  }
+  // The two commands of accept that open no page.
+  const inpage = node('scripts/accept.mjs', 'inpage');
+  assert.deepEqual([inpage.status, inpage.stdout, inpage.stderr], [0, `${join(bare, 'scripts', 'inpage', 'accept-inpage.js')}\n`, '']);
+  const results = [{ id: 'free-count-shown', pass: true, actual: { width: 390, height: 18 }, message: '', criterion: 'She sees how many rooms are free.', state: 'default', page: 'today.html', width: 390, theme: 'light' }];
+  writeFileSync(join(bare, 'results.json'), JSON.stringify(results));
+  const report = node('scripts/accept.mjs', 'report', 'results.json', '--out', 'checks.md');
+  assert.deepEqual([report.status, report.stdout, report.stderr], [0, '1 checks: 0 failed, 1 passed; report in checks.md\n', '']);
+  assert.match(readFileSync(join(bare, 'checks.md'), 'utf8'), /^\| pass \| free-count-shown \|/m);
+  // The two that open one: refused before any browser is started. The Chrome named is this node, which is
+  // there on every machine and is never run: the refusal comes first.
+  const refusal = `playwright-core is not installed in ${bare}: run npm install there\n`;
+  writeFileSync(join(bare, 'today.html'), '<!doctype html>\n<title>Today</title>\n<p data-ux="free-count">2 rooms free</p>\n');
+  const shots = node('scripts/shots.mjs', 'today.html', '--out', 'shots', '--widths', '390', '--chrome', process.execPath);
+  assert.deepEqual([shots.status, shots.stdout, shots.stderr], [1, '', refusal]);
+  assert.deepEqual(existsSync(join(bare, 'shots')) ? readdirSync(join(bare, 'shots')) : [], [], 'no picture');
+  const check = { id: 'free-count-shown', criterion: 'She sees how many rooms are free.', state: 'default', page: 'today.html', width: 390, type: 'visible', target: 'free-count' };
+  writeFileSync(join(bare, 'acceptance.json'), JSON.stringify({ design: 'today', checks: [check] }));
+  const prototype = node('scripts/accept.mjs', 'prototype', 'acceptance.json', '--root', '.', '--out', 'prototype-results.json', '--chrome', process.execPath);
+  assert.deepEqual([prototype.status, prototype.stdout, prototype.stderr], [1, '', refusal]);
+  assert.ok(!existsSync(join(bare, 'prototype-results.json')), 'no results');
+  // A run that opens no page needs none: every page it names is missing, each check says so, and no browser is asked for.
+  writeFileSync(join(bare, 'acceptance.json'), JSON.stringify({ design: 'today', checks: [{ ...check, page: 'tomorrow.html' }] }));
+  const nothing = node('scripts/accept.mjs', 'prototype', 'acceptance.json', '--root', '.', '--out', 'prototype-results.json', '--chrome', process.execPath);
+  assert.deepEqual([nothing.status, nothing.stderr], [1, 'failed: free-count-shown: cannot read the page tomorrow.html: not found\n']);
+});
+
+test('the browser library is the one file of the scripts that names playwright-core, and it loads it only where a browser is started', () => {
+  const scripts = join(here, '..', 'scripts');
+  const files = [...readdirSync(scripts), ...readdirSync(join(scripts, 'lib')).map(name => join('lib', name))].filter(name => name.endsWith('.mjs'));
+  const naming = files.filter(name => /['"]playwright-core['"]/.test(readFileSync(join(scripts, name), 'utf8')));
+  assert.deepEqual(naming, [join('lib', 'browser.mjs')]);
+  const library = readFileSync(join(scripts, 'lib', 'browser.mjs'), 'utf8');
+  assert.doesNotMatch(library, /^import [^\n]*playwright-core/m, 'never at the top of the file');
+  assert.match(library, /await import\('playwright-core'\)/);
 });
