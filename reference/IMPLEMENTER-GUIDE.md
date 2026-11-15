@@ -162,6 +162,22 @@ through the browser you drive, then call `window.__uxAccept(checks)` with that s
 whole. It returns one result for each: `id`, `pass`, `actual`, `message`. It changes nothing on the
 page. The checks see what a page shows: they press nothing, load nothing and move no focus.
 
+Afterwards your build is checked the same way, through the project's own script for a browser check.
+Where your build does not open as files and the project keeps no such script, its checks cannot be
+run: say so to whoever handed you the folder before you start, and write it in `BUILD.md`. Whether
+you write that script is theirs to say: it belongs to the project, not to this design. Whoever writes
+it, for each state of your state map it:
+
+1. reaches the state as its row of `STATES.md` says, step by step;
+2. sets the width, 900 pixels high, the theme by the browser's colour scheme, and reduced motion;
+3. evaluates the text of `accept-inpage.js` in the page;
+4. calls `window.__uxAccept(checks)` with that state's checks, each whole, and writes what comes back,
+   as it came, to the file it is given;
+5. takes the picture of the state, whole, named for its page in `prototype/`, with the width and the
+   theme, as `today-default-en-390-light.png`;
+6. prints no address that holds a query and nothing that signs in, and stops only the browser it
+   started.
+
 Two things by hand, in every state: go through the screen with the keyboard alone and watch where
 focus goes and where it sticks, and set the text to 200% and see that it reflows.
 

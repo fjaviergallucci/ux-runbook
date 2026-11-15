@@ -8,19 +8,30 @@ folder that a session which was never there can build from without asking.
 
 ## Install
 
-In Claude Code, add this repository as a marketplace, then install the plugin from it:
+The scripts that drive a browser need the kit's one dependency, installed in the folder the kit runs
+from. That folder is not the same in the two ways of using it.
+
+**From a clone.** Install the dependency in the folder you cloned this repository into, then start
+Claude Code with the plugin loaded from that folder:
+
+```
+npm install
+claude --plugin-dir <the folder you cloned>
+```
+
+**Installed from a marketplace.** In Claude Code, add this repository as a marketplace, then install
+the plugin from it:
 
 ```
 /plugin marketplace add <path or repo>
 /plugin install ux@ux-runbook
 ```
 
-`<path or repo>` is the folder you cloned this repository into, or its address. Then, once, in that
-folder, for the scripts that drive a browser:
-
-```
-npm install
-```
+`<path or repo>` is the folder you cloned this repository into, or its address. An installed plugin
+runs from Claude Code's own copy, not from your clone, so `npm install` is run once in that copy: the
+kit's root as installed, which is the folder two above any of its skills' own. When a skill loads,
+Claude Code names that skill's folder. Until it is run there, each script that drives a browser
+refuses in one line that names the folder to run it in.
 
 They drive the Chrome already on the machine, headless, and need Node 20.10 or later. Nothing else is
 installed, and no browser is downloaded.

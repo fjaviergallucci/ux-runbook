@@ -2875,6 +2875,45 @@ test('structure: a judge is handed the board folder, an audience the pictures on
 
 // G1 of the final review: a sub-agent in the screen generator's seat is never handed the project profile, so its brief tells it,
 // from `engines-on`, whether its tool is on; at both stages, and a brief that does not say is off.
+// G3 and G5 of the final review: a build that does not open as files is found at setup, not at stage 9, and the script the project
+// must keep for it has a contract the project and the builder can read; a kit with its dependency missing says so to the founder.
+test('a build that needs a server is found at setup and at Frame, the project\'s browser script has a contract in the profile and in the guide, and a missing dependency is told as printed', () => {
+  const setupText = setup();
+  assert.ok(flat(section(setupText, 'Gate')).includes('**"No script", for a product that does not open as files:** tell him Acceptance stops until it has one.'));
+  assert.match(flat(stepOf(section(setupText, 'Steps'), 'Check the engines, and record what each said')), /Exit 0 and one picture: it answers\. The script starts its own browser and stops it\. A refusal goes to him as it was printed: it says where to run `npm install` when that is why\./);
+  assert.match(read('scripts/lib/browser.mjs'), /is not installed in \$\{[^}]+\}: run npm install there/);
+  // Frame reads it in the project profile, and lists it with the engines missing.
+  assert.match(flat(section(stageSkill('frame'), 'Reads')), /`browser-check` with "How a browser check is run here"/);
+  assert.match(flat(stepOf(section(stageSkill('frame'), 'Steps'), 'List the engines missing')), /Where "How a browser check is run here" says the project keeps no script and the product does not open as files, list that Acceptance will stop until it keeps one\./);
+  assert.match(flat(section(read('templates/package/00-frame.md'), 'Engines missing')), /\{No browser script, where the product does not open as files: Acceptance stops until the project keeps one\./);
+  // The contract: six things, in the project profile's template and in the builder's guide, the same six.
+  const steps = text => [...text.matchAll(/^(\d)\. (.+(?:\n {3}.+)*)/gm)].map(([, n, step]) => [n, flat(step)]);
+  const profile = section(read('templates/project/PROFILE.md'), 'How a browser check is run here');
+  assert.match(flat(profile), /\{Whether the product opens as files\. One that runs on a server, or signs in, does not: with no script, Acceptance stops until the project keeps one that does what the lines below say\.\}/);
+  assert.match(flat(profile), /The project's script, for a build that does not open as files, is the project's to write and keep/);
+  const guideText = guide();
+  assert.match(flat(guideText), /Where your build does not open as files and the project keeps no such script, its checks cannot be run: say so to whoever handed you the folder before you start, and write it in `BUILD\.md`\. Whether you write that script is theirs to say/);
+  const inProfile = steps(profile);
+  const inGuide = steps(guideText.slice(guideText.indexOf('Afterwards your build is checked the same way')));
+  assert.equal(inProfile.length, 6);
+  assert.deepEqual(inGuide.slice(0, 6).map(([n]) => n), ['1', '2', '3', '4', '5', '6']);
+  for (const [i, held] of [/reaches the state as its row of/, /sets the width, 900 pixels high, the theme by the browser's colour scheme, and reduced motion/, /evaluates the text of .*`accept-inpage\.js` in the page/,
+    /calls `window\.__uxAccept\(checks\)` with that state's checks, each whole, and writes what comes back, as it came, to the file it is given/, /takes the picture of the state, whole, named for its page .*with the width and the theme, as `today-default-en-390-light\.png`/,
+    /prints no address that holds a query and nothing that signs in, and stops only the browser it started/].entries()) {
+    assert.match(inProfile[i][1], held, `the profile's step ${i + 1}`);
+    assert.match(inGuide[i][1], held, `the guide's step ${i + 1}`);
+  }
+  // It is what Acceptance does through a driver, state by state.
+  const driving = flat(stageRef('acceptance', 'driving.md'));
+  for (const held of [/the group's width, 900 px high/, /reduced motion/, /Evaluate the in-page file/, /Call `window\.__uxAccept\(checks\)`/, /Have the driver write what came back/, /Photograph the state/]) assert.match(driving, held);
+  assert.match(driving, /that does what "How a browser check is run here" of the project profile says it must\. Setup and Frame have told him so already, and the builder's guide says the same/);
+  // The README says the truth both ways: a clone with --plugin-dir, or the installed copy, where npm install is run.
+  const readme = read('README.md');
+  assert.ok(readme.includes('\nclaude --plugin-dir <the folder you cloned>\n'));
+  assert.match(flat(readme), /An installed plugin runs from Claude Code's own copy, not from your clone, so `npm install` is run once in that copy: the kit's root as installed, which is the folder two above any of its skills' own/);
+  assert.match(flat(conductor()), /The kit's root is two directories above this skill's own folder/);
+});
+
 // G9 of the final review: whether the project's tokens moved since the kit copied them is looked at before anything is drawn on
 // them, by the stage about to draw, from the copy's first line and the project's history; Handoff writes no PARTS.md while they differ.
 test('the kit\'s copy of the tokens is held to the project\'s file at Frame, at Look and at Handoff, by two git commands, and asked of him when history cannot tell', () => {

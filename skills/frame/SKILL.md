@@ -24,7 +24,8 @@ What kind of interface, starting from what, how big: so which stages run?
 - **The request, as he wrote it.** Frame is the one stage that takes anything from the conversation:
   his request, and nothing else of it.
 - **The project profile,** `<packages>/PROFILE.md`: "Kinds this project adds", "Design system",
-  `pinned`, `banned`, and the `## Engine check` section, which setup wrote.
+  `pinned`, `banned`, `browser-check` with "How a browser check is run here", and the
+  `## Engine check` section, which setup wrote.
 - **The project's pool, by its file names only:** which professions have a file in
   `<packages>/pool/profiles/`. You open no card here.
 - **Of the kit:** `skills/design/references/routes.md`, for the kinds, the foundations, the sizes and
@@ -87,9 +88,9 @@ where it is made at once. Only a kind he adds at step 2 is written before it, an
    row that says `missing` or `off`, or that holds a script's refusal, is a seat with no engine today.
    List the seat, its engine, what the check found, and what the seat does without it, which the last
    table of `skills/cast/references/presets.md` gives. Say the day of the check. "None" when every
-   engine answers. You check nothing again here, and you turn nothing on. The line for the browser,
-   under that table, is read too: where it says that the project keeps no script for a browser check
-   and the product does not open as files, list that Acceptance will stop until it keeps one. **Then
+   engine answers. You check nothing again here, and you turn nothing on. Where "How a browser check
+   is run here" says the project keeps no script and the product does not open as files, list that
+   Acceptance will stop until it keeps one. **Then
    see whether the kit's tokens are still the project's,** as `skills/setup/references/project-kit.md`
    says under "When the tokens move", and list what it found with them. Where the tokens moved, the
    copy is made again once the frame is stamped, before any later stage begins.

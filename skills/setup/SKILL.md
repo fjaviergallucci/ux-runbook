@@ -88,14 +88,13 @@ A file you write while working that is none of these goes in `<scratch>`: never 
       answer lives. When neither names one, no stub is written.
    5. Whether a brief may be sent to an outside text model. Say what a yes means: the brief leaves this
       machine, and setup itself will send one line that holds nothing of the project, to see that the
-      engine answers. **Only on his yes**, ask which provider, and add it to `engines-on` in its
-      card's spelling: `model:openai`, `model:gemini`. Then ask the model's id, and write it as he
-      gives it: `openai-model`, `gemini-model`. Then ask whether the key is in the environment his
-      sessions run in, or in a dotenv file outside the repository; if in a file, he gives its path,
-      and you write the path as `keys-file` and do nothing else with it. A path inside the
-      repository is not taken: say so, and ask him for one outside it. Comparing two paths opens
-      nothing. The script's `--help` says by which name it looks for the key: point him to it. He
-      puts the key in place himself.
+      engine answers. **Only on his yes**, ask which provider, and add it to `engines-on` in its card's
+      spelling: `model:openai`, `model:gemini`. Then ask the model's id, and write it as he gives it:
+      `openai-model`, `gemini-model`. Then ask whether the key is in the environment his sessions run
+      in, or in a dotenv file outside the repository; if in a file, he gives its path, and you write the
+      path as `keys-file` and do nothing else with it. A path inside the repository is not taken: say
+      so, and ask him for one outside it. Comparing two paths opens nothing. The script's `--help` says
+      by which name it looks for the key: point him to it. He puts the key in place himself.
    6. Only when the session lists a screen generator among its tools (a tool it lists by name counts,
       loaded or not): whether a brief may be sent to it. On his yes, add `tool:stitch` to `engines-on`.
    A no to 5 or to 6 is written too, under "Engine check". Two more are asked when the project did not
@@ -148,7 +147,8 @@ A file you write while working that is none of these goes in `<scratch>`: never 
      node <kit root>/scripts/shots.mjs <kit root>/kit/grey/parts.html --out <scratch>/browser --widths 1280
      ```
 
-     Exit 0 and one picture: it answers. The script starts its own browser and stops it.
+     Exit 0 and one picture: it answers. The script starts its own browser and stops it. A refusal goes
+     to him as it was printed: it says where to run `npm install` when that is why.
 
    Fill the `## Engine check` section of the project profile: the day, his answers to 5 and 6 of step
    4, then a table `| Seat | Engine | What the check found |` with one row for each seat of the kit's
@@ -167,6 +167,7 @@ the project kit's parts, and ask one question: what is wrong or missing in it?
 - Write each correction into the project profile as he gives it, a rule in his words.
 - Tell him that each stub of a profession's profile is a guess, and stays one until someone of that
   profession has been heard.
+- **"No script", for a product that does not open as files:** tell him Acceptance stops until it has one.
 - When he has nothing more, write under `## Reviewed by the founder`, the last section: the day, what
   he corrected, and the words he approved it with. An approval that is only in the chat is not one,
   and until his words are there the project is not set up.
@@ -188,8 +189,7 @@ first design starts at Frame.
   nowhere and tell him it has been shown, so it should be replaced.
 - **Never turn an engine on yourself.** `engines-on` holds what the founder said yes to, in his own
   answer, and nothing else.
-- **Never invent a design system.** A project that has none says so in its project profile, and gets
-  the grey kit as it is.
+- **Never invent a design system.** A project that has none says so, and gets the grey kit as it is.
 - **Never copy a real component into the project kit,** and never run the project's own build or its
   components to draw the kit.
 - **Never invent a trait of a profession.** A stub says what was read or said, and is marked a guess.

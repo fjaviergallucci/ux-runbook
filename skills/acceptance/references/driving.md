@@ -26,7 +26,8 @@ The kit can write a driver only for a build that opens as files: its browser lib
 
 **A build that needs a server or a sign-in has no driver the kit can write.** Say so to the founder,
 open: this build cannot be driven until the project has a script of its own for a browser check,
-named in the project profile. Then stop, as step 2 of the skill stops on a credential. You write no
+named in the project profile, that does what "How a browser check is run here" of the project profile
+says it must. Setup and Frame have told him so already, and the builder's guide says the same. Then stop, as step 2 of the skill stops on a credential. You write no
 script that starts a server, opens an address or signs in, and none that takes a sign-in from where
 it is kept.
 

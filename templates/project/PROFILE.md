@@ -64,7 +64,23 @@ them, for each language: the register it is written in, and how she is addressed
 {How a page of this project is looked at: the command or script, and what it sets (width, theme, reduced
 motion). "No script" is an answer: Acceptance then writes one, on his yes, if the build opens as files.}
 
+{Whether the product opens as files. One that runs on a server, or signs in, does not: with no script,
+Acceptance stops until the project keeps one that does what the lines below say.}
+
 {The account it uses, named by its role, with where its sign-in is kept.}
+
+The project's script, for a build that does not open as files, is the project's to write and keep. For
+each state Acceptance drives, it:
+
+1. reaches the state as its row of the builder's state map says, step by step;
+2. sets the width, 900 pixels high, the theme by the browser's colour scheme, and reduced motion;
+3. evaluates the text of the handoff's `accept-inpage.js` in the page;
+4. calls `window.__uxAccept(checks)` with that state's checks, each whole, and writes what comes back,
+   as it came, to the file it is given;
+5. takes the picture of the state, whole, named for its page of the handoff's prototype, with the
+   width and the theme, as `today-default-en-390-light.png`;
+6. prints no address that holds a query and nothing that signs in, and stops only the browser it
+   started.
 
 No password, token or key is ever written here.
 
