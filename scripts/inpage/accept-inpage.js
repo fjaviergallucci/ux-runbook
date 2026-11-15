@@ -26,9 +26,10 @@
 //                A placeholder is not text; a field that is not painted reads "".
 //                Two texts read with one space between them when a block starts or ends between them
 //                (their nearest element that is not laid out in a line differs: a paragraph, a list
-//                item, a table cell, an item of a flex or grid row), or a <br> that is shown stands
-//                between them; texts on one line of one block read as written, joined when nothing is
-//                written between them. An empty block between two texts of one block adds nothing.
+//                item, a table cell, an item of a flex or grid row), or when a <br> that is shown, or an
+//                element that is not laid out in a line and takes its place in the page, even an empty
+//                one, as a rule or an empty block, stands between them; texts on one line of one block
+//                read as written, joined when nothing is written between them.
 //                A container's text does not include the values of the fields inside it.
 //                A submit input with no value, and a date input, read their value, not what the browser
 //                draws.
@@ -202,8 +203,8 @@
   }
 
   // What an element shows as text: a text field's value, a select's chosen options, else the text whose
-  // own element is shown, a space put between two texts that a block's edge or a line break parts; a field
-  // that is not shown, "". Throws a Miss for an input that shows no text.
+  // own element is shown, a space put between two texts that a block's edge, a line break or an element
+  // that sits in no line parts; a field that is not shown, "". Throws a Miss for an input that shows no text.
   var NO_TEXT = ['checkbox', 'radio', 'file', 'hidden', 'range', 'color', 'image', 'password'];
   function shownText(element) {
     var field = element.localName === 'input' || element.localName === 'textarea' || element.localName === 'select';
@@ -228,7 +229,11 @@
     var walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
     for (var node = walker.nextNode(); node; node = walker.nextNode()) {
       if (node.nodeType !== Node.TEXT_NODE) {
-        if (node.localName === 'br' && getComputedStyle(node).display !== 'none' && shows(node.parentElement)) broken = true;
+        // A line break, and an element that does not sit in a line (a rule, a block, even an empty one),
+        // part what stands on either side: each takes its place in the page unless it is display: none,
+        // or inside what is not shown.
+        var display = getComputedStyle(node).display;
+        if (display !== 'none' && (node.localName === 'br' || !IN_LINE.test(display)) && shows(node.parentElement)) broken = true;
         continue;
       }
       if (!shows(node.parentElement)) continue;

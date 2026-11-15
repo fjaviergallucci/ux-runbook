@@ -1245,6 +1245,46 @@ describe('the in-page file, evaluated through a driver of its own', () => {
     ]);
   });
 
+  // S5 of the fix review: `<div>Room 5<hr>free</div>` read "Room 5free", and she sees two lines.
+  test('text: an element that is not laid out in a line parts the texts on either side of it, even when it holds none: a rule, an empty block, a picture drawn as a block', async () => {
+    const body = [
+      '<div data-ux="rule">Room 5<hr>free</div>',
+      '<div data-ux="empty">Ro<div></div>om</div>',
+      '<div data-ux="picture">Room 6<img alt="" style="display: block">free</div>',
+      '<div data-ux="unseen">Room 7<div style="visibility: hidden"></div>free</div>',
+      // What takes no place in the page parts nothing; nor does what sits in the line, or has no box of its own.
+      '<div data-ux="none">Ro<div hidden></div>om</div>',
+      '<div data-ux="styled-none">Ro<hr style="display: none">om</div>',
+      '<div data-ux="in-line">Ro<span></span><b style="display: inline-block"></b>om</div>',
+      '<div data-ux="no-box">Ro<div style="display: contents"></div>om</div>',
+      // Inside what is not shown, a block parts nothing: none of it is read.
+      '<div data-ux="inside-hidden">Ro<span hidden><hr></span>om</div>',
+      // One space however many stand between, and none at either end.
+      '<div data-ux="several"><hr>Room 8<hr><div></div><hr>free<hr></div>',
+      '<p data-ux="around">Room <span style="display: block"></span> 9</p>',
+    ].join('');
+    const ids = ['rule', 'empty', 'picture', 'unseen', 'none', 'styled-none', 'in-line', 'no-box', 'inside-hidden', 'several', 'around'];
+    const results = await evaluate(body, ids.map(id => c(id, 'text', { matches: '.' })));
+    assert.deepEqual(shown(results), [
+      ['rule', true, 'Room 5 free', ''],
+      ['empty', true, 'Ro om', ''],
+      ['picture', true, 'Room 6 free', ''],
+      ['unseen', true, 'Room 7 free', ''],
+      ['none', true, 'Room', ''],
+      ['styled-none', true, 'Room', ''],
+      ['in-line', true, 'Room', ''],
+      ['no-box', true, 'Room', ''],
+      ['inside-hidden', true, 'Room', ''],
+      ['several', true, 'Room 8 free', ''],
+      ['around', true, 'Room 9', ''],
+    ]);
+    // The file says its rule where it says the rest of what `text` reads.
+    const source = readFileSync(INPAGE, 'utf8');
+    const header = source.slice(0, source.indexOf('\n(function')).replace(/\n\/\/ ?/g, ' ').replace(/\s+/g, ' ');
+    assert.ok(header.includes('or an element that is not laid out in a line and takes its place in the page, even an empty one, as a rule or an empty block'), 'the header says so');
+    assert.doesNotMatch(header, /An empty block between two texts of one block adds nothing/);
+  });
+
   test('order: each id after the one before it in the document; a container comes before what it holds', async () => {
     const body = '<p data-ux="a">a</p><div data-ux="list"><p data-ux="b">b</p></div><p data-ux="c">c</p>';
     const results = await evaluate(body, [
