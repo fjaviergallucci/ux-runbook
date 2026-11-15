@@ -1,0 +1,74 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Option A</title>
+<link rel="stylesheet" href="kit.css">
+</head>
+<body>
+
+<header>
+  <h1>Option A: One list, every room</h1>
+  <dl>
+    <dt>Its bet</dt>
+    <dd>One list of every room, always in the same order, each row saying whether the room is free and until when, answers her question the way the wall chart does: by where she looks, not by anything she does.</dd>
+    <dt>Deliberately bad at</dt>
+    <dd>Free rooms are not pulled out for her: she reads down the rows to find them, and with twelve rooms a free one can sit at the bottom.</dd>
+    <dt>Absent on purpose</dt>
+    <dd>
+      <ul>
+        <li>A calendar, or any view of later in the day</li>
+        <li>A filter or a sort control</li>
+        <li>A separate count of free rooms</li>
+      </ul>
+    </dd>
+    <dt>In the hardest state</dt>
+    <dd>When nothing is free, every row still says when its room frees up and the soonest is marked; the list never empties and never says &quot;no results&quot;.</dd>
+  </dl>
+</header>
+
+<section class="ux-frame" data-screen="today">
+  <header>
+    <h2>Today, glanced at between calls</h2>
+    <p class="ux-note">Open all day on the desk monitor; nothing on it moves when the 30-second refresh lands.</p>
+  </header>
+  <div class="ux-screen">
+    <h3 class="ux-heading">Rooms right now</h3>
+    <p class="ux-status" data-ux="last-updated">Live · updated 9:40</p>
+    <div class="ux-list" data-ux="room-list">Every room, in the order of the wall chart
+      <ul>
+        <li>Room 1 — occupied: Dan with Maria K., until 10:00</li>
+        <li>Room 2 — free until 10:30</li>
+        <li>Room 3 — being cleaned, ready at 9:50</li>
+        <li>Sala Jardín 🌿 — free until 11:15</li>
+        <li>Gym — out of service today</li>
+      </ul>
+    </div>
+    <p class="ux-note">A long room name is cut before its status is; the status is never shortened.</p>
+    <button class="ux-action is-primary" type="button" data-ux="book-walk-in">Book a walk-in</button>
+  </div>
+</section>
+
+<section class="ux-frame" data-screen="book">
+  <header>
+    <h2>Booking a walk-in</h2>
+    <p class="ux-over">opens over Today, glanced at between calls</p>
+  </header>
+  <div class="ux-dialog">
+    <h3 class="ux-heading">Book a walk-in</h3>
+    <div class="ux-choice">Which room?
+      <ul>
+        <li>Room 2 — free until 10:30</li>
+        <li>Sala Jardín 🌿 — free until 11:15</li>
+      </ul>
+    </div>
+    <p class="ux-note">Only free rooms are offered, and the first one is already chosen.</p>
+    <p class="ux-input">Patient name</p>
+    <button class="ux-action is-primary" type="button">Book</button>
+    <button class="ux-action" type="button">Cancel</button>
+  </div>
+</section>
+
+</body>
+</html>

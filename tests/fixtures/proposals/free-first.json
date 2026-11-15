@@ -1,0 +1,79 @@
+{
+  "name": "Free rooms first",
+  "bet": "Free rooms in a leading region of their own, each with its own Book action, do the filtering she would never do herself and put a walk-in two clicks away.",
+  "cost": "Rooms that are not free move around: a room jumps between the two regions as its status changes, so she cannot find a busy room by where it sits.",
+  "absent": [
+    "A \"show free rooms\" filter: the screen does the filtering",
+    "Anything after each room's next booking",
+    "The practitioners' schedules"
+  ],
+  "hardest": "When nothing is free the leading region does not empty: it names the room that frees up soonest and when, with a Book action for that time.",
+  "firstIdea": "A large count, \"2 rooms free\", with the rooms behind a tap; set aside because the count answers how many when she needs to know which.",
+  "track": "system",
+  "screens": [
+    {
+      "id": "today",
+      "title": "Today, at 9:40",
+      "container": "screen",
+      "items": [
+        {
+          "container": "region",
+          "label": "Free now",
+          "items": [
+            { "role": "status", "id": "free-count", "text": "2 rooms free now" },
+            {
+              "container": "group",
+              "label": "Room 2",
+              "items": [
+                { "role": "text", "text": "Free until 10:30" },
+                { "role": "action", "id": "book-room-2", "text": "Book Room 2", "primary": true }
+              ]
+            },
+            {
+              "container": "group",
+              "label": "Sala Jardín 🌿",
+              "items": [
+                { "role": "text", "text": "Free until 11:15" },
+                { "role": "action", "id": "book-sala-jardin", "text": "Book Sala Jardín 🌿" }
+              ]
+            }
+          ]
+        },
+        {
+          "container": "region",
+          "label": "Not free",
+          "items": [
+            {
+              "role": "list",
+              "text": "Busy, being cleaned or closed",
+              "options": [
+                "Room 3 — being cleaned, ready at 9:50",
+                "Room 1 — Dan with Maria K., until 10:00",
+                "Gym — out of service today"
+              ],
+              "note": "Ordered by when each room frees up, soonest first."
+            }
+          ]
+        },
+        { "role": "status", "id": "last-updated", "text": "Updated 9:40" }
+      ]
+    },
+    {
+      "id": "put-in-room-2",
+      "title": "Putting a walk-in in Room 2",
+      "container": "dialog",
+      "over": "today",
+      "items": [
+        { "role": "heading", "text": "Room 2 — free until 10:30" },
+        {
+          "role": "input",
+          "text": "Patient name",
+          "note": "The cursor is already here, so she can type while still on the phone."
+        },
+        { "role": "choice", "text": "How long?", "options": ["15 min", "30 min", "45 min"] },
+        { "role": "action", "text": "Book", "primary": true },
+        { "role": "link", "text": "Cancel" }
+      ]
+    }
+  ]
+}

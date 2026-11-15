@@ -1,0 +1,48 @@
+/* Linden · Button
+
+   Markup:
+     <button class="ln-button" type="button">Cancel booking</button>
+     <button class="ln-button ln-button--primary" type="button">Book a room</button>
+
+   Takes: --font-sans, --text-m, --weight-strong, --leading-tight, --space-2, --space-4, --radius-m,
+   --line-width, --size-target, --focus-width, --color-surface, --color-ink, --color-line-strong,
+   --color-action, --color-on-action, --color-focus; disabled: --color-line, --color-fill,
+   --color-ink-muted.
+
+   Rules: one primary button on a screen. A button says what it does, as a verb. */
+
+.ln-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--size-target);
+  padding: var(--space-2) var(--space-4);
+  border: var(--line-width) solid var(--color-line-strong);
+  border-radius: var(--radius-m);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: var(--text-m);
+  font-weight: var(--weight-strong);
+  line-height: var(--leading-tight);
+  cursor: pointer;
+}
+
+.ln-button:focus-visible {
+  outline: var(--focus-width) solid var(--color-focus);
+  outline-offset: var(--line-width);
+}
+
+.ln-button--primary {
+  border-color: var(--color-action);
+  background: var(--color-action);
+  color: var(--color-on-action);
+}
+
+.ln-button:disabled {
+  border-color: var(--color-line);
+  background: var(--color-fill);
+  color: var(--color-ink-muted);
+  cursor: not-allowed;
+}

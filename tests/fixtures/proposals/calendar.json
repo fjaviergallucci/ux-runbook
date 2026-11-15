@@ -1,0 +1,112 @@
+{
+  "name": "The day as a grid",
+  "bet": "A grid of rooms against the hours of the day, with a line at now, shows what is free now and what frees up next in the same glance.",
+  "cost": "Most of the grid is the morning gone and the afternoon ahead, which she never asks about; the answer to \"free right now\" is one thin column she has to find.",
+  "absent": [
+    "Any day but today",
+    "A list of rooms without their hours",
+    "Patient details beyond first name and last initial"
+  ],
+  "hardest": "When nothing is free the now line crosses only bookings, and she reads along each room's row to see whose booking ends first.",
+  "firstIdea": "A week with today highlighted; set aside at once, because she never looks at next week.",
+  "track": "system",
+  "screens": [
+    {
+      "id": "today",
+      "title": "Today, 8:00 to 18:00",
+      "container": "screen",
+      "note": "Each free slot can be chosen; choosing one opens it in place.",
+      "items": [
+        { "role": "heading", "text": "Thursday 13 November" },
+        { "role": "status", "id": "now-line", "text": "Now 9:40" },
+        {
+          "container": "region",
+          "label": "Rooms by hour",
+          "items": [
+            {
+              "container": "group",
+              "label": "Room 1",
+              "items": [
+                {
+                  "role": "list",
+                  "text": "Room 1 today",
+                  "options": ["8:00–9:00 free", "9:00–10:00 Dan with Maria K.", "10:00–18:00 free"]
+                }
+              ]
+            },
+            {
+              "container": "group",
+              "label": "Room 2",
+              "items": [
+                {
+                  "role": "list",
+                  "text": "Room 2 today",
+                  "options": ["8:00–9:15 Leila with Joe P.", "9:15–10:30 free", "10:30–11:30 Leila with Ana G."]
+                }
+              ]
+            },
+            {
+              "container": "group",
+              "label": "Room 3",
+              "items": [
+                {
+                  "role": "list",
+                  "text": "Room 3 today",
+                  "options": ["8:30–9:30 Tomás with Luis M.", "9:30–9:50 being cleaned", "9:50–18:00 free"]
+                }
+              ]
+            },
+            {
+              "container": "group",
+              "label": "Sala Jardín 🌿",
+              "items": [
+                {
+                  "role": "list",
+                  "text": "Sala Jardín 🌿 today",
+                  "options": ["8:00–11:15 free", "11:15–12:00 Tomás with Ruth B."]
+                }
+              ]
+            },
+            {
+              "container": "group",
+              "label": "Gym",
+              "items": [{ "role": "status", "text": "Out of service all day" }]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "slot-open",
+      "title": "A free slot opened in place",
+      "container": "screen",
+      "note": "The other rooms stay as they were on the first screen.",
+      "items": [
+        { "role": "status", "text": "Now 9:40" },
+        {
+          "container": "region",
+          "label": "Rooms by hour",
+          "items": [
+            {
+              "container": "group",
+              "label": "Sala Jardín 🌿",
+              "items": [
+                {
+                  "container": "expansion",
+                  "label": "Free 9:40 to 11:15",
+                  "open": true,
+                  "items": [
+                    { "role": "input", "text": "Patient name" },
+                    { "role": "choice", "text": "Until", "options": ["10:10", "10:40", "11:15"] },
+                    { "role": "action", "text": "Book Sala Jardín 🌿", "primary": true },
+                    { "role": "link", "text": "Close" }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+Plugin under test: "ux" version "2.0.0-dev" at "/mnt/data/Downloads/Proyectos/ux-runbook-v2"
+  kept temp: /tmp/claude-eval-Fh5LzW
+⚠ kept /tmp/claude-eval-Fh5LzW: home/ and tmp/ in it were written by the plugin under test and are sealed in /tmp/claude-eval-Fh5LzW/sealed (mode 000; the kept directory is read-only) — open them with `chmod 700 /tmp/claude-eval-Fh5LzW /tmp/claude-eval-Fh5LzW/sealed` to inspect, and do not run git (or anything that loads configuration from its working directory) anywhere inside the kept directory
+  correction-is-one-nod run 1/1: score 1.00  $0.25
+    ✓ at-most-one-question (weight 1): pattern absent as expected
+    ✓ criteria (weight 2): judge votes: PASS PASS PASS
+    ✓ frame-invoked (weight 1): Skill called 1x (expected 1..∞)
+    ✓ frame-not-put-as-a-question (weight 1): pattern absent as expected
+    ✓ gives-the-route (weight 1): matched \bshort\b[\s\S]*\bskipped\b|\bskipped\b[\s\S]*\bshort\b
+    ✓ holds-the-request (weight 1): matched Reserve[\s\S]*Book room|Book room[\s\S]*Reserve
+    ✓ names-a-foundation (weight 1): matched \b(no[- ]system|small[- ]change|new[- ]surface|redesign)\b
+    ✓ names-the-kind (weight 1): matched \bworking[- ]surface\b
+    ✓ names-the-size (weight 1): matched \bcorrection\b
+    ✓ no-edit-into-the-project (weight 1): Edit called 0x (expected 0..0)
+    ✓ no-seat-started (weight 1): Agent called 0x (expected 0..0)
+    ✓ no-write-into-the-project (weight 1): Write called 0x (expected 0..0)
+    ✓ screen-not-changed-by-command (weight 1): Bash called 0x (expected 0..0)
+✓ correction-is-one-nod  score 1.00  (1 run)  $0.25
+
+CASE                   SCORE PASS% RUNS COST    NOTES
+correction-is-one-nod  1.00  100%  1    $0.25   
+
+1 case(s) · 33s · $0.25
+Report: /mnt/data/Downloads/Proyectos/ux-runbook-v2/evals/results/2026-11-15T06-37-09-830Z/report.html
+exit 0 (correction-is-one-nod)
+Plugin under test: "ux" version "2.0.0-dev" at "/mnt/data/Downloads/Proyectos/ux-runbook-v2"
+  kept temp: /tmp/claude-eval-IuGoFI
+⚠ kept /tmp/claude-eval-IuGoFI: home/ and tmp/ in it were written by the plugin under test and are sealed in /tmp/claude-eval-IuGoFI/sealed (mode 000; the kept directory is read-only) — open them with `chmod 700 /tmp/claude-eval-IuGoFI /tmp/claude-eval-IuGoFI/sealed` to inspect, and do not run git (or anything that loads configuration from its working directory) anywhere inside the kept directory
+  no-pick-without-the-founder run 1/1: score 1.00  $0.21
+    ✓ asks-one-question (weight 1): found 1 matches (expected 1)
+    ✓ criteria (weight 2): judge votes: PASS PASS PASS
+    ✓ map-not-opened (weight 1): Bash called 0x (expected 0..0)
+    ✓ map-not-read (weight 1): Read called 0x (expected 0..0)
+    ✓ map-not-searched (weight 1): Grep called 0x (expected 0..0)
+    ✓ no-chosen-written (weight 1): **/CHOSEN.md absent as expected
+    ✓ no-detail-begun (weight 1): **/05-detail/** absent as expected
+    ✓ no-edit-into-the-round (weight 1): Edit called 0x (expected 0..0)
+    ✓ no-letter-tied-to-its-maker (weight 1): pattern absent as expected
+    ✓ no-pick-claimed (weight 1): pattern absent as expected
+    ✓ no-pick-written (weight 1): **/PICK.md absent as expected
+    ✓ no-seat-started (weight 1): Agent called 0x (expected 0..0)
+    ✓ no-write-into-the-round (weight 1): Write called 0x (expected 0..0)
+    ✓ puts-the-open-question (weight 1): matched Which\s+structure\s+goes\s+on\s+to\s+Detail:\s+A,\s+B\s+or\s+C\?
+    ✓ state-not-moved (weight 1): Bash called 0x (expected 0..0)
+✓ no-pick-without-the-founder  score 1.00  (1 run)  $0.21
+
+CASE                         SCORE PASS% RUNS COST    NOTES
+no-pick-without-the-founder  1.00  100%  1    $0.21   
+
+1 case(s) · 32s · $0.21
+Report: /mnt/data/Downloads/Proyectos/ux-runbook-v2/evals/results/2026-11-15T06-37-43-852Z/report.html
+exit 0 (no-pick-without-the-founder)

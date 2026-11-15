@@ -1,0 +1,549 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readdirSync, readFileSync } from 'node:fs';
+import { CONTAINERS, KEYS, ORDER, ROLES, SOURCE_ONLY as STRIPPED, validate } from '../scripts/lib/walkthrough.mjs';
+
+const read = p => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
+const FIXTURES = ['unified-list', 'free-first', 'calendar'];
+const fixture = name => JSON.parse(read(`tests/fixtures/proposals/${name}.json`));
+
+// A small valid proposal: a screen, and a dialog over it.
+const minimal = () => ({
+  name: 'Free rooms first',
+  bet: 'Free rooms lead the screen, so she never has to look for one.',
+  cost: 'A busy room moves as its status changes.',
+  absent: ['A filter'],
+  hardest: 'With nothing free it names the room that frees up soonest.',
+  firstIdea: 'A count of free rooms; set aside because she needs to know which, not how many.',
+  screens: [
+    {
+      id: 'today',
+      title: 'Today, at 9:40',
+      container: 'screen',
+      items: [
+        { role: 'status', id: 'free-count', text: '2 rooms free now' },
+        { role: 'action', text: 'Book Room 2', primary: true },
+      ],
+    },
+    { id: 'book', title: 'Putting a walk-in in Room 2', container: 'dialog', over: 'today', items: [{ role: 'input', text: 'Patient name' }] },
+  ],
+});
+const changed = change => {
+  const p = minimal();
+  change(p);
+  return p;
+};
+const group = (items, extra = {}) => ({ container: 'group', label: 'Room 2', ...extra, items });
+const line = { role: 'text', text: 'Free until 10:30' };
+
+// Exactly one error, at `path`, saying what `pattern` matches.
+function refuses(proposal, path, pattern) {
+  const errors = validate(proposal);
+  assert.equal(errors.length, 1, `expected one error, got ${JSON.stringify(errors)}`);
+  assert.ok(errors[0].startsWith(`${path}: `), `expected the error at ${path}, got ${errors[0]}`);
+  assert.match(errors[0], pattern);
+}
+
+test('the vocabulary is ten roles and three containers', () => {
+  assert.deepEqual(ROLES, ['heading', 'text', 'choice', 'input', 'action', 'list', 'status', 'media', 'link', 'nav']);
+  assert.deepEqual(CONTAINERS, ['region', 'group', 'expansion']);
+});
+
+test('each fixture validates: two screens, the system track, and real words', () => {
+  for (const name of FIXTURES) {
+    const p = fixture(name);
+    assert.deepEqual(validate(p), [], name);
+    assert.equal(p.screens.length, 2, name);
+    assert.equal(p.track, 'system', name);
+  }
+  const texts = FIXTURES.map(name => read(`tests/fixtures/proposals/${name}.json`));
+  assert.ok(texts.some(text => /[\u00c0-\u024f]/.test(text)), 'one fixture holds an accented letter');
+  assert.ok(texts.some(text => /\p{Extended_Pictographic}/u.test(text)), 'one fixture holds an emoji');
+});
+
+test('an item with an unknown role gives one error naming its path', () => {
+  const p = changed(p => { p.screens[1].items[0].role = 'card'; });
+  assert.deepEqual(validate(p), ['screens[1].items[0]: unknown role "card"']);
+});
+
+test('a screen whose container is "sheet" is refused', () => {
+  refuses(changed(p => { p.screens[1].container = 'sheet'; }), 'screens[1]', /"container" must be "screen" or "dialog"; it is "sheet"/);
+  refuses(changed(p => { delete p.screens[1].container; }), 'screens[1]', /"container" is missing/);
+});
+
+test('a dialog whose "over" names no screen is refused', () => {
+  refuses(changed(p => { p.screens[1].over = 'agenda'; }), 'screens[1]', /"over" names "agenda", which is no screen/);
+});
+
+test('a dialog over a screen whose container is refused adds nothing: one error, at that screen', () => {
+  refuses(changed(p => { p.screens[0].container = 'sheet'; }), 'screens[0]', /"container" must be "screen" or "dialog"; it is "sheet"/);
+  refuses(changed(p => { delete p.screens[0].container; }), 'screens[0]', /"container" is missing/);
+});
+
+test('a dialog may be written before the screen it opens over', () => {
+  assert.deepEqual(validate(changed(p => p.screens.reverse())), []);
+});
+
+test('a proposal with no bet is refused', () => {
+  assert.deepEqual(validate(changed(p => { delete p.bet; })), ['proposal: "bet" is missing']);
+});
+
+test('containers nest: a group holding an expansion holding an item validates', () => {
+  const p = changed(p => {
+    p.screens[0].items.push(group([{ container: 'expansion', label: 'Book Room 2', open: true, items: [{ role: 'input', text: 'Patient name' }] }]));
+  });
+  assert.deepEqual(validate(p), []);
+});
+
+test('primary: true on a role other than action is refused', () => {
+  refuses(changed(p => { p.screens[0].items[0].primary = true; }), 'screens[0].items[0]', /"primary" belongs to an action, not to a "status"/);
+});
+
+// Every refusal below has a test that fails without it.
+
+test('anything but an object is refused as a whole', () => {
+  for (const value of [null, undefined, [], 'a proposal', 3]) {
+    assert.deepEqual(validate(value), ['proposal: must be an object'], JSON.stringify(value));
+  }
+});
+
+test('every text field is present, a string, and not blank', () => {
+  const sites = [
+    ...['name', 'bet', 'cost', 'hardest', 'firstIdea'].map(key => [p => p, 'proposal', key]),
+    [p => p.screens[0], 'screens[0]', 'title'],
+    [p => p.screens[0].items[0], 'screens[0].items[0]', 'text'],
+  ];
+  for (const [at, path, key] of sites) {
+    refuses(changed(p => { delete at(p)[key]; }), path, new RegExp(`"${key}" is missing`));
+    for (const bad of ['', '   ', 5, null]) {
+      refuses(changed(p => { at(p)[key] = bad; }), path, new RegExp(`"${key}" must be a line of text`));
+    }
+  }
+});
+
+test('a note on a screen or an item, and a container label, are text when present', () => {
+  for (const bad of ['', ' ', 7]) {
+    refuses(changed(p => { p.screens[0].note = bad; }), 'screens[0]', /"note" must be a line of text/);
+    refuses(changed(p => { p.screens[0].items[1].note = bad; }), 'screens[0].items[1]', /"note" must be a line of text/);
+    refuses(changed(p => { p.screens[0].items.push(group([line], { label: bad })); }), 'screens[0].items[2]', /"label" must be a line of text/);
+  }
+});
+
+test('absent is a list of at least one line of text', () => {
+  refuses(changed(p => { delete p.absent; }), 'proposal', /"absent" is missing/);
+  for (const bad of ['A filter', [], {}]) {
+    refuses(changed(p => { p.absent = bad; }), 'proposal', /"absent" must be a list of at least one line of text/);
+  }
+  refuses(changed(p => { p.absent = ['A filter', '']; }), 'absent[1]', /must be a line of text/);
+  refuses(changed(p => { p.absent = [3]; }), 'absent[0]', /must be a line of text/);
+});
+
+test('screens is a list of at least one screen, and each screen is an object', () => {
+  refuses(changed(p => { delete p.screens; }), 'proposal', /"screens" is missing/);
+  for (const bad of [[], {}, 'today']) {
+    refuses(changed(p => { p.screens = bad; }), 'proposal', /"screens" must be a list of at least one screen/);
+  }
+  for (const bad of [null, 'today', []]) {
+    refuses(changed(p => { p.screens = [bad]; }), 'screens[0]', /must be an object/);
+  }
+});
+
+test('items is a list of at least one item, on a screen and in a container; each item is an object', () => {
+  refuses(changed(p => { delete p.screens[0].items; }), 'screens[0]', /"items" is missing/);
+  refuses(changed(p => { p.screens[0].items = []; }), 'screens[0]', /"items" must be a list of at least one item/);
+  refuses(changed(p => { p.screens[0].items.push(group([])); }), 'screens[0].items[2]', /"items" must be a list of at least one item/);
+  refuses(changed(p => { p.screens[0].items.push({ container: 'group' }); }), 'screens[0].items[2]', /"items" is missing/);
+  for (const bad of [null, 'Book Room 2', []]) {
+    refuses(changed(p => { p.screens[0].items[0] = bad; }), 'screens[0].items[0]', /must be an object/);
+  }
+});
+
+test('an item is a role or a container, never both and never neither', () => {
+  refuses(changed(p => { p.screens[0].items[0].container = 'group'; }), 'screens[0].items[0]', /has a "role" and a "container"; an item is one or the other/);
+  refuses(changed(p => { delete p.screens[0].items[0].role; }), 'screens[0].items[0]', /needs a "role" or a "container"/);
+});
+
+test('an item container is a region, a group or an expansion', () => {
+  for (const bad of ['dialog', 'screen', 'card', 3]) {
+    refuses(changed(p => { p.screens[0].items.push({ container: bad, items: [line] }); }), 'screens[0].items[2]', new RegExp(`unknown container ${JSON.stringify(bad)}`));
+  }
+});
+
+test('ids are kebab-case words', () => {
+  // ['book'] reads as "book" to a regular expression, so it pins the string check.
+  for (const bad of ['Book', 'put in', 'put_in', '-book', 'book-', 'book--now', '2-rooms', '', 5, ['book']]) {
+    refuses(changed(p => { p.screens[1].id = bad; }), 'screens[1]', /"id" must be kebab-case/);
+    refuses(changed(p => { p.screens[0].items[0].id = bad; }), 'screens[0].items[0]', /"id" must be kebab-case/);
+  }
+  refuses(changed(p => { delete p.screens[1].id; }), 'screens[1]', /"id" is missing/);
+  assert.deepEqual(validate(changed(p => { p.screens[1].id = 'put-in-room-2'; })), []);
+});
+
+test('screen ids are unique, and an item id names one part of its screen', () => {
+  refuses(changed(p => { p.screens[1].id = 'today'; }), 'screens[1]', /id "today" is already screens\[0\]/);
+  refuses(
+    changed(p => { p.screens[0].items.push(group([{ role: 'text', id: 'free-count', text: 'Free until 10:30' }])); }),
+    'screens[0].items[2].items[0]',
+    /id "free-count" is already screens\[0\]\.items\[0\] on this screen/,
+  );
+  assert.deepEqual(validate(changed(p => { p.screens[1].items[0].id = 'free-count'; })), [], 'the same id on two screens');
+});
+
+// The board names the screen a dialog opens over by its title, so two screen entries never share one.
+test('no two screen entries share a title: the later is refused, naming the earlier', () => {
+  refuses(changed(p => { p.screens[1].title = 'Today, at 9:40'; }), 'screens[1]', /title "Today, at 9:40" is already the title of screens\[0\]$/);
+  refuses(
+    changed(p => { p.screens.push({ id: 'booked', title: 'Putting a walk-in in Room 2', container: 'screen', items: [line] }); }),
+    'screens[2]',
+    /title "Putting a walk-in in Room 2" is already the title of screens\[1\]$/,
+  );
+  // A third entry with the title names the first, as the second does.
+  const thrice = changed(p => {
+    p.screens[1].title = 'Today, at 9:40';
+    p.screens.push({ id: 'later', title: 'Today, at 9:40', container: 'screen', items: [line] });
+  });
+  assert.deepEqual(validate(thrice), [
+    'screens[1]: title "Today, at 9:40" is already the title of screens[0]',
+    'screens[2]: title "Today, at 9:40" is already the title of screens[0]',
+  ]);
+  // Spaces the page collapses tell no two titles apart; letter case does.
+  refuses(changed(p => { p.screens[1].title = ' Today,\n  at 9:40 '; }), 'screens[1]', /is already the title of screens\[0\]$/);
+  assert.deepEqual(validate(changed(p => { p.screens[1].title = 'today, at 9:40'; })), [], 'another case is another title');
+  assert.deepEqual(validate(changed(p => { p.screens[1].title = 'Today, at 9:41'; })), []);
+});
+
+test('a dialog names the screen it opens over, and only a dialog does', () => {
+  refuses(changed(p => { delete p.screens[1].over; }), 'screens[1]', /a dialog names the screen it opens over in "over"/);
+  refuses(changed(p => { p.screens[0].over = 'book'; }), 'screens[0]', /only a dialog opens over a screen/);
+  refuses(
+    changed(p => { p.screens.push({ id: 'confirm', title: 'Confirming the booking', container: 'dialog', over: 'book', items: [line] }); }),
+    'screens[2]',
+    /"over" names "book", which is a dialog, not a screen/,
+  );
+  refuses(changed(p => { p.screens[1].over = 'book'; }), 'screens[1]', /"over" names "book", which is a dialog, not a screen/);
+});
+
+test('primary belongs to an action, and is true or false', () => {
+  refuses(changed(p => { p.screens[0].items[0].primary = false; }), 'screens[0].items[0]', /"primary" belongs to an action/);
+  refuses(changed(p => { p.screens[0].items[1].primary = 'yes'; }), 'screens[0].items[1]', /"primary" must be true or false/);
+  assert.deepEqual(validate(changed(p => { p.screens[0].items[1].primary = false; })), []);
+});
+
+test('open belongs to an expansion, and is true or false', () => {
+  refuses(changed(p => { p.screens[0].items.push(group([line], { open: true })); }), 'screens[0].items[2]', /"open" belongs to an expansion, not to a "group"/);
+  refuses(changed(p => { p.screens[0].items.push({ container: 'expansion', label: 'Later today', open: 'yes', items: [line] }); }), 'screens[0].items[2]', /"open" must be true or false/);
+  assert.deepEqual(validate(changed(p => { p.screens[0].items.push({ container: 'expansion', label: 'Later today', open: false, items: [line] }); })), []);
+});
+
+test('a mistyped role or container is reported once, not again by the keys that depend on it', () => {
+  refuses(changed(p => { p.screens[0].items[1].role = 'acton'; }), 'screens[0].items[1]', /: unknown role "acton"$/);
+  refuses(changed(p => { p.screens[0].items.push({ role: 'chioce', text: 'How long?', options: ['15 min', '30 min'] }); }), 'screens[0].items[2]', /: unknown role "chioce"$/);
+  refuses(changed(p => { p.screens[0].items.push({ container: 'expanson', label: 'Later today', open: true, items: [line] }); }), 'screens[0].items[2]', /: unknown container "expanson"$/);
+});
+
+test('a screen has at most one primary action; a dialog is a screen of its own', () => {
+  refuses(
+    changed(p => { p.screens[0].items.push(group([{ role: 'action', text: 'Book Sala Jardín', primary: true }])); }),
+    'screens[0].items[2].items[0]',
+    /a second primary action on this screen; the first is screens\[0\]\.items\[1\]/,
+  );
+  assert.deepEqual(validate(changed(p => { p.screens[1].items.push({ role: 'action', text: 'Book', primary: true }); })), [], 'one on the screen and one on its dialog');
+  assert.deepEqual(validate(changed(p => { p.screens[0].items.push({ role: 'action', text: 'Cancel', primary: false }); })), [], 'primary: false is not a second primary');
+  assert.deepEqual(validate(changed(p => { p.screens[0].items.unshift({ role: 'action', text: 'Cancel', primary: false }); })), [], 'nor a first one');
+});
+
+test('an expansion carries a label; a region or a group may go without one', () => {
+  const expansion = { container: 'expansion', items: [line] };
+  refuses(changed(p => { p.screens[0].items.push(expansion); }), 'screens[0].items[2]', /"label" is missing/);
+  refuses(changed(p => { p.screens[0].items.push({ ...expansion, label: ' ' }); }), 'screens[0].items[2]', /"label" must be a line of text/);
+  for (const container of ['region', 'group']) {
+    assert.deepEqual(validate(changed(p => { p.screens[0].items.push({ container, items: [line] }); })), [], container);
+  }
+});
+
+test('options belong to a choice, a list or a nav, and those three need them', () => {
+  const withItem = item => changed(p => { p.screens[1].items.push(item); });
+  for (const role of ['heading', 'text', 'input', 'action', 'status', 'media', 'link']) {
+    refuses(withItem({ role, text: 'Room 2', options: ['Free until 10:30'] }), 'screens[1].items[1]', new RegExp(`"options" belong to a choice, a list or a nav, not to a "${role}"`));
+  }
+  for (const role of ['choice', 'list', 'nav']) {
+    refuses(withItem({ role, text: 'Rooms' }), 'screens[1].items[1]', /"options" is missing/);
+  }
+  for (const bad of ['15 min, 30 min', ['30 min'], [], {}]) {
+    refuses(withItem({ role: 'choice', text: 'How long?', options: bad }), 'screens[1].items[1]', /"options" must be a list of at least two lines of text/);
+  }
+  for (const role of ['list', 'nav']) {
+    refuses(withItem({ role, text: 'Rooms', options: [] }), 'screens[1].items[1]', /"options" must be a list of at least one line of text/);
+    assert.deepEqual(validate(withItem({ role, text: 'Rooms', options: ['Room 2'] })), [], role);
+  }
+  assert.deepEqual(validate(withItem({ role: 'choice', text: 'How long?', options: ['15 min', '30 min'] })), []);
+  refuses(withItem({ role: 'choice', text: 'How long?', options: ['15 min', ' '] }), 'screens[1].items[1].options[1]', /must be a line of text/);
+  refuses(withItem({ role: 'list', text: 'Rooms', options: [15] }), 'screens[1].items[1].options[0]', /must be a line of text/);
+});
+
+test('an unknown key is refused at every level; the provenance keys are allowed on the proposal only', () => {
+  refuses(changed(p => { p.layout = 'two columns'; }), 'proposal', /unknown key "layout"/);
+  refuses(changed(p => { p.screens[0].width = 1280; }), 'screens[0]', /unknown key "width"/);
+  refuses(changed(p => { p.screens[0].items[0].component = 'Badge'; }), 'screens[0].items[0]', /unknown key "component"/);
+  refuses(changed(p => { p.screens[0].items.push(group([line], { columns: 2 })); }), 'screens[0].items[2]', /unknown key "columns"/);
+  const provenance = { author: 'describer-2', engine: 'claude', track: 'system', model: 'opus', source: 'proposals/b.json' };
+  assert.deepEqual(validate(changed(p => Object.assign(p, provenance))), []);
+  refuses(changed(p => { p.screens[0].track = 'system'; }), 'screens[0]', /unknown key "track"/);
+});
+
+// The sealed form: a letter copy, as the merge writes it. These six stay in the source file.
+const SOURCE_ONLY = ['firstIdea', 'author', 'engine', 'track', 'model', 'source'];
+const letterCopy = () => {
+  const { firstIdea, ...copy } = minimal();
+  return copy;
+};
+const stays = key => `proposal: "${key}" stays in the source file; a letter copy does not carry it`;
+
+test('the sealed form: a letter copy validates; the source form still requires firstIdea', () => {
+  assert.deepEqual(validate(letterCopy(), { sealed: true }), []);
+  for (const name of FIXTURES) {
+    const { firstIdea, track, ...copy } = fixture(name);
+    assert.deepEqual(validate(copy, { sealed: true }), [], name);
+  }
+  // The source form is the default, and what { sealed: false } asks for.
+  for (const options of [undefined, {}, { sealed: false }]) {
+    assert.deepEqual(validate(letterCopy(), options), ['proposal: "firstIdea" is missing'], JSON.stringify(options));
+    assert.deepEqual(validate(minimal(), options), [], JSON.stringify(options));
+  }
+  const provenance = { author: 'describer-2', engine: 'claude', track: 'system', model: 'opus', source: 'proposals/b.json' };
+  assert.deepEqual(validate(changed(p => Object.assign(p, provenance))), [], 'a source may say who made it');
+});
+
+test('the sealed form refuses each of firstIdea, author, engine, track, model and source: one error each, naming it', () => {
+  for (const key of SOURCE_ONLY) {
+    for (const value of ['a line of text', 5, '']) {
+      assert.deepEqual(validate({ ...letterCopy(), [key]: value }, { sealed: true }), [stays(key)], `${key}: ${JSON.stringify(value)}`);
+    }
+  }
+  // Several at once: one error each, in the order of the proposal, among its other keys' errors.
+  const many = { source: 's', name: 'Free rooms first', layout: 'two columns', firstIdea: 'f', model: 'm', ...letterCopy(), author: 'a', track: 'fresh', engine: 'e' };
+  assert.deepEqual(validate(many, { sealed: true }), [stays('source'), 'proposal: unknown key "layout"', stays('firstIdea'), stays('model'), stays('author'), stays('track'), stays('engine')]);
+});
+
+test('the sealed form checks everything else as the source form does', () => {
+  const bad = changed(p => {
+    delete p.bet;
+    p.layout = 'two columns';
+    p.screens[0].items[0].role = 'card';
+    p.screens[1].over = 'agenda';
+  });
+  const { firstIdea, ...badCopy } = bad;
+  assert.equal(validate(bad).length, 4);
+  assert.deepEqual(validate(badCopy, { sealed: true }), validate(bad));
+  assert.deepEqual(validate(null, { sealed: true }), ['proposal: must be an object']);
+  refuses(changed(p => { p.screens[0].track = 'system'; }), 'screens[0]', /unknown key "track"/);
+  const { firstIdea: _, ...nested } = changed(p => { p.screens[0].author = 'a'; });
+  assert.deepEqual(validate(nested, { sealed: true }), ['screens[0]: unknown key "author"']);
+});
+
+test('the letter order is the proposal\'s keys minus the six that stay in the source; a screen and an item keep every key', () => {
+  assert.deepEqual([...STRIPPED].sort(), [...SOURCE_ONLY].sort());
+  assert.deepEqual([...ORDER.letter].sort(), KEYS.proposal.filter(key => !SOURCE_ONLY.includes(key)).sort());
+  assert.deepEqual([...ORDER.screen].sort(), [...KEYS.screen].sort());
+  assert.deepEqual([...ORDER.role].sort(), [...KEYS.role].sort());
+  assert.deepEqual([...ORDER.container].sort(), [...KEYS.container].sort());
+  // And the order itself, as ruled.
+  assert.deepEqual(ORDER.letter, ['name', 'bet', 'cost', 'absent', 'hardest', 'screens']);
+  assert.deepEqual(ORDER.screen, ['id', 'title', 'container', 'over', 'note', 'items']);
+  assert.deepEqual(ORDER.role, ['role', 'text', 'id', 'note', 'primary', 'options']);
+  assert.deepEqual(ORDER.container, ['container', 'label', 'open', 'items']);
+});
+
+test('every error is reported at once, in the order of the proposal', () => {
+  const p = changed(p => {
+    delete p.bet;
+    p.screens[0].items[0].role = 'card';
+    p.screens[1].over = 'agenda';
+  });
+  assert.deepEqual(validate(p), [
+    'proposal: "bet" is missing',
+    'screens[0].items[0]: unknown role "card"',
+    'screens[1]: "over" names "agenda", which is no screen in this proposal',
+  ]);
+});
+
+// The grey kit. Its class names are a contract a project kit restyles; these tests pin what the brief asks of it.
+
+const CLASSES = ['ux-frame', 'ux-screen', 'ux-dialog', 'ux-over', ...CONTAINERS.map(c => `ux-${c}`), ...ROLES.map(r => `ux-${r}`), 'ux-note'];
+const kit = () => ({
+  css: read('kit/grey/kit.css').replace(/\/\*[\s\S]*?\*\//g, ''),
+  parts: read('kit/grey/parts.html'),
+  contract: read('kit/KIT-CONTRACT.md'),
+});
+
+// The text inside the braces that open at `from` (an index at or before the `{`).
+function block(text, from) {
+  const open = text.indexOf('{', from);
+  let depth = 0;
+  for (let i = open; i < text.length; i++) {
+    if (text[i] === '{') depth++;
+    if (text[i] === '}' && --depth === 0) return text.slice(open + 1, i);
+  }
+  throw new Error('unbalanced braces');
+}
+const tokens = body => new Map([...body.matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)].map(([, name, value]) => [name, value.trim()]));
+const isHex = value => /^#[0-9a-f]{6}$/i.test(value);
+
+test('the contract names every class, kit.css styles each, and parts.html shows each, labelled, adding none', () => {
+  const { css, parts, contract } = kit();
+  const all = [...CLASSES, 'ux-action.is-primary'];
+  const conveys = [...contract.matchAll(/^- `([\w.-]+)`: \S/gm)].map(([, name]) => name);
+  assert.deepEqual(conveys.sort(), [...all].sort(), 'KIT-CONTRACT.md gives each class one line on what it must convey');
+  for (const name of CLASSES) assert.match(css, new RegExp(`\\.${name}(?![\\w-])`), `kit.css styles ${name}`);
+  assert.match(css, /\.ux-action\.is-primary(?![\w-])/);
+  const cssClasses = new Set([...css.matchAll(/\.([a-z][\w-]*)/gi)].map(([, name]) => name));
+  assert.deepEqual([...cssClasses].filter(name => ![...CLASSES, 'is-primary'].includes(name)), [], 'kit.css adds no class');
+
+  const used = [...parts.matchAll(/class="([^"]*)"/g)].map(([, value]) => value.split(/\s+/));
+  assert.deepEqual([...new Set(used.flat())].sort(), [...CLASSES, 'is-primary'].sort(), 'parts.html shows every class and adds none');
+  assert.ok(used.filter(names => names.includes('is-primary')).every(names => names.includes('ux-action')), 'is-primary only on an action');
+  const visible = parts.replace(/<[^>]*>/g, ' ');
+  for (const name of all) assert.match(visible, new RegExp(`(^|[^\\w.-])${name.replace('.', '\\.')}(?![\\w.-])`), `parts.html labels ${name}`);
+  assert.match(parts, /<[a-z][^>]*\sdata-ux="[a-z][a-z0-9-]*"[^>]*>/, 'a part in parts.html carries a stable id');
+});
+
+// The contract's markup table, one row per class: | `ux-heading` | `<h3>` | where it sits, what it holds |
+const rows = contract =>
+  [...contract.matchAll(/^\| `([\w.-]+)` \| `<([a-z][a-z0-9]*)\b[^`]*>` \| (.*) \|$/gm)].map(([, name, element, holds]) => ({ name, element, holds }));
+// The parts that carry options, and the fewest each shows.
+const OPTIONED = { 'ux-choice': 2, 'ux-list': 1, 'ux-nav': 1 };
+// Every element of a page that carries a class: its tag, its classes and the rest of its attributes.
+const classed = page =>
+  [...page.matchAll(/<([a-z][a-z0-9]*)\b([^>]*)>/g)].flatMap(([, tag, attrs]) => {
+    const found = /\sclass="([^"]*)"/.exec(attrs);
+    return found ? [{ tag, classes: found[1].split(/\s+/), attrs }] : [];
+  });
+// The elements carrying a contract class; `ux-action.is-primary` means both classes on one element.
+const carrying = (page, name) => classed(page).filter(e => name.split('.').every(c => e.classes.includes(c)));
+
+test('every class the contract names is in kit.css and parts.html, and parts.html follows the markup the contract states', () => {
+  const { css, parts, contract } = kit();
+  const named = new Set([...contract.matchAll(/\bux-[a-z]+(?:\.is-primary)?/g)].map(([name]) => name));
+  for (const name of named) {
+    assert.match(css, new RegExp(`\\.${name.replace('.', '\\.')}(?![\\w-])`), `kit.css styles ${name}`);
+    assert.ok(carrying(parts, name).length > 0, `parts.html uses ${name}`);
+  }
+
+  const table = rows(contract);
+  assert.deepEqual(table.map(r => r.name).sort(), [...CLASSES, 'ux-action.is-primary'].sort(), 'the contract gives each class one row');
+  for (const { name, element, holds } of table) {
+    for (const { tag } of carrying(parts, name)) assert.equal(tag, element, `parts.html draws ${name} on <${element}>`);
+    assert.equal(/\boptions\b/.test(holds), name in OPTIONED, `the contract's row for ${name} speaks of options only if it has them`);
+  }
+  const optionLists = [...parts.matchAll(/<[a-z]+ class="(ux-[a-z]+)"[^>]*>[^<]*<ul>((?:\s*<li>[^<]+<\/li>)+)\s*<\/ul>/g)];
+  assert.equal((parts.match(/<ul\b/g) ?? []).length, optionLists.length, 'every list in parts.html is the options of a part');
+  for (const [, name, items] of optionLists) assert.ok(items.match(/<li>/g).length >= (OPTIONED[name] ?? Infinity), `${name} shows its options`);
+  for (const name of Object.keys(OPTIONED)) {
+    assert.equal(optionLists.filter(([, n]) => n === name).length, carrying(parts, name).length, `every ${name} in parts.html shows its options`);
+  }
+  const frames = carrying(parts, 'ux-frame');
+  assert.ok(frames.every(e => /\sdata-screen="[a-z][a-z0-9-]*"/.test(e.attrs)), 'every frame names its screen in data-screen');
+  assert.equal(parts.match(/<section class="ux-frame"[^>]*>\s*<header>/g).length, frames.length, 'a frame opens with its caption header');
+  assert.equal(parts.match(/<details class="ux-expansion"[^>]*>\s*<summary>[^<\s][^<]*<\/summary>/g).length, carrying(parts, 'ux-expansion').length, 'an expansion opens with its labelled summary');
+
+  const preludes = [...css.matchAll(/([^{}]+)\{/g)].map(([, prelude]) => prelude.trim()).filter(prelude => !prelude.startsWith('@'));
+  const byName = new Set(preludes.flatMap(prelude => [...prelude.matchAll(/(?:^|[\s>+~,(])([a-z][a-z0-9]*)(?![\w-])/g)].map(([, tag]) => tag)));
+  assert.deepEqual([...byName].sort(), ['body', 'h2', 'header', 'li', 'summary', 'ul'], 'kit.css styles by class, and by name only the elements the contract places');
+  for (const prelude of preludes.filter(prelude => /(?:^|[\s>+~,(])(?:ul|li)(?![\w-])/.test(prelude))) {
+    const named = [...prelude.matchAll(/\.(ux-[a-z]+)/g)].map(([, name]) => name);
+    assert.ok(named.length > 0 && named.every(name => name in OPTIONED), `${prelude}: options are styled on a choice, a list or a nav only`);
+  }
+  for (const selector of preludes.flatMap(prelude => prelude.split(/,(?![^(]*\))/)).map(selector => selector.trim())) {
+    if (selector.includes('.ux-frame')) assert.ok(selector.startsWith('.ux-frame'), `${selector}: no selector depends on a frame's parent`);
+  }
+});
+
+test('the document shell: the contract states it and parts.html follows it', () => {
+  const { parts, contract } = kit();
+  for (const line of ['<!doctype html>', '<meta charset="utf-8">', '<meta name="viewport" content="width=device-width, initial-scale=1">', '<link rel="stylesheet" href="kit.css">']) {
+    assert.ok(contract.includes(`\`${line}\``), `the contract states ${line}`);
+    assert.ok(parts.includes(line), `parts.html has ${line}`);
+  }
+  assert.ok(parts.startsWith('<!doctype html>'), 'parts.html opens with its doctype');
+});
+
+test('the grey kit: greys, one font stack, one mid-grey kept for the primary action, light and dark sets, no motion, nothing loaded', () => {
+  const { css, parts } = kit();
+  for (const [hex] of css.matchAll(/#[0-9a-f]{3,8}\b/gi)) {
+    assert.ok(isHex(hex) && hex.slice(1, 3) === hex.slice(3, 5) && hex.slice(3, 5) === hex.slice(5, 7), `${hex} is a grey written as #rrggbb`);
+  }
+  assert.doesNotMatch(css, /\b(rgba?|hsla?|hwb|lab|lch|oklab|oklch|color|color-mix)\(/i, 'colours are written as hex');
+  // Every colour a rule uses is a grey of the kit: a token whose every value is a grey, a grey hex, or a keyword.
+  const values = new Map();
+  for (const [, name, value] of css.matchAll(/(--ux-[\w-]+)\s*:\s*([^;]+);/g)) values.set(name, [...(values.get(name) ?? []), value.trim()]);
+  const grey = v => isHex(v) && v.slice(1, 3) === v.slice(3, 5) && v.slice(3, 5) === v.slice(5, 7);
+  const token = v => /^var\(--ux-[\w-]+\)$/.test(v) && (values.get(v.slice(4, -1)) ?? []).length > 0 && values.get(v.slice(4, -1)).every(grey);
+  const kitColour = v => grey(v) || token(v) || ['transparent', 'inherit', 'currentColor'].includes(v);
+  const notAColour = /^(0|-?\d*\.?\d+(px|rem|em|%)|none|solid|dashed|dotted|double|underline)$/;
+  const coloured = /^(color|background|background-color|border|border-(top|right|bottom|left)|border(-(top|right|bottom|left))?-color|outline|outline-color|box-shadow|text-decoration|text-decoration-color|fill|stroke|caret-color|accent-color|column-rule)$/;
+  for (const [, property, value] of css.matchAll(/(?:^|[;{\s])([a-z][a-z-]*)\s*:\s*([^;{}]+);/g)) {
+    if (!coloured.test(property)) continue;
+    for (const part of value.trim().split(/\s+/)) assert.ok(kitColour(part) || notAColour.test(part), `${property}: ${value.trim()} — ${part} is not a grey of the kit`);
+  }
+
+  assert.equal((css.match(/font-family\s*:/g) ?? []).length, 1, 'one font stack');
+  for (const [, value] of css.matchAll(/[\s;{]font\s*:\s*([^;}]+)/g)) assert.equal(value.trim(), 'inherit');
+  assert.doesNotMatch(parts, /<(code|pre|kbd|samp|tt)\b/, 'parts.html brings in no monospace face');
+
+  const light = tokens(block(css, css.search(/:root\s*\{/)));
+  const darkAt = css.search(/@media\s*\(prefers-color-scheme:\s*dark\)/);
+  assert.ok(darkAt >= 0, 'a dark set under prefers-color-scheme');
+  const dark = tokens(block(block(css, darkAt), 0));
+  const kept = ['--ux-primary', '--ux-on-primary'];
+  assert.deepEqual([...dark.keys()].sort(), [...light].filter(([name, value]) => isHex(value) && !kept.includes(name)).map(([name]) => name).sort(), 'the dark set redefines every grey but the primary');
+  const primary = parseInt(light.get('--ux-primary').slice(1, 3), 16);
+  assert.ok(primary >= 0x55 && primary <= 0xaa, 'the primary action is a mid-grey');
+  assert.equal((css.match(/--ux-primary\s*:/g) ?? []).length, 1, 'one mid-grey, the same in both sets');
+  for (const [, selector, body] of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    if (body.includes('var(--ux-primary)')) assert.equal(selector.trim(), '.ux-action.is-primary', 'the mid-grey is kept for the primary action');
+  }
+
+  assert.doesNotMatch(css, /\b(transition|animation)[\w-]*\s*:|@keyframes|scroll-behavior/, 'no motion');
+  const note = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].find(([, selector]) => selector.trim() === '.ux-note');
+  assert.match(note?.[2] ?? '', /(?:^|[\s;])margin:\s*0;/, 'a note keeps no browser margin, so a caption with a note sits like one without');
+  assert.doesNotMatch(css, /@import|url\(/, 'kit.css loads nothing');
+  assert.deepEqual([...parts.matchAll(/<link\b[^>]*>/g)].map(([tag]) => tag), ['<link rel="stylesheet" href="kit.css">'], 'parts.html links kit.css only');
+  assert.doesNotMatch(parts, /<script|<style|\sstyle="|\ssrc=/, 'parts.html is drawn by kit.css alone');
+});
+
+// R161 of the dry run: the specimen is copied unchanged into every project kit, shown to the founder and read by
+// makers, and its room names and 12-hour times were taken for facts of the product.
+test('the specimen holds neutral words that name each part, no product\'s nouns, and its times in 24-hour zero-padded form', () => {
+  const { parts } = kit();
+  const visible = parts.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ');
+  // Nothing of the room-booking example the rest of the kit uses, in what is read or in an id.
+  const PRODUCT = /\b(?:rooms?|clinic|patients?|walk-ins?|book(?:ing|ed|s)?|desk|sala|jard[ií]n|gym|cleaned|occupied|waiting|floor plan|wall chart)\b/i;
+  assert.doesNotMatch(visible, PRODUCT);
+  for (const [, attribute, value] of parts.matchAll(/\s(data-ux|data-screen)="([^"]*)"/g)) assert.doesNotMatch(value.replace(/-/g, ' '), PRODUCT, `${attribute}="${value}"`);
+  assert.doesNotMatch(visible, /\b[A-Z][a-z]+ [A-Z]\.(?: |,|$)/, 'no person is named');
+  // The words name the part they stand in.
+  for (const words of ['Row title', 'Status', 'Primary action', 'Field label', 'Heading', 'Link']) assert.ok(visible.includes(words), words);
+  assert.match(parts, /<button class="ux-action is-primary" type="button">Primary action<\/button>/);
+  assert.match(parts, /<p class="ux-status" data-ux="[a-z-]+">Status\b[^<]*<\/p>/);
+  assert.match(visible, /The words name the part they stand in, and say nothing of any product/);
+  // Times: each written HH:MM on the 24-hour clock, zero-padded; one before ten and one after noon show both.
+  const times = visible.match(/\b\d{1,2}[:.h]\d{2}\b/g) ?? [];
+  assert.ok(times.length >= 2, `${times.length} times`);
+  for (const time of times) assert.match(time, /^(?:[01]\d|2[0-3]):[0-5]\d$/, time);
+  assert.ok(times.some(time => time < '10:00') && times.some(time => time >= '13:00'), times.join(' '));
+  assert.doesNotMatch(visible, /\b\d{1,2}(?::\d{2})? ?(?:a\.?m\.?|p\.?m\.?)\b/i, 'no 12-hour time');
+});
+
+test('no product name appears in the kit, the format or the fixtures', () => {
+  const files = [
+    'scripts/lib/walkthrough.mjs',
+    'kit/KIT-CONTRACT.md',
+    ...readdirSync(new URL('../kit/grey/', import.meta.url)).map(f => `kit/grey/${f}`),
+    ...FIXTURES.map(name => `tests/fixtures/proposals/${name}.json`),
+  ];
+  for (const file of files) {
+    const text = read(file);
+    assert.doesNotMatch(text, /\bVerbato\b/i, file);
+    assert.doesNotMatch(text, /\bVersa\b/, file);
+  }
+});

@@ -1,0 +1,81 @@
+/* Linden 1.2: the design tokens of Roomtally.
+   Plain CSS custom properties, the one source of every colour, size, space and radius a screen or a
+   component uses. A light set, and a dark set that follows the device under prefers-color-scheme.
+   Nothing here loads a file: the typeface is the system's own. */
+
+:root {
+  color-scheme: light dark;
+
+  /* Type */
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Liberation Sans", Arial, sans-serif;
+  --text-s: 0.875rem;
+  --text-m: 1rem;
+  --text-l: 1.25rem;
+  --text-xl: 1.625rem;
+  --leading: 1.45;
+  --leading-tight: 1.2;
+  --weight-regular: 400;
+  --weight-strong: 600;
+
+  /* Space */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+
+  /* Shape */
+  --radius-s: 4px;
+  --radius-m: 8px;
+  --radius-pill: 999px;
+  --line-width: 1px;
+  --focus-width: 3px;
+  --size-target: 2.75rem;
+
+  /* Colour, light */
+  --color-page: #f6f5f2;
+  --color-surface: #ffffff;
+  --color-fill: #efeee9;
+  --color-backdrop: #b9b7b0;
+  --color-ink: #1d2327;
+  --color-ink-muted: #545d63;
+  --color-line: #d5d3cc;
+  --color-line-strong: #8a8f91;
+  --color-action: #1f5f8b;
+  --color-on-action: #ffffff;
+  --color-focus: #b34700;
+
+  /* Room states, light: each an ink on its fill */
+  --color-free-ink: #1e6b3a;
+  --color-free-fill: #e3f3e8;
+  --color-busy-ink: #8a2c1d;
+  --color-busy-fill: #f9e3df;
+  --color-cleaning-ink: #7a5200;
+  --color-cleaning-fill: #fbefd5;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Colour, dark */
+    --color-page: #121416;
+    --color-surface: #1b1e21;
+    --color-fill: #24282c;
+    --color-backdrop: #050607;
+    --color-ink: #eceef0;
+    --color-ink-muted: #a9b1b7;
+    --color-line: #343a3f;
+    --color-line-strong: #6c757b;
+    --color-action: #6cb4e6;
+    --color-on-action: #0d1b26;
+    --color-focus: #ffa45c;
+
+    /* Room states, dark */
+    --color-free-ink: #8fd9a8;
+    --color-free-fill: #173322;
+    --color-busy-ink: #f0a597;
+    --color-busy-fill: #3d1d18;
+    --color-cleaning-ink: #f2c86b;
+    --color-cleaning-fill: #3a2d10;
+  }
+}

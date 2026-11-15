@@ -1,0 +1,83 @@
+{
+  "name": "One list, every room",
+  "bet": "One list of every room, always in the same order, each row saying whether the room is free and until when, answers her question the way the wall chart does: by where she looks, not by anything she does.",
+  "cost": "Free rooms are not pulled out for her: she reads down the rows to find them, and with twelve rooms a free one can sit at the bottom.",
+  "absent": [
+    "A calendar, or any view of later in the day",
+    "A filter or a sort control",
+    "A separate count of free rooms"
+  ],
+  "hardest": "When nothing is free, every row still says when its room frees up and the soonest is marked; the list never empties and never says \"no results\".",
+  "screens": [
+    {
+      "id": "today",
+      "title": "Today, glanced at between calls",
+      "container": "screen",
+      "note": "Open all day on the desk monitor; nothing on it moves when the 30-second refresh lands.",
+      "items": [
+        {
+          "role": "heading",
+          "text": "Rooms right now"
+        },
+        {
+          "role": "status",
+          "text": "Live · updated 9:40",
+          "id": "last-updated"
+        },
+        {
+          "role": "list",
+          "text": "Every room, in the order of the wall chart",
+          "id": "room-list",
+          "note": "A long room name is cut before its status is; the status is never shortened.",
+          "options": [
+            "Room 1 — occupied: Dan with Maria K., until 10:00",
+            "Room 2 — free until 10:30",
+            "Room 3 — being cleaned, ready at 9:50",
+            "Sala Jardín 🌿 — free until 11:15",
+            "Gym — out of service today"
+          ]
+        },
+        {
+          "role": "action",
+          "text": "Book a walk-in",
+          "id": "book-walk-in",
+          "primary": true
+        }
+      ]
+    },
+    {
+      "id": "book",
+      "title": "Booking a walk-in",
+      "container": "dialog",
+      "over": "today",
+      "items": [
+        {
+          "role": "heading",
+          "text": "Book a walk-in"
+        },
+        {
+          "role": "choice",
+          "text": "Which room?",
+          "note": "Only free rooms are offered, and the first one is already chosen.",
+          "options": [
+            "Room 2 — free until 10:30",
+            "Sala Jardín 🌿 — free until 11:15"
+          ]
+        },
+        {
+          "role": "input",
+          "text": "Patient name"
+        },
+        {
+          "role": "action",
+          "text": "Book",
+          "primary": true
+        },
+        {
+          "role": "action",
+          "text": "Cancel"
+        }
+      ]
+    }
+  ]
+}

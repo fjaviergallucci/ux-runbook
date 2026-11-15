@@ -1,0 +1,116 @@
+{
+  "today.heading": {
+    "en": "Rooms right now",
+    "max": null,
+    "where": "today · heading · every state",
+    "note": "The question she came with, as she would ask it."
+  },
+  "today.free-count": {
+    "en": "{count} rooms free now",
+    "max": null,
+    "where": "today · free-count · default",
+    "note": "A count first: she reads a number faster than a list."
+  },
+  "today.free-count-one": {
+    "en": "1 room free now",
+    "max": null,
+    "where": "today · free-count · success",
+    "note": "The singular, written out: never \"1 rooms\"."
+  },
+  "today.free-now": {
+    "en": "Free now",
+    "max": null,
+    "where": "today · free-now · default",
+    "note": "Her own word for it."
+  },
+  "today.free-until": {
+    "en": "Free until {time}",
+    "max": null,
+    "where": "today · free-until · default",
+    "note": "Until when is what she checks before she sends anyone."
+  },
+  "today.book-room": {
+    "en": "Book {room}",
+    "max": null,
+    "where": "today · book-room · default",
+    "note": "The action names the room, so that she never books the one beside it."
+  },
+  "today.not-free": {
+    "en": "Not free",
+    "max": null,
+    "where": "today · not-free · default",
+    "note": "One name for busy, being cleaned and closed."
+  },
+  "today.not-free-caption": {
+    "en": "Soonest free first",
+    "max": null,
+    "where": "today · not-free-list · default",
+    "note": "Says the order, so that the first row is the answer when nothing is free."
+  },
+  "today.busy-row": {
+    "en": "{room} — {practitioner} with {patient}, until {time}",
+    "max": null,
+    "where": "today · not-free-list · default",
+    "note": "First names, and the initial of the patient's surname: never a full name at the counter."
+  },
+  "today.cleaning-row": {
+    "en": "{room} — being cleaned, ready at {time}",
+    "max": null,
+    "where": "today · not-free-list · default",
+    "note": "When it is ready, not that it is being cleaned."
+  },
+  "today.closed-row": {
+    "en": "{room} — closed today",
+    "max": null,
+    "where": "today · not-free-list · default",
+    "note": "Closed, as the door says."
+  },
+  "today.last-updated": {
+    "en": "Updated {time}",
+    "max": null,
+    "where": "today · last-updated · every state",
+    "note": "She does not trust a status she cannot date."
+  },
+  "today.none-free": {
+    "en": "No room is free now",
+    "max": null,
+    "where": "today · free-count · empty-filtered",
+    "note": "Says it plainly, and \"now\": something frees up soon."
+  },
+  "today.frees-first": {
+    "en": "{room} frees up first, at {time}",
+    "max": null,
+    "where": "today · frees-first · empty-filtered",
+    "note": "The answer to her next question, before she asks it."
+  },
+  "today.book-from": {
+    "en": "Book {room} from {time}",
+    "max": null,
+    "where": "today · book-from · empty-filtered",
+    "note": "The same action, from the time the room frees up."
+  },
+  "today.booked": {
+    "en": "{room} is booked until {time}",
+    "max": null,
+    "where": "today · booked-message · success",
+    "note": "What she says aloud to the patient."
+  },
+  "today.undo-hint": {
+    "en": "You can take this back for two minutes",
+    "max": null,
+    "where": "today · undo-hint · success",
+    "note": "Says how long, so that she does not hunt for it later."
+  },
+  "today.not-saved": {
+    "en": "The booking was not saved",
+    "max": null,
+    "where": "today · not-saved · error-recoverable",
+    "note": "What happened, with no reason she cannot act on."
+  },
+  "today.try-again": {
+    "en": "Try again",
+    "max": null,
+    "where": "today · try-again · error-recoverable",
+    "note": "The one thing she can do about it."
+  }
+}

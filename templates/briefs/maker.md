@@ -1,0 +1,60 @@
+Read your card first, whole, at its absolute path: `{/…/pool/makers/<name>.md, the card of this seat}`. Then come back here: this brief and that card are all you are given.
+
+<!-- Template. Keep the headings, replace each {instruction in braces}, and delete this comment. The
+     stage's skill writes one brief for each seat. A brief gives context, never the design: no
+     component, no layout, no idea of the session's own. -->
+
+# Brief · {the seat's id} · {the design's name} · {the stage}
+
+## Your job here
+
+{What this seat makes for this design, at this stage, in a sentence or two.}
+
+{Then what the stage's `references/seats.md` says this seat's brief gives, and no more. Keep the line of
+this seat, filled:}
+
+- {A structure describer: its lens, fewest steps · guided · defaults first · in place, or "no lens".}
+- {An interaction designer: this product's worst cases, every row that states a limit, a delay or a
+  failure.}
+- {An interface writer: the founder's own lines, as he said them; the languages; the project's writing
+  skill, when it has one.}
+- {A prototype builder: the folder of the kit, and the two widths.}
+- {A visual designer: the lens to load; whether motion is cast; what the founder marked in a fresh pass;
+  each "without scrolling" criterion, word for word; for a direction, its one screen; "The feeling" too.}
+- {A screen generator, from `engines-on`: "Your tool is on in this project", or "Your tool is not turned
+  on in this project: work as your card's 'Without the tool' says, and call no outside tool".}
+- {A maker started again: the founder's answers this seat waits for, as he said them; or the entries it
+  is sent back with, by where they sit.}
+
+## Read, in this order
+
+{What the stage's `references/seats.md` hands this seat, each by its absolute path, with what it is. A
+describer: the Structure brief and `kit/KIT-CONTRACT.md`. A fresh maker: the fresh brief alone.}
+
+1. {the absolute path} — {what it is}
+
+- **The person the design is for:** {her card's absolute path}
+- **Her profile, whole**, its base and then the section of {her specialty}, or with no specialty its
+  base alone: {its absolute path}
+
+{A describer and a fresh maker get neither of these two, and nor does a transcriber: delete both lines.}
+
+## Do not open
+
+{What the stage's `references/seats.md` lists for this seat under "Do not open": each a file or a folder,
+by its path. And whatever is not listed above.}
+
+- {the path} — {what it is}
+
+A seat that starts a browser stops only the one it started, through its own handle, and never stops a
+process by name or by pattern.
+
+## Write
+
+{Each file to write, by its absolute path, and the template whose shape it takes.}
+
+## Reply
+
+What your card's Output says the reply is, and no more.
+
+{A designer sent back with a list: "And one line for each entry: how it was settled." Else delete this.}

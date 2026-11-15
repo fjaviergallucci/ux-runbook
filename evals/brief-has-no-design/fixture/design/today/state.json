@@ -1,0 +1,111 @@
+{
+  "design": "today",
+  "kind": "working-surface",
+  "foundation": "no-system",
+  "size": "surface",
+  "started": "2026-11-10",
+  "route": {
+    "frame": "full",
+    "context": "full",
+    "intent": "full",
+    "cast": "full",
+    "structure": "full",
+    "detail": "full",
+    "look": "full",
+    "handoff": "full",
+    "acceptance": "full"
+  },
+  "reasons": {},
+  "stages": {
+    "frame": {
+      "status": "approved",
+      "version": 1,
+      "approved": "2026-11-10",
+      "words": "Yes, that is the frame.",
+      "hash": "9d8373a4e30067348c6a88ffada391af378bc8f767ddc91d43ed05f1d3598945",
+      "builtFrom": [],
+      "since": null
+    },
+    "context": {
+      "status": "approved",
+      "version": 1,
+      "approved": "2026-11-11",
+      "words": "Yes. That is how it is.",
+      "hash": "74516f1e456ac0195ab577033089eef28a1829c0782f08e923ba84b486e2c638",
+      "builtFrom": [
+        "frame@1"
+      ],
+      "since": null
+    },
+    "intent": {
+      "status": "approved",
+      "version": 1,
+      "approved": "2026-11-11",
+      "words": "Yes, that is the job.",
+      "hash": "e281b0ee5022851ea46141c9b535fcf71dc987552692ee782398245c9e29a4d4",
+      "builtFrom": [
+        "context@1"
+      ],
+      "since": null
+    },
+    "cast": {
+      "status": "approved",
+      "version": 1,
+      "approved": "2026-11-12",
+      "words": "Fine. Go.",
+      "hash": "9cc62b8b6d387ef2592ba1056a3f6c7ae154ca012744a5a8c6d85d7417d9ab3a",
+      "builtFrom": [
+        "intent@1",
+        "context@1"
+      ],
+      "since": null
+    },
+    "structure": {
+      "status": "in-work",
+      "version": 1,
+      "approved": null,
+      "words": null,
+      "hash": null,
+      "builtFrom": null,
+      "since": "2026-11-12"
+    },
+    "detail": {
+      "status": "not-started",
+      "version": 1,
+      "approved": null,
+      "words": null,
+      "hash": null,
+      "builtFrom": null,
+      "since": null
+    },
+    "look": {
+      "status": "not-started",
+      "version": 1,
+      "approved": null,
+      "words": null,
+      "hash": null,
+      "builtFrom": null,
+      "since": null
+    },
+    "handoff": {
+      "status": "not-started",
+      "version": 1,
+      "approved": null,
+      "words": null,
+      "hash": null,
+      "builtFrom": null,
+      "since": null
+    },
+    "acceptance": {
+      "status": "not-started",
+      "version": 1,
+      "approved": null,
+      "words": null,
+      "hash": null,
+      "builtFrom": null,
+      "since": null
+    }
+  },
+  "question": null,
+  "questionStage": null
+}

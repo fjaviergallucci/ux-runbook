@@ -1,0 +1,86 @@
+{
+  "design": "today",
+  "checks": [
+    {
+      "id": "empty-message-shown",
+      "criterion": "When no room is free, she is told so, and when the next room frees up.",
+      "state": "empty",
+      "page": "today-empty-en.html",
+      "width": 390,
+      "screen": "today",
+      "type": "visible",
+      "target": "empty-message"
+    },
+    {
+      "id": "no-booking-when-full",
+      "criterion": "When no room is free, there is nothing to book.",
+      "state": "empty",
+      "page": "today-empty-en.html",
+      "width": 390,
+      "type": "absent",
+      "target": "book-action"
+    },
+    {
+      "id": "count-in-spanish",
+      "criterion": "The free-rooms count reads in Spanish on the Spanish page.",
+      "state": "default",
+      "page": "today-default-es.html",
+      "width": 390,
+      "language": "es",
+      "type": "text",
+      "target": "free-count",
+      "equals": "2 salas libres"
+    },
+    {
+      "id": "count-then-list-then-book",
+      "criterion": "The count comes first, then the rooms, then the booking action.",
+      "state": "default",
+      "page": "today-default-en.html",
+      "width": 1280,
+      "screen": "today",
+      "type": "order",
+      "targets": ["free-count", "room-list", "book-action"]
+    },
+    {
+      "id": "book-in-first-screen",
+      "criterion": "On a phone, the booking action is on the first screen, without scrolling.",
+      "state": "default",
+      "page": "today-default-en.html",
+      "width": 390,
+      "type": "in-viewport",
+      "target": "book-action"
+    },
+    {
+      "id": "book-target-size",
+      "criterion": "The primary action is at least 44 by 44.",
+      "state": "default",
+      "page": "today-default-en.html",
+      "width": 390,
+      "type": "min-size",
+      "target": "book-action",
+      "minWidth": 44,
+      "minHeight": 44
+    },
+    {
+      "id": "list-contrast-dark",
+      "criterion": "The room list's text has a contrast of at least 4.5 in the dark theme.",
+      "state": "default",
+      "page": "today-default-en.html",
+      "width": 1280,
+      "theme": "dark",
+      "type": "contrast",
+      "target": "room-list",
+      "min": 4.5
+    },
+    {
+      "id": "two-free-rooms-listed",
+      "criterion": "Both free rooms are listed.",
+      "state": "default",
+      "page": "today-default-en.html",
+      "width": 1280,
+      "type": "count",
+      "target": "free-room-",
+      "equals": 2
+    }
+  ]
+}

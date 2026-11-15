@@ -1,0 +1,61 @@
+Plugin under test: "ux" version "2.0.0-dev" at "/mnt/data/Downloads/Proyectos/ux-runbook-v2"
+  kept temp: /tmp/claude-1000/claude-eval-6HvDjV
+⚠ kept /tmp/claude-1000/claude-eval-6HvDjV: home/ and tmp/ in it were written by the plugin under test and are sealed in /tmp/claude-1000/claude-eval-6HvDjV/sealed (mode 000; the kept directory is read-only) — open them with `chmod 700 /tmp/claude-1000/claude-eval-6HvDjV /tmp/claude-1000/claude-eval-6HvDjV/sealed` to inspect, and do not run git (or anything that loads configuration from its working directory) anywhere inside the kept directory
+  brief-has-no-design run 1/1: score 1.00  $0.70
+    ✓ criteria (weight 2): judge votes: PASS PASS FAIL — note: long file (11284 chars); llm judges are noisy on long inputs, prefer a regex grader for large artifacts
+    ✓ gives-the-tasks (weight 1): matched ^## The tasks\n[^#]*?walked\s+in[^#]*?Sala\s+Jard[ií]n
+    ✓ names-the-person (weight 1): matched ^## The person\n[^#]*?\b(front\s+desk|clinic)\b
+    ✓ no-component-or-layout-named (weight 1): pattern absent as expected
+    ✓ no-instruction-left (weight 1): pattern absent as expected
+    ✓ says-what-the-product-can-do (weight 1): matched ^## What the product can show and do\n[^#]*?being\s+cleaned
+    ✓ states-the-job (weight 1): matched ^## The job\n[^#]*?\bwalk-in\b
+✓ brief-has-no-design  score 1.00  (1 run)  $0.70
+
+CASE                 SCORE PASS% RUNS COST    NOTES
+brief-has-no-design  1.00  100%  1    $0.70   
+
+1 case(s) · 230s · $0.70
+Report: /mnt/data/Downloads/Proyectos/ux-runbook-v2/evals/results/2026-11-15T19-25-20-177Z/report.html
+exit 0 (brief-has-no-design)
+Plugin under test: "ux" version "2.0.0-dev" at "/mnt/data/Downloads/Proyectos/ux-runbook-v2"
+  kept temp: /tmp/claude-1000/claude-eval-0g22FR
+⚠ kept /tmp/claude-1000/claude-eval-0g22FR: home/ and tmp/ in it were written by the plugin under test and are sealed in /tmp/claude-1000/claude-eval-0g22FR/sealed (mode 000; the kept directory is read-only) — open them with `chmod 700 /tmp/claude-1000/claude-eval-0g22FR /tmp/claude-1000/claude-eval-0g22FR/sealed` to inspect, and do not run git (or anything that loads configuration from its working directory) anywhere inside the kept directory
+  fresh-brief-hides-the-system run 1/1: score 0.80  $1.02
+    ✗ criteria (weight 2): skipped: cost ceiling
+    ✓ gives-the-tasks (weight 1): matched ^## The tasks\n[^#]*?walked\s+in[^#]*?Sala\s+Jard[ií]n
+    ✓ in-its-structure-form (weight 1): matched ^## The hardest state\s*$
+    ✓ names-the-person (weight 1): matched ^## The person\n[^#]*?\b(front\s+desk|clinic)\b
+    ✓ no-instruction-left (weight 1): pattern absent as expected
+    ✓ not-in-its-look-form (weight 1): pattern absent as expected
+    ✓ nothing-planted-is-in-it (weight 1): pattern absent as expected
+    ✓ says-what-the-product-can-do (weight 1): matched ^## What the product can show and do\n[^#]*?being\s+cleaned
+    ✓ states-the-job (weight 1): matched ^## The job\n[^#]*?\bwalk-in\b
+✗ fresh-brief-hides-the-system  score 0.80  (1 run)  $1.02
+⚠ cost ceiling $1 exceeded: $1.02 spent by runs already in flight when it was crossed; nothing was skipped
+
+CASE                          SCORE PASS% RUNS COST    NOTES
+fresh-brief-hides-the-system  0.80  0%    1    $1.02   criteria: skipped: cost ceiling
+
+1 case(s) · 209s · $1.02
+Report: /mnt/data/Downloads/Proyectos/ux-runbook-v2/evals/results/2026-11-15T19-29-10-445Z/report.html
+exit 1 (fresh-brief-hides-the-system)
+Plugin under test: "ux" version "2.0.0-dev" at "/mnt/data/Downloads/Proyectos/ux-runbook-v2"
+  kept temp: /tmp/claude-1000/claude-eval-FOylTr
+⚠ kept /tmp/claude-1000/claude-eval-FOylTr: home/ and tmp/ in it were written by the plugin under test and are sealed in /tmp/claude-1000/claude-eval-FOylTr/sealed (mode 000; the kept directory is read-only) — open them with `chmod 700 /tmp/claude-1000/claude-eval-FOylTr /tmp/claude-1000/claude-eval-FOylTr/sealed` to inspect, and do not run git (or anything that loads configuration from its working directory) anywhere inside the kept directory
+  resume-from-disk run 1/1: score 1.00  $0.20
+    ✓ asks-one-question (weight 1): found 1 matches (expected 1)
+    ✓ criteria (weight 2): judge votes: PASS PASS PASS
+    ✓ names-the-heading (weight 1): matched The people
+    ✓ next-run (weight 1): Bash called 1x (expected 1..∞)
+    ✓ no-cast-for-two-professions-by-edit (weight 1): Edit called 0x (expected 0..0)
+    ✓ no-cast-for-two-professions (weight 1): Write called 0x (expected 0..0)
+    ✓ nothing-reopened (weight 1): Bash called 0x (expected 0..0)
+    ✓ validate-run (weight 1): Bash called 1x (expected 1..∞)
+✓ resume-from-disk  score 1.00  (1 run)  $0.20
+
+CASE              SCORE PASS% RUNS COST    NOTES
+resume-from-disk  1.00  100%  1    $0.20   
+
+1 case(s) · 40s · $0.20
+Report: /mnt/data/Downloads/Proyectos/ux-runbook-v2/evals/results/2026-11-15T19-32-40-031Z/report.html
+exit 0 (resume-from-disk)

@@ -1,0 +1,3 @@
+setup: the answers file lacked 'Kinds this project adds' (skills/setup/SKILL.md:99-100 makes each unanswered template instruction one more question, while step 3 says such a thing becomes 'Not known yet.'). Answer added: None.
+detail: the answers file's blanket 'Accept it as a cost. Don't reopen Structure.' met two standing rules and the approved intent (answers 18, 19, 21); loop.md:191-193 had the conductor say so and ask again — three questions the file had no heading for. Answer added: keep it as a cost, recorded as an accepted deviation (ruling R157).
+detail: three facts the interface writer waits for had no entry (the verb for hold; whether the screen has a heading; how long a room's name can be). Answers added.

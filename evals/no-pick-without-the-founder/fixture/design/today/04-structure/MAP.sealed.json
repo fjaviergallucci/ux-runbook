@@ -1,0 +1,20 @@
+{
+  "board": "board",
+  "letters": {
+    "A": {
+      "file": "describer-defaults-first.json",
+      "track": "system",
+      "engine": "own"
+    },
+    "B": {
+      "file": "describer-fewest-steps.json",
+      "track": "system",
+      "engine": "own"
+    },
+    "C": {
+      "file": "describer-in-place.json",
+      "track": "system",
+      "engine": "own"
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "app.name": "Roomtally",
+  "day.title": "Today",
+  "day.subtitle": "Bookings for {date}",
+  "day.loading": "Loading the day…",
+  "day.empty": "No bookings today.",
+  "day.loadError": "Couldn't reach the booking service. This is the list from {time}.",
+  "day.retry": "Try again",
+  "day.updated": "Updated {time}",
+  "booking.new": "Book a room",
+  "booking.length": "{minutes} min",
+  "booking.cancel": "Cancel booking",
+  "booking.endEarly": "End now",
+  "booking.overlap": "Room {room} is already booked from {start} to {end}.",
+  "state.free": "Free",
+  "state.busy": "Busy",
+  "state.cleaning": "Cleaning",
+  "shift.title": "On shift",
+  "shift.until": "until {time}"
+}

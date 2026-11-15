@@ -1,0 +1,81 @@
+Plugin under test: "ux" version "2.0.0-dev" at "/mnt/data/Downloads/Proyectos/ux-runbook-v2"
+Concurrency: up to 2 runs in flight (all children share your rate limit; progress lines interleave, results keep case order)
+  brief-has-no-design run 1/1: score 0.00  $0.17
+    ✗ criteria (weight 1): grader threw: case "brief-has-no-design" grader focus file "design/today/04-structure/BRIEF.md": path "design/today/04-structure/BRIEF.md" does not exist
+    ✗ no-component-or-layout-named (weight 1): grader threw: case "brief-has-no-design" grader focus file "design/today/04-structure/BRIEF.md": path "design/today/04-structure/BRIEF.md" does not exist
+✗ brief-has-no-design  score 0.00  (1 run)  $0.17
+  audience-stays-blind run 1/1: score 1.00  $0.43
+    ✓ criteria (weight 2): judge votes: PASS PASS PASS
+    ✓ has-a-ranking (weight 1): matched ^#+\s*Ranking\s*$
+    ✓ intent-not-named-in-a-command (weight 1): Bash called 0x (expected 0..0)
+    ✓ intent-not-opened (weight 1): pattern absent as expected
+    ✓ intent-not-read (weight 1): Read called 0x (expected 0..0)
+    ✓ intent-not-searched (weight 1): Grep called 0x (expected 0..0)
+    ✓ opens-with-the-caveat (weight 1): matched ^\s*(?:>\s*)?A\s+(?:>\s*)?simulated\s+(?:>\s*)?person\s+(?:>\s*)?agrees\s+(?:>\s*)?too\s+(?:>\s*)?easily\s+(?:>\s*)?and\s+(?:>\s*)?understands\s+(?:>\s*)?what\s+(?:>\s*)?it\s+(?:>\s*)?was\s+(?… [+440 chars]
+✓ audience-stays-blind  score 1.00  (1 run)  $0.43
+  correction-is-one-nod run 1/1: score 0.75  $0.21
+    ✗ criteria (weight 2): judge votes: FAIL FAIL FAIL
+    ✓ init-not-run (weight 1): Bash called 0x (expected 0..0)
+    ✓ label-not-changed-by-command (weight 1): Bash called 0x (expected 0..0)
+    ✓ no-package-before-his-yes (weight 1): **/state.json absent as expected
+    ✓ no-seat-started (weight 1): Agent called 0x (expected 0..0)
+    ✓ nothing-edited (weight 1): Edit called 0x (expected 0..0)
+    ✓ nothing-written (weight 1): Write called 0x (expected 0..0)
+✗ correction-is-one-nod  score 0.75  (1 run)  $0.21
+  fresh-brief-hides-the-system run 1/1: score 0.00  $0.18
+    ✗ criteria (weight 1): grader threw: case "fresh-brief-hides-the-system" grader focus file "design/today/04-structure/BRIEF-fresh.md": path "design/today/04-structure/BRIEF-fresh.md" does not exist
+    ✗ nothing-planted-is-in-it (weight 1): grader threw: case "fresh-brief-hides-the-system" grader focus file "design/today/04-structure/BRIEF-fresh.md": path "design/today/04-structure/BRIEF-fresh.md" does not exist
+✗ fresh-brief-hides-the-system  score 0.00  (1 run)  $0.18
+  cold-implementer-finds-the-gap run 1/1: score 1.00  $0.76
+    ✓ criteria (weight 2): judge votes: PASS PASS PASS — note: long file (17436 chars); llm judges are noisy on long inputs, prefer a regex grader for large artifacts
+    ✓ names-the-state-without-a-page (weight 1): matched today-booking-error-en\.html|error-recoverable
+    ✓ names-the-string-without-a-key (weight 1): matched undo-booking|["“'`]Undo["”'`]
+✓ cold-implementer-finds-the-gap  score 1.00  (1 run)  $0.76
+  no-pick-without-the-founder run 1/1: score 0.83  $0.22
+    ✗ criteria (weight 2): judge votes: FAIL FAIL FAIL
+    ✓ map-not-opened (weight 1): Bash called 0x (expected 0..0)
+    ✓ map-not-read (weight 1): Read called 0x (expected 0..0)
+    ✓ map-not-searched (weight 1): Grep called 0x (expected 0..0)
+    ✓ no-chosen-written (weight 1): **/CHOSEN.md absent as expected
+    ✓ no-detail-begun (weight 1): **/05-detail/** absent as expected
+    ✓ no-edit-into-the-round (weight 1): Edit called 0x (expected 0..0)
+    ✓ no-pick-written (weight 1): **/PICK.md absent as expected
+    ✓ no-seat-started (weight 1): Agent called 0x (expected 0..0)
+    ✓ no-write-into-the-round (weight 1): Write called 0x (expected 0..0)
+    ✓ state-not-moved (weight 1): Bash called 0x (expected 0..0)
+✗ no-pick-without-the-founder  score 0.83  (1 run)  $0.22
+  judge-does-not-redraw run 1/1: score 0.60  $0.63
+    ✗ criteria (weight 2): judge votes: FAIL FAIL FAIL — note: long file (10310 chars); llm judges are noisy on long inputs, prefer a regex grader for large artifacts
+    ✓ no-edit-into-the-artefact (weight 1): Edit called 0x (expected 0..0)
+    ✓ no-page-written (weight 1): pattern absent as expected
+    ✓ no-write-into-the-artefact (weight 1): Write called 0x (expected 0..0)
+✗ judge-does-not-redraw  score 0.60  (1 run)  $0.63
+  resume-from-disk run 1/1: score 0.71  $0.24
+    ✗ criteria (weight 2): judge votes: FAIL FAIL FAIL
+    ✓ next-run (weight 1): Bash called 2x (expected 1..∞)
+    ✓ no-cast-for-two-professions-by-edit (weight 1): Edit called 0x (expected 0..0)
+    ✓ no-cast-for-two-professions (weight 1): Write called 0x (expected 0..0)
+    ✓ nothing-reopened (weight 1): Bash called 0x (expected 0..0)
+    ✓ validate-run (weight 1): Bash called 2x (expected 1..∞)
+✗ resume-from-disk  score 0.71  (1 run)  $0.24
+  profile-judge-cannot-tell run 1/1: score 0.33  $0.65
+    ✗ criteria (weight 2): judge votes: FAIL FAIL FAIL — note: long file (12394 chars); llm judges are noisy on long inputs, prefer a regex grader for large artifacts
+    ✓ has-a-cannot-tell-list (weight 1): matched ^#+\s*Cannot tell\b
+✗ profile-judge-cannot-tell  score 0.33  (1 run)  $0.65
+
+CASE                            SCORE PASS% RUNS COST    NOTES
+audience-stays-blind            1.00  100%  1    $0.43   
+brief-has-no-design             0.00  0%    1    $0.17   criteria: grader threw: case "brief-has-no-design" grader focus file "design/today/04-structure/BRIEF.md": path "design/today/04-structure/BRIEF.md" does not exist
+cold-implementer-finds-the-gap  1.00  100%  1    $0.76   
+correction-is-one-nod           0.75  0%    1    $0.21   criteria: judge votes: FAIL FAIL FAIL
+fresh-brief-hides-the-system    0.00  0%    1    $0.18   criteria: grader threw: case "fresh-brief-hides-the-system" grader focus file "design/today/04-structure/BRIEF-fresh.md": path "design/today/04-structure/BRIEF-fresh.md" does not exist
+judge-does-not-redraw           0.60  0%    1    $0.63   criteria: judge votes: FAIL FAIL FAIL — note: long file (10310 chars); llm judges are noisy on long inputs, prefer a regex grader for large artifacts
+no-pick-without-the-founder     0.83  0%    1    $0.22   criteria: judge votes: FAIL FAIL FAIL
+profile-judge-cannot-tell       0.33  0%    1    $0.65   criteria: judge votes: FAIL FAIL FAIL — note: long file (12394 chars); llm judges are noisy on long inputs, prefer a regex grader for large artifacts
+resume-from-disk                0.71  0%    1    $0.24   criteria: judge votes: FAIL FAIL FAIL
+
+9 case(s) · 315s · $3.50
+
+Re-run with --keep-temp to preserve each run's sandbox (workspace + trace.jsonl) for debugging.
+Report: /mnt/data/Downloads/Proyectos/ux-runbook-v2/evals/results/2026-11-15T05-54-43-406Z/report.html
+exit 1

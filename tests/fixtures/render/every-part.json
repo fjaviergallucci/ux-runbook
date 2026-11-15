@@ -1,0 +1,103 @@
+{
+  "name": "Floors, free first",
+  "bet": "Rooms grouped by floor, with what is free on each floor first, follow the way she walks a patient to a room.",
+  "cost": "A free room upstairs sits below the ground floor: she scrolls to compare floors.",
+  "absent": [
+    "A plan of the whole building",
+    "Bookings after today"
+  ],
+  "hardest": "With every room busy, each floor still names the room that frees up soonest, and when.",
+  "firstIdea": "Room tiles coloured by status on a plan of the building; set aside because colour alone cannot say until when.",
+  "author": "Describer Quiroga",
+  "engine": "engine-ixchel",
+  "track": "fresh",
+  "model": "large-model-9",
+  "source": "makers/quiroga/proposal.json",
+  "screens": [
+    {
+      "id": "today",
+      "title": "Today, at 9:40",
+      "container": "screen",
+      "note": "Open all day on the desk monitor.",
+      "items": [
+        { "role": "nav", "id": "places", "text": "Where she can go", "options": ["Today", "Rooms", "Settings"] },
+        { "role": "heading", "text": "Rooms right now" },
+        { "role": "status", "id": "free-count", "text": "2 rooms free now" },
+        {
+          "container": "region",
+          "label": "Ground floor",
+          "items": [
+            {
+              "container": "group",
+              "label": "Room 2",
+              "items": [
+                { "role": "text", "text": "Free until 10:30" },
+                {
+                  "role": "action",
+                  "id": "book-room-2",
+                  "text": "Book Room 2",
+                  "primary": true,
+                  "note": "The only filled button on the screen."
+                }
+              ]
+            },
+            {
+              "container": "group",
+              "items": [
+                { "role": "text", "text": "Reunión — sala 3 🙂" },
+                { "role": "action", "text": "Hold sala 3", "primary": false }
+              ]
+            }
+          ]
+        },
+        {
+          "container": "region",
+          "items": [
+            {
+              "role": "list",
+              "id": "upstairs",
+              "text": "Upstairs",
+              "options": ["Room 4 — free until 12:00", "Gym — out of service today"],
+              "note": "Soonest free first."
+            },
+            { "role": "media", "text": "Plan of the first floor, free rooms marked" }
+          ]
+        },
+        {
+          "container": "expansion",
+          "label": "Later today",
+          "items": [{ "role": "text", "text": "Room 1 — free from 10:00" }]
+        },
+        {
+          "container": "expansion",
+          "label": "Closed rooms",
+          "open": false,
+          "items": [{ "role": "text", "text": "The gym reopens tomorrow." }]
+        },
+        { "role": "text", "text": "<script>alert(1)</script>" },
+        { "role": "link", "text": "See the rest of the day" }
+      ]
+    },
+    {
+      "id": "book",
+      "title": "Booking Room 2",
+      "container": "dialog",
+      "over": "today",
+      "items": [
+        { "role": "heading", "text": "Book Room 2" },
+        { "role": "status", "id": "free-count", "text": "Still free until 10:30" },
+        {
+          "container": "expansion",
+          "label": "Patient",
+          "open": true,
+          "items": [
+            { "role": "input", "id": "patient-name", "text": "Patient name", "note": "The cursor is already here." },
+            { "role": "choice", "text": "How long?", "options": ["15 min", "30 min"] }
+          ]
+        },
+        { "role": "action", "text": "Book", "primary": true },
+        { "role": "action", "text": "Cancel" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The grey kit: every part</title>
+<link rel="stylesheet" href="kit.css">
+</head>
+<body>
+
+<h1>The grey kit</h1>
+<p>One specimen of every class in the kit contract, each in a frame captioned with the class it shows. The words name the part they stand in, and say nothing of any product: a time is written on the 24-hour clock, as 09:30.</p>
+
+<section class="ux-frame" data-screen="screen">
+  <header>
+    <h2>ux-frame, holding a ux-screen</h2>
+    <p class="ux-note">The frame is one screen of the walkthrough on the board, captioned with its title; the screen is what she sees.</p>
+  </header>
+  <div class="ux-screen">
+    <h3 class="ux-heading">Heading</h3>
+    <p class="ux-text">A line of text under the heading.</p>
+  </div>
+</section>
+
+<section class="ux-frame" data-screen="dialog">
+  <header>
+    <h2>ux-dialog, captioned with ux-over</h2>
+    <p class="ux-over">opens over ux-frame, holding a ux-screen</p>
+    <p class="ux-note">A dialog, on a backdrop that stands for the screen it opens over; the ux-over line names that screen by its title.</p>
+  </header>
+  <div class="ux-dialog">
+    <h3 class="ux-heading">Dialog heading</h3>
+    <p class="ux-input">Field label</p>
+    <button class="ux-action is-primary" type="button">Primary action</button>
+    <a class="ux-link" href="#">Link</a>
+  </div>
+</section>
+
+<section class="ux-frame" data-screen="region">
+  <header><h2>ux-region</h2></header>
+  <div class="ux-screen">
+    <section class="ux-region">
+      <header>Region label</header>
+      <p class="ux-text">Row title — detail, 09:30</p>
+      <p class="ux-text">Row title — detail, 14:05</p>
+    </section>
+    <section class="ux-region">
+      <header>Second region label</header>
+      <p class="ux-text">Row title — detail, 18:00</p>
+    </section>
+  </div>
+</section>
+
+<section class="ux-frame" data-screen="group">
+  <header><h2>ux-group</h2></header>
+  <div class="ux-screen">
+    <div class="ux-group">
+      <header>Group label</header>
+      <p class="ux-text">A line of text in the group.</p>
+      <button class="ux-action" type="button">Action</button>
+    </div>
+  </div>
+</section>
+
+<section class="ux-frame" data-screen="expansion">
+  <header><h2>ux-expansion, open and then closed</h2></header>
+  <div class="ux-screen">
+    <details class="ux-expansion" open>
+      <summary>Expansion label, open</summary>
+      <p class="ux-input">Field label</p>
+      <button class="ux-action" type="button">Action</button>
+    </details>
+    <details class="ux-expansion">
+      <summary>Expansion label, closed</summary>
+      <p class="ux-text">A line of text that shows once it is opened.</p>
+    </details>
+  </div>
+</section>
+
+<section class="ux-frame" data-screen="heading">
+  <header><h2>ux-heading</h2></header>
+  <div class="ux-screen">
+    <h3 class="ux-heading">Heading</h3>
+  </div>
+</section>
+
+<section class="ux-frame" data-screen="text">
+  <header><h2>ux-text</h2></header>
+  <div class="ux-screen">
+    <p class="ux-text">A sentence of text she reads, with nothing to do, long enough to show where a line ends.</p>
+  </div>
+</section>
+
+<section class="ux-frame" data-screen="choice">
+  <header><h2>ux-choice</h2></header>
+  <div class="ux-screen">
+    <div class="ux-choice">Choice label
+      <ul>
+        <li>First option</li>
+        <li>Second option</li>
+        <li>Third option</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="ux-frame" data-screen="input">
+  <header><h2>ux-input</h2></header>
+  <div class="ux-screen">
+    <p class="ux-input">Field label</p>
+  </div>
+</section>
+
+<section class="ux-frame" data-screen="action">
+  <header><h2>ux-action</h2></header>
+  <div class="ux-screen">
+    <button class="ux-action" type="button">Action</button>
+  </div>
+</section>
+
+<section class="ux-frame" data-screen="primary-action">
+  <header><h2>ux-action.is-primary</h2></header>
+  <div class="ux-screen">
+    <button class="ux-action is-primary" type="button">Primary action</button>
+    <button class="ux-action" type="button">Other action</button>
+  </div>
+</section>
+
+<section class="ux-frame" data-screen="list">
+  <header><h2>ux-list</h2></header>
+  <div class="ux-screen">
+    <div class="ux-list">List label
+      <ul>
+        <li>Row title — detail, 09:30</li>
+        <li>Row title — detail, 10:15</li>
+        <li>Row title — detail, 14:05</li>
+        <li>Row title — detail, 18:00</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="ux-frame" data-screen="status">
+  <header>
+    <h2>ux-status</h2>
+    <p class="ux-note">It carries data-ux="status-line": the stable id a check finds the part by.</p>
+  </header>
+  <div class="ux-screen">
+    <p class="ux-status" data-ux="status-line">Status, as of 09:05</p>
+  </div>
+</section>
+
+<section class="ux-frame" data-screen="media">
+  <header><h2>ux-media</h2></header>
+  <div class="ux-screen">
+    <div class="ux-media">Picture: what it shows, in words</div>
+  </div>
+</section>
+
+<section class="ux-frame" data-screen="link">
+  <header><h2>ux-link</h2></header>
+  <div class="ux-screen">
+    <a class="ux-link" href="#">Link to another screen</a>
+  </div>
+</section>
+
+<section class="ux-frame" data-screen="nav">
+  <header><h2>ux-nav</h2></header>
+  <div class="ux-screen">
+    <nav class="ux-nav">Navigation label
+      <ul>
+        <li>First place</li>
+        <li>Second place</li>
+        <li>Third place</li>
+        <li>Fourth place</li>
+      </ul>
+    </nav>
+  </div>
+</section>
+
+<section class="ux-frame" data-screen="note">
+  <header><h2>ux-note</h2></header>
+  <div class="ux-screen">
+    <div class="ux-list">List label
+      <ul>
+        <li>Row title — detail, 09:30</li>
+        <li>Row title — detail, 14:05</li>
+      </ul>
+    </div>
+    <p class="ux-note">A note: why the list is in this order.</p>
+  </div>
+</section>
+
+</body>
+</html>

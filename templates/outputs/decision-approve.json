@@ -1,0 +1,49 @@
+{
+  "identity": {
+    "design": "today",
+    "kind": "working-surface",
+    "size": "surface",
+    "stage": 6,
+    "of": 9
+  },
+  "options": [
+    {
+      "letter": "A",
+      "title": "The prototype",
+      "line": "Every state of today drawn on the chosen structure, free rooms first, with the blocking findings fixed and read again.",
+      "images": ["shots/today-default-en-390-light.png", "shots/today-default-en-1280-light.png"]
+    }
+  ],
+  "seats": [
+    {
+      "seat": "judge.accessibility",
+      "line": "Of the four blocking findings, three are fixed and one is fixed in part: every Book button now has a name, but focus in the booking dialog still starts on Cancel.",
+      "option": "A"
+    },
+    {
+      "seat": "audience.task-reader",
+      "line": "Asked to put a walk-in into a free room, the reader did it in two clicks from the screen, at both widths.",
+      "option": "A"
+    }
+  ],
+  "findings": [
+    {
+      "seat": "judge.accessibility",
+      "line": "Fixed in part: focus in the booking dialog starts on Cancel, not on the patient's name."
+    },
+    {
+      "seat": "judge.truth",
+      "line": "Still present: the empty state offers a waiting list, which the product does not have."
+    },
+    {
+      "seat": "judge.accessibility",
+      "line": "The booking action is 40 by 40 on a phone, under the 44 by 44 of the standing rule: he accepted it as the cost of four rooms in view.",
+      "accepted": "detail"
+    }
+  ],
+  "recommendation": {
+    "option": "A",
+    "reason": "Approve it for Look and carry the two open findings there as named fixes, since neither changes the structure."
+  },
+  "question": "Do you approve the prototype of today for Look?"
+}

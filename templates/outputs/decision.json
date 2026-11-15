@@ -1,0 +1,65 @@
+{
+  "identity": {
+    "design": "today",
+    "kind": "working-surface",
+    "size": "surface",
+    "stage": 5,
+    "of": 9
+  },
+  "options": [
+    {
+      "letter": "A",
+      "title": "One list, every room",
+      "line": "Every room in one fixed order, each row saying whether it is free and until when, the way the wall chart does.",
+      "images": ["shots/A-390-light.png", "shots/A-1280-light.png"]
+    },
+    {
+      "letter": "B",
+      "title": "Free rooms first",
+      "line": "Free rooms in a region of their own at the top, each with its own Book action; the busy rooms below.",
+      "images": ["shots/B-390-light.png", "shots/B-1280-light.png"]
+    },
+    {
+      "letter": "C",
+      "title": "The day as a grid",
+      "line": "Every room against the hours of the day, with a line at now; what frees up next is on the same line.",
+      "images": ["shots/C-390-light.png", "shots/C-1280-light.png"]
+    }
+  ],
+  "gallery": {
+    "title": "From the fresh pass, as it came",
+    "items": [
+      {
+        "title": "A plan of the floor, free rooms lit",
+        "line": "Made with no knowledge of today's screens; its structure is on the board too, under one of the letters.",
+        "images": ["fresh/today-1.png"]
+      }
+    ]
+  },
+  "seats": [
+    {
+      "seat": "judge.profile",
+      "line": "B fits a front desk: her question is what is free now, and B answers it before anything else.",
+      "option": "B"
+    },
+    {
+      "seat": "judge.truth",
+      "line": "All three show only what the product holds: room status, when a booking ends and when the next one starts."
+    },
+    {
+      "seat": "judge.accessibility",
+      "line": "At 390 px the hours of C scroll sideways and the line at now leaves the screen.",
+      "option": "C"
+    },
+    {
+      "seat": "audience.task-reader",
+      "line": "Asked whether anything is free right now, the reader answered fastest on B, then on A, and slowest on C.",
+      "option": "B"
+    }
+  ],
+  "recommendation": {
+    "option": "B",
+    "reason": "It answers her one question, what is free right now, before anything else, and puts a walk-in two clicks from the screen."
+  },
+  "question": "Which structure goes on to Detail: A, B or C?"
+}

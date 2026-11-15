@@ -1,0 +1,63 @@
+{
+  "design": "today",
+  "checks": [
+    {
+      "id": "free-count-in-view",
+      "criterion": "She can say which rooms are free now without scrolling.",
+      "state": "default",
+      "page": "today-default-en.html",
+      "width": 1280,
+      "language": "en",
+      "screen": "today",
+      "type": "in-viewport",
+      "target": "free-count"
+    },
+    {
+      "id": "free-count-in-view-phone",
+      "criterion": "She can say which rooms are free now without scrolling.",
+      "state": "default",
+      "page": "today-default-en.html",
+      "width": 390,
+      "language": "en",
+      "screen": "today",
+      "type": "in-viewport",
+      "target": "free-count"
+    },
+    {
+      "id": "frees-first-shown",
+      "criterion": "When no room is free, she can say which room frees up first, and when.",
+      "state": "empty-filtered",
+      "page": "today-none-free-en.html",
+      "width": 390,
+      "language": "en",
+      "screen": "today",
+      "type": "text",
+      "target": "frees-first",
+      "matches": "frees up first, at \\d+:\\d\\d$"
+    },
+    {
+      "id": "undo-shown",
+      "criterion": "A booking made in the wrong room can be undone from the screen she is on, in one press, for two minutes after it was made.",
+      "state": "success",
+      "page": "today-booked-en.html",
+      "width": 1280,
+      "language": "en",
+      "screen": "today",
+      "type": "visible",
+      "target": "undo-booking"
+    },
+    {
+      "id": "book-size",
+      "criterion": "The action that books is at least 44 by 44 px.",
+      "state": "default",
+      "page": "today-default-en.html",
+      "width": 390,
+      "language": "en",
+      "screen": "today",
+      "type": "min-size",
+      "target": "book-room-2",
+      "minWidth": 44,
+      "minHeight": 44
+    }
+  ]
+}

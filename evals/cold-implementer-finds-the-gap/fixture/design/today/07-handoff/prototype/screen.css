@@ -1,0 +1,11 @@
+body { margin: 0; background: var(--ground); color: var(--ink); font: var(--text); }
+main { max-width: 60rem; margin: 0 auto; padding: calc(var(--step) * 3); }
+h1 { font-size: 1.5rem; margin: 0 0 var(--step); }
+h2 { font-size: 1rem; margin: calc(var(--step) * 3) 0 var(--step); }
+h3 { font-size: 1.125rem; margin: 0; }
+[data-ux="free-count"] { font-size: 1.25rem; margin: 0; }
+[data-ux="last-updated"], [data-ux="undo-hint"] { color: var(--muted); }
+article { border: 1px solid var(--line); padding: calc(var(--step) * 2); margin-bottom: var(--step); }
+button { min-height: 2.75rem; min-width: 2.75rem; padding: 0 calc(var(--step) * 2); border: 1px solid var(--action); background: var(--ground); color: var(--action); font: inherit; }
+button.primary { background: var(--action); color: var(--on-action); }
+ul { padding-left: 1.25rem; }

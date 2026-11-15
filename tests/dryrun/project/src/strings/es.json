@@ -1,0 +1,20 @@
+{
+  "app.name": "Roomtally",
+  "day.title": "Hoy",
+  "day.subtitle": "Reservas del {date}",
+  "day.loading": "Cargando el día…",
+  "day.empty": "No hay reservas hoy.",
+  "day.loadError": "No se pudo conectar con el servicio de reservas. Esta es la lista de las {time}.",
+  "day.retry": "Reintentar",
+  "day.updated": "Actualizado a las {time}",
+  "booking.new": "Reservar una sala",
+  "booking.length": "{minutes} min",
+  "booking.cancel": "Cancelar reserva",
+  "booking.endEarly": "Terminar ahora",
+  "booking.overlap": "La sala {room} ya está reservada de {start} a {end}.",
+  "state.free": "Libre",
+  "state.busy": "Ocupada",
+  "state.cleaning": "En limpieza",
+  "shift.title": "De turno",
+  "shift.until": "hasta las {time}"
+}

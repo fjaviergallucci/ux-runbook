@@ -1,0 +1,4 @@
+node_modules/
+evals/results/
+tests/.tmp/
+.superpowers/

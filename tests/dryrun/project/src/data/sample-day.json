@@ -1,0 +1,33 @@
+{
+  "about": "Seeded test data for one weekday, as the booking service returns it. Made-up first names; no patient is ever in it.",
+  "date": "2026-11-16",
+  "now": "10:20",
+  "rooms": [
+    { "id": "r1", "name": "Room 1" },
+    { "id": "r2", "name": "Room 2" },
+    { "id": "r3", "name": "Room 3" },
+    { "id": "r4", "name": "Room 4" },
+    { "id": "r5", "name": "Room 5" }
+  ],
+  "shifts": [
+    { "clinician": "Mara", "from": "07:30", "to": "13:30" },
+    { "clinician": "Ana", "from": "08:00", "to": "14:00" },
+    { "clinician": "Bruno", "from": "08:00", "to": "16:00" },
+    { "clinician": "Inés", "from": "10:00", "to": "18:00" },
+    { "clinician": "Kofi", "from": "12:00", "to": "19:00" }
+  ],
+  "bookings": [
+    { "id": "b01", "room": "r1", "start": "08:00", "minutes": 45, "clinician": "Mara" },
+    { "id": "b02", "room": "r2", "start": "08:15", "minutes": 60, "clinician": "Bruno" },
+    { "id": "b03", "room": "r1", "start": "09:00", "minutes": 60, "clinician": "Ana" },
+    { "id": "b04", "room": "r3", "start": "09:30", "minutes": 45, "clinician": "Mara" },
+    { "id": "b05", "room": "r2", "start": "10:00", "minutes": 45, "clinician": "Bruno" },
+    { "id": "b06", "room": "r4", "start": "10:15", "minutes": 60, "clinician": "Inés" },
+    { "id": "b07", "room": "r1", "start": "10:30", "minutes": 30, "clinician": "Ana" },
+    { "id": "b08", "room": "r3", "start": "11:00", "minutes": 30, "clinician": "Mara" },
+    { "id": "b09", "room": "r5", "start": "12:00", "minutes": 30, "clinician": "Inés" },
+    { "id": "b10", "room": "r2", "start": "12:15", "minutes": 45, "clinician": "Kofi" },
+    { "id": "b11", "room": "r5", "start": "13:00", "minutes": 60, "clinician": "Kofi" },
+    { "id": "b12", "room": "r4", "start": "15:00", "minutes": 15, "clinician": "Bruno" }
+  ]
+}

@@ -1,0 +1,141 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Decision: today, stage 5 of 9</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --page: #f5f5f3;
+  --surface: #ffffff;
+  --ink: #1c1c1a;
+  --muted: #5d5d58;
+  --line: #d4d4cf;
+  --strong: #1c1c1a;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page: #141413;
+    --surface: #1f1f1d;
+    --ink: #ecece8;
+    --muted: #a5a5a0;
+    --line: #3b3b38;
+    --strong: #ecece8;
+  }
+}
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  margin: 0 auto;
+  max-width: 90rem;
+  padding: 1.5rem 1rem 3rem;
+  background: var(--page);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Liberation Sans", Arial, sans-serif;
+  font-size: 1rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+h1.identity { margin: 0 0 1.5rem; color: var(--muted); font-size: 0.875rem; font-weight: 600; letter-spacing: 0.02em; }
+h2 { margin: 2.25rem 0 0.75rem; font-size: 1.125rem; }
+h3 { margin: 0 0 0.5rem; font-size: 1.0625rem; line-height: 1.35; }
+p { margin: 0 0 0.5rem; }
+.options h2 { margin-top: 0; }
+/* The options in one row, and the gallery's items in another: a row wider than the page scrolls sideways
+   on its own, the page never. A column holds a phone-width picture at its own width, and three columns fit
+   side by side in a window 1440 wide (the page is 90rem at most); on a phone a column takes the whole
+   width. */
+.row { display: flex; align-items: flex-start; gap: 1rem; overflow-x: auto; padding-bottom: 0.5rem; }
+.option, .item { flex: 0 0 auto; width: min(27rem, 100%); padding: 1rem; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+.letter {
+  display: inline-block;
+  min-width: 1.75em;
+  margin-right: 0.35em;
+  padding: 0 0.3em;
+  border: 2px solid var(--strong);
+  border-radius: 4px;
+  text-align: center;
+}
+/* The one picture drawn: whole, at its own size up to its column's width. */
+.picture { display: block; margin-top: 0.75rem; }
+.picture img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  background: var(--page);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+.more { margin: 0.5rem 0 0; padding: 0; list-style: none; font-size: 0.875rem; }
+.more li { margin: 0.25rem 0 0; }
+.seats ul, .findings ul { margin: 0; padding: 0; list-style: none; }
+.seats li, .findings li { padding: 0.6rem 0; border-top: 1px solid var(--line); }
+.seats li:last-child, .findings li:last-child { border-bottom: 1px solid var(--line); }
+.on { display: inline-block; margin: 0 0.35em; padding: 0 0.4em; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; font-size: 0.875rem; }
+.pick { font-weight: 600; }
+/* The question: the last thing on the page, pinned to the bottom of the screen on a solid ground. */
+.question {
+  position: sticky;
+  bottom: 0;
+  margin-top: 2.5rem;
+  padding: 1.25rem;
+  background: var(--surface);
+  border: 2px solid var(--strong);
+  border-radius: 6px;
+}
+.question h2 { margin: 0 0 0.5rem; color: var(--muted); font-size: 0.875rem; }
+.question p { margin: 0; font-size: 1.375rem; font-weight: 600; line-height: 1.35; }
+</style>
+</head>
+<body>
+<h1 class="identity">today · working-surface · surface · stage 5 of 9</h1>
+<section class="options">
+<h2>The options</h2>
+<div class="row">
+<article class="option">
+<h3><span class="letter">A</span> One list, every room</h3>
+<p>One list of every room, always in the same order, each row saying whether the room is free and until when, answers her question the way the wall chart does: by where she looks, not by anything she does.</p>
+<a class="picture" href="board/A-390-light.png"><img src="board/A-390-light.png" alt="Option A, picture 1 of 2"></a>
+<ul class="more">
+<li><a href="board/A-1280-light.png">A-1280-light</a></li>
+</ul>
+</article>
+<article class="option">
+<h3><span class="letter">B</span> Free rooms first</h3>
+<p>Free rooms in a leading region of their own, each with its own Book action, do the filtering she would never do herself and put a walk-in two clicks away.</p>
+<a class="picture" href="board/B-390-light.png"><img src="board/B-390-light.png" alt="Option B, picture 1 of 2"></a>
+<ul class="more">
+<li><a href="board/B-1280-light.png">B-1280-light</a></li>
+</ul>
+</article>
+<article class="option">
+<h3><span class="letter">C</span> The day as a grid</h3>
+<p>A grid of rooms against the hours of the day, with a line at now, shows what is free now and what frees up next in the same glance.</p>
+<a class="picture" href="board/C-390-light.png"><img src="board/C-390-light.png" alt="Option C, picture 1 of 2"></a>
+<ul class="more">
+<li><a href="board/C-1280-light.png">C-1280-light</a></li>
+</ul>
+</article>
+</div>
+</section>
+<section class="seats">
+<h2>The seats</h2>
+<ul>
+<li><strong>judge.usability</strong> <span class="on">Option B</span> On B and on A she can place a walk-in without help; on C she has to find one thin column before she can answer.</li>
+<li><strong>judge.truth</strong> All three show only what the product holds: the status of each room, when a booking ends and when the next one starts.</li>
+<li><strong>judge.profile, with profile.front-desk-coordinator</strong> <span class="on">Option B</span> B says what is free now before anything else, which is what a front desk checks before it sends anyone.</li>
+<li><strong>audience.task-reader, as person.desk-cover</strong> <span class="on">Option B</span> She named a free room at a glance on B, read down the rows on A, and gave up on C.</li>
+<li><strong>audience.task-reader, as person.first-timer</strong> <span class="on">Option A</span> She found the room on A first, because every room is always in the same place.</li>
+</ul>
+</section>
+<section class="recommendation">
+<h2>The recommendation</h2>
+<p class="pick">Option B: Free rooms first</p>
+<p>The usability judge, the profile judge and the primary reader each put B first, and the contrast reader put it second.</p>
+</section>
+<section class="question">
+<h2>The question</h2>
+<p>Which structure goes on to Detail: A, B or C?</p>
+</section>
+</body>
+</html>

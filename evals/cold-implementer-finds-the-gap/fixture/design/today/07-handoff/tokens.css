@@ -1,0 +1,11 @@
+/* Copied from design/kit/tokens.css of the project, as Look's direction left it. */
+:root {
+  --ground: #ffffff;
+  --ink: #1c1c1c;
+  --muted: #5c5c5c;
+  --action: #14532d;
+  --on-action: #ffffff;
+  --line: #d4d4d4;
+  --step: 8px;
+  --text: 1rem/1.4 system-ui, sans-serif;
+}

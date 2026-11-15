@@ -1,0 +1,57 @@
+/* Linden · List and list row
+
+   Markup:
+     <ul class="ln-list">
+       <li class="ln-row">
+         <span class="ln-row__lead">09:00</span>
+         <span class="ln-row__main">Room 1 · Ana</span>
+         <span class="ln-row__meta">60 min <span class="ln-tag ln-tag--busy">Busy</span></span>
+         <span class="ln-row__end"><button class="ln-button" type="button">End now</button></span>
+       </li>
+     </ul>
+
+   A row has a lead (a time, or a short label), a main line, an optional meta (a length, a time, a
+   status tag) and an optional end (one button). The whole row is never a link.
+
+   Takes: --color-surface, --color-line, --color-ink, --color-ink-muted, --radius-m, --line-width,
+   --space-3, --space-4, --size-target, --text-m, --text-s, --weight-strong, --leading. */
+
+.ln-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: var(--line-width) solid var(--color-line);
+  border-radius: var(--radius-m);
+  background: var(--color-surface);
+}
+
+.ln-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--size-target);
+  padding: var(--space-3) var(--space-4);
+  border-top: var(--line-width) solid var(--color-line);
+  color: var(--color-ink);
+  font-size: var(--text-m);
+  line-height: var(--leading);
+}
+
+.ln-row:first-child {
+  border-top: 0;
+}
+
+.ln-row__lead {
+  font-weight: var(--weight-strong);
+  font-variant-numeric: tabular-nums;
+}
+
+.ln-row__meta {
+  color: var(--color-ink-muted);
+  font-size: var(--text-s);
+}
+
+.ln-row__end {
+  justify-self: end;
+}

@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The grey kit: every part</title>
+<link rel="stylesheet" href="kit.css">
+</head>
+<body>
+
+<h1>The grey kit</h1>
+<p>One specimen of every class in the kit contract, each in a frame captioned with the class it shows. The words come from a room-booking tool for a small clinic's front desk: the surface is "today", and she asks "is anything free right now?"</p>
+
+<section class="ux-frame" data-screen="today">
+  <header>
+    <h2>ux-frame, holding a ux-screen</h2>
+    <p class="ux-note">The frame is one screen of the walkthrough on the board, captioned with its title; the screen is what she sees.</p>
+  </header>
+  <div class="ux-screen">
+    <h3 class="ux-heading">Rooms right now</h3>
+    <p class="ux-text">Open all day on the desk monitor.</p>
+  </div>
+</section>
+
+<section class="ux-frame" data-screen="book">
+  <header>
+    <h2>ux-dialog, captioned with ux-over</h2>
+    <p class="ux-over">opens over ux-frame, holding a ux-screen</p>
+    <p class="ux-note">A dialog, on a backdrop that stands for the screen it opens over; the ux-over line names that screen by its title.</p>
+  </header>
+  <div class="ux-dialog">
+    <h3 class="ux-heading">Book a walk-in</h3>
+    <p class="ux-input">Patient name</p>
+    <button class="ux-action is-primary" type="button">Book</button>
+    <a class="ux-link" href="#">Cancel</a>
+  </div>
+</section>
+
+<section class="ux-frame" data-screen="region">
+  <header><h2>ux-region</h2></header>
+  <div class="ux-screen">
+    <section class="ux-region">
+      <header>Free now</header>
+      <p class="ux-text">Room 2 — free until 10:30</p>
+      <p class="ux-text">Sala Jardín — free until 11:15</p>
+    </section>
+    <section class="ux-region">
+      <header>Not free</header>
+      <p class="ux-text">Room 1 — Dan with Maria K., until 10:00</p>
+    </section>
+  </div>
+</section>
+
+<section class="ux-frame" data-screen="group">
+  <header><h2>ux-group</h2></header>
+  <div class="ux-screen">
+    <div class="ux-group">
+      <header>Sala Jardín</header>
+      <p class="ux-text">Free until 11:15</p>
+      <button class="ux-action" type="button">Book Sala Jardín</button>
+    </div>
+  </div>
+</section>
+
+<section class="ux-frame" data-screen="expansion">
+  <header><h2>ux-expansion, open and then closed</h2></header>
+  <div class="ux-screen">
+    <details class="ux-expansion" open>
+      <summary>Free 9:40 to 11:15</summary>
+      <p class="ux-input">Patient name</p>
+      <button class="ux-action" type="button">Book Sala Jardín</button>
+    </details>
+    <details class="ux-expansion">
+      <summary>Later today</summary>
+      <p class="ux-text">Room 1 — free from 10:00</p>
+    </details>
+  </div>
+</section>
+
+<section class="ux-frame" data-screen="heading">
+  <header><h2>ux-heading</h2></header>
+  <div class="ux-screen">
+    <h3 class="ux-heading">Rooms right now</h3>
+  </div>
+</section>
+
+<section class="ux-frame" data-screen="text">
+  <header><h2>ux-text</h2></header>
+  <div class="ux-screen">
+    <p class="ux-text">Room 3 is being cleaned and is ready at 9:50.</p>
+  </div>
+</section>
+
+<section class="ux-frame" data-screen="choice">
+  <header><h2>ux-choice</h2></header>
+  <div class="ux-screen">
+    <div class="ux-choice">How long?
+      <ul>
+        <li>15 min</li>
+        <li>30 min</li>
+        <li>45 min</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="ux-frame" data-screen="input">
+  <header><h2>ux-input</h2></header>
+  <div class="ux-screen">
+    <p class="ux-input">Patient name</p>
+  </div>
+</section>
+
+<section class="ux-frame" data-screen="action">
+  <header><h2>ux-action</h2></header>
+  <div class="ux-screen">
+    <button class="ux-action" type="button">Book Room 2</button>
+  </div>
+</section>
+
+<section class="ux-frame" data-screen="primary-action">
+  <header><h2>ux-action.is-primary</h2></header>
+  <div class="ux-screen">
+    <button class="ux-action is-primary" type="button">Book a walk-in</button>
+    <button class="ux-action" type="button">Cancel</button>
+  </div>
+</section>
+
+<section class="ux-frame" data-screen="list">
+  <header><h2>ux-list</h2></header>
+  <div class="ux-screen">
+    <div class="ux-list">Every room, in the order of the wall chart
+      <ul>
+        <li>Room 1 — occupied: Dan with Maria K., until 10:00</li>
+        <li>Room 2 — free until 10:30</li>
+        <li>Room 3 — being cleaned, ready at 9:50</li>
+        <li>Sala Jardín — free until 11:15</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="ux-frame" data-screen="status">
+  <header>
+    <h2>ux-status</h2>
+    <p class="ux-note">It carries data-ux="free-count": the stable id a check finds the part by.</p>
+  </header>
+  <div class="ux-screen">
+    <p class="ux-status" data-ux="free-count">2 rooms free now</p>
+  </div>
+</section>
+
+<section class="ux-frame" data-screen="media">
+  <header><h2>ux-media</h2></header>
+  <div class="ux-screen">
+    <div class="ux-media">Floor plan of the clinic, with the free rooms marked</div>
+  </div>
+</section>
+
+<section class="ux-frame" data-screen="link">
+  <header><h2>ux-link</h2></header>
+  <div class="ux-screen">
+    <a class="ux-link" href="#">See the rest of the day</a>
+  </div>
+</section>
+
+<section class="ux-frame" data-screen="nav">
+  <header><h2>ux-nav</h2></header>
+  <div class="ux-screen">
+    <nav class="ux-nav">Where she can go
+      <ul>
+        <li>Today</li>
+        <li>Rooms</li>
+        <li>Patients</li>
+        <li>Settings</li>
+      </ul>
+    </nav>
+  </div>
+</section>
+
+<section class="ux-frame" data-screen="note">
+  <header><h2>ux-note</h2></header>
+  <div class="ux-screen">
+    <div class="ux-list">Busy, being cleaned or closed
+      <ul>
+        <li>Room 3 — being cleaned, ready at 9:50</li>
+        <li>Gym — out of service today</li>
+      </ul>
+    </div>
+    <p class="ux-note">Ordered by when each room frees up, soonest first.</p>
+  </div>
+</section>
+
+</body>
+</html>
