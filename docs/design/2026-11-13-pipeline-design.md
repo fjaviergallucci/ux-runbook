@@ -1049,18 +1049,22 @@ disagrees with this one, this one holds.
    stage; it is not sent to a fix round and does not block. In the dry run the same accepted cost came
    back marked blocking at Look, twice, and again at Acceptance. *(R175, R186.)*
 5. **A project with no browser script** (§ 4.8, "the way the project profile says a check is run"). The
-   design assumed every project keeps one. Where it keeps none, Acceptance says so and, on his yes,
-   writes the project's driver in the project, on the kit's own browser library, and records its command
-   in the profile. The handoff folder carries the in-page check file, so a builder can run the checks
-   without the kit. *(R159.)*
+   design assumed every project keeps one. Where it keeps none and the build opens as files, Acceptance
+   says so and, on his yes — written down first — writes the project's driver in the project, on the
+   kit's own browser library, and records its command in the profile. That library opens local files and
+   nothing else: a build that needs a server or a sign-in, in a project with no script of its own, goes
+   to him open, and Acceptance stops. No step has a session write code that fetches a credential. The
+   handoff folder carries the in-page check file, so a builder can run the checks without the kit.
+   *(R159, corrected by R189.)*
 6. **What a reader is shown** (§ 11, § 12). The board is drawn twice: with the makers' notes, for him
    and for the judges; and without the bet, the cost, what it is deliberately bad at and the notes, for
-   the audience, who must never be told what a design means to do. Each page is pictured whole and as
-   its first screen alone, so that "without scrolling" can be read off a picture. *(R154, R171.)*
+   the audience, who must never be told what a design means to do. At Structure each page is pictured
+   whole and as its first screen alone, so that "without scrolling" can be read off a picture; from
+   Detail on that question is answered by a measured check, not by a picture. *(R154, R171, R190.)*
 7. **One more name for what a seat may read** (§ 7, "What a card states"): `example-data`, the made-up
    rows a prototype is drawn with, handed to the prototype builder and to the truth judge. *(R188.)*
 
-Three things the dry run showed and this build did not decide are left for the proving run (§ 19): a
-script for the mechanical part of Handoff; checks that test what a page does, not only what it shows;
-and whether every file of a stamped stage, not only its output, is guarded against change (ruled yes,
-R184, and built in the last fix wave).
+Two things the dry run showed and this build did not decide are left for the proving run (§ 19): a
+script for the mechanical part of Handoff, and checks that test what a page does, not only what it shows;
+and one more was ruled and left for the last fix wave of the build: every file of a stamped stage, not
+only its output, is guarded against change (R184).
