@@ -18,8 +18,9 @@ a maker, not a judge, not you. So the work is kept cheap, and blind.
 5. **Letters by shuffle.** The merge gives each proposal a letter. The map of who made which stays
    sealed until he has picked.
 6. **Judges and audiences read by letter.** Of `04-structure/`, a judge is handed the board folder and
-   nothing else; an audience is handed the pictures only, those drawn without the makers' notes. What
-   else a seat's brief template lists comes from the approved stages, as `references/loop.md` says.
+   nothing else; an audience is handed the pictures only, those drawn without the proposal's own
+   account. What else a seat's brief template lists comes from the approved stages, as
+   `references/loop.md` says.
 7. **Nothing is shortlisted before he picks, and nothing is detailed.** Every valid proposal reaches the
    board. You drop none, mend none and rank none ahead of him.
 
@@ -82,17 +83,17 @@ package; `<proposals dir>` is the folder the makers write into, `04-structure/pr
    nothing left in it that says who made it. It writes the map to `04-structure/MAP.sealed.json`:
    beside the board folder, never inside it, and never printed. If one proposal is not valid, it
    writes nothing.
-5. **The render.** Each letter is drawn in the same kit, under its own letter, twice: with the makers'
-   notes, for the judges, and without them, for the audiences. `<kit dir>` is always the project's kit
-   folder, the one the project profile names.
+5. **The render.** Each letter is drawn in the same kit, under its own letter, twice: with the
+   proposal's own account, for the judges, and without it, for the audiences. `<kit dir>` is always the
+   project's kit folder, the one the project profile names.
 6. **The shots.** Every drawn page is photographed, at the primary width and at the phone width, twice:
    the whole page, and its first screen alone, as she meets it before any scrolling. The commands of
    both are step 7 of the Structure skill (`skills/structure/SKILL.md`), and are given nowhere else.
 7. **The readers.** The judges and the audiences the cast names, each a fresh sub-agent. They read by
    letter. Of `04-structure/`, a judge is handed the board folder and nothing else: its letters, pages
    and pictures. An audience is handed the pictures only, each by its path: those of the pages drawn
-   without the makers' notes, whole and first screen, and no other. A picture of a page that carries
-   the notes is never an audience's. What else a seat's brief template lists comes from the approved
+   without the proposal's own account, whole and first screen, and no other. A picture of a page that
+   carries it is never an audience's. What else a seat's brief template lists comes from the approved
    stages. Their briefs list four things under "Do not open": the package's `work/` folder, where the
    makers' briefs are, the map, the pick and the proposals folder.
 8. **The decision page.** The options by letter, one line for each seat that read them, one
@@ -129,9 +130,9 @@ package; `<proposals dir>` is the folder the makers write into, `04-structure/pr
 - **One folder, one board, and a board is never deleted.** A sealed board is never merged again, and the
   merge refuses while a map or a pick lies beside the board folder. What is set aside is moved, into
   `04-structure/earlier/<n>/`: `1` the first time, `2` the next. The pick is the record of his words,
-  and the board is what he saw. Where the script's refusal says to delete, move. Nothing in `earlier/`
-  is ever an input to a stage or a seat. A lessons entry may read it, since what was set aside and why
-  is part of what a design taught.
+  and the board is what he saw: the merge's refusal says to move them there, never to delete them.
+  Nothing in `earlier/` is ever an input to a stage or a seat. A lessons entry may read it, since what
+  was set aside and why is part of what a design taught.
   - **A round he rejected moves whole.** When he picks none and Intent or Context is reopened,
     everything in `04-structure/` other than `earlier/` is moved together, before the new round starts:
     the briefs, the proposals folder, the board, the map, the pick, the pictures, the reads, the

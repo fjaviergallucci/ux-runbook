@@ -111,30 +111,30 @@ is built from the cast, the intent and the context. `<version>` is the version a
    node <kit root>/scripts/shots.mjs <package>/04-structure/board --out <package>/04-structure/board --widths <primary>,<phone> --first-screen
    ```
    The merge prints the letters, and writes the map to `<package>/04-structure/MAP.sealed.json`: beside
-   the board, never in it. Render twice for each letter, the second time without the makers' notes,
-   for the audiences; then the shots once, at the brief's two widths, every page pictured twice,
-   whole and as its first screen alone: `references/seats.md` says who is handed which.
-   The board holds the letters' files, the drawn pages with the kit's stylesheets, and the pictures:
-   nothing else is ever put in it. Never more than three browser-driving commands or seats at once.
-8. **Start the readers, by letter.** The judges and the audiences of the cast sheet's "Structure"
-   table, each a fresh sub-agent: the judges in one message, then the audiences, once every judge has
-   written its ledger. Of `<package>/04-structure/`, a judge is handed the board folder and nothing
-   else; an audience is handed the pictures only, each by its path, those drawn without the makers'
-   notes. Every reader's brief lists under "Do not open" the map, the pick, the proposals folder and
+   the board, never in it. Render twice for each letter, the second time without the proposal's own
+   account, for the audiences; then the shots once, at the brief's two widths, every page pictured
+   twice, whole and as its first screen alone: `references/seats.md` says who is handed which. The board
+   holds the letters' files, the drawn pages with the kit's stylesheets, and the pictures: nothing else
+   is ever put in it. Never more than three browser-driving commands or seats at once.
+8. **Start the readers, by letter.** The judges and the audiences of the cast sheet's "Structure" table,
+   each a fresh sub-agent: the judges in one message, then the audiences, once every judge has written
+   its ledger. Of `<package>/04-structure/`, a judge is handed the board folder and nothing else; an
+   audience is handed the pictures only, each by its path, those drawn without the proposal's own
+   account. Every reader's brief lists under "Do not open" the map, the pick, the proposals folder and
    the makers' files, then `CHOSEN.md`, the cast sheet and, where a continuity maker is cast, today's
    screen: the whole list, and what else each is handed from the approved stages, is in
    `references/seats.md`. Each writes one file in `<package>/04-structure/reads/`.
 9. **Build the decision page.** Write `<package>/04-structure/decision.json` in the shape of
    `templates/outputs/decision.json`: the options by letter, one line for each seat that read them, one
-   recommendation, one question. Its identity is the design's name, kind and size, as `status` prints
-   them. Every letter of the board is an option: the `name` in its file is the title, its `bet` the
-   line, and its pictures are named from the page, the phone width first, as `board/A-390-light.png`.
-   The recommendation rests on the reads, by letter, and its one sentence of reason names the seats
-   it rests on: never what you think of a letter, or know of its maker. A proposal left out, and a
-   seat that did not answer or was held back, is one line under `findings`, by seat, never by letter.
-   A finding marked `blocks` stays in its seat's line beside its letter: at a pick nothing is mended.
-   With a fresh pass, its `gallery` sits beneath the options, labelled as fresh and never mixed into
-   them: the screens as they came, from `fresh/`, none saying which letter holds its structure.
+   recommendation, one question. Its identity is as `status` prints it, its stage as the loop counts it.
+   Every letter of the board is an option: the `name` in its file is the title, its `bet` the line, and
+   its pictures are named from the page, the phone width first, as `board/A-390-light.png`. The
+   recommendation rests on the reads, by letter, and its one sentence of reason names the seats it rests
+   on: never what you think of a letter, or know of its maker. A proposal left out, and a seat that did
+   not answer or was held back, is one line under `findings`, by seat, never by letter. A finding marked
+   `blocks` stays in its seat's line beside its letter: at a pick nothing is mended. With a fresh pass,
+   its `gallery` sits beneath the options, labelled as fresh and never mixed into them: the screens as
+   they came, from `fresh/`, none saying which letter holds its structure.
    ```
    node <kit root>/scripts/page.mjs <package>/04-structure/decision.json --out <package>/04-structure/decision.html
    ```

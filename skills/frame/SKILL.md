@@ -30,6 +30,8 @@ What kind of interface, starting from what, how big: so which stages run?
 - **Of the kit:** `skills/design/references/routes.md`, for the kinds, the foundations, the sizes and
   the route of each size; `skills/cast/references/presets.md`, for the default cast, and
   `pool/INDEX.md`, for each seat's job in a line; `templates/package/00-frame.md`, which you fill.
+- **The first line of the project kit's `tokens.css`,** and what the project's history says of the
+  file it names, as step 6 says: nothing else of the kit or of the history.
 - **Not the project's code, its screens or its data.** Reading the world is Context's.
 
 ## Writes
@@ -40,7 +42,8 @@ What kind of interface, starting from what, how big: so which stages run?
   `built-from` stays `[]`, and the rest of the header is the state script's.
 - The package's `DECISIONS.md`, started from `templates/package/DECISIONS.md` with the frame as its
   first entry.
-- In the project profile, a kind he adds at step 2, and nothing else of it.
+- In the project profile, a kind he adds at step 2, and nothing else of it but, where the tokens
+  moved, the line of "Design system" that names the kit's copy, as step 6 says, with the copy itself.
 
 ## Steps
 
@@ -84,7 +87,12 @@ where it is made at once. Only a kind he adds at step 2 is written before it, an
    row that says `missing` or `off`, or that holds a script's refusal, is a seat with no engine today.
    List the seat, its engine, what the check found, and what the seat does without it, which the last
    table of `skills/cast/references/presets.md` gives. Say the day of the check. "None" when every
-   engine answers. You check nothing again here, and you turn nothing on.
+   engine answers. You check nothing again here, and you turn nothing on. The line for the browser,
+   under that table, is read too: where it says that the project keeps no script for a browser check
+   and the product does not open as files, list that Acceptance will stop until it keeps one. **Then
+   see whether the kit's tokens are still the project's,** as `skills/setup/references/project-kit.md`
+   says under "When the tokens move", and list what it found with them. Where the tokens moved, the
+   copy is made again once the frame is stamped, before any later stage begins.
 
 **Sized `correction`, Frame is one line:** the request, the three values and the route. Steps 4 to 6
 are not run: a correction casts no seat. **You state the line and ask nothing:** a correction costs one

@@ -90,10 +90,10 @@ handoff folder up to date with each deviation he accepts: "Gate" says how.
    driver, one script in the project, on the kit's `scripts/lib/browser.mjs`, and write its command into
    the project profile. For a build that needs a server or a sign-in the kit can write none: say so to
    him, open, and stop, as step 2 stops on a credential. That page has both.
-4. **Put each state on screen, check it there, and photograph it.** For each row of "States to
-   drive" in `ACCEPTANCE.md`, reach the state as its row of `STATES.md` says, at the width and in the
-   theme its checks name, and stay at the top of the page. The kit's in-page file makes the checks,
-   and this prints its path:
+4. **Put each state on screen, check it there, and photograph it.** For each row of "States to drive" in
+   `ACCEPTANCE.md`, reach the state as its row of `STATES.md` says, at the width and in the theme its
+   checks name, and stay at the top of the page, where a list of rooms begins. The kit's in-page file
+   makes the checks, and this prints its path:
    ```
    node <kit root>/scripts/accept.mjs inpage
    ```
@@ -118,19 +118,19 @@ handoff folder up to date with each deviation he accepts: "Gate" says how.
    traits. `references/seats.md` has each hand-over and each "Do not open" list. Each writes one
    file in `<package>/08-acceptance/reads/`. No reader drives the build.
 7. **Write the report, item by item.** One row for each success criterion, each state, each entry of
-   `DEVIATIONS.md`, and each difference a reader found: *matches* or *deviates*, with the check's id
-   or the picture that shows it. A failed check deviates, as a booking action that reads "Reserve"
-   where "Book room" was approved. So does a deviation the builder wrote down, however reasonable.
-   Where two seats disagree, both are written, each in its words. What a reader found that the
-   approved design already had is no deviation: the report has a place of its own for it.
+   `DEVIATIONS.md`, and each difference a reader found: *matches* or *deviates*, with the check's id or
+   the picture that shows it. A failed check deviates. So does a deviation the builder wrote down,
+   however reasonable. Where two seats disagree, both are written, each in its words. What a reader
+   found that the approved design already had is no deviation: the report has a place of its own for it.
 8. **Build the decision page.** Write `<package>/08-acceptance/decision.json` in the shape of
-   `templates/outputs/decision-approve.json`: the build as its one option, with two of its pictures named
-   from the page, the phone width first, as `shots/today-default-en-390-light.png`; one line for each
-   seat that read; each deviation under `findings`, by what found it, a seat, `check: <id>` or `by hand`;
-   one recommendation, resting on the reads; one question: the list of the deviations, or, with none,
-   whether he accepts the build. The option's line gives the count of the checks, and says what they do
-   not see: nothing is pressed, loaded, sent or focused, so the keyboard pass and the builder's
-   deviations stand beside the count. Its identity is as `status` prints it, at stage 9 of 9.
+   `templates/outputs/decision-approve.json`: the build as its one option, with two of its pictures
+   named from the page, the phone width first, as `shots/today-default-en-390-light.png`; one line for
+   each seat that read; each deviation under `findings`, by what found it, a seat, `check: <id>` or `by
+   hand`; one recommendation, resting on the reads; one question: the list of the deviations, or, with
+   none, whether he accepts the build. The option's line gives the count of the checks, and says what
+   they do not see: nothing is pressed, loaded, sent or focused, so the keyboard pass and the builder's
+   deviations stand beside the count. Its identity is as `status` prints it, its stage as the loop
+   counts it.
    ```
    node <kit root>/scripts/page.mjs <package>/08-acceptance/decision.json --out <package>/08-acceptance/decision.html
    ```
@@ -190,8 +190,8 @@ node <kit root>/scripts/state.mjs await <package> acceptance --question "<the on
 - **Never photograph a real person's data.** A picture that would show it is not taken, and the
   report says so.
 - **Never open the package's history:** an earlier stage's folder, another stage's ledgers, `work/`.
-- **Never edit a stamped output as it stands:** `HANDOFF.md`, or an earlier stage's. Where an
-  accepted deviation makes one false, it is reopened first: `references/deviations.md`.
+- **Never edit a stamped output as it stands:** `HANDOFF.md` or an earlier stage's, nor any file of its
+  folder. Where an accepted deviation makes one false, it is reopened first: `references/deviations.md`.
 - **Never change a check to make a build pass.** A check changes only with a deviation he accepted.
 - **Never hand an audience a page, its source, a result or a ledger.** Pictures only.
 - **Never tell a judge what to find,** and never hand one judge another's ledger.

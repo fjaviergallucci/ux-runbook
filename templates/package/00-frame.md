@@ -56,6 +56,9 @@ and the project's own pool: one line for each seat. A starting point only: Cast 
 {Each seat of the provisional cast, and each maker that sits by rule, whose engine is missing or off,
 and what the seat does without it. "None" when every engine answers.}
 
+{No browser script, where the product does not open as files: Acceptance stops until the project
+keeps one. Then whether the kit's tokens are still the project's.}
+
 ## Reviewed by the founder
 
 {What he corrected, and the words he confirmed it with, as he said them.}

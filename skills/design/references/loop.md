@@ -99,7 +99,7 @@ from `templates/briefs/audience.md` for an audience. A judge is told what to rea
 What it reads is named by its letter or by what it is, never by who made it.
 
 - **A judge never makes, and a maker never judges.** A judge reports. It does not fix, redraw or approve.
-- **Each judge is blind to the others' ledgers,** to the makers' notes and to the author map. Where two
+- **Each judge is blind to the others' ledgers,** to a maker's notes and to the author map. Where two
   profile judges sit, each with a profession's profile of its own, each is blind to the other's ledger
   too. Start the judges of a stage in one message, so that no ledger exists while another judge reads.
 - **A seat is handed what its brief template gives it, and no more.** Where that is a profession's
@@ -212,6 +212,14 @@ node <kit root>/scripts/page.mjs <decision.json> --out <decision.html>
   pictures, one line for each seat, the open findings when there are any, the accepted deviations
   under a heading of their own, "Accepted deviations", when there are any, one recommendation with
   one sentence of reason, and last the question.
+- **n and m count the stages the route runs:** m is how many it runs, and n this stage's place among
+  them, a skipped stage not counted. A surface that runs all nine puts Detail at 6 of 9; an
+  adjustment, which skips Structure, at 5 of 8; a correction at 2 of 4. A stage's skill says "as the
+  loop counts it", and means this.
+- **A seat's line is quoted from what it wrote, in its words:** a ledger's verdict and its first fix,
+  as its top line gives them. At Structure, one line for each seat and letter: the seat's place for
+  that letter, where it ranks them, and its most severe finding on that letter; a task read's line is
+  her ranking and her first stuck point on that letter. You choose none of it, and add nothing.
 - **The page's question is the only question on it.** The script refuses data that asks two: it
   counts the question marks of the question and of the recommendation's reason, and no others. A
   seat's line or a finding may quote a question she asks, as it was written.

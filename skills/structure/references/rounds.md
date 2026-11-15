@@ -17,8 +17,8 @@ He picked one letter and named what to take from another, as "B, with A's status
    grafted in, and nothing else of its own, in the form the letters' files have, to
    `<package>/04-structure/chosen/chosen.json`. Never to the board: a graft or a redrawn pick saved
    there as a one-letter `.json` would no longer match the map, and the map would not open.
-2. **Draw it and photograph it,** one command after the other, under the picked letter, as step 7
-   of the skill does for the board: drawn twice, the second time without the makers' notes, for the
+2. **Draw it and photograph it,** one command after the other, under the picked letter, as step 7 of the
+   skill does for the board: drawn twice, the second time without the proposal's own account, for the
    audiences, and each page pictured whole and as its first screen alone.
 
    ```
@@ -30,15 +30,15 @@ He picked one letter and named what to take from another, as "B, with A's status
    The render refuses a file that is not a valid proposal, and prints the fault: the file goes back
    to that maker once. You do not mend it.
 3. **It is read again once.** Each seat that read the board reads the redrawn pick, as a fresh
-   sub-agent. A judge is handed `<package>/04-structure/chosen/` in place of the board folder, and
-   its seat's earlier ledger to open only after it has read cold, as step 6 of the loop says. An
-   audience is handed the new pictures drawn without the makers' notes, whole and first screen, and
-   no other: those of `chosen-screens.html`, as `chosen-screens-390-light.png` and
-   `chosen-screens-390-light-first.png`. A picture of `chosen.html`, which carries the bet, the cost
-   and the notes, is never an audience's. Each writes a file of its own, beside its seat's first
-   read and never over it: that file's name with `-reread` before `.md`, as
-   `<package>/04-structure/reads/<seat>-reread.md`. What they do not open is what the board's
-   readers did not (`references/seats.md`), and with it `<package>/04-structure/decision.html` and
+   sub-agent. A judge is handed `<package>/04-structure/chosen/` in place of the board folder, and its
+   seat's earlier ledger to open only after it has read cold, as step 6 of the loop says. An audience is
+   handed the new pictures drawn without the proposal's own account, whole and first screen, and no
+   other: those of `chosen-screens.html`, as `chosen-screens-390-light.png` and
+   `chosen-screens-390-light-first.png`. A picture of `chosen.html`, which carries the bet, the cost and
+   the notes, is never an audience's. Each writes a file of its own, beside its seat's first read and
+   never over it: that file's name with `-reread` before `.md`, as
+   `<package>/04-structure/reads/<seat>-reread.md`. What they do not open is what the board's readers
+   did not (`references/seats.md`), and with it `<package>/04-structure/decision.html` and
    `<package>/04-structure/decision.json`, which by now sum up what the other seats said. The map is
    still sealed while they read.
 4. **Once means once.** What the re-read finds is written under "What the readers found" in
@@ -76,8 +76,8 @@ against the same brief. Intent or Context is reopened, and the round moves whole
 5. **Go to the stage the state names, and leave Structure alone until it names Structure.**
    `node <kit root>/scripts/state.mjs next <package>` prints the reopened stage, and
    `node <kit root>/scripts/state.mjs validate <package>` has nothing to say of Structure, which is
-   in work and owes no output yet. The script would let you begin it now. Do not: a brief written
-   before Intent or Context is approved again is written from what he rejected.
+   in work and owes no output yet. The script refuses to begin it while Intent or Context is not
+   approved again: a brief written before then is written from what he rejected.
 6. **When `next` prints `structure`,** the reopened stage approved anew and each stale stage after
    it stamped again, Structure starts clean, from step 1 of the skill:
 
@@ -101,8 +101,8 @@ deals the letters anew, so whatever speaks of the old letters goes with them.
    was begun, the reads, and the decision page with its data. The briefs, the proposals folder and
    `fresh/` stay: it is the same round, and the same brief.
 3. **Go on from step 6 of the skill:** tag, merge, draw, photograph, then readers who have read no
-   earlier board. The merge refuses while a map or a pick lies beside the board folder: where its
-   refusal says to delete, move.
+   earlier board. The merge refuses while a map or a pick lies beside the board folder, and its refusal
+   says to move them into `earlier/<n>/` first.
 
 ## A fresh pass he asks for at the decision page
 

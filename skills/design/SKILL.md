@@ -48,8 +48,10 @@ When a request arrives, three questions say where you start:
 
 1. **Is the project set up?** A project is set up once, before its first design. The project profile
    is in the folder that holds its packages: `design/` at the project's root, unless the project chose
-   another. When the project has no project profile, or one whose `## Reviewed by the founder` section
-   is missing or holds none of his words, invoke `ux:setup` first.
+   another. Before you call it not set up, look for a `PROFILE.md` whose header holds `packages:` and
+   `engines-on:`: its folder is the packages folder. When the project has no project profile, or one
+   whose `## Reviewed by the founder` section is missing or holds none of his words, invoke `ux:setup`
+   first.
 2. **Is there a package for this design already?** A folder of that packages folder, holding a
    `state.json`. Then you are resuming: go to "Resuming".
 3. **Otherwise it is a new design.** Invoke `ux:frame`.
@@ -92,9 +94,11 @@ node <kit root>/scripts/state.mjs next <package>
 **A stale or changed artefact is reported to the founder before anything else.** A line with
 `stale-input` says an output rests on something that moved after it was made: a stage it was built from
 has a new version, or the route changed under it. A line with `changed-since-approval` says an approved
-output was edited after its stamp. Tell him which stage, what the line says, and the way out its message
-names: redo it or re-confirm it, then stamp it; reopen it, or put back what was approved. Then act on
-his answer. Never mend either one quietly, and never start a later stage over it.
+output, or a file of its stage's folder, was changed, removed or added after its stamp; one with
+`unfilled` or `approved-without-words`, that an approved output still holds its template's words or none
+of his. Tell him which stage, what the line says, and the way out its message names: redo it or
+re-confirm it, then stamp it; reopen it, or put back what was approved. Then act on his answer. Never
+mend either one quietly, and never start a later stage over it.
 
 Any other line means the package and its state disagree, and its message says how. Report it too. The
 answer is never to edit `state.json` or `STATE.md`: the script writes both.
@@ -163,7 +167,9 @@ node <kit root>/scripts/state.mjs route <package> <stage> <full|short|skipped> -
 
 - **`reopen` goes back.** Any stage may ask to, with its reason. The stage gets a new version, and every
   later output built from the old one turns stale: each is redone or re-confirmed, then stamped again.
-  A later stage that was awaiting him goes back in work, its question closed.
+  A stage skipped, or not started since it was put back on the route, is passed through unchanged,
+  and what was built on it still turns stale. A later stage that was awaiting him goes back in work,
+  its question closed.
 - **`resize` grows the design.** The size only moves up: `references/routes.md`.
 - **`route` changes one stage's mode,** with the reason the state will keep.
 

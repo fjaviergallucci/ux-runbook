@@ -4,12 +4,11 @@ description: "Use when the interface design pipeline reaches Handoff: an approve
 ---
 # Handoff: one folder a session can build from
 
-You pack the approved design into one folder that a session which was never here can build from
-without asking. You write it from what Look's carry list hands you; a cold implementer, handed that
-folder and nothing else, lists what it would have to ask and to guess; and the founder gives one go.
-You design nothing, and you change nothing that was approved: no string, no state, no rule, no id and
-no value. The conductor (`ux:design`) sent you, and its words are yours. Its loop is in
-`skills/design/references/loop.md`: this page says only what is Handoff's own.
+You pack the approved design into one folder another session can build from. You write it from Look's
+carry list; a cold implementer, handed that folder and nothing else, lists what it would have to ask and
+to guess; and the founder gives one go. You design nothing, and you change nothing that was approved: no
+string, no state, no rule, no id and no value. The conductor (`ux:design`) sent you, and its words are
+yours. Its loop is in `skills/design/references/loop.md`: this page says only what is Handoff's own.
 
 The kit's root is two directories above this skill's own folder; run a script as
 `node <kit root>/scripts/<name>.mjs`. Run it from the project's root. `<packages>` is the folder that
@@ -101,6 +100,7 @@ Each path is from `<package>/`. `<version>` is the version a stage stands at, as
    and saw in this session, never one from memory or from a ledger. An element the system has no
    part for is never given the nearest name. **Each named extension** of `measures.md` is written
    under "Changes to the system", with its definition: a change to the system, to be agreed as one.
+   **Not while `<tokens>` and the project's file differ:** `skills/setup/references/project-kit.md`.
 6. **Write the checks, and run them on the prototype first.** `ACCEPTANCE.md` and `acceptance.json`
    are written from the intent's success criteria, the states and the measured values, each element
    by its stable id, its `data-ux`, with `screen` where an id repeats: `references/folder.md`. Then:
@@ -148,7 +148,7 @@ Each path is from `<package>/`. `<version>` is the version a stage stands at, as
     `../07-handoff/prototype/shots/today-default-en-390-light.png`; the cold implementer's line;
     under `findings`, each item still open and each default, by seat, and each pointer step 7 left
     open, its seat `check: alone.mjs --package`; one recommendation; one question. Its identity is as
-    `status` prints it, at stage 8 of 9.
+    `status` prints it, its stage as the loop counts it.
     ```
     node <kit root>/scripts/page.mjs <package>/07-handoff-gate/decision.json --out <package>/07-handoff-gate/decision.html
     ```

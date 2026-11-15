@@ -116,10 +116,12 @@ each profession's profile, `audience.task-reader-<name>` for each person.
 
 Each letter is on the board twice, and each page is pictured twice:
 
-- **Drawn with the makers' notes, and without them.** `<letter>.html` carries them, and
-  `<letter>-screens.html` does not. The judges read the pages with the notes: the bet, the cost,
-  what a letter is deliberately bad at, and the notes on its screens and items. The audiences are
-  handed the pictures of the pages drawn without them, and no other.
+- **Drawn with the proposal's own account, and without it.** `<letter>.html` carries it, and
+  `<letter>-screens.html` does not. The proposal's own account is what a letter's file says of itself:
+  its name, its bet, its cost, what it is deliberately bad at, and the notes on its screens and items.
+  It is part of the proposal, and the judges read the pages that carry it. It is not a maker's notes,
+  which are what a maker said outside its work, and which no reader opens. The audiences are handed the
+  pictures of the pages drawn without it, and no other.
 - **The whole page, and its first screen alone.** A picture of the first screen is the window's
   height, with no scrolling, and its name ends `-first.png`. A brief says which is which, and that
   "without scrolling" is answered on the first.
@@ -187,14 +189,14 @@ person the makers were not briefed on.
   of the intent: where she starts and what she wants. Never the path, a criterion, or the job as the
   intent states it. Where the tasks are not written in her language, the brief says so.
 - **Handed:** her card. Her profession's traits: a copy of her profession's profile with every
-  `So the interface must:` field removed, written beside the brief as the loop says, and the one
-  file of `<package>/work/` she opens. And the pictures of every letter drawn without the makers'
-  notes, at the width each task puts her at, each by its path in `<package>/04-structure/board/`:
-  the whole page, as `A-screens-390-light.png`, and its first screen alone, as
+  `So the interface must:` field removed, written beside the brief as the loop says, and the one file of
+  `<package>/work/` she opens. And the pictures of every letter drawn without the proposal's own
+  account, at the width each task puts her at, each by its path in `<package>/04-structure/board/`: the
+  whole page, as `A-screens-390-light.png`, and its first screen alone, as
   `A-screens-390-light-first.png`. The pictures, and pictures only.
 - **Do not open:** the list above, and with it: `<package>/02-intent.md`, and every other file of the
   package; her profession's profile itself; the pages and the letters' files of the board, with the
-  pictures of the pages that carry the makers' notes. A person cannot find a control by reading
+  pictures of the pages that carry the proposal's own account. A person cannot find a control by reading
   markup, and must not be told what a letter means to do.
 - **Writes:** one task read, `<package>/04-structure/reads/<seat>-<name>.md`, in the shape of
   `templates/outputs/TASK-READ.md`.

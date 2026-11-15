@@ -41,7 +41,7 @@ root.
    one before first, as `correction/before-1280-light.png`, and its line the "is → becomes" of step
    3; `"seats": []`, since no seat read it; one recommendation, with its one sentence of reason; one
    question.
-   Its identity is as `status` prints it, at the stage its route has it at: 2 of 4. Build it with
+   Its identity is as `status` prints it, its stage as the loop counts it: 2 of 4. Build it with
    the `page.mjs` command of step 9 of the skill.
 
 ## The gate

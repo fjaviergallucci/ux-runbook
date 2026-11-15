@@ -184,6 +184,39 @@ gate: does a button here look like his product's button, a field like its field?
 "the conductor's proposal" with its picture: he decides each, and the mark comes off a line on his word
 alone. What he corrects, you change in `kit.css`, and picture again.
 
+## When the tokens move
+
+The copy is the project's tokens as they stood the day it was made, and the product goes on changing.
+So it is looked at again: by Frame, before it puts the frame to him, and the copy made again once the
+frame is stamped, before any later stage draws; by Look, at its step 2, before the visual designer
+starts; and by Handoff, before it writes `PARTS.md`. A correction draws on no kit, and looks at
+nothing here.
+
+Read the first line of `<packages>/kit/tokens.css`: the file it names, or each file an export names,
+and the commit it was read at. Then ask the project's history whether that file changed since:
+
+```
+git log --oneline <the commit>..HEAD -- <the file>
+git status --short -- <the file>
+```
+
+Name every file the first line names, each as a word of its own.
+
+- **Both print nothing:** the copy is the project's. Nothing is said, and the stage goes on.
+- **Either prints a line:** the file changed after the copy was made. Tell the founder which file, the
+  commit on the copy's first line, and what the commands printed. Then, before anything is drawn,
+  make the copy again as step 2 above says, with the new commit on its first line, and run steps 5
+  and 6 again. The line of "Design system" in the project profile that names the copy's commit
+  changes with it: he sees the pictures and that line, as at setup, and what he corrects goes in.
+- **It cannot be told:** the project keeps no history, as a first line that holds a day says; the
+  history knows no such commit or no such file; or the first line says "with uncommitted changes". Say
+  which, and ask him whether the tokens changed since the day or the commit it gives. His answer is
+  written where the stage that asked writes his words. A yes, or "I don't know", is taken as a change.
+- **At Handoff, `PARTS.md` is not written while the copy and the file differ.** Look's screens, their
+  measured values and their pictures were drawn on tokens the product no longer has. Stop, and tell
+  him so: the way on is to reopen Look, which is his to ask for, and at its step 2 the copy is made
+  again before anything is drawn.
+
 ## Never
 
 - Never import, copy or run a real component: the kit is plain parts wearing the project's tokens.
