@@ -6198,8 +6198,9 @@ test('the dry run, Structure and Detail: a rule selects what a maker is given, t
   says(seats, '"Today\'s screen" is the surface being redesigned, as it is, as a picture or as source. "A sibling surface" is another surface of the product. "Project sources" of the context says which a file is.');
   says(stageRef('look', 'seats.md'), 'A new surface has no screen of today, and the surface it sits beside is a sibling.');
   // R160: the hardest states and the worst rows are selected by a written rule, in both briefs and at Detail.
+  // R193: each state is named by what has happened; what the screen shows then is the maker's to write.
   for (const file of ['BRIEF.md', 'BRIEF-fresh.md']) {
-    says(read(`templates/package/04-structure/${file}`), 'Every state the intent says she must be told about, one line each', 'The rule selects them: none is weighed, and none is left out.',
+    says(read(`templates/package/04-structure/${file}`), 'Every state the intent says she must be told about, one line each, named by what has happened, never by what she is told in it:', 'The rule selects them: none is weighed, and none is left out.',
       'with every row that states a limit, a delay or a failure', 'A real label that names a screen of today is given as the facts it states, never in its own words.');
   }
   says(stageRef('detail', 'seats.md'), 'every row of the context\'s inventory that states a limit, a delay or a failure, as the context states it. The rule selects them: you weigh none, and leave none out.');

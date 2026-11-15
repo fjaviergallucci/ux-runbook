@@ -25,8 +25,8 @@ what she never does. Then what is true of her profession, where it bears on this
 
 ## The hardest state
 
-{Every state the intent says she must be told about, one line each, as: the list is empty; it has two
-hundred rows. The rule selects them: none is weighed, and none is left out.}
+{Every state the intent says she must be told about, one line each, named by what has happened, never by
+what she is told in it: the list is empty. The rule selects them: none is weighed, and none is left out.}
 
 ## What the product can show and do
 
