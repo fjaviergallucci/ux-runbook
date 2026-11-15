@@ -13,17 +13,19 @@
 // into the package it is in: every text file of the folder, its Markdown, its JSON, its scripts and the
 // comments of its pages and stylesheets among them, is read for the name of a file or a folder of the package
 // that the folder does not hold itself. The package's build/ folder is the builder's place, beside the
-// folder, and may be named. A pointer that names no file ("answer 28") is not seen.
+// folder, and may be named. A pointer that names no file ("answer 28") is not seen. A symbolic link in the
+// folder is never followed: one that leads out of the folder, or nowhere, is a way out too, and is printed.
 //
 // As a module: references(text, kind) → the addresses a page ('html') or a stylesheet ('css') loads, in the
 // order written, each once, as written; alone(folder) → { files, references, faults: [{ file, reference,
 // why }] }, each reference as it is printed, which throws an AloneError for a folder that cannot be read or
-// holds nothing to read; pointers(folder, package) → { files, faults: [{ file, line, name, where, of }] },
-// the text files read and each place that names something of the package, which throws an AloneError for
-// a folder or a package that cannot be read.
+// holds nothing to read; pointers(folder, package) → { files, faults: [{ file, line, name, where, of }],
+// links: [{ file, why }] }, the text files read, each place that names something of the package, and each
+// link of the folder that leads out of it or nowhere, which throws an AloneError for a folder or a package
+// that cannot be read.
 // Exit codes: 0 every reference leads to a file inside the folder · 1 one does not, or a refusal · 2 bad
-// usage. With --package, 1 also when a place points back.
-import { readdirSync, readFileSync, realpathSync, statSync } from 'node:fs';
+// usage. With --package, 1 also when a place points back, or a link leads out of the folder or nowhere.
+import { lstatSync, readdirSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import { join, posix, sep } from 'node:path';
 import { UsageError, isMain, parseArgs } from './lib/cli.mjs';
 import { reason } from './lib/json-file.mjs';
@@ -268,17 +270,33 @@ function mustBeFolder(folder, what) {
   return realpathSync(folder);
 }
 
-// Everything under a folder, files and folders, each by its path from it, with `/`; a folder whose own
-// path, every link followed, is one of `passed` is not entered and not listed.
+// Everything under a folder, each by its path from it, with `/`: its folders, its files (`isFile`: something
+// that can be read as one) and its symbolic links (`isLink`), each asked what it is itself, so that a link
+// is never followed, whatever it leads to. A folder whose own path is one of `passed` is not entered and
+// not listed.
 function entries(folder, passed = [], inside = '') {
-  return readdirSync(join(folder, ...inside.split('/')), { withFileTypes: true })
-    .filter(entry => !HIDDEN.test(entry.name))
-    .flatMap(entry => {
-      const path = `${inside}${entry.name}`;
-      if (!entry.isDirectory()) return [{ path, name: entry.name, isFolder: false }];
-      if (passed.includes(realpathSync(join(folder, ...path.split('/'))))) return [];
-      return [{ path: `${path}/`, name: entry.name, isFolder: true }, ...entries(folder, passed, `${path}/`)];
+  return readdirSync(join(folder, ...inside.split('/')))
+    .filter(name => !HIDDEN.test(name))
+    .flatMap(name => {
+      const path = `${inside}${name}`;
+      const at = join(folder, ...path.split('/'));
+      const stat = lstatSync(at);
+      if (!stat.isDirectory()) return [{ path, name, isFolder: false, isFile: stat.isFile(), isLink: stat.isSymbolicLink() }];
+      if (passed.includes(realpathSync(at))) return [];
+      return [{ path: `${path}/`, name, isFolder: true, isFile: false, isLink: false }, ...entries(folder, passed, `${path}/`)];
     });
+}
+
+// Why a symbolic link of the folder, at this path, is a way out of it, or null when it leads to a file or a
+// folder inside the folder. `real` is the folder's own path, every link followed.
+function leadsOut(at, real) {
+  let leads;
+  try {
+    leads = realpathSync(at);
+  } catch {
+    return 'it leads nowhere';
+  }
+  return leads === real || leads.startsWith(`${real}${sep}`) ? null : 'it leads out of the folder';
 }
 
 // Whether a line writes a name whole: not inside a longer name, and, for a name with no dot in it, which
@@ -297,13 +315,16 @@ function writes(line, name) {
 
 const byCode = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 
-// pointers(folder, package) → { files, faults }: how many files of the folder were read as text (one that
-// holds a NUL byte is none), and each place in them that names a file or a folder of the package which the
-// folder does not hold, as { file, line, name, where, of }: the file by its path from the folder, the line
-// from 1, the name as it is printed (a folder's with its slash), its path in the package (the first, in the
-// order of the paths, when the package holds `of` of that name). A name of the package is the name of
+// pointers(folder, package) → { files, faults, links }: how many files of the folder were read as text (one
+// that holds a NUL byte is none), and each place in them that names a file or a folder of the package which
+// the folder does not hold, as { file, line, name, where, of }: the file by its path from the folder, the
+// line from 1, the name as it is printed (a folder's with its slash), its path in the package (the first, in
+// the order of the paths, when the package holds `of` of that name). A name of the package is the name of
 // anything under it but the folder itself and its build/ folder; a name the folder holds too, anywhere in
-// it, is none. Throws a TypeError for what is not a path, an AloneError for a folder that cannot be read.
+// it, is none. A symbolic link is never followed and never read: `links` holds each one of the folder that
+// leads out of it or nowhere, as { file, why }, in the order of their paths; one that leads inside the
+// folder is passed over, and in the package a link is a name like any other. Throws a TypeError for what is
+// not a path, an AloneError for a folder that cannot be read.
 export function pointers(folder, pkg) {
   const real = mustBeFolder(folder, 'folder');
   const realPackage = mustBeFolder(pkg, 'package');
@@ -322,15 +343,23 @@ export function pointers(folder, pkg) {
   const sought = [...names].sort(([, a], [, b]) => byCode(a.shown, b.shown));
   const faults = [];
   let files = 0;
-  for (const { path: file } of mine.filter(entry => !entry.isFolder).sort((a, b) => byCode(a.path, b.path))) {
-    const bytes = readFileSync(join(folder, ...file.split('/')));
+  const links = [];
+  for (const { path: file, isFile, isLink } of mine.filter(entry => !entry.isFolder).sort((a, b) => byCode(a.path, b.path))) {
+    const at = join(folder, ...file.split('/'));
+    if (isLink) {
+      const why = leadsOut(at, real);
+      if (why) links.push({ file, why });
+    }
+    // Only a file is opened: a link is not, and nor is anything else a folder may hold.
+    if (!isFile) continue;
+    const bytes = readFileSync(at);
     if (bytes.includes(0)) continue;
     files++;
     bytes.toString('utf8').split('\n').forEach((line, i) => {
       for (const [name, { shown: said, where, of }] of sought) if (writes(line, name)) faults.push({ file, line: i + 1, name: said, where, of });
     });
   }
-  return { files, faults };
+  return { files, faults, links };
 }
 
 // ---- the command line
@@ -379,10 +408,18 @@ A name with a dot in it, as measures.md, is found wherever it is written whole, 
 capitals and all: not inside a longer name (my-measures.md, measures.md.bak). A name with no dot, as
 work or 06-look, could be a word: it is found only where it is written as a path, a slash before it or
 after it (work/, 04-structure/board). A pointer that names no file, as "answer 28" or "as decided at
-Detail", is not seen: a person still reads for those. One line is printed for each place, on standard
-error, "<file>:<line>: <name>: it names <its path in the package> of the package, which the folder does
-not hold"; of a name the package holds more than once, the first path is given, with their number. A
-place that points back makes the exit code 1, as an address that leaves the folder does.
+Detail", is not seen: a person still reads for those. Nor is a name written another way than the
+package writes it, as my%20notes for "my notes", or anything in a file that is no text here, as one in
+UTF-16. One line is printed for each place, on standard error, "<file>:<line>: <name>: it names <its
+path in the package> of the package, which the folder does not hold"; of a name the package holds more
+than once, the first path is given, with their number. A place that points back makes the exit code 1,
+as an address that leaves the folder does.
+
+A symbolic link in the folder is never followed, and never read as text. One that leads to a file or a
+folder inside the folder is passed over: what it leads to is read at its own path. One that leads out
+of the folder, or nowhere, is a way out of it: one line is printed for it, "<link>: a link: it leads out
+of the folder" or "<link>: a link: it leads nowhere", and the exit code is 1. In the package a link is a
+name like any other. Without --package no link is judged, but where an address leads through one.
 
 When every address leads to a file inside the folder it prints one line, "<folder> stands alone: <n>
 references in <m> files, each to a file inside it"; with --package, and no place that points back, the
@@ -390,7 +427,7 @@ line goes on: "; and none of its <k> text files names a file or folder of <packa
 hold". Nothing is written, and no browser is started.
 
   --package <package>   the package the folder is in, as design/today for design/today/07-handoff; not
-                        the folder itself
+                        the folder itself, nor a folder inside it
 
 A flag may also be written --flag=value.
 
@@ -407,6 +444,15 @@ function sameFolder(a, b) {
   }
 }
 
+// Whether one folder lies inside another, every link followed; false when either cannot be reached.
+function liesInside(inner, outer) {
+  try {
+    return realpathSync(inner).startsWith(`${realpathSync(outer)}${sep}`);
+  } catch {
+    return false;
+  }
+}
+
 function main(argv) {
   try {
     const args = parseArgs(argv, { flags: ['package'] });
@@ -418,11 +464,13 @@ function main(argv) {
     const [folder] = args.positional;
     const pkg = args.flags.package;
     if (pkg !== undefined && sameFolder(folder, pkg)) throw new UsageError('--package is the folder itself: name the package it is in');
+    if (pkg !== undefined && liesInside(pkg, folder)) throw new UsageError('--package lies inside the folder: the folder comes first, then the package it is in');
     // Both are judged before anything is printed: a refusal of either is said alone.
     const { files, references: judged, faults } = alone(folder);
     const back = pkg === undefined ? null : pointers(folder, pkg);
     const places = back?.faults ?? [];
-    if (faults.length === 0 && places.length === 0) {
+    const links = back?.links ?? [];
+    if (faults.length === 0 && places.length === 0 && links.length === 0) {
       const named = back ? `; and none of its ${back.files} text file${back.files === 1 ? '' : 's'} names a file or folder of ${pkg} that it does not hold` : '';
       process.stdout.write(`${folder} stands alone: ${judged} reference${judged === 1 ? '' : 's'} in ${files} file${files === 1 ? '' : 's'}, each to a file inside it${named}\n`);
       return;
@@ -430,6 +478,10 @@ function main(argv) {
     if (faults.length > 0) {
       const one = faults.length === 1;
       process.stderr.write(`${faults.map(({ file, reference, why }) => `${file}: ${reference}: ${why}\n`).join('')}${faults.length} reference${one ? '' : 's'} of ${folder} ${one ? 'does' : 'do'} not lead to a file inside it\n`);
+    }
+    if (links.length > 0) {
+      const one = links.length === 1;
+      process.stderr.write(`${links.map(({ file, why }) => `${file}: a link: ${why}\n`).join('')}${links.length} link${one ? '' : 's'} of ${folder} lead${one ? 's' : ''} out of it, or nowhere\n`);
     }
     if (places.length > 0) {
       const one = places.length === 1;

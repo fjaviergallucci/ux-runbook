@@ -523,6 +523,10 @@ test('--package: the package is a folder that can be read and is not the folder 
     [['07-handoff', '--package'], 2, /^--package needs a value\n\nUsage: /],
     [['07-handoff', '--package', '07-handoff'], 2, /^--package is the folder itself: name the package it is in\n\nUsage: /],
     [['07-handoff', '--package', './07-handoff/'], 2, /^--package is the folder itself: name the package it is in\n\nUsage: /],
+    // S9: the two swapped, or a folder of the folder given for its package, would read nothing and say "stands alone".
+    [['.', '--package', '07-handoff'], 2, /^--package lies inside the folder: the folder comes first, then the package it is in\n\nUsage: /],
+    [['07-handoff', '--package', '07-handoff/prototype'], 2, /^--package lies inside the folder: the folder comes first, then the package it is in\n\nUsage: /],
+    [['07-handoff', '--package=./07-handoff/prototype/shots/'], 2, /^--package lies inside the folder: /],
     [['07-handoff', '--package', 'nowhere'], 1, /^cannot read nowhere: not found\n$/],
     [['07-handoff', '--package', 'STATE.md'], 1, /^cannot read STATE\.md: it is a file, not a folder\n$/],
   ]) {
@@ -537,6 +541,50 @@ test('--package: the package is a folder that can be read and is not the folder 
   assert.match(r.stderr, /^PARTS\.md:1: strings\.json: it names 05-detail\/strings\.json of the package \(one of 2 of that name\), which the folder does not hold\n1 place of /);
 });
 
+// S9 of the fix review: a link to a folder, or one that led nowhere, crashed the run with a stack; a link to a file of the
+// package was read for its text and never said to point back.
+test('--package: a symbolic link in the folder is never followed: one that leads inside the folder is passed over, and one that leads out of it or nowhere is printed, by its path alone', t => {
+  const linked = (links, changes) => {
+    const dir = packaged(changes);
+    for (const [link, target] of Object.entries(links)) symlinkSync(target.startsWith('/') ? target : join(dir.pkg, target), join(dir.folder, link));
+    return dir;
+  };
+  try {
+    linked({ 'a-link': '06-look/measures.md' });
+  } catch {
+    return t.skip('this system makes no symbolic links');
+  }
+  const said = (dir, ...lines) => {
+    const r = judged(dir);
+    assert.deepEqual([r.status, r.stdout], [1, ''], r.stderr);
+    assert.deepEqual(r.stderr.trimEnd().split('\n'), lines);
+  };
+  // To a file of the package, to a folder of it, to a file outside both, and to nothing: each is a way out, and none is opened.
+  said(linked({ 'notes.md': '06-look/measures.md' }), 'notes.md: a link: it leads out of the folder', '1 link of 07-handoff leads out of it, or nowhere');
+  said(linked({ 'prototype/more': '06-look/screens' }), 'prototype/more: a link: it leads out of the folder', '1 link of 07-handoff leads out of it, or nowhere');
+  said(linked({ 'gone.md': 'nowhere/at-all.md', 'README.md': cli, 'prototype/back': '.' }),
+    'README.md: a link: it leads out of the folder', 'gone.md: a link: it leads nowhere', 'prototype/back: a link: it leads out of the folder', '3 links of 07-handoff lead out of it, or nowhere');
+  // A link is said before the places, and both are counted; its own name is one the folder holds.
+  said(linked({ 'measures.md': '06-look/measures.md' }, { 'PARTS.md': 'See measures.md and LOOK.md.\n' }),
+    'measures.md: a link: it leads out of the folder', '1 link of 07-handoff leads out of it, or nowhere',
+    'PARTS.md:1: LOOK.md: it names 06-look/LOOK.md of the package, which the folder does not hold', '1 place of 07-handoff names a file or folder of . that it does not hold');
+  // One that leads to a file or a folder of the folder is passed over: what it leads to is read at its own path, once.
+  const inside = linked({ 'copy.json': '07-handoff/strings.json', pages: '07-handoff/prototype', 'prototype/up': '07-handoff' });
+  const r = judged(inside);
+  assert.deepEqual([r.status, r.stderr], [0, ''], r.stdout);
+  assert.equal(r.stdout, `07-handoff stands alone: 8 references in 5 files, each to a file inside it; and none of its ${TEXT_FILES} text files names a file or folder of . that it does not hold\n`);
+  // As a module: the links are listed apart, by path and why, and the text files are those that are files.
+  const out = linked({ 'notes.md': '06-look/measures.md', 'gone.md': 'nowhere/at-all.md', 'copy.json': '07-handoff/strings.json' });
+  assert.deepEqual(pointers(out.folder, out.pkg), { files: TEXT_FILES, faults: [], links: [{ file: 'gone.md', why: 'it leads nowhere' }, { file: 'notes.md', why: 'it leads out of the folder' }] });
+  // In the package a link is a name like any other, and is not followed either.
+  const named = packaged({ 'PARTS.md': 'See old-look/ and the-ledger.md.\n' });
+  symlinkSync(join(named.pkg, '06-look'), join(named.pkg, 'old-look'));
+  symlinkSync(join(named.pkg, 'nowhere'), join(named.pkg, 'the-ledger.md'));
+  points(named, 'PARTS.md:1: old-look: it names old-look of the package, which the folder does not hold', 'PARTS.md:1: the-ledger.md: it names the-ledger.md of the package, which the folder does not hold');
+  // Without the flag no link is judged, as before: only an address that leads through one.
+  assert.equal(run(out.pkg, '07-handoff').status, 0);
+});
+
 test('pointers(folder, package) lists each place, and throws as alone does', () => {
   const dir = packaged({ 'PARTS.md': 'See measures.md.\n\nAnd work/notes.\n' });
   assert.deepEqual(pointers(dir.folder, dir.pkg), {
@@ -546,6 +594,7 @@ test('pointers(folder, package) lists each place, and throws as alone does', () 
       { file: 'PARTS.md', line: 3, name: 'notes', where: 'work/notes', of: 1 },
       { file: 'PARTS.md', line: 3, name: 'work/', where: 'work/', of: 1 },
     ],
+    links: [],
   });
   assert.throws(() => pointers(dir.folder, join(root, 'nowhere')), e => e instanceof AloneError && /^cannot read .*nowhere: not found$/.test(e.message));
   assert.throws(() => pointers(join(root, 'nowhere'), dir.pkg), e => e instanceof AloneError && /^cannot read .*nowhere: not found$/.test(e.message));
@@ -567,5 +616,12 @@ test('--help says what --package reads, what a name is, and what is let be', () 
     'A name with no dot, as work or 06-look, could be a word: it is found only where it is written as a path, a slash before it or after it',
     'A pointer that names no file, as "answer 28" or "as decided at Detail", is not seen',
     '"<file>:<line>: <name>: it names <its path in the package> of the package, which the folder does not hold"',
+    // S9: what a link is, and what the check does not find.
+    'A symbolic link in the folder is never followed, and never read as text',
+    'One that leads to a file or a folder inside the folder is passed over: what it leads to is read at its own path',
+    'One that leads out of the folder, or nowhere, is a way out of it: one line is printed for it, "<link>: a link: it leads out of the folder" or "<link>: a link: it leads nowhere", and the exit code is 1',
+    'In the package a link is a name like any other',
+    'Nor is a name written another way than the package writes it, as my%20notes for "my notes", or anything in a file that is no text here, as one in UTF-16',
+    'not the folder itself, nor a folder inside it',
   ]) assert.ok(help.includes(said), said);
 });
