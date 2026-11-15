@@ -356,7 +356,8 @@ The first real project is the proving run. These are left for it.
   keys, and a real build to try them on.
 - **The guide's build loop, and the rows "measured by a person".** A stand-in build starts no browser,
   so neither ran. A real builder will show whether the loop can be followed from the folder alone, and
-  whether a person can reach the same number twice (R185 gives such rows a check, in the final wave).
+  whether a person can reach the same number twice (R185 gave a size and a gap a check in the final
+  wave; the length of a line stays a person's).
 - **The driver a conductor writes (R159, R189).** It worked on a build that opens as files, and the
   kit now writes one for such a build only. A build that runs on a server or signs in needs a script of
   the project's own: a real project will show what that script must do, and whether the kit should
@@ -388,3 +389,64 @@ Run before the dry run, on the kit's nine evaluation cases, with a cap of $15.
   something the package contradicts, it is not used, the session names the output that holds the
   package's fact, asks whether that stage is to be reopened, and does not go on until he answers; and
   the one nod of a correction, above.
+
+## After the dry run: the review of the whole branch
+
+Once the rounds above were done, the branch was reviewed once, whole, by a reader who had built none of
+it. Its verdict: ready for a proving run once one more wave was done, on one condition, that the first
+finding was in it. It found one Critical, eight Important and twelve Minor:
+
+- **G1 · Critical.** The screen generator's seat was never told whether its outside tool was on: the
+  one path by which a brief could leave the machine without his yes.
+- **G2.** What Structure's readers left open on the chosen structure reached no maker at Detail.
+- **G3.** A build that runs on a server met its first stop at stage 9, and the browser script the
+  project must keep had no contract.
+- **G4.** A correction assumed a screen that opens as a file.
+- **G5.** Installed as the README said, the scripts that drive a browser died with a raw stack.
+- **G6.** "The measure" of the intent was approved and never built, and "The feeling" reached no seat.
+- **G7.** The stamp passed an output with none of his words, its template's instructions still in it.
+- **G8.** One seat was told to drive a browser with a script of its own.
+- **G9.** Nobody looked whether the project's tokens had moved since the kit copied them.
+- **G10.** A judge at Look blocked on the sibling surfaces, which no maker was handed.
+- **G11.** "The makers' notes" meant two things at Structure, and two sentences disagreed.
+- **G12.** The merge's refusals said delete, where the kit says never delete.
+- **G13.** A file named like a letter, in any folder above the project, refused every merge.
+- **G14.** On the decision page the third option was cut and the fourth off the screen.
+- **G15.** "Stage n of m" was counted two ways.
+- **G16.** A stage could be begun, and put to him, before the gates before it.
+- **G17.** A `source:` line of a carry list was never looked for.
+- **G18.** A packages folder other than `design/` could not be found from disk.
+- **G19.** The outside describer's file at Look had two names.
+- **G20.** A profession's name stood outside `docs/`, in a test.
+- **G21.** What a seat's line on the decision page holds was not said.
+
+**What was fixed.** All twenty-one, in one wave of two parts: the scripts first, each change test-first
+and each new condition mutated by hand once, then the words. With them, the parked rulings the review
+took up: the stale chain passes a skipped stage through unchanged (R39); the element that answers
+"without scrolling" is never a shape inside an `svg`, said and not coded (R108); a pill's corners are
+measured as CSS draws them (R109); what a mount or a file browser leaves in a folder is passed over
+(R132); a stamp guards every file of its stage's folder, so an accepted deviation reopens Handoff
+before any file of the handoff folder changes, once for the batch (R184); and two check types, `style`
+and `gap`, where three had been asked for (R185). Eight of the deferred minors went with them. Two
+findings rest on the founder's own yes and on nothing the kit could check: the screen generator's
+brief now says whether its tool is on, from `engines-on` alone, and a project's browser script is the
+project's to write, which setup, Frame and the builder's guide each say.
+
+**What was dropped, and why.** R84: every page the kit pictures is drawn by its own scripts or makers.
+Thirty-seven deferred minors: each was an error worded oddly, a cost in time, a case on another
+operating system, or a path no step of any skill reaches. And one test the review proposed for G6,
+that every heading of a stage's template be named by a later stage: twenty-six headings are named by
+none in their own words, most of them read whole by a seat handed the output, and a list of exceptions
+that long would hold today's text, not find the next heading that is lost.
+
+**What is left for the proving run.**
+
+- **The script for Handoff's mechanical part (R182),** as above.
+- **Checks of what a page does (R183's check types):** a key, a load, where focus lands. They need a
+  driver that presses keys, and the project's own browser script, which G3 gave a contract, is where
+  such a driver would live.
+- **The largest risk the review named: stage 9 on a real product.** A product that runs on a server
+  and signs in stops Acceptance until the project keeps a browser script; the contract for it has
+  never been followed by a real project; the checks see what a page draws and no more; and the
+  guide's build loop has been followed by nobody. Everything before Handoff has been run once, and
+  everything after it only on a copy of the prototype.
