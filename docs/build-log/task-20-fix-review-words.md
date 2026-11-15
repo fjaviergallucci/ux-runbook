@@ -219,3 +219,130 @@ project with no browser script ("no script" written at setup, step 2).
 
 The scripts and their tests (another reviewer's). The whole suite (single files only). The evaluation
 runs. The design document. The run's notes, except to check `DRY-RUN.md`'s numbers.
+
+## Re-review of fix round 1
+
+Scope: what `review-557e6e1..3f4654d.diff` changed in the words, read **at HEAD** (`80038c1`, which
+adds the controller's amendment of § 25 for R189 and R190), against `task-20-fix-round-1.md`. I checked
+my W1–W4 and M1–M10, and the sentences the round touched for S1, S2, S3, S6 (as R190), S7, S10, S11 and
+S15.
+
+**Spec: met.** Every finding is addressed as the round ruled it, and M11 is left as ruled. **Quality:
+approved**, with four new Minor findings, which can be fixed or deferred. Nothing new is Important.
+
+### My findings, one by one
+
+| Finding | State | What I checked |
+|---|---|---|
+| W1 (R189) | **fixed** | `driving.md` § "When the project keeps no driver" now opens by saying the library opens local files and nothing else, and that the section is for that case alone. A build that needs a server or a sign-in goes to him open, and the stage stops. Its sign-in bullet is now "holds no sign-in, and makes none". Acceptance step 3 says both cases, and its new Never line forbids a script that signs in or takes a sign-in from where it is kept. Every "sign-in" sentence of `skills/acceptance/` was read. Those that remain concern the project's own driver, or the rule against copying a credential: none has the session write code that reaches a credential. Setup and the profile template now say "for a build that opens as files". |
+| W2 (with S2, S7) | **fixed** | `rounds.md` step 2 draws the graft twice and photographs it with `--first-screen`. Step 3 hands an audience only `chosen-screens-…` pictures, whole and first screen, and says a picture of `chosen.html` is never an audience's. `blind.md` steps 5–7 say what is drawn and pictured, twice each, and step 7 says who gets which. They point to Structure's step 7 for the commands instead of keeping a second copy, and rule 6 says "those drawn without the makers' notes". The three graft commands are held to their usage by a test. |
+| W3 | **fixed** | Handoff step 9: "a default is written only where his answer takes it". An entry he leaves unanswered stays open, under `findings`, and the gate's question names it. The seats page says the same in its table row, in a bullet of its own ("You never fill in an answer he did not give"), under "The re-read" and in Never. Neither file still says "Where he leaves one open". The loop (§ 7) and Detail (step 4) now say where an unanswered entry is listed. Acceptance's deviations stay in its one listed question. Nothing else in the kit writes a default for an entry he left unanswered. |
+| W4 | **fixed** | `DRY-RUN.md`: the rulings now run R157–R190, R186–R190 each have a row, and the "wave B" sentence is gone. R175's row says the page draws the heading. F46 names the two sections and F48 names four seats pages. R159's row points to R189, and R180's row says where the check now runs and when it may exit 1. The page now counts seven skills at the limit, which is true. It names no person, model, agent id or path outside the kit. |
+| M1 | **fixed**, with N1 below | Context's "Project sources" and its template mark "the example data", and the template says what to write when there is none. The builder's card now says what it does when no data is handed. |
+| M2 | **fixed** | Structure and Detail now say "its model and effort". Cast's step 9 still says "suggested", which is right there: Cast is where the cards' suggestions are shown. |
+| M3 | **fixed** | A twelfth entry answers the seeded one, which stands as it was. The head of the file says which entries are the seed. |
+| M4 | **fixed** | The judge brief's reply line stops at "says the reply is". |
+| M5 (R190) | **fixed** | The loop, the audience's brief and the task reader's card now confine first screens to Structure, and the brief deletes the line from Detail on. A judge's brief from Detail on points to the `in-viewport` check. |
+| M6 | **fixed** | The ruled words are in seven judge cards. The cold implementer keeps its own line. |
+| M7 | **fixed** | The line under a designer's list now gives the outcome in full, with "(answer 12)" only beside it, and says why. |
+| M8 | **fixed** | One question, which names the path. His answer is written under "Reviewed by the founder" of `REPORT.md` before the driver is written. `scripts/lib/browser.mjs` is now among the skill's Reads. |
+| M9 | **fixed** | Detail step 4, and the loop § 7. |
+| M10 | **fixed** | Every line I named is rewrapped. No prose line over 105 characters is left in the files the round touched, except `handoff/SKILL.md:19`, which I did not name and the round's report notes. |
+| M11 | left, as ruled | — |
+
+### The round's other sentences
+
+- **Handoff's steps as they now run (S1, S3).**
+  - Step 3 runs the plain `alone.mjs <package>/07-handoff`, and it "must exit 0". It reads pages and
+    stylesheets only, so the guide's and the entry's mention of `DECISIONS.md` cannot fail it there.
+  - The `--package` run now ends step 7, after `COVERAGE.md` and `HANDOFF.md`, and before the cold
+    implementer. It runs again in step 9 whenever any file changes, and `folder.md` says the same,
+    with why it could not pass at step 3.
+  - It may exit 1 in one case only. Every place it prints must be in a file approved at an earlier
+    stage and copied in unchanged, and `PARTS.md` must list each place without the name it points to.
+    The worked example does not name it. Those places go to him with the gate, named in its question.
+    Any other place is mended first. So "must exit 0" and "is not rewritten" no longer meet. Sound,
+    with N2 and N3 below.
+- **The one command now given as a code span.** Step 7's `--package` command is now an inline code
+  span on its own line, not a fence. `commandsOf` reads code spans in prose as well as fences. The
+  Handoff test holds this exact string to `alone.mjs`'s usage (`takenBy`), asserts that step 7's
+  commands include it and step 3's do not, and asserts the stage's command list in order. So the test
+  still holds it to `--help`.
+- **The skills at 200 lines.** Seven skills now stand at 200 lines. I parsed them with CommonMark
+  (markdown-it):
+  - every fence is recognised;
+  - each Steps list is still one ordered list;
+  - no indented paragraph falls out of its list item;
+  - "**Routed `short`**" and each gate's "One question" sit outside the lists, and each "Then append"
+    stays inside its gate bullet;
+  - "## Question" followed directly by its line renders as a heading and a paragraph.
+
+  They render correctly. In the source, Handoff's and Look's gates read denser, and no worse.
+- **S6 as R190, S10, S11, S15.** The sentences are in place:
+  - Detail's and Look's seats pages say no first screen is pictured there.
+  - `KIT-CONTRACT.md` describes the page drawn without the notes.
+  - Setup's `profiles/` line names the check.
+  - Context runs `card.mjs check` on a profile it drafted or changed, and "mends its form, never a
+    trait".
+  - The loop § 7 names the "Accepted deviations" heading.
+- **Pins.** Each removed pin has a replacement that pins the new rule. Examples: the plain and the
+  `--package` commands; the pointer in a stylesheet, which the run-as-written test now runs both ways
+  with `PARTS.md`; "What step 8 catches"; and the graft's audience. None was loosened. `skills`,
+  `templates`, `pool`, `skeleton` and `evals` tests: 330 pass.
+- **The design document, § 25.** It agrees with the rulings it cites: R164, R174, R175 with R186, R159
+  with R189, R154 with R171 and R190, and R188.
+
+### New in the round
+
+**N1 · Minor** · `pool/makers/prototype-builder.md:52-54` against `skills/detail/references/seats.md:112-113`
+- The builder's card now promises: "the conductor asks the founder for the data, and it comes to you in
+  a brief". Detail's seats page still sends everything the builder could not build to the decision
+  page, under `findings`, at the gate. No step of Detail asks him for the data before the gate, or
+  starts a fresh builder with it. The walk forks there.
+- **Fix:** one line in Detail's seats page, under the builder: a page left without its example rows
+  goes to him as step 4 says, his answer is written under "Reviewed", and a fresh builder is handed it.
+  Or make the card say what the seats page says.
+
+**N2 · Minor** · `skills/handoff/references/seats.md:56-58`; `skills/handoff/SKILL.md:190-192`
+- "A reference that points outside the folder. Write out what it pointed to, and take the reference
+  out" and "Never let the folder point outside itself: no path into the package" are still
+  unqualified. S3 now lets a pointer stay in an approved file. Both lines were there before the round,
+  but they now contradict S3's exception.
+- **Fix:** "in a file you wrote; in an approved file, as `references/folder.md` says, under 'When it
+  may exit 1'".
+
+**N3 · Minor** · `skills/handoff/references/folder.md` § "When it may exit 1"; `skills/handoff/SKILL.md` step 10
+- A pointer left in an approved file goes on the decision page "as an open finding". But `page.mjs`
+  refuses a finding with no `seat`, and nothing says what the seat of a place the script found is.
+  Step 10 lists the cold implementer's items and the defaults only. The session has to invent a label.
+- **Fix:** name it, as Acceptance names `check: <id>` and `by hand` (for instance
+  `alone.mjs --package`), in step 10 and in `folder.md`.
+
+**N4 · Minor** · `skills/acceptance/SKILL.md:48-65` (Writes)
+- Since R159, Acceptance can write a script in the project and a line into the project profile. Its
+  Writes table and the paragraph under it name neither.
+- **Fix:** one sentence under the table: on his yes, the driver at the path he approved, and its
+  command under "How a browser check is run here".
+
+### R191: sound
+
+The ruling puts the `in-viewport` check in the visual designer's own `checks.json`, and that is right.
+Choosing which element answers "which rooms are free now, without scrolling" is a design judgement.
+Under R190 as built, the conductor makes it, and writes into a maker's file, which is the edge the kit
+keeps. Four things go with it, for the next round:
+
+1. The visual designer is not handed the intent at Look (`look/references/seats.md:44-48`), so its
+   brief must carry each such criterion. Its "Its brief gives three things" becomes four, and
+   `templates/briefs/maker.md` needs that line.
+2. A variant's own `checks.json` needs the check too.
+3. Detail's seats page says "the `in-viewport` check Look adds", and `DRY-RUN.md`'s R190 row says
+   "Look's skill, which adds". Both change with the ruling.
+4. At step 5, "a check that failed" goes to the send-back. A failed `in-viewport` check is a
+   criterion not met, not a row of the table that does not hold. Say whether that redesign belongs to
+   the send-back before any reader, or the result is handed to the judges as it came (as
+   `look/references/seats.md:139-143` already provides) and becomes a finding.
+
+### Not checked
+
+The scripts and their tests, beyond the command strings (another reviewer's). The whole suite. The
+evaluation runs.

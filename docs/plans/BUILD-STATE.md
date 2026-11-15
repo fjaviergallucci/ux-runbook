@@ -4,7 +4,7 @@
 and how each step is run. It is written so that a session with no memory of the build — a person, or any
 coding agent — can carry on.
 
-Last updated: 2026-11-15, during Task 20's last step (see "Where Task 20 stands").
+Last updated: 2026-11-15, after Task 20 (see "Where the build stands").
 
 ## Where everything is
 
@@ -17,12 +17,12 @@ Last updated: 2026-11-15, during Task 20's last step (see "Where Task 20 stands"
 | The build log (this build's record) | `docs/build-log/` — see "The build log" below |
 | The live working folder of the build | `.superpowers/sdd/2026-11-13-PIPELINE-KIT-PLAN/` (git-ignored; `docs/build-log/` is its committed copy) |
 
-**The branch has never been pushed.** The plan forbids pushing, merging and tagging until the proving run
-has passed and the founder says so. Everything is local to this machine.
+**The branch is on `origin`** since 2026-11-14, at the founder's word; he pushes it himself (see the end
+of this file). Merging and tagging wait for the proving run and his say.
 
 ## What is done
 
-Tasks 0–19 are complete: implemented, reviewed by an independent reviewer, fixed, re-reviewed.
+Tasks 0–20 are complete: implemented, reviewed by an independent reviewer, fixed, re-reviewed.
 
 | Task | What | Commits |
 |---|---|---|
@@ -46,47 +46,35 @@ Tasks 0–19 are complete: implemented, reviewed by an independent reviewer, fix
 | 17 | Detail and Look skills; `scripts/deal.mjs` (letters for a blind comparison) | `0495666..2509c3a` |
 | 18 | Handoff and Acceptance skills; the implementer's guide; `scripts/alone.mjs` (a folder stands alone) | `0e55e73..b03011a` |
 | 19 | `LESSONS.md`, `README.md`, nine evaluation cases — all nine score 1.00 | `0151986..3f33a65` |
+| 20 | The dry run of the whole pipeline; what it found, fixed (three waves, two fix rounds); `docs/design/DRY-RUN.md` | `75c7e03..24b5f0c` |
 
-Last full test run (at `3f33a65`): 822 tests — 821 pass, 1 skipped, no `todo`. The skipped test cannot
+Last full test run (at `24b5f0c`): 881 tests — 880 pass, 1 skipped, no `todo`. The skipped test cannot
 run on this machine's NTFS mount. `claude plugin validate . --strict` exits 0. The evaluation suite was run
 by the controller (three runs, 8.88 US dollars of the plan's 15): all nine cases score 1.00. Run the tests
 with `npm test` (about three and a half minutes; it runs one test file at a time).
 
-## What is next, in order
+## What is next
 
-| Step | What | State |
-|---|---|---|
-| Task 20 | The dry run of the whole pipeline on a fictional project | **in its last step** — see "Where Task 20 stands" below |
-| Final review | One review of the whole branch, on the most capable model | after Task 20 |
-| One fix wave | Everything parked and deferred, in one dispatch, then one scoped re-review | after the final review |
-| Report | The full list of rulings goes to the founder; then the branch is finished (no push without his word) | last |
+See "Where the build stands" below.
 
 Not part of this build (the plan names them so nobody does them by momentum): the proving run in a real
 project, setup in any real project, a worked example, replacing `master`, tagging version 1, pushing.
 
-## Where Task 20 stands (2026-11-15)
+## Where the build stands (2026-11-15)
 
-The dry run itself is finished: all nine stages approved on the fictional project, 39 seats, 21 stops for
-the controller, 1302 acceptance checks passing. It is written up in `docs/design/DRY-RUN.md`.
+All 21 tasks are complete. The dry run of Task 20 is written up in `docs/design/DRY-RUN.md`: nine stages
+approved on a fictional project, 39 seats, 1302 acceptance checks passing, 274 notes sorted into 111
+items, every one fixed, ruled on, parked below or left for the proving run. The design document's § 25
+holds what the build and the dry run changed in it.
 
-| Step | State |
-|---|---|
-| The run (setup, nine stages, a stand-in build) | done — ledger lines `Task 20, <STAGE>: done` |
-| The notes sorted: 274 notes → 111 items (`task-20-findings.md`) | done |
-| The controller's rulings on the 27 items that needed a decision: R159–R191 (`task-20-fix-rulings.md`, `task-20-fix-round-1.md`, the ledger) | done |
-| Three fix waves: words A1, words A2 with the document, scripts B (`task-20-fix-*-report.md`) | done — commits `36aa794..557e6e1` |
-| Two reviews (`task-20-fix-review-words.md`, `-scripts.md`) and fix round 1 (`task-20-fix-round-1-report.md`) | done — commits `65aacd5..3f4654d`; 880 tests, 879 pass, 1 skipped |
-| Scoped re-review of round 1, by the same two reviewers | **in flight** — each appends `## Re-review of fix round 1` to its review file |
-| Fix round 2: ruling R191 (the visual designer, not the conductor, writes the `in-viewport` check for a "without scrolling" criterion) and whatever the re-reviews find | next |
-| Gates (`npm test`, `claude plugin validate . --strict`, clean tree), then `Task 20: complete` in the ledger | after round 2 |
+What is left, in order:
 
-To resume: read the last lines of `docs/build-log/progress.md`; if the two review files have no
-`## Re-review of fix round 1` section, ask for that re-review again (the diff is
-`git diff 557e6e1..3f4654d`); then write `task-20-fix-round-2.md` and hand it to one implementer.
-
-After Task 20, unchanged: one review of the whole branch, one fix wave (below), one scoped re-review,
-one re-run of the evaluation suite (the skills changed widely; about 5 of the 6.12 US dollars left under
-the plan's cap of 15), the list of rulings to the founder.
+| Step | What | State |
+|---|---|---|
+| The final review | One read of the whole branch (`git diff e01d00c..HEAD`) on the most capable model — the founder confirmed it on 2026-11-15 | **next**; its file will be `final-review.md` in the build log |
+| One fix wave | Its findings, with everything under "Parked" below and the deferred minors, in one dispatch; then one scoped re-review | after it |
+| The evaluation suite, once more | The skills changed widely in Task 20: `claude plugin eval . --no-publish --trust-plugin --ablation none --judge-model sonnet --runs 1 --max-cost-usd 6 -j 2 --allow-tools Bash Write Edit` (8.88 of the plan's 15 US dollars are spent) | after the fix wave |
+| The report | The full list of rulings (R1–R191) to the founder; then the branch is finished — no merge, no tag without his word | last |
 
 ## How each task is run
 

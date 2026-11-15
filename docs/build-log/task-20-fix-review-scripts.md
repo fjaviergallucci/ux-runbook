@@ -256,3 +256,90 @@ The case: a design of size `surface`, all nine stages full. The founder accepts 
 - The A1 and A2 words outside the sentences this wave changed.
 - The pins of the other waves.
 - Each of the implementer's own mutations: I made nine of my own on a copy of the kit, and each was caught.
+
+## Re-review of fix round 1
+
+Diff `557e6e1..3f4654d`. The one commit after it, `80038c1`, touches only the design document. Probes ran in scratch folders under `/tmp/claude-1000/`, and mutations on a copy of the kit there. R191 is not counted.
+
+**Spec: met.** Each of S1–S16 is fixed as `task-20-fix-round-1.md` rules it. S6 is fixed by R190; its Look half goes to R191.
+
+**Quality: approved.** Nothing Critical or Important is left. 4 Minor are new (N1–N4), none blocking.
+
+### Each finding
+
+| Finding | Status | What I checked |
+|---|---|---|
+| **S1** | fixed | I ran Handoff in the skill's order on a package built from `templates/package/` with a root `DECISIONS.md`, Look's screens, shots and tokens. Step 3's plain `alone.mjs` exits 0 ("3 references in 4 files"). The `--package` run after steps 4–7, with every folder file from its template, passes. The run-as-written test now has the root `DECISIONS.md`, shows the early run failing on `HANDOFF.md` and the guide, and runs the check where the skill does. |
+| **S2** | fixed | I ran `rounds.md`'s three commands as written on a letter-form `chosen.json` with marked notes. Both renders and `--first-screen` exit 0, giving 4 whole pictures and 4 first screens. `chosen-screens.html` holds none of the markers; `chosen.html` holds 4. The audience's sentence names `chosen-screens-390-light.png` and its `-first.png`, and rules out the other. |
+| **S3** | fixed, see N1 | Look's stylesheet with `/* … measures.md */`, copied in unchanged, plus a `PARTS.md` line in the folder page's example wording: one place is left, the stylesheet's, exit 1. With the name in `PARTS.md`: two places. `PARTS.md` stays clean when it follows the rule. The handover templates and the guide name nothing of a package once the folder is whole. On telling the case apart, see below. |
+| **S4** | fixed, see N2 | The list after a blank line is refused, CRLF too. `traits` is then refused through `check`, and nothing is written. The template profile (id filled) and all seven fixture profiles still print `ok`. A misspelt label gives two faults; an indented one gives three (the third: not at the start of its line). All are true, and each names the right line (checked with `sed`). |
+| **S5** | fixed | Probed headless: `<hr>` and an empty `<div>` part the texts ("Room 5", "Ro om"). A block with `visibility: hidden` parts them too, as it still takes its line. These still gain no space: `<b>Ro</b>om`, inline images, empty inline-blocks, `display: contents`, `display: none`, and an empty block inside a hidden element. A float or absolutely positioned empty element now parts the texts, as `innerText` does. |
+| **S6** | fixed (R190) | `loop.md:125-132` and `templates/briefs/audience.md:38` say "at Structure". |
+| **S7** | fixed | `blind.md` steps 5 and 6 say "twice", point to Structure's step 7 for the commands, and step 7 says who is handed which. |
+| **S8** | fixed | See "Pasted words" below. Each mutation of `CONTROL` or `oneLine` was caught. |
+| **S9** | fixed | See "Links" below. |
+| **S10** | fixed | `KIT-CONTRACT.md` describes the header drawn without notes: the `<h1>` alone, and no `ux-note`. |
+| **S11** | fixed | Setup's `profiles/` line names the check. Context runs it on a profile it drafted or changed, before its gate and after his corrections (`context/SKILL.md:109`). |
+| **S12** | fixed | The two sentences now read "written as those above are". The opening's "four fields" is still taken out by `traits`. |
+| **S13** | fixed | A fault gives line numbers and labels, never a line of the profile. The copy refusal reads "line 31 of the profile, in the field "What is true:", still says …", and line 31 is the one. |
+| **S14** | fixed | The rulings run R157–R190, with rows R186–R190. The "wave B" sentence is gone. R175 names R186; R161 counts three ids; R180 says where the check runs and when it may exit 1. |
+| **S15** | fixed | `loop.md:212`. |
+| **S16** | fixed | The run-as-written folder holds `accept-inpage.js`, held equal to the kit's file and to the skill's table. |
+
+**S1 and S3: can a session tell the allowed exit 1 from any other?** The output gives the case away in its form. Links print as `<link>: a link: …` and addresses as `<file>: <address>: <why>`, so neither can be taken for the allowed case. A pointer prints as `<file>:<line>: <name>: …`, and the output does not say whether that file was approved and copied in unchanged. The session has to know which files it copied at step 3. For a stylesheet of Look's screens it does, and can confirm with `cmp`. For a page it cannot, by the letter: see N1.
+
+**S8: pasted words through `stamp`, then `validate`.**
+- **Stamp and validate as before:** a non-breaking space, a tab, an emoji, a right-to-left mark (U+200F), a left-to-right mark (U+200E), a zero-width joiner, a BOM in the middle of the words, and quotes of both kinds.
+- **Now a space, where before they were written raw:** a vertical tab (Word's soft break), a form feed and U+0085. CRLF and U+2028 are spaces as before.
+- **Now refused:** an ESC sequence (`\x1b[0m`), a C1 character (U+0092) and DEL. Each is refused in one line, "the header of frame cannot be written: …", with exit 1, and `00-frame.md` and `state.json` are byte-identical afterwards. Before this round these stamped a header no YAML reader takes. Going past the letter to DEL and C1 is right.
+
+**S9: links, probed through the command.**
+- **Passed over:** a link to a file inside the folder, and a link to a folder inside it.
+- **Printed, exit 1:** a link into the package, a link to a folder outside, a dangling link, a two-link loop, and a link to itself. A loop prints "it leads nowhere".
+- **Not opened:** a FIFO, so the run cannot hang on it.
+- **Package links:** a link in the package to the handoff folder, or a loop, is taken as a name, with no crash.
+- **Bad usage (exit 2):** `--package` inside the folder, and the two arguments swapped.
+- **Without `--package`:** links are not judged, as `--help` says.
+- **Going past the letter is right:** a link out of the folder is a way out the builder would get.
+
+**Tests:**
+- Passing in full: `frontmatter` 36, `state` 107, `pool` 116, `alone` 35, `templates` 49, `render` 39, `evals` 17, `page` 50, `skills` 139. The `text` tests of `accept` pass too.
+- Five mutations on a copy, all caught: the new block rule of `checkFields`; `leadsOut`; the `isFile` guard; DEL and C1 dropped from `CONTROL`; `oneLine` without `\x0b`, `\x0c` and `\x85`.
+
+### New
+
+**N1 · Minor · `skills/handoff/references/folder.md:123-136`, `SKILL.md` step 7 — "copied in unchanged" leaves out pages and state rows**
+
+The allowed exit 1 covers only "a file approved earlier and copied in unchanged". By step 3 no page is unchanged: each has its token link rewritten, and maybe an asset's address. So a pointer in an approved page's HTML comment has no allowed exit, and the page may not be edited.
+
+The folder page's own example of an approved file, "a row of the states", is in `SPEC.md`. The conductor writes that file at step 4, so by the file test it falls under "in a file you wrote", which means rewriting approved words. (The run's "as answered" names no file, so the script never prints it.)
+
+**Fix:** "copied in as step 3 says, and changed nowhere else", and say what is done with a state row that names a file.
+
+**N2 · Minor · `scripts/lib/card.mjs` `traitsOf` (`endOf`), `checkFields` — a fenced criterion with a blank line inside**
+
+I wrote `So the interface must:`, then a fence holding `Say what is free now.`, a blank line and `Call a room by its door name LEAK.`, then the closing fence.
+- `check` prints `ok`. `sectionsOf` drops a fence's inside lines, so the check never sees the blank.
+- `traits` exits 0. The field ends at the blank inside the fence, so the last line and the closing fence are in the copy.
+
+It is rare, but it is the same leak S4 closed.
+
+**Fix:** `endOf` runs to a fence's close, or `checkFields` refuses a fence inside a characteristic.
+
+**N3 · Minor · help text and step 7's command**
+
+- `card.mjs --help` has one line of about 150 characters, which ends "…its folder is". The rest of the help wraps at about 105.
+- `alone.mjs --help`'s success sentence says "and no place that points back". It should also say "and no link that leads out".
+- In Handoff, step 7's command is inline code in the middle of a paragraph. It is the only command of that skill not in a fence, there to save lines. `folder.md` gives it fenced, so a session has both.
+
+**N4 · Minor · `SKILL.md` step 10 — a pointer left open has no seat**
+
+Step 10 puts open items under `findings` "by seat", and `page.mjs` requires a `seat` on each finding. A pointer left in an approved file goes to him "as an open finding" but has no seat. The session has to make up the `seat` text.
+
+**Fix:** one phrase saying what it reads, as "the folder's proof".
+
+### The implementer's concerns of this round, where they touch the scripts
+
+- **3 (S9) and 4 (S8), going past the letter:** both right, as above.
+- **5, one mistake gives two faults:** acceptable. Each is true, and the second names the line.
+- **1, the limits:** step 7's command became inline to fit. That is N3, and it renders.
