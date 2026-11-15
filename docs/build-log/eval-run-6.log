@@ -1,0 +1,21 @@
+Plugin under test: "ux" version "2.0.0-dev" at "/mnt/data/Downloads/Proyectos/ux-runbook-v2"
+  kept temp: /tmp/claude-1000/claude-eval-Rgxl6F
+⚠ kept /tmp/claude-1000/claude-eval-Rgxl6F: home/ and tmp/ in it were written by the plugin under test and are sealed in /tmp/claude-1000/claude-eval-Rgxl6F/sealed (mode 000; the kept directory is read-only) — open them with `chmod 700 /tmp/claude-1000/claude-eval-Rgxl6F /tmp/claude-1000/claude-eval-Rgxl6F/sealed` to inspect, and do not run git (or anything that loads configuration from its working directory) anywhere inside the kept directory
+  fresh-brief-hides-the-system run 1/1: score 1.00  $1.03
+    ✓ criteria (weight 2): judge votes: PASS PASS PASS — note: long file (11715 chars); llm judges are noisy on long inputs, prefer a regex grader for large artifacts
+    ✓ gives-the-tasks (weight 1): matched ^## The tasks\n[^#]*?walked\s+in[^#]*?Sala\s+Jard[ií]n
+    ✓ in-its-structure-form (weight 1): matched ^## The hardest state\s*$
+    ✓ names-the-person (weight 1): matched ^## The person\n[^#]*?\b(front\s+desk|clinic)\b
+    ✓ no-instruction-left (weight 1): pattern absent as expected
+    ✓ not-in-its-look-form (weight 1): pattern absent as expected
+    ✓ nothing-planted-is-in-it (weight 1): pattern absent as expected
+    ✓ says-what-the-product-can-do (weight 1): matched ^## What the product can show and do\n[^#]*?being\s+cleaned
+    ✓ states-the-job (weight 1): matched ^## The job\n[^#]*?\bwalk-in\b
+✓ fresh-brief-hides-the-system  score 1.00  (1 run)  $1.03
+
+CASE                          SCORE PASS% RUNS COST    NOTES
+fresh-brief-hides-the-system  1.00  100%  1    $1.03   
+
+1 case(s) · 246s · $1.03
+Report: /mnt/data/Downloads/Proyectos/ux-runbook-v2/evals/results/2026-11-15T19-43-03-483Z/report.html
+exit 0

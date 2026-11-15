@@ -22,7 +22,7 @@ you can overturn any you disagree with.
   was re-read by the final reviewer ("ready for the proving run, nothing must change first"); R192 is
   built. The evaluation suite was run again as R187 ordered: six cases of nine at 1.00, two failed for
   faults of the cases themselves, and one for a fault of the kit that ruling R160 had caused. **R193**
-  corrects it and is the last ruling; a paid run to confirm its wording is owed and waits for your word.
+  corrects it and is the last ruling; two later runs, made on your word, show all nine cases at 1.00.
 
 In the tables: **built** means the ledger shows it was carried out. **stands** means it holds, but the
 ledger does not clearly show it carried out, or it is a standing rule. **corrected by R<n>** means a later
@@ -38,8 +38,8 @@ ruling changed it. **dropped** means it was dropped. "She" is the person a desig
 - **Why:** R160 had the templates list "every state the intent says she must be told about". Sessions then
   copied what the screen must tell her into the brief — a piece of design in a document that must hold
   none. The evaluation case for that rule failed three votes of three, twice.
-- **If wrong:** the judges still fail the brief, and the next run of that case says so. That run is paid
-  and has not been made yet.
+- **If wrong:** the judges still fail the brief, and the next run of that case says so. That run was made:
+  the judges pass the new wording in both briefs.
 
 Twenty entries, most recent first. A few join two rulings that belong together.
 
