@@ -63,3 +63,36 @@ These bind with the brief. Where the brief and a ruling differ, the ruling wins 
    the whole plan. Read `pool/judges/cold-implementer.md`, the judges that sit at `acceptance`, the task
    reader, and the templates under `templates/package/07-handoff/`, `build/` and `08-acceptance/`.
 9. Plain, short, second person; generic; examples from the fictional room-booking product.
+
+## Added after Tasks 15–17 (what the stages before now do)
+
+10. **Follow the form of the three stage skills before yours** (`skills/structure/`, `skills/detail/`,
+    `skills/look/`): a `references/seats.md` beside the skill says, seat by seat, what it is handed and
+    what its brief lists under "Do not open", against its card; versions in `built-from` and in carry
+    lines are read from `state.mjs status`, never written as literals; a stage whose output file is
+    already there does not copy its template over it; a question asked mid-stage is recorded with
+    `state.mjs await` and his answer written before the next step; a short form (an adjustment, a
+    correction, a flow) has its own reference when it does not fit.
+11. **What reaches Handoff, and only that.** Look's carry list is what Handoff may open: the cast sheet's
+    tables for every stage (each seat's model and effort), each stage's "What the readers found", the
+    reads folders of Structure, Detail and Look, the states, the strings with their why-lines, the data
+    map and the dependencies, the measured values, the named extensions, the screens, the prototype, the
+    token file, `DECISIONS.md`. `COVERAGE.md` is filled from those — every seat with what it read, the
+    model it ran on and its checks run and not run; every finding with what became of it. If something
+    `COVERAGE.md` or `SPEC.md` needs is not on Look's carry, stop and report it rather than opening the
+    package's history.
+12. **Nothing a fresh maker made is handed off.** `06-look/fresh/`, `06-look/beside/` and the sealed file
+    are never copied into the handoff folder nor named in it. A named extension of the design system is
+    written in `PARTS.md` as a change to the system, with its definition.
+13. **Acceptance's seats** are those of the cast sheet's "Acceptance" table, started as `loop.md` says:
+    a judge is handed pictures of the build and the check results (the vocabulary's `build`), reads cold
+    first, then opens its seat's earlier ledger; the task reader is handed pictures only, her person and
+    her profession's traits. Their ledgers go to `08-acceptance/reads/`, named as Detail and Look name
+    theirs.
+14. **Scripts that exist now and may be named:** `scripts/card.mjs check`, `scripts/deal.mjs`, and
+    `state.mjs reopen` now closes the open question of every later awaiting stage. Check each command
+    against its script's `--help`.
+15. **The review will walk one whole design through your two skills** with the real `scripts/state.mjs`
+    and `scripts/accept.mjs`: write a run-through test that does the same (the handoff folder assembled
+    from a fixture package, `accept.mjs prototype` run on its prototype, the cold implementer's hand-over
+    checked, the build stand-in, `accept.mjs report --checks`), as the previous tasks did.
