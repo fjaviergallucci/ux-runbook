@@ -56,7 +56,7 @@ When a request arrives, three questions say where you start:
 
 | # | Stage | Invoke | The question it answers | Its output | The founder |
 |---|---|---|---|---|---|
-| 1 | Frame | `ux:frame` | What kind of interface, starting from what, how big: so which stages run? | `00-frame.md` | confirms |
+| 1 | Frame | `ux:frame` | What kind of interface, starting from what, how big: so which stages run? | `00-frame.md` | confirms; at a correction, nods once, at Detail |
 | 2 | Context | `ux:context` | What is true before anyone has an idea? | `01-context.md` | corrects |
 | 3 | Intent | `ux:intent` | Who, in what moment, to get what done, and how will we know? | `02-intent.md` | approves |
 | 4 | Cast | `ux:cast` | Who makes, who judges with which checks, who plays the user? | `03-cast.md` | edits by exception |

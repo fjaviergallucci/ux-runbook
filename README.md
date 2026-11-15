@@ -41,7 +41,7 @@ session can pick a design up again from its folder alone, on any day.
 
 | # | Stage | The question it answers | What it leaves | You |
 |---|---|---|---|---|
-| 1 | Frame | What kind of interface, starting from what, how big: so which stages run? | `00-frame.md` | confirm |
+| 1 | Frame | What kind of interface, starting from what, how big: so which stages run? | `00-frame.md` | confirm; for a correction, one nod at Detail |
 | 2 | Context | What is true before anyone has an idea? | `01-context.md` | correct |
 | 3 | Intent | Who, in what moment, to get what done, and how will we know? | `02-intent.md` | approve |
 | 4 | Cast | Who makes, who judges with which checks, who plays the user? | `03-cast.md` | edit by exception |

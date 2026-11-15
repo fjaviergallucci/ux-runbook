@@ -52,8 +52,17 @@ product before his nod.** Frame's line goes beside the page, as `<package>/00-fr
 request, the three values and the route. His nod is on both.
 
 - **If he disagrees with the line itself,** that answer is not a nod: it is not a correction, or not
-  of this kind. Write what he said under `## Reviewed by the founder`, resize the design to the size
-  he names, as the conductor's "Resuming" says, and go back to Frame. Nothing is changed in the
+  of this kind. Write what he said under `## Reviewed by the founder`. If he names a larger size,
+  resize the design to it, as the conductor's "Resuming" says. Then reopen Frame, which closes this
+  question and puts Detail back in work:
+
+  ```
+  node <kit root>/scripts/state.mjs reopen <package> frame --reason "<his words>"
+  ```
+
+  Then the design is framed again, by Frame's skill. If what he disputes is which screen it is, or
+  what kind of thing, this package is left as it stands, since its kind and its foundation were
+  fixed when it was made, and the design is framed anew under a new name. Nothing is changed in the
   product.
 - **Write the one-paragraph record** under `## Reviewed by the founder`: what was wrong, what it is
   now, where, and his words, as he said them.

@@ -43,7 +43,8 @@ What kind of interface, starting from what, how big: so which stages run?
 
 ## Steps
 
-Steps 1 to 6 write nothing: the package is made at the gate, on his yes.
+Steps 1 to 6 write nothing: the package is made at the gate, on his yes, but at size `correction`,
+where it is made at once.
 
 1. **See whether the design is new.** It is, unless the conductor sent you to a package that exists:
    a folder with a `state.json`, whose next stage is `frame`. That design was left half framed. Its
@@ -97,7 +98,8 @@ one question, about one thing: is this the right frame for it?
   the frame is stamped in the words of his request, since the one nod of a correction is asked at Detail.
 - **If he corrects a value,** change it, say what moves with it (a size moves the route and the cast),
   and put the whole frame to him again, with the same one question.
-- **On his yes, and not before, make the package:**
+- **On his yes, and not before, make the package:** but at size `correction`, where no yes is waited
+  for and it is made at once.
 
   ```
   node <kit root>/scripts/state.mjs init <package> --design <name> --kind <kind> --foundation <foundation> --size <size>
