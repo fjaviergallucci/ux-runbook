@@ -10,7 +10,8 @@ built-from: []
 
 # Frame · {the design's name, as `state init` was given it}
 
-{A correction needs only the request, the three values and its route in one line.}
+{A correction needs only the request, the three values and its route in one line. At any other size,
+delete this line.}
 
 ## The request
 
@@ -30,7 +31,8 @@ built-from: []
 
 | Stage | Mode | Reason |
 |---|---|---|
-| context | {full · short · skipped} | {why, in one line} |
+| frame | {full · short at a correction: never skipped} | {"the size sets it"} |
+| context | {full · short · skipped} | {"the size sets it", or why it was changed, in one line} |
 | intent | {…} | {…} |
 | cast | {…} | {…} |
 | structure | {…} | {…} |
@@ -46,13 +48,13 @@ in the project's pool and which Context will have to draft.}
 
 ## Provisional cast
 
-{The preset for this kind and size, from `pool/INDEX.md` and the project's own pool: one line for each
-seat. A starting point only: Cast decides.}
+{The preset for this kind and size, from the cast skill's `presets.md`, with the seats of `pool/INDEX.md`
+and the project's own pool: one line for each seat. A starting point only: Cast decides.}
 
 ## Engines missing
 
-{Each seat of the provisional cast whose engine is not installed on this machine, or is not in the
-profile's `engines-on`, and what the seat does without it. "None" when every engine answers.}
+{Each seat of the provisional cast, and each maker that sits by rule, whose engine is missing or off,
+and what the seat does without it. "None" when every engine answers.}
 
 ## Reviewed by the founder
 

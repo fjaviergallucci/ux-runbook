@@ -16,7 +16,8 @@ describes what shipped, and no file of it contradicts another.
    file you read. And append it to the folder's own, `<package>/07-handoff/DECISIONS.md`, in that
    file's shape, written out in full: the folder is what a later builder is given, and it must say
    why the build differs from its pictures. Where the deviation changes the product and not only
-   this design, it is also logged where `decisions-log` of the project profile says.
+   this design, it is also logged where `decisions-log` of the project profile says: the test is at
+   the top of `templates/package/DECISIONS.md`, and it is applied to every deviation, not weighed.
 3. **Bring the folder's files up to date,** each to what was built:
    - the row of `SPEC.md`: the state, the rule or the line of the data map;
    - the string, in `strings.json` and in the copy in the project's own format, where there is one;

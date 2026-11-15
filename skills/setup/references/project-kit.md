@@ -83,6 +83,12 @@ for the same thing, as `--ux-primary: var(--color-action);` where the project's 
 it, as the grey kit does, whatever switch the product itself uses: that is what the picture script
 sets.
 
+The grey kit's own `@media (prefers-color-scheme: dark)` block sets the same properties to greys, and
+in dark it would win over what you just gave them. Take out of it each property that now reads a token
+whose file switches itself, and the block with the last one. A property that keeps the grey kit's own
+value keeps its dark one there too. Then rewrite the opening comment of `kit.css` to say what the file
+is now: the project kit, and on whose tokens.
+
 ## 4. Restyle each class to look like the project's default part
 
 Go through the classes of the contract one by one. For each, read the source of the project's
@@ -112,6 +118,12 @@ The rules, which are the contract's:
   only part that stands out.
 - **You read the components, and copy none.** No component's source, markup or stylesheet goes into
   the kit: only the tokens a default part wears.
+
+**Where the system has no part for a class's job,** or its part cannot be styled once (a status tag
+with a colour for each state), which tokens the class wears is not yours to settle. Give it the tokens
+you would take, and write each such choice into the project profile's "Design system", marked "the
+conductor's proposal", with the grey kit's own value beside it. He decides each one at the gate, from
+the pictures.
 
 In `parts.html`, change the title and the opening lines to name the project kit, and nothing of its
 markup: it is the markup the contract states, and the drawing script writes exactly that. In the
@@ -168,8 +180,9 @@ import does not reach a file of the kit's folder. Mend the kit, never the comman
 
 Open the pictures before he does. A part that came out with no style, or in a colour the tokens do
 not hold, is yours to mend first. Then the pictures go to the founder with the project profile, at the
-gate: does a button here look like his product's button, a field like its field? What he corrects, you
-change in `kit.css`, and picture again.
+gate: does a button here look like his product's button, a field like its field? Name each line marked
+"the conductor's proposal" with its picture: he decides each, and the mark comes off a line on his word
+alone. What he corrects, you change in `kit.css`, and picture again.
 
 ## Never
 

@@ -41,8 +41,8 @@ Who makes, who judges with which checks, who plays the user?
 `<package>/03-cast.md`, the cast sheet, from `templates/package/03-cast.md`, with
 `built-from: [intent@1, context@1]`: the intent at the version it was approved at, and the context,
 whose sections you carry on. One table for each stage still to run, with the template's columns:
-"Seat", "Loaded with", "Checks on · off", "Engine", "Suggested model", "Suggested effort", "Why it is
-here". The table of a stage the route skips is deleted.
+"Seat", "Loaded with", "Checks on · off", "Engine", "Model", "Effort", "Why it is here". The table of
+a stage the route skips is deleted.
 
 ## Steps
 
@@ -86,16 +86,20 @@ here". The table of a stage the route skips is deleted.
    profile the preset seats, loaded with it: `profile.<name>`. `audience.task-reader` sits once for
    each person it is seated as, `person.<name>`: the primary person, the one the intent names, and,
    where the preset seats a second, a contrast person the makers are not briefed on, from the
-   project's people or the kit's five.
+   project's people or the kit's five: the one whose moment the intent's tasks do not already cover,
+   with the reason on its line. A describer's lens goes under "Loaded with" too.
 7. **Make the first cut of each judge's optional checks,** from the `## Optional checks` table of its
    card. A check is on when the intent says its trigger will be there, and off otherwise, with the
-   reason. The core checks always run, and are not listed. The judge tests every trigger again on the
-   artefact itself, and a check whose trigger it sees runs even where you left it off.
+   reason. The core checks always run, and are not listed. The profile judge's checks are cut on the
+   profession's profile it is loaded with, where their triggers are, and each row of the sheet is cut
+   for its own stage. The judge tests every trigger again on the artefact itself, and a check whose
+   trigger it sees runs even where you left it off.
 8. **Write each seat's engine, and turn none on.** A kit seat's engine is in the `## Engine check`
    table of the project profile, with what the check found. A project seat's is in its card's header.
    - A seat whose engine is `missing` or `off` is shown all the same: what the engine would add, that
      it is off, and what the seat does without it (the last table of `references/presets.md`).
-     `engines-on` is the founder's line: you never add to it.
+     `engines-on` is the founder's line: you never add to it. A maker that sits by rule and is not
+     cast, its engine being off, is shown under "Left out".
    - `maker.outside-describer` is cast only when `engines-on` lists a provider. Its line of the cast
      sheet names the provider as it is listed, `model:openai` or `model:gemini`, and the model id the
      project profile holds for it, under `openai-model` or `gemini-model`. Where both are listed, it
@@ -106,14 +110,15 @@ here". The table of a stage the route skips is deleted.
    kit's, and a project card's header has its own. A card that says `none` shows a dash, —. Then
    propose, in a sentence that says these are suggestions he may change: a judge or an audience on a
    different model from the maker it reads, and the describers spread across models. Whatever he
-   chooses is written as he chose it.
+   chooses is written as he chose it. The sentence has its line at the top of the sheet, and the
+   columns "Model" and "Effort" hold the cards' suggestions until he changes one.
 10. **Say why each seat is here, in one line: what it catches, and what it costs.** As: "Catches a
     room shown as free that the product cannot know is free. One agent, reading four options and the
     inventory."
 11. **Fill the rest of the sheet.**
     - "Left out": each seat of the preset that does not sit, and what is lost without it. Banned,
       faulty, its engine off, or not called for by this design: say which. "None" when the preset
-      sits whole.
+      sits whole. With them, each maker that sits by rule and has its engine off.
     - "Blind rules": who does not see what in this design, as `skills/design/references/blind.md`
       has it. The describers do not see each other, your own idea or today's screen. The judges do
       not see the author map. The audience does not see the intent. Then any continuity maker cast
@@ -121,13 +126,14 @@ here". The table of a stage the route skips is deleted.
     - "Fresh pass": for Structure and for Look, whether one runs, with which makers, on which
       engines, and why (`references/presets.md` says who can make one). It never runs at Detail.
       **It is offered, never added:** write "does not run" unless he has asked for one, and where
-      you think one would earn its cost, say so in one sentence at the gate. An engine the project
-      has not turned on is never used: with none, the screen generator's seat is taken by a Claude
-      maker, as its row of the last table says.
+      you think one would earn its cost, say so in one sentence here, as a statement: the gate
+      keeps its one question. An engine the project has not turned on is never used: with none, the
+      screen generator's seat is taken by a Claude maker, as its row of the last table says.
     - "Cost": the number of agents each stage starts, with makers, judges and audiences counted
       apart, and the total. Count the rows, one for each instance. An outside describer is a call the
       session makes, not an agent, and a transcriber that stands by counts only when it runs: say so
-      beside the count.
+      beside the count. Say there too that it counts first reads: a stage whose judges block adds
+      one maker and one judge for each.
 
 **Routed `short`** (an adjustment), only the row you start from differs: the adjustment row of the
 preset. Every step holds as written. A stage the route runs that the row leaves empty takes the cell
@@ -152,14 +158,14 @@ One question, about one thing: which seat, check, model or effort would you chan
   A seat he takes out moves to "Left out", in his words. A model he names is written as he named it:
   nothing here refuses it, and nothing puts the suggestion back.
 - **Write the carry list,** `## Carry`: what Structure and the stages after it may open besides the
-  cast sheet. A `- intent@<version>#<slug>` line for each section of the intent but the two last,
-  `<version>` being the version the intent stands at, as `status` prints it: "What the readers
-  found" goes on too, so that the handoff covers every seat. The `- context@<version>#<slug>` and
-  `- source:<path>` lines of the intent's own carry list, as they are: the read of the surface as it
-  is travels in "The problem, and why now". And a `- source:<path>` line for each profession's
-  profile that is loaded into a seat, and for each card and each person of the project's own that
-  sits: a card of the kit is found in the kit, by its id. A heading's slug is printed by
-  `node <kit root>/scripts/state.mjs slug "<heading text>"`.
+  cast sheet. A `- intent@<version>#<slug>` line for every section of the intent but "Reviewed by
+  the founder" and "Carry", `<version>` being the version the intent stands at, as `status` prints
+  it: "What the readers found" goes on too, so that the handoff covers every seat. The
+  `- context@<version>#<slug>` and `- source:<path>` lines of the intent's own carry list, as they
+  are: the read of the surface as it is travels in "The problem, and why now". And a
+  `- source:<path>` line for each profession's profile that is loaded into a seat, and for each card
+  and each person of the project's own that sits: a card of the kit is found in the kit, by its id.
+  A heading's slug is printed by `node <kit root>/scripts/state.mjs slug "<heading text>"`.
 - **Stamp it,** in the words he approved it with:
 
   ```

@@ -15,7 +15,7 @@ built-from: []
 {Inside the design system, or a direction, and why.}
 
 {For a direction: each one's name, thesis and stated cost; the one he picked; the token file the pick
-became; that the project's profile now points at it.}
+became; that the project's profile now points at it. Inside a design system, delete this paragraph.}
 
 ## What is in this folder
 

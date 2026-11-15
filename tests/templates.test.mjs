@@ -265,7 +265,7 @@ test('02-intent.md has the person, the job, the criteria, the tasks, the ten sta
   assert.match(flat(section(text, 'What the readers found')), /[Oo]nly when[^.]*profile judge[^.]*cast/);
 });
 
-test('03-cast.md has a table for each stage from structure to acceptance, with model and effort as suggestions', () => {
+test('03-cast.md has a table for each stage from structure to acceptance, with model and effort as suggestions until he changes one', () => {
   const text = template('package/03-cast.md');
   const names = headings(text);
   const stages = STAGES.slice(STAGES.indexOf('structure'));
@@ -273,12 +273,15 @@ test('03-cast.md has a table for each stage from structure to acceptance, with m
   for (const stage of stages) {
     const name = stage[0].toUpperCase() + stage.slice(1);
     const { head, rows } = tableOf(section(text, name), 'Seat');
-    assert.deepEqual(head, ['Seat', 'Loaded with', 'Checks on · off', 'Engine', 'Suggested model', 'Suggested effort', 'Why it is here'], name);
+    assert.deepEqual(head, ['Seat', 'Loaded with', 'Checks on · off', 'Engine', 'Model', 'Effort', 'Why it is here'], name);
     assert.ok(rows.length >= 1, `${name}: a row to fill`);
   }
   for (const name of ['Left out', 'Blind rules', 'Fresh pass', 'Cost']) assert.ok(names.includes(name), `## ${name}`);
   // Suggestions the founder may change, and a dash where a card suggests nothing.
   assert.match(flat(text), /suggestions[^.]*he may change/i);
+  assert.match(flat(text), /Model and effort are the cards' suggestions until he changes one/);
+  assert.match(flat(text), /\{One sentence: what you propose about the models, as suggestions he may change\.\}/);
+  assert.match(tableOf(section(text, 'Structure'), 'Seat').rows[0][1], /^\{a lens · `profile\.<name>` · `person\.<name>` · —\}$/);
   assert.match(flat(text), /`none`[^.]*—/);
   const fresh = section(text, 'Fresh pass').split('\n');
   for (const stage of ['Structure', 'Look']) assert.equal(fresh.filter(line => line.startsWith(`- **${stage}:**`)).length, 1, `a line for ${stage}`);
@@ -776,10 +779,10 @@ test('project/PROFILE.md parses, has every header key, and turns nothing on', ()
   assert.deepEqual(headings(body), [
     'How to fill the header', 'Kinds this project adds', 'Standing rules', 'How a browser check is run here', 'Design system', 'Engine check', 'Reviewed by the founder',
   ]);
-  // What setup's check found: the day, then a row for each seat. And last, the founder's review, which is
+  // What setup's check found: the day, his answers on the outside engines, then a row for each seat. And last, the founder's review, which is
   // empty until the gate: an empty one says the project is not set up yet.
   const check = flat(section(body, 'Engine check')).trim();
-  assert.match(check, /^\{The day of the check\. Then a table, Seat · Engine · What the check found, with one row for each seat[^{}]*\}$/);
+  assert.match(check, /^\{The day of the check\. His answers on the outside engines, in his words\. Then a table, Seat · Engine · What the check found, with one row for each seat[^{}]*\}$/);
   assert.match(check, /one line for the browser/);
   const reviewed = flat(section(body, 'Reviewed by the founder')).trim();
   assert.match(reviewed, /^\{What he corrected at the gate[^{}]*in his words[^{}]*\}$/);
@@ -953,17 +956,23 @@ test('the maker and the judge briefs hand the profile whole, and the judge brief
 
 const judges = readdirSync(join(kit, 'pool', 'judges')).filter(name => name.endsWith('.md')).sort().map(name => ({ name, text: card(`judges/${name}`) }));
 
-test('outputs/LEDGER.md has the top line, the eight columns, and the three closing sections every judge fills', () => {
+test('outputs/LEDGER.md has the top line, the eight columns with the cold implementer\'s ninth, and the three closing sections every judge fills', () => {
   const text = template('outputs/LEDGER.md');
   const top = text.split('\n').find(line => line.startsWith('**Verdict:**'));
   assert.ok(top, 'the top line');
   assert.match(top, /\*\*First fix:\*\*/);
   assert.match(top, /seat['’]s own three words/, 'the words are the seat\'s, never the template\'s');
   const findings = tableOf(section(text, 'Findings'), '#');
-  assert.deepEqual(findings.head, ['#', 'Check', 'Result', 'Where', 'Why it matters', 'Severity', 'Fix', 'Done when']);
-  assert.equal(findings.head.length, 8);
-  assert.match(findings.rows[0][5], /blocks · should · note/);
-  assert.match(findings.rows[0][6], /what it is → what it should be/);
+  // Eight columns for every judge. The ninth, "Kind", is the cold implementer's: each of its items is a question or a guess.
+  assert.deepEqual(findings.head, ['#', 'Check', 'Kind', 'Result', 'Where', 'Why it matters', 'Severity', 'Fix', 'Done when']);
+  assert.equal(findings.head.filter(name => name !== 'Kind').length, 8);
+  assert.match(findings.rows[0][2], /^\{the cold implementer only, question · guess: any other seat deletes this column\}$/);
+  assert.match(flat(card('judges/cold-implementer.md')), /Its kind, \*question\* or \*guess\*, goes in the "Kind" column, and the counts of your reply are counted from that column/);
+  assert.match(findings.rows[0][6], /blocks · should · note/);
+  assert.match(findings.rows[0][7], /what it is → what it should be/);
+  // The lines a card asks for before any finding have their place, above the sections.
+  assert.match(flat(text), /\*\*Job first:\*\* \{The lines this seat's card asks for under "Answer the job first", written before any finding\./);
+  for (const name of ['profile.md', 'usability.md']) assert.match(card(`judges/${name}`), /\*\*Answer the job first\.\*\*/, `${name} asks for them`);
   const names = headings(text);
   // On a re-read, each earlier finding's mark comes before any new finding.
   assert.deepEqual(names.slice(0, 4), ['On a re-read', 'Findings', 'Checks not run', 'Not looked at']);

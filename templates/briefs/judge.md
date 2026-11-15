@@ -27,12 +27,12 @@ again on the artefact itself.
 ## Read, in this order
 
 {Only what the card's `reads` allows and this design gives it, each by its absolute path, with what it
-is. Of the three lines under the list, keep those that apply to this seat and this read.}
+is. Of the lines under the list, keep those that apply: a profile judge's profile line becomes item 1.}
 
 1. {the absolute path} — {what it is}
 
-- **The profile, whole**, its base and then the section of {the specialty this design serves}: {its
-  absolute path}
+- **The profile, whole**, its base and then the section of {the specialty this design serves}, or with
+  no specialty its base alone: {its absolute path}
 - **The strings, with their why-lines**, which are part of the strings and not a maker's note: {the
   absolute path}
 - **On a re-read, your earlier ledger**, to be opened only after you have read the artefact cold and
@@ -44,6 +44,7 @@ is. Of the three lines under the list, keep those that apply to this seat and th
 - The author map: {where it is}
 - The other judges' ledgers and, for a profile judge, the audiences' reads: {where they are}
 - {Anything else the card's `never-reads` names, as this package holds it, by its path.}
+- {A profile judge at Intent: the person's card, by its path. It is not this read's.}
 
 A seat that starts a browser stops only the one it started, through its own handle, and never stops a
 process by name or by pattern.

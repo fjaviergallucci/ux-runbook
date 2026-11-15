@@ -108,12 +108,13 @@ Then invoke the skill of the stage `next` named. A new design has no package to 
 ## The loop
 
 Every stage runs the same nine steps. The stage's skill says what each one means there. The long form of
-all nine, with every command, is in `references/loop.md`: read it before the first stage you conduct.
+all nine, with every command, is in `references/loop.md`: read it before the first of the nine stages
+you conduct; setup has its own steps.
 
 1. **Check the state.** `validate` and `next`, as above. Then mark the stage in work, unless it is
    awaiting the founder.
-2. **Read the package, not the chat.** The output of the stage before, and exactly what its carry list
-   names.
+2. **Read the package, not the chat.** The output of the stage before and, of what its carry list
+   names, what this stage uses: nothing else.
 3. **Write what the stage writes.** From its template, with the stages it is built from in its header.
 4. **Makers.** Write their brief: context only, never the design. The founder reads the Structure
    brief, and every fresh brief, before it goes out. Start each maker as a fresh sub-agent. Several

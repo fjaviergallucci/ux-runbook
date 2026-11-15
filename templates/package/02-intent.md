@@ -10,8 +10,8 @@ built-from: []
 
 # Intent · {the design's name}
 
-{One page for a surface. A flow gets this page for the whole, then a short `### <surface>` under each
-heading that differs from one surface to the next.}
+{One page for a surface: then delete this paragraph. A flow gets this page for the whole, then a short
+`### <surface>` under each heading that differs from one surface to the next.}
 
 ## The person in the moment
 
@@ -40,11 +40,13 @@ disagree about whether it was met? Then sharpen it.}
 {What an audience seat will be given, and all it will be given: where she starts and what she wants, in
 her words. Never the path, and never a criterion.}
 
-1. **Start:** {where she is, and what she has} **Goal:** {what she wants, as she would say it}
+1. **Start:** {where she is, and what she has, in the third person} **Goal:** {what she wants, as she would say it, quoted}
 
 ## States
 
 {Every row is filled, or reads "cannot occur because …". A row left out cannot be told from one forgotten.}
+
+{What rests on a fact nobody has yet says so: "not on record: …; written again when …".}
 
 | State | What it must tell her, or let her do |
 |---|---|
@@ -61,7 +63,7 @@ her words. Never the path, and never a criterion.}
 
 ## The feeling
 
-{In her word, not a designer's.}
+{In her word, not a designer's. With no word of hers on record: "not on record: …; written again when …".}
 
 ## Like its siblings, and where it may differ
 

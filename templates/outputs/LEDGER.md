@@ -8,6 +8,9 @@
 {What was read: the artefact, by letter or by what it is, with its widths, themes and languages. A
 profile judge adds whose profile it read with, and that this is a read from a card.}
 
+**Job first:** {The lines this seat's card asks for under "Answer the job first", written before any
+finding. A profile judge lists first the "So the interface must" lines that feed each check.}
+
 ## On a re-read
 
 {On a first read: the one line "first read", and no table. On a re-read: read the artefact cold and
@@ -25,9 +28,9 @@ present. A cold finding that matches one becomes its mark, and is not written tw
 {One row for each finding, the most severe first, each pointing at a place and offering a fix. "None",
 under the table, when there is nothing.}
 
-| # | Check | Result | Where | Why it matters | Severity | Fix | Done when |
-|---|---|---|---|---|---|---|---|
-| {1} | {the check's id, or the criterion} | {what was found} | {screen · state · element id · the string} | {to her, in her moment; a profile judge names the trait, and fact or guess} | {blocks · should · note} | {what it is → what it should be} | {a condition the maker can test} |
+| # | Check | Kind | Result | Where | Why it matters | Severity | Fix | Done when |
+|---|---|---|---|---|---|---|---|---|
+| {1} | {the check's id, or the criterion} | {the cold implementer only, question · guess: any other seat deletes this column} | {what was found} | {screen · state · element id · the string} | {to her, in her moment; a profile judge names the trait, and fact or guess} | {blocks · should · note} | {what it is → what it should be} | {a condition the maker can test} |
 
 ## Checks not run
 

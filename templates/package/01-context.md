@@ -16,7 +16,7 @@ and the sources listed at the end, and nothing else.}
 ## The problem, and why now
 
 {What is wrong or missing today, for whom, and why it is worth doing now. When the surface already
-exists: what the cast's judges found reading it as it is, from screenshots, each finding with its seat.}
+exists: what the judges that read it as it is (step 3) found, from screenshots, each with its seat.}
 
 ## The people
 
@@ -35,6 +35,8 @@ components, with what is slow or sometimes missing. The truth judge checks a des
 | Row | The product can show or do | Kind | Source |
 |---|---|---|---|
 | {an id of its own, as P1} | {as: whether a room is free, busy, being cleaned or closed} | {data · action · state} | {the file, table or document that proves it} |
+
+{What the product does not have, that this design might reach for: one line each, with its source.}
 
 ## Constraints
 
@@ -59,8 +61,8 @@ standing rules of the project's profile that apply here.}
 
 ## The founder's own words
 
-{One or two sentences as he would say them, verbatim, asked for when the words will matter. "Not
-asked", with the reason, when they will not.}
+{Asked here, once: what she calls these things, and any word she must never see. One or two sentences
+as he said them, verbatim. "None" is an answer.}
 
 ## Questions for the founder
 
@@ -70,6 +72,8 @@ asked", with the reason, when they will not.}
 
 {The files a later stage may open directly, as the token files, the component source, the product-facts
 document: one path to a line, with what each is. Each is also an entry of the carry list.}
+
+{Beside a file he has corrected: which point, and that the context holds.}
 
 ## Reviewed by the founder
 

@@ -74,16 +74,17 @@ A file you write while working that is none of these goes in `<scratch>`: never 
    instruction you cannot answer does not apply to it, and nothing is written there before his words.
 4. **Ask the founder what you could not read.** One question at a time, each about one thing. Write
    each answer into the project profile, in his words, before the next question: until it is written
-   there, it does not count. Skip a question the project has already answered.
+   there, it does not count. Skip a question the project has already answered: write its answer from
+   the project's document, and name that document by its path when you put the project profile to him.
    1. The product in one sentence, as he would say it to a friend: `product`. As: "A room-booking tool
       for the front desk of a small clinic."
    2. The languages it ships, the main one first. He names them; you write their codes as
       `languages`, as `[es, en]`, and show him the line. Then, for each, the register it is written in
       and how she is addressed: "Standing rules".
    3. His standing rules for interfaces: "Standing rules", one line each.
-   4. The professions it serves, as "front-desk coordinators". Each one he names gets its stub at
-      once, written from the template as step 6 says: the stubs are where this answer lives. When he
-      names none, no stub is written.
+   4. The professions it serves, as "front-desk coordinators". Each one he or the project's documents
+      name gets its stub at once, written from the template as step 6 says: the stubs are where this
+      answer lives. When neither names one, no stub is written.
    5. Whether a brief may be sent to an outside text model. Say what a yes means: the brief leaves this
       machine, and setup itself will send one line that holds nothing of the project, to see that the
       engine answers. **Only on his yes**, ask which provider, and add it to `engines-on` in its
@@ -94,10 +95,10 @@ A file you write while working that is none of these goes in `<scratch>`: never 
       repository is not taken: say so, and ask him for one outside it. Comparing two paths opens
       nothing. The script's `--help` says by which name it looks for the key: point him to it. He
       puts the key in place himself.
-   6. Only when the session lists a screen generator among its tools: whether a brief may be sent to
-      it. On his yes, add `tool:stitch` to `engines-on`.
-   Anything else the template asks that the project did not say (the account a browser check uses, by
-   its role; where decisions are logged) is one more question each.
+   6. Only when the session lists a screen generator among its tools (a tool it lists by name counts,
+      loaded or not): whether a brief may be sent to it. On his yes, add `tool:stitch` to `engines-on`.
+   A no to 5 or to 6 is written too, under "Engine check". Two more are asked when the project did not
+   say them: the account a browser check uses, by its role, and where decisions are logged. No more.
 5. **Build the project kit**, as `references/project-kit.md` says: the grey kit copied into
    `<packages>/kit/`, the project's tokens copied or exported into one CSS file beside `kit.css`, each
    class of the contract restyled on those tokens alone, then `parts.html` pictured for the founder.
@@ -139,7 +140,7 @@ A file you write while working that is none of these goes in `<scratch>`: never 
      as it said it: it never shows a key. Do not look for the cause in a keys file or in the
      environment: tell the founder what it said, and run it again only on his word that it is mended.
    - **`tool:stitch`.** Is the tool among those the session lists? That is the whole check: nothing is
-     generated.
+     generated. A tool listed by name counts, loaded or not; one he refused at step 4 is `off`.
    - **A browser,** which the kit's scripts drive: one run on the kit's own specimen page.
 
      ```
@@ -148,15 +149,14 @@ A file you write while working that is none of these goes in `<scratch>`: never 
 
      Exit 0 and one picture: it answers. The script starts its own browser and stops it.
 
-   Fill the `## Engine check` section of the project profile: the day, then a table
-   `| Seat | Engine | What the check found |` with one row for each seat of the kit's pool, and under
-   it one line for the browser. What the check found is "nothing to check", for an engine that is
-   `own`; `answers`, with the script's line; `installed`; `listed`; `missing`; `off`, for an outside
-   engine he has not turned on; or the script's refusal. Frame reads this section.
+   Fill the `## Engine check` section of the project profile: the day, his answers to 5 and 6 of step
+   4, then a table `| Seat | Engine | What the check found |` with one row for each seat of the kit's
+   pool, and under it one line for the browser. What the check found is "nothing to check", for an
+   engine that is `own`; `answers`, with the script's line; `installed`; `listed`; `missing`; `off`,
+   for an outside engine he has not turned on; or the script's refusal. Frame reads this section.
 8. **Write the lessons file.** Copy `templates/project/LESSONS.md` to `<packages>/LESSONS.md`, without
-   its comment and without the entry it gives as a shape: the first design appends the first entry.
-   Its title and the project profile's take the product's name from his sentence under `product`;
-   when that sentence names none, ask him.
+   its comment and without the entry it gives as a shape. Its title and the project profile's take
+   the product's name from the sentence under `product`; when that sentence names none, ask him.
 
 ## Gate
 

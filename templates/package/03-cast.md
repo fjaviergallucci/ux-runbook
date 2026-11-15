@@ -10,45 +10,48 @@ built-from: []
 
 # Cast · {the design's name}
 
-Model and effort are the cards' suggestions, and he may change any of them: a seat whose card says
-`none` shows a dash, —.
+Model and effort are the cards' suggestions until he changes one: a seat whose card says `none` shows a
+dash, —.
+
+{One sentence: what you propose about the models, as suggestions he may change.}
 
 {One table for each stage still to run, one row for each seat. Delete the table of a stage the route
 skips.}
 
 ## Structure
 
-| Seat | Loaded with | Checks on · off | Engine | Suggested model | Suggested effort | Why it is here |
+| Seat | Loaded with | Checks on · off | Engine | Model | Effort | Why it is here |
 |---|---|---|---|---|---|---|
-| {the seat's id, as `maker.structure-describer`} | {`profile.<name>` · `person.<name>` · —} | {a judge only: on …; off …} | {own · skill:… · model:… · tool:…} | {the card's, or —} | {the card's, or —} | {what it catches, and what it costs} |
+| {the seat's id, as `maker.structure-describer`} | {a lens · `profile.<name>` · `person.<name>` · —} | {a judge only: on …; off …} | {own · skill:… · model:… · tool:…} | {the card's, or —} | {the card's, or —} | {what it catches, and what it costs} |
 
 ## Detail
 
-| Seat | Loaded with | Checks on · off | Engine | Suggested model | Suggested effort | Why it is here |
+| Seat | Loaded with | Checks on · off | Engine | Model | Effort | Why it is here |
 |---|---|---|---|---|---|---|
 | {…} | {…} | {…} | {…} | {…} | {…} | {…} |
 
 ## Look
 
-| Seat | Loaded with | Checks on · off | Engine | Suggested model | Suggested effort | Why it is here |
+| Seat | Loaded with | Checks on · off | Engine | Model | Effort | Why it is here |
 |---|---|---|---|---|---|---|
 | {…} | {…} | {…} | {…} | {…} | {…} | {…} |
 
 ## Handoff
 
-| Seat | Loaded with | Checks on · off | Engine | Suggested model | Suggested effort | Why it is here |
+| Seat | Loaded with | Checks on · off | Engine | Model | Effort | Why it is here |
 |---|---|---|---|---|---|---|
 | {…} | {…} | {…} | {…} | {…} | {…} | {…} |
 
 ## Acceptance
 
-| Seat | Loaded with | Checks on · off | Engine | Suggested model | Suggested effort | Why it is here |
+| Seat | Loaded with | Checks on · off | Engine | Model | Effort | Why it is here |
 |---|---|---|---|---|---|---|
 | {…} | {…} | {…} | {…} | {…} | {…} | {…} |
 
 ## Left out
 
-{Each seat of the preset that does not sit, and what is lost without it. "None" when the preset sits whole.}
+{Each seat of the preset that does not sit, and each maker that sits by rule with its engine off, and
+what is lost without it. "None" when the preset sits whole.}
 
 ## Blind rules
 

@@ -28,7 +28,8 @@ is. A describer: the Structure brief and `kit/KIT-CONTRACT.md`. A fresh maker: t
 1. {the absolute path} — {what it is}
 
 - **The person the design is for:** {her card's absolute path}
-- **Her profile, whole**, its base and then the section of {her specialty}: {its absolute path}
+- **Her profile, whole**, its base and then the section of {her specialty}, or with no specialty its
+  base alone: {its absolute path}
 
 {A describer and a fresh maker get neither of these two, and nor does a transcriber: delete both lines.}
 

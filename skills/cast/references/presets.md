@@ -10,7 +10,8 @@ public page, and Cast tells the founder when the two meet.
 
 A design sized `correction` casts no seat. For the other sizes, a cell names its makers, then its
 judges, then its audience, parted by a middle dot. A seat is named here as its job is said; "The
-seats", below, gives each one's id.
+seats", below, gives each one's id. The rows are by size alone: the kind of the design enters only
+through "Added by rule".
 
 | Size | Structure | Detail | Look | Handoff | Acceptance |
 |---|---|---|---|---|---|
@@ -22,10 +23,18 @@ How to read it:
 
 - **The lenses** are the four the structure describer's card gives: fewest steps, guided, defaults
   first, in place. Three describers take three of them, chosen for this design, and a fourth describer
-  takes the fourth. Each describer's line of the cast sheet names its lens.
+  takes the fourth. Each describer's line of the cast sheet names its lens, under "Loaded with". What
+  each favours, so that you can choose without opening the card:
+  - *fewest steps*: the shortest path from arriving to done, with whatever can be decided for her
+    already decided;
+  - *guided*: one decision at a time, in the order she would make them;
+  - *defaults first*: the likeliest answer already there, for her to confirm or change;
+  - *in place*: nothing opens somewhere else, and she acts where the thing already is.
 - **The task reader** is one instance for each person it is seated as. At Structure it sits twice:
   as the primary person, the one the intent names, and as one contrast person the makers are not
-  briefed on. Where the table says only "task reader", it sits once, as the primary person.
+  briefed on. Where the table says only "task reader", it sits once, as the primary person. The
+  contrast person is the one whose moment the intent's tasks do not already cover: her line of the
+  cast sheet says which moment that is.
 - **Only if visual:** an adjustment seats the visual designer and the system fidelity judge at Look
   when the change can be seen. When it touches nothing she can see, Frame routes Look `skipped`, with
   the reason, and nobody is cast there.
@@ -41,7 +50,7 @@ How to read it:
 
 ## Added by rule
 
-At every size, an adjustment's short cast included:
+At every size, an adjustment's short cast among them:
 
 - `judge.truth` always sits on a public page, at each stage of the route its card sits at. It is
   never left out there.
@@ -58,8 +67,9 @@ At any size from a surface up:
   own "Who it is for". When it says everyone, the project's own sit: with one profession's profile in
   the project's pool, its judge; with two or more, two contrasting ones, the least comfortable with
   technology and the one with the highest stakes. Never all of them. It reads at Structure, at Detail,
-  which is its main read, and at Acceptance; at Look only when a criterion that fires is about
-  legibility or about where she uses it.
+  which is its main read, and at Acceptance; at Look only when one of its optional checks about
+  legibility (`physical`) is on, or the profession's profile has a "So the interface must" line under
+  its usage context.
 - `judge.words` gets its own question to the founder when the kind is `first-run`, `message` or
   `public-page`. For those kinds the words get their own review: its line of the cast sheet says that
   its read is put to him as a question of its own, apart from the rest of the stage.

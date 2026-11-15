@@ -186,8 +186,9 @@ looks for what Look could have added that the approved detail did not hold.
 ### `judge.profile`
 
 One for each profession's profile the cast sheet loads into this seat at Look, as `profile.<name>`.
-It sits here only when a criterion that fires is about legibility or about where she uses it, and
-with a fresh pass, to rank the two.
+It sits here only when one of its optional checks about legibility (`physical`) is on, or its
+profession's profile has a "So the interface must" line under its usage context, and with a fresh
+pass, to rank the two.
 
 - **Its brief,** from `templates/briefs/judge.md`, as the visual craft judge's, without a lens.
 - **Handed:** its profession's profile, whole, by the path the carry list names.

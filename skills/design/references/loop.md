@@ -39,8 +39,12 @@ skipped, stale), and the one open question.
 Read two things, and nothing else:
 
 - the output of the stage before this one on the route: the file the state names for it;
-- exactly what that output's `## Carry` list names. An entry is `- <stage>@<version>#<heading-slug>`, a
+- what that output's `## Carry` list names. An entry is `- <stage>@<version>#<heading-slug>`, a
   section of an earlier approved output, or `- source:<path>`, a file of the project.
+
+**The carry list is a ceiling, not a reading list.** Of what it names, open what this stage uses:
+nothing else is open to it, and an entry this stage has no use for stays closed. A section entry is read
+under its heading only. Where a stage's skill says "exactly what its carry list names", it means this.
 
 Never the chat, never the package's `work/` folder, never an option that was not chosen. If what the
 stage needs is in none of these, it is missing from the package: say so, and ask to go back (the
@@ -118,10 +122,10 @@ What it reads is named by its letter or by what it is, never by who made it.
   seat may read, by its absolute path, and what the seat must not open. Never paste a card or an
   artefact into a brief: name the file.
 - **Model and effort.** Start the seat on the model and the effort its line of the approved cast sheet
-  names: `03-cast.md` in the package, the columns "Suggested model" and "Suggested effort". They are
-  suggestions, the cast sheet is the founder's, and he may have changed any of them at Cast: follow the
-  sheet, not the card. A seat whose line shows a dash runs on the session's model. Nothing in the
-  conductor enforces a model: when one the sheet names cannot be had, say so and ask him.
+  names: `03-cast.md` in the package, the columns "Model" and "Effort". They hold the cards' suggestions
+  until he changes one, the cast sheet is the founder's, and he may have changed any of them at Cast:
+  follow the sheet, not the card. A seat whose line shows a dash runs on the session's model. Nothing in
+  the conductor enforces a model: when one the sheet names cannot be had, say so and ask him.
 - **A shared machine.** Other sessions work on this machine. A seat that may start a browser stops only
   a browser it started itself, through its own handle, and never stops a process by name or by pattern.
   The brief templates carry this line: leave it in. And you never have more than three browser-driving
@@ -143,7 +147,9 @@ A gate is one of two kinds, and the stage's skill says which.
 
 - **He picks.** Every option goes in front of him, with the reads beside the options. Nothing is
   shortlisted and no option is mended first: he picks from what the makers made.
-- **He approves.** The findings a judge marked `blocks` are fixed first, then read again.
+- **He approves.** The findings a judge marked `blocks` are fixed first, then read again. Only those:
+  a `should` or a `note` is never mended before the gate, by a maker or by you, however small the fix
+  and even on a page that is yours to write. It goes to him open.
 
 **One fix round and one re-read,** and no more:
 
@@ -181,7 +187,12 @@ of him, record the question, so that a session resuming tomorrow asks the same o
 node <kit root>/scripts/state.mjs await <package> <stage> --question "<the one question>"
 ```
 
-The script needs the stage's output to exist, with its header.
+The script needs the stage's output to exist, with its header. **`await` writes that header,** as
+`begin` and the stamp do: read the file again before you edit it, and of the header write `built-from`
+only. A file written whole from what you held before `await` puts the old header back.
+
+Frame is the one stage with no `await`. It writes nothing before his yes, so there is no output to
+record a question on: a session that resumes and finds no package frames the request again.
 
 ## 8. His answer, in the artefact
 

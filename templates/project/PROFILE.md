@@ -32,7 +32,7 @@ empty value: no key is removed.
 
 | Key | What it holds |
 |---|---|
-| `product` | The product in one sentence, as the founder would say it to a friend. |
+| `product` | The product in one sentence, as the founder would say it to a friend: his answer, or the project's own sentence where a document of the project already says it. |
 | `packages` | The folder that holds the design packages, one folder for each design. |
 | `kit` | The folder of the project kit: the shared parts, restyled on the project's tokens. |
 | `tokens` | The project's token file, as plain CSS. Where the tokens are not CSS, the file that setup exported, with where it came from said under "Design system". Empty while there is no design system. |
@@ -52,7 +52,7 @@ empty value: no key is removed.
 ## Kinds this project adds
 
 {Each kind beyond the kit's five, by a name in lower-case words joined by hyphens: what it is judged
-first on, and its own rules. "None" while the five serve.}
+first on, and its rules. Setup writes "None while the five serve"; Frame asks when a request fits none.}
 
 ## Standing rules
 
@@ -77,8 +77,8 @@ components make up the project kit.}
 
 ## Engine check
 
-{The day of the check. Then a table, Seat · Engine · What the check found, with one row for each seat
-of the kit's pool, and under it one line for the browser the kit's scripts drive.}
+{The day of the check. His answers on the outside engines, in his words. Then a table, Seat · Engine ·
+What the check found, with one row for each seat of the kit's pool, and one line for the browser.}
 
 ## Reviewed by the founder
 

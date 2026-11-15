@@ -6,7 +6,9 @@
 Appended, never edited: a decision that changes is superseded by a new entry, which names the one it
 replaces. An entry is written for whatever would otherwise be argued again: each gate's outcome, each
 pick, each exception, each deferral. A decision that changes the product, and not only this design, is
-also logged where the project's profile says, in `decisions-log`.
+also logged where the project's profile says, in `decisions-log`. The test, at every stage: it adds or
+changes a token, a part or a string the product already keeps, or it changes a fact the project's facts
+document states.
 
 ## D-01 · {the decision, not the topic}
 

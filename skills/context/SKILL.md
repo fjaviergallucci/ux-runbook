@@ -29,7 +29,7 @@ What is true before anyone has an idea?
   design reaches; and the product's own analytics, through a connection the project already has.
 - **Each profession's profile the frame names,** in `<packages>/pool/profiles/`.
 - **A judge of the project's own that sits at `context`,** in `<packages>/pool/judges/`: checked
-  first, as step 3 says.
+  first, as step 3 says, and so only when the surface exists.
 - **Of the kit:** `templates/package/01-context.md`, which you fill; `templates/people/PROFILE-CARD.md`,
   for a profession's profile that is missing; `templates/briefs/judge.md` and `pool/MODELS.md`, for
   the read of a surface that exists.
@@ -44,8 +44,7 @@ What is true before anyone has an idea?
   setup's stubs are, and corrected there at the gate.
 - When the surface exists: its pictures, the judges' briefs and their ledgers, in
   `<package>/work/as-is/`. What they found is written into the context. The folder is never read again.
-
-Nothing of the project outside `<packages>` is written.
+- Nothing of the project outside `<packages>` is written.
 
 ## Steps
 
@@ -112,7 +111,7 @@ Nothing of the project outside `<packages>` is written.
      state that really exists, one row each, with an id of its own (`P1`), its kind and its source,
      and what is slow or sometimes missing. Written as data, never as components: "whether a room is
      free, busy, being cleaned or closed", never "a status badge". The truth judge holds every design
-     to this table.
+     to this table. Under it, what the product does not have that this design might reach for.
    - "Constraints": the design system, the accessibility target, the languages, the devices and
      their widths, and the standing rules of the project profile that apply here.
    - "Tried and rejected": what was tried before, and why it was dropped; or "Nothing on record",
@@ -121,25 +120,24 @@ Nothing of the project outside `<packages>` is written.
      risk. Never one. An angle frames the problem and does not solve it: "she cannot tell which room
      is free now" is an angle, and "put the free rooms first" is an idea.
    - "What it must not become".
-   - "The founder's own words": ask for them when the words will matter: the kind is `first-run`,
-     `message` or `public-page`, or she must read in order to act. One or two sentences, as he would
-     say them, written verbatim: they go to the writer's brief later. Otherwise "Not asked", with the
-     reason.
-   - "Questions for the founder": each with a recommendation, or "None".
+   - "The founder's own words": asked here, once, at every design, as the last question of step 6:
+     what she calls these things, and any word she must never see. One or two sentences, as he says
+     them, written verbatim: they go to the writer's brief later. "None" is an answer: write it so.
+   - "Questions for the founder": each with a recommendation, or "None". For a fact only he holds,
+     the recommendation says where his answer will be written and what the package already holds on it.
    - "Project sources": the files a later stage may open directly, as the token files, the component
      source and the product-facts document. One path to a line, from the project's root, with what it
-     is. A file you leave out is closed to every later stage.
-
+     is. A file you leave out is closed to every later stage. The project kit is not one, and never a
+     source of facts about the product: the stages that draw reach it by `kit` of the project profile.
 6. **Put the questions to him before the gate, one at a time.** Each of the "Questions for the
    founder", with its recommendation. Write each answer into the context as it comes, in his words,
-   where it belongs and beside its question: a session that stops midway loses none.
+   where it belongs, and under its question say where: a session that stops midway loses none.
 
 **Routed `short`** (an adjustment), Context is two things: what exists, and what changes. Fill "What
 exists today", the rows of "What the product can show and do" that the change touches, the
 "Constraints" that apply and "Project sources", and say under "The problem, and why now" what changes
-and why. "The founder's own words" are still asked for when the kind is `first-run`, `message` or
-`public-page`. No seat reads the surface, and every other heading says "Not gathered: an adjustment".
-Steps 4 and 6 hold as written.
+and why. "The founder's own words" are still asked for. No seat reads the surface, and every other
+heading says "Not gathered: an adjustment". Steps 4 and 6 hold as written.
 
 ## Gate
 
@@ -156,12 +154,17 @@ from him: the questions of step 6 were put before it.
 
 - **Write each correction where it belongs in the context, and all of them under
   `## Reviewed by the founder`:** what he corrected, and the words he approved it with, as he said
-  them. Where a correction meets a fact you read, say so at once, with the source: he decides.
+  them. After his correction, each fact it meets and each gap it opens is put to him, one at a time,
+  with its source, before the stamp, as step 8 of the loop says: he decides each.
+- **A project source he has corrected is still carried.** Its line of "Project sources" says which
+  point he corrected, and that the context holds. The decision you append at the stamp names the
+  stale fact and its file: Handoff gives the build a slice to mend the document.
 - **Write what he corrects of a profession's profile into its file,**
-  `<packages>/pool/profiles/<name>.md`.
+  `<packages>/pool/profiles/<name>.md`. What he says of the profession goes there too, under the
+  characteristic it bears on, marked `guess (the founder, <date>)`, so that the profile judge has it.
 - **Write the carry list,** `## Carry`: a `- source:<path>` line for each of the "Project sources" and
-  for each profession's profile, by its path from the project's root; and a section of the frame that
-  Intent needs, as `- frame@1#who-it-is-for`. A heading's slug is printed by
+  for each profession's profile, by its path from the project's root; and the one section of the frame
+  that Intent needs, "Who it is for", as `- frame@1#who-it-is-for`. A heading's slug is printed by
   `node <kit root>/scripts/state.mjs slug "<heading text>"`.
 - **Stamp it,** in the words he approved it with:
 

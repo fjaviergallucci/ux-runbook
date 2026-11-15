@@ -40,11 +40,12 @@ What kind of interface, starting from what, how big: so which stages run?
   `built-from` stays `[]`, and the rest of the header is the state script's.
 - The package's `DECISIONS.md`, started from `templates/package/DECISIONS.md` with the frame as its
   first entry.
+- In the project profile, a kind he adds at step 2, and nothing else of it.
 
 ## Steps
 
 Steps 1 to 6 write nothing: the package is made at the gate, on his yes, but at size `correction`,
-where it is made at once.
+where it is made at once. Only a kind he adds at step 2 is written before it, and not in a package.
 
 1. **See whether the design is new.** It is, unless the conductor sent you to a package that exists:
    a folder with a `state.json`, whose next stage is `frame`. That design was left half framed. Its
@@ -52,9 +53,16 @@ where it is made at once.
    the request, ask him for it again, as he would write it: it is written from his answer, never from
    the chat. Then go through steps 3 to 6, put the frame to him with the three values as they stand,
    and go on from "Write `00-frame.md`", under "Gate".
+   **A frame he has not yet answered is nowhere on disk.** Frame writes nothing before his yes, so it
+   is the one stage with no `await`: a session that resumes and finds no package frames the request
+   again.
 2. **Name the kind, the foundation and the size,** each from its table in
    `skills/design/references/routes.md`, each with one line of why.
    - *Kind:* what the interface is for. One of the kit's five, or a kind the project profile adds.
+     When the request fits none of them, ask him, before the frame, whether the project adds a kind:
+     its name, what it is judged first on, its own rules. What he adds is written under "Kinds this
+     project adds" of the project profile, in his words. If he adds none, the nearest of the five is
+     your reading.
    - *Foundation:* what it starts from. It is `no-system` while the project profile says "None yet"
      under "Design system".
    - *Size:* why this size, and not the one below it. When two sizes fit, name both and what tips it.
@@ -72,11 +80,11 @@ where it is made at once.
    `skills/cast/references/presets.md`, with what it adds by rule, the project's `pinned` seats added
    and its `banned` ones taken out. One line for each seat. It is a starting point: Cast decides.
 6. **List the engines missing.** In the `## Engine check` table of the project profile, find the row
-   of each seat of the provisional cast, and of each maker the preset adds by rule. A row that says
-   `missing` or `off`, or that holds a script's refusal, is a seat with no engine today. List the
-   seat, its engine, what the check found, and what the seat does without it, which the last table of
-   `skills/cast/references/presets.md` gives. Say the day of the check. "None" when every engine
-   answers. You check nothing again here, and you turn nothing on.
+   of each seat of the provisional cast, and of each maker that sits by rule, in this cast or not. A
+   row that says `missing` or `off`, or that holds a script's refusal, is a seat with no engine today.
+   List the seat, its engine, what the check found, and what the seat does without it, which the last
+   table of `skills/cast/references/presets.md` gives. Say the day of the check. "None" when every
+   engine answers. You check nothing again here, and you turn nothing on.
 
 **Sized `correction`, Frame is one line:** the request, the three values and the route. Steps 4 to 6
 are not run: a correction casts no seat. **You state the line and ask nothing:** a correction costs one
@@ -97,7 +105,8 @@ one question, about one thing: is this the right frame for it?
 - **Sized `correction`, this gate asks nothing:** the line is stated, the package is made at once and
   the frame is stamped in the words of his request, since the one nod of a correction is asked at Detail.
 - **If he corrects a value,** change it, say what moves with it (a size moves the route and the cast),
-  and put the whole frame to him again, with the same one question.
+  and put the whole frame to him again, with the same one question. A new name for the design is no
+  value: it is taken as he gives it, and the frame is not put to him again for it.
 - **On his yes, and not before, make the package:** but at size `correction`, where no yes is waited
   for and it is made at once.
 
@@ -117,11 +126,13 @@ one question, about one thing: is this the right frame for it?
 
 - **Write `00-frame.md`.** Copy the template, unless the file is already there: then go on from what
   it holds. "The request", word for word. "Kind, foundation, size", each value with its why. "Route":
-  the mode of each stage as `node <kit root>/scripts/state.mjs status <package>` prints it, with the
-  reason of each stage that is short, skipped or changed. "Who it is for". "Provisional cast".
-  "Engines missing".
+  the mode of each stage as `node <kit root>/scripts/state.mjs status <package>` prints it, Frame's
+  own first; the reason is "the size sets it", or why you and he changed it. "Who it is for".
+  "Provisional cast". "Engines missing".
 - **Write his answer under `## Reviewed by the founder`:** what he corrected, and the words he
-  confirmed it with, as he said them. Until it is there, it does not count.
+  confirmed it with, as he said them. Until it is there, it does not count. A fact his answer holds
+  ("the Today screen stays as it is") is written there with it and, where it bears on one of the three
+  values, quoted in that value's why: nowhere else in the frame.
 - **Write the carry list,** `## Carry`: one `- source:<path>` line for each profession's profile the
   frame names that is in the project's pool, by its path from the project's root, as
   `- source:design/pool/profiles/front-desk-coordinator.md`. Nothing else goes under that heading.

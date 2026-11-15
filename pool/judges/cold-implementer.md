@@ -92,7 +92,8 @@ its path, your verdict, and the count of questions and of guesses. The ledger ho
   item left closes once its answer or its default is written in the folder. *Not ready*: at least one
   item blocks;
 - one row for each item: the check, the question or the guess, where, why it matters to a builder, the
-  severity, the fix, and done when;
+  severity, the fix, and done when. Its kind, *question* or *guess*, goes in the "Kind" column, and
+  the counts of your reply are counted from that column;
 - the checks not run, which for this seat is none, and what was not looked at: any file you could not
   open, and every reference into the project's source that waits to be confirmed;
 - on a re-read, each earlier item's mark, before any new one.

@@ -79,8 +79,8 @@ or in the specialty's section. One you do not run goes into the ledger, with the
 5. **What the card marks *unknown*, you cannot tell.** Where the design depends on such a trait, write
    no finding. Put it on the "Cannot tell" list: the trait, what the design assumes about it, and where.
    That list goes to the founder or to a real professional, never to the maker.
-6. **Know your stage.** At *Intent* the artefact is the intent itself: does it name the profile, the
-   specialty and the person, and do its tasks and criteria fit the work as the card describes it? At
+6. **Know your stage.** At *Intent* the artefact is the intent itself, and you answer one thing: is
+   the job stated as this profession would state it? Her person card is not this read's. At
    *Structure* you run the six on every option, by its letter, flag what blocks, then rank the options
    for this profession, with the size of each gap (*clear*, *slight* or *tie*) and one reason. You
    rank the letters of a beside comparison at *Look* the same way, in a `-beside` ledger. *Detail*
