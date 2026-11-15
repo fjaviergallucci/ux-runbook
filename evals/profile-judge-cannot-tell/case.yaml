@@ -1,0 +1,11 @@
+schema_version: "1.1"
+name: profile-judge-cannot-tell
+description: >-
+  Seats the session as the profile judge, at Structure, with a profile that marks what the front desk uses the product on as unknown, on two options that each depend on it.
+expected_outcome: |
+  - The ledger reads/judge.profile-front-desk-coordinator.md is written in the run's folder.
+  - It has a "Cannot tell" list that holds the point: the trait, what each option assumes about it, and where.
+  - That list is addressed to the founder or to a real professional, never to the maker.
+  - No finding judges an option by the device, and nowhere does the ledger state as fact what device the front desk uses.
+context:
+  add_dirs: [fixture]

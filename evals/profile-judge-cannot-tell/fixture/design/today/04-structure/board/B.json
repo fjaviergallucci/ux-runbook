@@ -1,0 +1,63 @@
+{
+  "name": "Type the room, press Enter",
+  "bet": "She keeps both hands on the keyboard: two letters of a room's name find it, and Enter books it.",
+  "cost": "Nothing can be done without typing, and a room whose name she does not know cannot be found.",
+  "absent": [
+    "A list of every room",
+    "Anything to point at, or to press with a finger"
+  ],
+  "hardest": "When nothing is free, typing a room's name shows when it frees up, and Enter books it from then.",
+  "screens": [
+    {
+      "id": "today",
+      "title": "Today, at 9:40",
+      "container": "screen",
+      "note": "The typing cursor is in the field when the screen opens, and stays there.",
+      "items": [
+        {
+          "role": "status",
+          "text": "2 rooms free now: Room 2 until 10:30, Sala Jardín until 11:15",
+          "id": "free-count"
+        },
+        {
+          "role": "input",
+          "text": "Type a room's name",
+          "id": "room-field",
+          "note": "Two letters are enough. The arrow keys move between the rooms that match."
+        },
+        {
+          "role": "text",
+          "text": "Press Enter to book the room for 30 minutes. Press Tab to change how long.",
+          "id": "key-hint"
+        },
+        {
+          "role": "status",
+          "text": "Updated 9:40",
+          "id": "last-updated"
+        }
+      ]
+    },
+    {
+      "id": "booked",
+      "title": "Booked, from the keyboard",
+      "container": "screen",
+      "items": [
+        {
+          "role": "status",
+          "text": "Room 2 is booked until 10:10",
+          "id": "booked-message"
+        },
+        {
+          "role": "input",
+          "text": "Patient name",
+          "id": "patient-name"
+        },
+        {
+          "role": "text",
+          "text": "Press Ctrl+Z within two minutes to undo.",
+          "id": "undo-hint"
+        }
+      ]
+    }
+  ]
+}

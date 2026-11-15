@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Today, Room 2 booked</title>
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="screen.css">
+</head>
+<body>
+<main data-screen="today">
+  <h1 data-ux="heading">Rooms right now</h1>
+  <article>
+    <p data-ux="booked-message">Room 2 is booked until 10:10</p>
+    <button type="button" data-ux="undo-booking">Undo</button>
+    <p data-ux="undo-hint">You can take this back for two minutes</p>
+  </article>
+  <p data-ux="free-count">1 room free now</p>
+  <section data-ux="free-now">
+    <h2>Free now</h2>
+    <article>
+      <h3>Sala Jardín</h3>
+      <p data-ux="free-until-sala-jardin">Free until 11:15</p>
+      <button class="primary" type="button" data-ux="book-sala-jardin">Book Sala Jardín</button>
+    </article>
+  </section>
+  <section data-ux="not-free">
+    <h2>Not free</h2>
+    <div data-ux="not-free-list">Soonest free first
+      <ul>
+        <li>Room 3 — being cleaned, ready at 9:50</li>
+        <li>Room 1 — Dan with Maria K., until 10:00</li>
+        <li>Room 2 — Luis M., until 10:10</li>
+        <li>Gym — closed today</li>
+      </ul>
+    </div>
+  </section>
+  <p data-ux="last-updated">Updated 9:41</p>
+</main>
+</body>
+</html>

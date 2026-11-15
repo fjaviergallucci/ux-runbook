@@ -1,0 +1,8 @@
+/* Linen, version 2.3. */
+:root {
+  --linen-ground: #f6f1e7;
+  --linen-ink: #2b2620;
+  --linen-accent: #0f6b5c;
+  --linen-font: "Atkinson Hyperlegible", sans-serif;
+  --linen-step: 4px;
+}

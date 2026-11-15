@@ -1,0 +1,118 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Option C</title>
+<link rel="stylesheet" href="kit.css">
+</head>
+<body>
+
+<header>
+  <h1>Option C: The day as a grid</h1>
+  <dl>
+    <dt>Its bet</dt>
+    <dd>A grid of rooms against the hours of the day, with a line at now, shows what is free now and what frees up next in the same glance.</dd>
+    <dt>Deliberately bad at</dt>
+    <dd>Most of the grid is the morning gone and the afternoon ahead, which she never asks about; the answer to &quot;free right now&quot; is one thin column she has to find.</dd>
+    <dt>Absent on purpose</dt>
+    <dd>
+      <ul>
+        <li>Any day but today</li>
+        <li>A list of rooms without their hours</li>
+        <li>Patient details beyond first name and last initial</li>
+      </ul>
+    </dd>
+    <dt>In the hardest state</dt>
+    <dd>When nothing is free the now line crosses only bookings, and she reads along each room&#39;s row to see whose booking ends first.</dd>
+  </dl>
+</header>
+
+<section class="ux-frame" data-screen="today">
+  <header>
+    <h2>Today, 8:00 to 18:00</h2>
+    <p class="ux-note">Each free slot can be chosen; choosing one opens it in place.</p>
+  </header>
+  <div class="ux-screen">
+    <h3 class="ux-heading">Thursday 13 November</h3>
+    <p class="ux-status" data-ux="now-line">Now 9:40</p>
+    <section class="ux-region">
+      <header>Rooms by hour</header>
+      <div class="ux-group">
+        <header>Room 1</header>
+        <div class="ux-list">Room 1 today
+          <ul>
+            <li>8:00–9:00 free</li>
+            <li>9:00–10:00 Dan with Maria K.</li>
+            <li>10:00–18:00 free</li>
+          </ul>
+        </div>
+      </div>
+      <div class="ux-group">
+        <header>Room 2</header>
+        <div class="ux-list">Room 2 today
+          <ul>
+            <li>8:00–9:15 Leila with Joe P.</li>
+            <li>9:15–10:30 free</li>
+            <li>10:30–11:30 Leila with Ana G.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="ux-group">
+        <header>Room 3</header>
+        <div class="ux-list">Room 3 today
+          <ul>
+            <li>8:30–9:30 Tomás with Luis M.</li>
+            <li>9:30–9:50 being cleaned</li>
+            <li>9:50–18:00 free</li>
+          </ul>
+        </div>
+      </div>
+      <div class="ux-group">
+        <header>Sala Jardín 🌿</header>
+        <div class="ux-list">Sala Jardín 🌿 today
+          <ul>
+            <li>8:00–11:15 free</li>
+            <li>11:15–12:00 Tomás with Ruth B.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="ux-group">
+        <header>Gym</header>
+        <p class="ux-status">Out of service all day</p>
+      </div>
+    </section>
+  </div>
+</section>
+
+<section class="ux-frame" data-screen="slot-open">
+  <header>
+    <h2>A free slot opened in place</h2>
+    <p class="ux-note">The other rooms stay as they were on the first screen.</p>
+  </header>
+  <div class="ux-screen">
+    <p class="ux-status">Now 9:40</p>
+    <section class="ux-region">
+      <header>Rooms by hour</header>
+      <div class="ux-group">
+        <header>Sala Jardín 🌿</header>
+        <details class="ux-expansion" open>
+          <summary>Free 9:40 to 11:15</summary>
+          <p class="ux-input">Patient name</p>
+          <div class="ux-choice">Until
+            <ul>
+              <li>10:10</li>
+              <li>10:40</li>
+              <li>11:15</li>
+            </ul>
+          </div>
+          <button class="ux-action is-primary" type="button">Book Sala Jardín 🌿</button>
+          <a class="ux-link" href="#">Close</a>
+        </details>
+      </div>
+    </section>
+  </div>
+</section>
+
+</body>
+</html>

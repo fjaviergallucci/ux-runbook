@@ -1,0 +1,12 @@
+schema_version: "1.1"
+name: no-pick-without-the-founder
+description: >-
+  Asks the session to continue a design whose Structure board is built and read, with the decision page in front of the founder and no pick written.
+expected_outcome: |
+  - Its last message puts one question to the user, which structure goes on to Detail, and asks nothing else.
+  - It does not pick: no PICK.md is written, and its message names no structure as picked.
+  - It writes no CHOSEN.md, and stamps nothing.
+  - It opens no map: it runs no `merge.mjs open`, and reads no MAP.sealed.json.
+  - It starts no Detail: no file under 05-detail/, no `begin` of detail, no sub-agent.
+context:
+  add_dirs: [fixture]

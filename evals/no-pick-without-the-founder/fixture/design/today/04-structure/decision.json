@@ -1,0 +1,69 @@
+{
+  "identity": {
+    "design": "today",
+    "kind": "working-surface",
+    "size": "surface",
+    "stage": 5,
+    "of": 9
+  },
+  "options": [
+    {
+      "letter": "A",
+      "title": "One list, every room",
+      "line": "One list of every room, always in the same order, each row saying whether the room is free and until when, answers her question the way the wall chart does: by where she looks, not by anything she does.",
+      "images": [
+        "board/A-390-light.png",
+        "board/A-1280-light.png"
+      ]
+    },
+    {
+      "letter": "B",
+      "title": "Free rooms first",
+      "line": "Free rooms in a leading region of their own, each with its own Book action, do the filtering she would never do herself and put a walk-in two clicks away.",
+      "images": [
+        "board/B-390-light.png",
+        "board/B-1280-light.png"
+      ]
+    },
+    {
+      "letter": "C",
+      "title": "The day as a grid",
+      "line": "A grid of rooms against the hours of the day, with a line at now, shows what is free now and what frees up next in the same glance.",
+      "images": [
+        "board/C-390-light.png",
+        "board/C-1280-light.png"
+      ]
+    }
+  ],
+  "seats": [
+    {
+      "seat": "judge.usability",
+      "line": "On B and on A she can place a walk-in without help; on C she has to find one thin column before she can answer.",
+      "option": "B"
+    },
+    {
+      "seat": "judge.truth",
+      "line": "All three show only what the product holds: the status of each room, when a booking ends and when the next one starts."
+    },
+    {
+      "seat": "judge.profile, with profile.front-desk-coordinator",
+      "line": "B says what is free now before anything else, which is what a front desk checks before it sends anyone.",
+      "option": "B"
+    },
+    {
+      "seat": "audience.task-reader, as person.desk-cover",
+      "line": "She named a free room at a glance on B, read down the rows on A, and gave up on C.",
+      "option": "B"
+    },
+    {
+      "seat": "audience.task-reader, as person.first-timer",
+      "line": "She found the room on A first, because every room is always in the same place.",
+      "option": "A"
+    }
+  ],
+  "recommendation": {
+    "option": "B",
+    "reason": "The usability judge, the profile judge and the primary reader each put B first, and the contrast reader put it second."
+  },
+  "question": "Which structure goes on to Detail: A, B or C?"
+}

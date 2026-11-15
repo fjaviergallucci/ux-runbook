@@ -1,0 +1,1 @@
+The people this product is designed for, each of a profession that has its file in `profiles/`, or of none: a card is written to "The person card" in `pool/CARD-FORMAT.md` of the kit, and checked with the kit's `scripts/card.mjs`.

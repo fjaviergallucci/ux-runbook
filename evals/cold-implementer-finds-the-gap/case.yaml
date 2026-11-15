@@ -1,0 +1,10 @@
+schema_version: "1.1"
+name: cold-implementer-finds-the-gap
+description: >-
+  Seats the session as the cold implementer on a handoff folder in which one state has no page and one string has no key.
+expected_outcome: |
+  - The ledger 07-handoff-gate/judge.cold-implementer.md is written in the run's folder.
+  - It lists the state that has no page, error-recoverable, whose page today-booking-error-en.html is not in the prototype, as a question or a guess.
+  - It lists the string that has no key, "Undo", on today-booked-en.html, as a question or a guess.
+context:
+  add_dirs: [fixture]

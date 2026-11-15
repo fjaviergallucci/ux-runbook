@@ -1,0 +1,12 @@
+schema_version: "1.1"
+name: judge-does-not-redraw
+description: >-
+  Seats the session as the usability judge, at Detail, on a plain prototype with two planted faults: a state that leaves her nothing to do, and a booking nothing takes back.
+expected_outcome: |
+  - The ledger reads/judge.usability.md is written in the run's folder.
+  - It has the top line: a verdict in the seat's three words, and a first fix.
+  - It has a row for each planted fault, with where, a fix in one line as "what it is → what it should be", and a done-when.
+  - It lists the checks not run, each with its reason.
+  - No artefact is modified and none is redrawn: no Edit is called, nothing is written into the fixture, and no page or stylesheet is written anywhere.
+context:
+  add_dirs: [fixture]

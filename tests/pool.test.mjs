@@ -1208,10 +1208,12 @@ test('pool/CARD-FORMAT.md says of a person card what the checker holds it to, an
 
 const NAMES = [/\bVerbato\b/i, /\bVersa\b/];
 const named = text => NAMES.some(name => name.test(text));
-const TEXT_FILE = /\.(?:md|mjs|js|cjs|json|css|html|txt)$/;
+const TEXT_FILE = /\.(?:md|mjs|js|cjs|json|css|html|txt|yaml|yml)$/;
+// What a run of the evaluation suite leaves behind: it is not shipped, and git ignores it.
+const NOT_SHIPPED = Object.freeze(['evals/results/']);
 // Every text file under a path of the kit, the path itself when it is a file; nothing when it is not there yet.
 function textFiles(path) {
-  if (!existsSync(at(path))) return [];
+  if (!existsSync(at(path)) || NOT_SHIPPED.includes(path)) return [];
   if (!path.endsWith('/')) return TEXT_FILE.test(path) ? [path] : [];
   return readdirSync(at(path), { withFileTypes: true }).flatMap(entry =>
     entry.isDirectory() ? textFiles(`${path}${entry.name}/`) : textFiles(`${path}${entry.name}`));
@@ -1223,7 +1225,7 @@ test('the product-name check matches whole words only', () => {
 });
 
 test('no product name appears in what the kit ships', () => {
-  const paths = ['pool/', 'templates/', 'skills/', 'kit/', 'reference/', 'scripts/', '.claude-plugin/', 'tests/fixtures/', 'README.md', 'LESSONS.md', 'package.json'];
+  const paths = ['pool/', 'templates/', 'skills/', 'kit/', 'reference/', 'scripts/', '.claude-plugin/', 'tests/fixtures/', 'evals/', 'README.md', 'LESSONS.md', 'package.json'];
   const files = paths.flatMap(textFiles);
   const known = [
     'pool/CARD-FORMAT.md', 'pool/INDEX.md', 'pool/makers/visual-designer.md', 'pool/audiences/task-reader.md', 'pool/persons/first-timer.md',
@@ -1231,8 +1233,13 @@ test('no product name appears in what the kit ships', () => {
     'templates/outputs/decision.json', 'templates/outputs/LEDGER.md', 'templates/package/00-frame.md', 'templates/package/04-structure/BRIEF.md',
     'templates/package/05-detail/strings.json', 'templates/people/PROFILE-CARD.md', 'templates/project/PROFILE.md', 'templates/briefs/judge.md',
     '.claude-plugin/plugin.json', '.claude-plugin/marketplace.json', 'tests/fixtures/proposals/calendar.json',
-    'tests/fixtures/prototype/today-default-es.html', 'README.md', 'package.json',
+    'tests/fixtures/prototype/today-default-es.html', 'README.md', 'LESSONS.md', 'package.json',
+    // The evaluation suite: a case's prompt, its declaration, a grader, and files of its fixture.
+    'evals/brief-has-no-design/prompt.md', 'evals/brief-has-no-design/case.yaml', 'evals/brief-has-no-design/graders/criteria.md',
+    'evals/no-pick-without-the-founder/fixture/design/PROFILE.md', 'evals/no-pick-without-the-founder/fixture/design/today/04-structure/board/A.json',
+    'evals/cold-implementer-finds-the-gap/fixture/design/today/07-handoff/prototype/today-booked-en.html',
   ];
+  assert.deepEqual(files.filter(file => file.startsWith('evals/results/')), [], 'what a run leaves is not read');
   for (const expected of known) assert.ok(files.includes(expected), `${expected} is read`);
   // The tests themselves hold the two names, in the pattern above: only their fixtures are read.
   assert.deepEqual(files.filter(file => file.startsWith('tests/') && !file.startsWith('tests/fixtures/')), []);

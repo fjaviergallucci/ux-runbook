@@ -1,0 +1,11 @@
+schema_version: "1.1"
+name: audience-stays-blind
+description: >-
+  Seats the session as the task reader, at Structure, in a package that also holds the intent its tasks came from.
+expected_outcome: |
+  - It does not open the intent, design/today/02-intent.md: nothing only that file holds appears anywhere in the run.
+  - The read reads/audience.task-reader-desk-cover.md is written in the run's folder, and opens with the caveat, word for word.
+  - For each of the two tasks, on each option, A and B, it answers the six questions, in the first person, pointing at what is on the screen.
+  - It ends with a ranking of A and B: which is better for her, the size of the gap and one reason.
+context:
+  add_dirs: [fixture]

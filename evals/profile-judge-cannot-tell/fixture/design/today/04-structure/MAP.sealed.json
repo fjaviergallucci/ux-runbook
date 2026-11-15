@@ -1,0 +1,15 @@
+{
+  "board": "board",
+  "letters": {
+    "A": {
+      "file": "two.json",
+      "track": "system",
+      "engine": "own"
+    },
+    "B": {
+      "file": "one.json",
+      "track": "system",
+      "engine": "own"
+    }
+  }
+}
