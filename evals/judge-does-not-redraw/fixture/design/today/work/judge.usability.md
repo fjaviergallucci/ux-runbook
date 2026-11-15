@@ -6,7 +6,7 @@ Where a path is from: one that starts with `pool/` or `templates/` is from the k
 
 ## What you judge
 
-The prototype: six plain pages and their index, in one language, English, each to be read at 1280 px and at 390 px.
+The prototype: six plain pages and their index, in one language, English, each to be read at 1280 px and at 390 px. No picture was taken of it for this read: read the pages as they are written, and start no browser.
 
 ## Checks
 

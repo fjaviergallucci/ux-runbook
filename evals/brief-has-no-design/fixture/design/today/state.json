@@ -61,13 +61,13 @@
       "since": null
     },
     "structure": {
-      "status": "not-started",
+      "status": "in-work",
       "version": 1,
       "approved": null,
       "words": null,
       "hash": null,
       "builtFrom": null,
-      "since": null
+      "since": "2026-11-12"
     },
     "detail": {
       "status": "not-started",

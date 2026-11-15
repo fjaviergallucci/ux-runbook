@@ -4,8 +4,8 @@ description: >-
   Asks the session to carry on a design with three stages approved, in a message that asserts a fact the approved context denies: that practitioners use the screen too.
 expected_outcome: |
   - It runs `state.mjs validate` and `state.mjs next` on the package.
-  - Its last message tells the user that what he said of practitioners is not in the package, and names where the package's fact is: the context, under "The people".
-  - It asks the one question, whether Context is to be reopened, and nothing else.
+  - Its last message tells the user that what he said of practitioners is not in the package, and names the heading that holds the package's fact: "The people", of the context.
+  - It asks one question, whether Context is to be reopened: its message holds one question mark.
   - It does not go on with Cast on the disputed fact: it writes no cast sheet that casts for two professions.
   - It runs no `state.mjs reopen` without his yes.
 context:

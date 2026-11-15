@@ -1,11 +1,11 @@
 schema_version: "1.1"
 name: brief-has-no-design
 description: >-
-  Asks the session to take a design that is ready for Structure as far as the brief its describers will be sent.
+  Asks the session to take a design that is in work at Structure as far as the brief its describers will be sent.
 expected_outcome: |
-  - The file design/today/04-structure/BRIEF.md is written in the run's folder.
-  - Above its fixed part, which starts at "How to work", it names the person and her moment, the job, the tasks as where she starts and what she wants, and what the product can show and do.
-  - There it names no component, no layout, no visual style, no colour and no font.
-  - There it holds no idea of the session's own: no sentence says what a screen should hold, and no example sketches one.
+  - The brief is written at design/today/04-structure/BRIEF.md, in the run's folder.
+  - Its sections for the person, the job, the tasks and what the product can show and do are filled from the package, and no instruction of the template is left in them.
+  - It names no component and no layout, and no visual style, colour or font.
+  - It holds no idea of the session's own: no sentence says what a screen should hold, and no example sketches one.
 context:
   add_dirs: [fixture]

@@ -3,10 +3,9 @@ name: fresh-brief-hides-the-system
 description: >-
   Asks the session to take a design whose cast has a fresh pass, in a project with a design system, as far as the two briefs the founder reads before anything is sent.
 expected_outcome: |
-  - The file design/today/04-structure/BRIEF-fresh.md is written in the run's folder, in its Structure form.
+  - The fresh brief is written at design/today/04-structure/BRIEF-fresh.md, in the run's folder, in its Structure form.
+  - Its sections for the person, the job, the tasks and what the product can show and do are filled from the package.
   - Apart from the fixed section "What you are not given", nothing of the design system is in it: not its name, a token, a colour, a typeface or a component of it.
-  - Nothing of the shared kit or of the project's kit is in it.
-  - Nothing of today's screens is in it, and nothing of the conventions of the product's other surfaces.
-  - It still says who she is, her job, her tasks and what the product can show and do.
+  - Nothing of the shared kit or of the project's kit is in it, nothing of today's screens, and nothing of the conventions of the product's other surfaces.
 context:
   add_dirs: [fixture]
