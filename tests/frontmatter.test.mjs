@@ -224,12 +224,34 @@ test('serialize quotes a value that YAML would not read as plain text: one that 
 });
 
 test('a list item that opens with one of YAML\'s marks, or holds a brace or a question mark, is wrapped in double quotes, its one quoted form; one holding a double quote is still refused', () => {
-  const data = { tags: ["'c", '*b', '- d', 'a{b}', '}', 'plain', "it's", 'free?', 'a\\b, c', 'a\\b'] };
-  assert.equal(serialize(data, ''), '---\ntags: ["\'c", "*b", "- d", "a{b}", "}", plain, it\'s, "free?", "a\\b, c", a\\b]\n---\n');
+  const data = { tags: ["'c", '*b', '- d', 'a{b}', '}', 'plain', "it's", 'free?', 'a\\b'] };
+  assert.equal(serialize(data, ''), '---\ntags: ["\'c", "*b", "- d", "a{b}", "}", plain, it\'s, "free?", a\\b]\n---\n');
   assert.deepEqual(parse(serialize(data, '')).data, data);
   refused(() => serialize({ tags: ['say "hi"'] }, ''), /"tags"/, /double quote/);
   // A list item has the one quoted form: single quotes are part of the item.
   assert.deepEqual(parse("---\ntags: ['a', b]\n---\n").data, { tags: ["'a'", 'b'] });
+});
+
+// S8 of the fix review: a control character went into a header as it came, and a YAML reader refused the header.
+test('serialize refuses a value that holds a control character other than the tab, naming the key: a YAML reader takes none', () => {
+  // The C0 characters but the tab and the line breaks, DEL, and the C1 characters but U+0085.
+  const controls = ['\x00', '\x07', '\x08', '\x0b', '\x0c', '\x1b', '\x1f', '\x7f', '\x80', '\x84', '\x86', '\x9f'];
+  for (const mark of controls) {
+    refused(() => serialize({ words: `yes${mark}go` }, ''), /"words"/, /control character/);
+    refused(() => serialize({ tags: ['plain', `yes${mark}go`] }, ''), /"tags"/, /control character/);
+  }
+  // U+0085 is a line break to a YAML reader: such a value does not fit on one line.
+  refused(() => serialize({ words: 'yes\x85go' }, ''), /"words"/, /one line/);
+  // The tab stays, in quotes; and what stands on either side of the refused ranges is text.
+  for (const words of ['yes\tgo', 'yes go', 'yes~go', 'yes\xa0go', 'sí, continúa']) assert.deepEqual(parse(serialize({ words }, '')).data, { words });
+});
+
+test('serialize refuses a list item that needs quotes and holds a backslash, naming the key: a list item has no form a YAML reader takes it in', () => {
+  refused(() => serialize({ tags: ['C:\\rooms, today'] }, ''), /"tags"/, /backslash/);
+  refused(() => serialize({ tags: ['plain', 'a\\b: c'] }, ''), /"tags"/, /backslash/);
+  refused(() => serialize({ tags: ['a\\b?'] }, ''), /"tags"/, /backslash/);
+  // One that needs no quotes is written plain, where a backslash is text; and a value that is no list item has single quotes.
+  assert.equal(serialize({ tags: ['a\\b', 'rooms\\today'], path: 'C:\\rooms, today' }, ''), "---\ntags: [a\\b, rooms\\today]\npath: 'C:\\rooms, today'\n---\n");
 });
 
 test('the header of the library says what the grammar is: a subset of YAML, and its two quoted forms', async () => {
@@ -238,4 +260,7 @@ test('the header of the library says what the grammar is: a subset of YAML, and 
   const header = source.slice(0, source.indexOf('\nexport ')).replace(/\n\/\/ ?/g, ' ').replace(/\s+/g, ' ');
   for (const said of ['a subset of YAML', 'in double quotes', 'in single quotes', 'each single quote inside it doubled', 'no escapes']) assert.ok(header.includes(said), said);
   assert.doesNotMatch(header, /quotes only wrap a value/);
+  // S8: what serialize refuses so that the claim holds, said where the claim is made.
+  for (const said of ['no control character but the tab', 'nor a `\\` when it needs quotes: serialize refuses each']) assert.ok(header.includes(said), said);
+  assert.doesNotMatch(header, /is not YAML's/);
 });

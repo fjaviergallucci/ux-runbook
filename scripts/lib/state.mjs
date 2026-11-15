@@ -4,7 +4,7 @@
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { parse, serialize } from './frontmatter.mjs';
+import { FrontmatterError, parse, serialize } from './frontmatter.mjs';
 import { carryProblems, slug } from './carry.mjs';
 
 export { slug };
@@ -45,7 +45,8 @@ const INPUT = /^([a-z]+)@(\d+)$/;
 
 const at = stage => STAGES.indexOf(stage);
 // Free text the founder or a stage writes (a design's name, his words, a question, a reason) is one line.
-const oneLine = value => (typeof value === 'string' ? value.replace(/\s*[\r\n\u2028\u2029]\s*/g, ' ').trim() : '');
+// A vertical tab (a soft line break pasted from a document), a form feed and U+0085 are line breaks too.
+const oneLine = value => (typeof value === 'string' ? value.replace(/\s*[\r\n\u000b\u000c\u0085\u2028\u2029]\s*/g, ' ').trim() : '');
 const hashOf = body => createHash('sha256').update(body, 'utf8').digest('hex');
 const isObject = value => typeof value === 'object' && value !== null && !Array.isArray(value);
 const cell = value => (value === null || value === undefined || value === '' ? '—' : oneLine(String(value)).replace(/\|/g, '\\|'));
@@ -489,9 +490,18 @@ function mustRead(pkgDir, stage) {
   return art;
 }
 
+// A header that cannot be written, as one whose words hold a control character, is a refusal like any
+// other: nothing has been written when it is made.
 function writeArtefact(pkgDir, stage, data, body) {
   const keys = [...HEADER_ORDER.filter(key => Object.hasOwn(data, key)), ...Object.keys(data).filter(key => !HEADER_ORDER.includes(key))];
-  writeText(join(pkgDir, ARTEFACT[stage]), serialize(Object.fromEntries(keys.map(key => [key, data[key]])), body));
+  let text;
+  try {
+    text = serialize(Object.fromEntries(keys.map(key => [key, data[key]])), body);
+  } catch (e) {
+    if (!(e instanceof FrontmatterError)) throw e;
+    throw new StateError(`the header of ${stage} cannot be written: ${e.message}`);
+  }
+  writeText(join(pkgDir, ARTEFACT[stage]), text);
 }
 
 function reference(item) {

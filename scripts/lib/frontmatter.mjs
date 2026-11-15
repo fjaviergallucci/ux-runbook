@@ -11,8 +11,10 @@
 // A value is quoted when plain it would read as something else, here or in YAML: one that holds `:`, `#`,
 // `[`, `,`, `"` or a tab; is empty, all digits, `=` or `<<`, or padded with spaces; or opens with a mark
 // YAML gives a meaning. A list item is quoted for a `]`, a brace or a `?` too.
-// A list item has the first form only, so it cannot hold a `"`, and one that needs quotes and holds a `\`
-// is not YAML's; an unquoted list item cannot hold `[` or `]` (quote it).
+// A list item has the first form only, so it cannot hold a `"`, nor a `\` when it needs quotes: serialize
+// refuses each; an unquoted list item cannot hold `[` or `]` (quote it).
+// A value fits on one line, and holds no control character but the tab: serialize refuses a line break
+// (U+0085 is one to a YAML reader) and any other of them, as a YAML reader refuses a header that holds one.
 // parse also reads what was written before there were two forms: double quotes wrap a value as it is,
 // whatever it holds; and a single quote that does not wrap the whole value, each one inside it doubled,
 // is part of the value.
@@ -130,14 +132,25 @@ function writeValue(key, value) {
 }
 
 // A list is split on commas outside double quotes, with no escapes: an item holding one cannot be written.
+// Nor can one that needs its quotes and holds a backslash: inside double quotes, the one form an item has,
+// a YAML reader takes a backslash for an escape.
 function writeItem(key, item) {
   if (typeof item === 'string' && item.includes('"')) throw new FrontmatterError(`"${key}": a list item cannot hold a double quote`);
+  if (typeof item === 'string' && item.includes('\\') && itemNeedsQuotes(item)) {
+    throw new FrontmatterError(`"${key}": a list item that must be quoted cannot hold a backslash`);
+  }
   return writeString(key, item, itemNeedsQuotes, inDoubleQuotes);
 }
 
+// A line break as this grammar or YAML reads one, and the control characters a YAML reader refuses in a
+// header: the C0 ones but the tab, DEL, and the C1 ones (U+0085, a line break, is caught as that first).
+const LINE_BREAK = /[\r\n\u0085\u2028\u2029]/;
+const CONTROL = /[\u0000-\u0008\u000b-\u001f\u007f-\u009f]/;
+
 function writeString(key, s, quoteWhen = needsQuotes, quote = inQuotes) {
   if (typeof s !== 'string') throw new FrontmatterError(`"${key}": a value is a string, a whole number or a list of strings`);
-  if (/[\r\n\u2028\u2029]/.test(s)) throw new FrontmatterError(`"${key}": a value must fit on one line`);
+  if (LINE_BREAK.test(s)) throw new FrontmatterError(`"${key}": a value must fit on one line`);
+  if (CONTROL.test(s)) throw new FrontmatterError(`"${key}": a value cannot hold a control character other than the tab`);
   return quoteWhen(s) ? quote(s) : s;
 }
 

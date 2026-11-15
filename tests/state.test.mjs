@@ -455,6 +455,33 @@ test('stamp writes the words on one line: each line break becomes a single space
   assert.equal(p.state().stages.frame.words, 'sí, continúa ya');
 });
 
+// S8 of the fix review: a soft line break pasted from a document (a vertical tab), a form feed and U+0085 are breaks too.
+test('stamp and await take a vertical tab, a form feed and U+0085 for line breaks: each becomes a single space', () => {
+  const p = pkg();
+  p.write('frame');
+  awaitFounder(p.dir, 'frame', { question: 'Is the frame\x0b right,\x0c\x0c as it\x85stands?', date: DAY });
+  assert.equal(p.state().question, 'Is the frame right, as it stands?');
+  stamp(p.dir, 'frame', { words: 'sí,\x0bcontinúa \x0c ya\x85mismo', date: DAY });
+  assert.equal(p.read('frame').data.words, 'sí, continúa ya mismo');
+  assert.equal(p.state().stages.frame.words, 'sí, continúa ya mismo');
+  assert.deepEqual(validate(p.dir), { ok: true, problems: [] });
+});
+
+test('stamp refuses words that hold a control character, saying which stage and why, and writes nothing', () => {
+  const p = pkg();
+  p.write('frame');
+  const [header, state] = [readFileSync(p.file('frame'), 'utf8'), JSON.stringify(p.state())];
+  for (const words of ['sí\x07, continúa', 'sí\x00', '\x1b[1msí\x1b[0m', 'sí\x7f']) {
+    refused(() => stamp(p.dir, 'frame', { words, date: DAY }), /^the header of frame cannot be written: "words": .*control character/);
+  }
+  assert.equal(readFileSync(p.file('frame'), 'utf8'), header);
+  assert.equal(JSON.stringify(p.state()), state);
+  // The command says it in one line, with no stack.
+  const done = spawnSync(process.execPath, [cli, 'stamp', p.dir, 'frame', '--words', 'sí\x07, continúa'], { encoding: 'utf8' });
+  assert.deepEqual([done.status, done.stdout], [1, '']);
+  assert.match(done.stderr, /^the header of frame cannot be written: "words": [^\n]*control character[^\n]*\n$/);
+});
+
 // R170 of the dry run: his words held a double quote, and the header a stamp wrote was not YAML.
 test('stamp writes words that hold a double quote in single quotes, his words unchanged; begin, await and validate read them back', () => {
   const said = 'Approved. One remark: "right now" means the next hour, and it\'s fine';
