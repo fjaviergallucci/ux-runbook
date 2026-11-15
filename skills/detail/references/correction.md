@@ -36,6 +36,16 @@ root.
 
    You make these two yourself: a correction is the one size where the session that conducts may
    also do the work.
+
+   **Where the screen does not open as a file,** as one drawn by components on a server, there is no
+   file to copy, and no page is ever written to look like the screen. The picture before is taken by
+   the project's own browser script, as "How a browser check is run here" of the project profile
+   names it, or, where the project keeps none, asked of him. The picture after is one of two, and you
+   tell him which: the same picture with the one thing changed, taken by that script once the change
+   is made on a branch of its own, which is not the product and is kept by nobody before his nod; or
+   no picture, and the change shown as "is → becomes", in words, beside the picture before. Each
+   picture is named as the kit's script names one, as `before-1280-light.png`: with the words, the
+   page and the carry list hold the one picture before.
 5. **Build the page.** Write `<package>/05-detail/decision.json` in the shape of
    `templates/outputs/decision-approve.json`: one option, its two pictures named from the page, the
    one before first, as `correction/before-1280-light.png`, and its line the "is → becomes" of step

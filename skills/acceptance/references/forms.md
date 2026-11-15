@@ -50,9 +50,13 @@ conductor's: `skills/design/references/routes.md`, under "A correction".
   with `built-from` as the skill gives it. You read `<package>/07-handoff/HANDOFF.md`: its one
   paragraph, "is → becomes", and the picture it names as done.
 - **Photograph the place as built,** at the width she uses, through the driver, into
-  `<package>/08-acceptance/shots/`: the picture after, of the build.
+  `<package>/08-acceptance/shots/`: the picture after, of the build. Where the screen opens as a file,
+  the kit's picture script takes it; where it does not, the project's own browser script does, and
+  where the project keeps none, the picture is asked of him, and the report says it was.
 - **Compare it with the "becomes" side, by eye:** the one thing reads, or measures, as the paragraph
-  says it becomes, and nothing else on the screen moved from the picture he nodded at.
+  says it becomes, and nothing else on the screen moved from the picture he nodded at. Where the
+  change was shown to him in words, beside the picture before, the picture as built is set beside
+  that one, and the one thing reads as the words say it becomes.
 - **One item in the report:** the change, *matches* or *deviates*, with the two pictures that show
   it: the one he nodded at, and the one as built. "The checks" says that no script checks a
   correction, and that it was compared by eye. Every other heading says "Not needed for this

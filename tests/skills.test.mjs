@@ -2402,7 +2402,8 @@ test('presets.md: what is added by rule, how the table is read, and what a seat 
   assert.equal(routeFor('adjustment').structure, 'skipped');
   assert.match(cellOf('surface', 'structure'), /^3 structure describers/);
   assert.deepEqual(['detail', 'look', 'handoff', 'acceptance'].filter(stage => cellOf('adjustment', stage) === '—'), [], 'no other stage an adjustment runs is left empty');
-  assert.match(bySize, /\*\*The judges that read it before:\*\* at Acceptance, an adjustment is read by the judges that read it at Detail and at Look/);
+  // A deferred minor of Task 15: an adjustment routed to run Structure has judges there too.
+  assert.match(bySize, /\*\*The judges that read it before:\*\* at Acceptance, an adjustment is read by the judges that read it at any earlier stage of its route/);
   // A direction is the visual designer's, as its card says; with no design system Look opens the same way.
   assert.match(bySize, /\*\*Direction:\*\* three directions, each drawn by one `maker\.visual-designer` cast for a direction, each with a lens of its own\. He picks one, and then Look is cast as for a surface/);
   assert.match(read('pool/makers/visual-designer.md'), /\*\*When you are cast for a direction\*\*/);
@@ -2912,6 +2913,30 @@ test('a build that needs a server is found at setup and at Frame, the project\'s
   assert.ok(readme.includes('\nclaude --plugin-dir <the folder you cloned>\n'));
   assert.match(flat(readme), /An installed plugin runs from Claude Code's own copy, not from your clone, so `npm install` is run once in that copy: the kit's root as installed, which is the folder two above any of its skills' own/);
   assert.match(flat(conductor()), /The kit's root is two directories above this skill's own folder/);
+});
+
+// What the scripts' part made the stamp, begin and await refuse, said where the loop says what each refuses.
+test('the loop says what begin, await and the stamp refuse now: a stage before its gate, a page with none of his words or its template left, a source not there', () => {
+  const loop = flat(reference('loop.md'));
+  assert.match(loop, /The script refuses a stage the route skips, one that is already approved, and one while a stage the route runs before it is not approved: `begin` and `await` alike, so that nothing is begun or put to him before the gate that precedes it/);
+  assert.match(loop, /one with none of his words under `## Reviewed by the founder`, or that still holds its template's opening comment or an instruction in braces on lines of its own; and a carry list that names what is not there, a `source:` line among them, looked for from the project's root/);
+  assert.match(loop, /It records every file of the stage's folder with the stamp: one changed, added or removed after it is reported by `validate`, so nothing is written into a stamped stage's folder unless that stage is reopened first/);
+  const usage = KIT.usage('scripts/state.mjs').replace(/\s+/g, ' ');
+  assert.match(usage, /Refused while a stage the route runs before it is not approved/);
+  assert.match(usage, /Every file of the stage's folder \(04-structure\/ to 08-acceptance\/\) is recorded with the stamp/);
+});
+
+// G4 of the final review: a correction where the screen does not open as a file has a way to its pictures, at Detail and at Acceptance,
+// and never a page written to look like the screen.
+test('a correction on a screen that does not open as a file: the project\'s script or his picture before, and after, a branch or the words', () => {
+  const steps = flat(section(stageRef('detail', 'correction.md'), 'Steps'));
+  assert.match(steps, /\*\*Where the screen does not open as a file,\*\* as one drawn by components on a server, there is no file to copy, and no page is ever written to look like the screen/);
+  assert.match(steps, /The picture before is taken by the project's own browser script, as "How a browser check is run here" of the project profile names it, or, where the project keeps none, asked of him/);
+  assert.match(steps, /The picture after is one of two, and you tell him which: the same picture with the one thing changed, taken by that script once the change is made on a branch of its own, which is not the product and is kept by nobody before his nod; or no picture, and the change shown as "is → becomes", in words, beside the picture before/);
+  assert.match(flat(section(stageRef('detail', 'correction.md'), 'The gate')), /\*\*Stop: nothing is changed in the product before his nod\.\*\*/);
+  const atAcceptance = flat(section(stageRef('acceptance', 'forms.md'), 'Sized `correction`: one picture beside another'));
+  assert.match(atAcceptance, /Where the screen opens as a file, the kit's picture script takes it; where it does not, the project's own browser script does, and where the project keeps none, the picture is asked of him, and the report says it was/);
+  assert.match(atAcceptance, /Where the change was shown to him in words, beside the picture before, the picture as built is set beside that one, and the one thing reads as the words say it becomes/);
 });
 
 // G9 of the final review: whether the project's tokens moved since the kit copied them is looked at before anything is drawn on

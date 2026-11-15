@@ -29,10 +29,12 @@ Two stages are not begun this way:
   put it back in work and its header back to draft. Put its open question to him again. On his answer,
   go on from step 8, without `begin`.
 
-The script refuses a stage the route skips, and one that is already approved. It keeps `STATE.md`, in the
-package, as the page `node <kit root>/scripts/state.mjs status <package>` prints: every stage with its
-mode on the route (full, short, skipped) and its status (not-started, in-work, awaiting, approved,
-skipped, stale), and the one open question.
+The script refuses a stage the route skips, one that is already approved, and one while a stage the
+route runs before it is not approved: `begin` and `await` alike, so that nothing is begun or put to him
+before the gate that precedes it. It keeps `STATE.md`, in the package, as the page
+`node <kit root>/scripts/state.mjs status <package>` prints: every stage with its mode on the route
+(full, short, skipped) and its status (not-started, in-work, awaiting, approved, skipped, stale), and
+the one open question.
 
 ## 2. Read the package, not the chat
 
@@ -271,8 +273,13 @@ once, with the source, and offer the true version. Then he decides.
    ```
 
    The script marks it approved, closes the open question and writes `STATE.md` again. It refuses an
-   output that does not name the stage before it in `built-from`, one built on a stale input, and a
-   carry list that names what is not there. Mend what it names. Never work around a refusal.
+   output that does not name the stage before it in `built-from`; one built on a stale input; one with
+   none of his words under `## Reviewed by the founder`, or that still holds its template's opening
+   comment or an instruction in braces on lines of its own; and a carry list that names what is not
+   there, a `source:` line among them, looked for from the project's root. It records every file of the
+   stage's folder with the stamp: one changed, added or removed after it is reported by `validate`, so
+   nothing is written into a stamped stage's folder unless that stage is reopened first. Mend what it
+   names. Never work around a refusal.
 3. Append the decision to the package's `DECISIONS.md`, in the shape of `templates/package/DECISIONS.md`:
    the decision, why, what was rejected, the cost accepted, what it forces on the build. An entry is
    appended, never edited.

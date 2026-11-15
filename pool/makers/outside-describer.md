@@ -52,10 +52,11 @@ names the one screen the visual designer is drawing, and its state, and carries 
 structure and strings. It asks for that screen, in that state, with those words exactly as written: no
 element added, none dropped, no string rewritten, no other screen. What comes back is a concept as it
 came, not a proposal for the board, so the script is run with `--text`: it looks for no proposal, and
-writes the answer whole at `--out`, which then names a `.txt`, `.md` or `.html` file.
+writes the answer whole at `--out`, which then names a `.txt`, `.md` or `.html` file. At Look it is
+`<name>.html`, in the fresh pass's folder, since the picture script opens it there.
 
 ```
-node <kit root>/scripts/describe.mjs --text --provider <openai|gemini> --model <id> --brief <the fresh brief> --out <fresh pass folder>/<name>.md --profile <PROFILE.md>
+node <kit root>/scripts/describe.mjs --text --provider <openai|gemini> --model <id> --brief <the fresh brief> --out <fresh pass folder>/<name>.html --profile <PROFILE.md>
 ```
 
 The concept is shown beside the system version, with anything it changed said beside it. It is never

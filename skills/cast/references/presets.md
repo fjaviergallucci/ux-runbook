@@ -39,7 +39,7 @@ How to read it:
   when the change can be seen. When it touches nothing she can see, Frame routes Look `skipped`, with
   the reason, and nobody is cast there.
 - **The judges that read it before:** at Acceptance, an adjustment is read by the judges that read it
-  at Detail and at Look.
+  at any earlier stage of its route.
 - **Direction:** three directions, each drawn by one `maker.visual-designer` cast for a direction, each
   with a lens of its own. He picks one, and then Look is cast as for a surface. Where the foundation
   is `no-system`, Look opens the same way whatever the size, from a surface up

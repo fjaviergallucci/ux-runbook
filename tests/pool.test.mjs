@@ -880,6 +880,10 @@ test('the task reader is handed a person, her profile\'s traits and pictures, an
   assert.match(method, /handed its traits and no more/);
   assert.match(method, /What an interface should do about them is not hers to know/);
   assert.match(method, /a person cannot find a control by reading markup/);
+  // A deferred minor of Task 11: three sentences a cut for length once removed from the method, pinned so that it cannot happen again.
+  assert.ok(method.includes('The less you know of what the design means to do, the better.'), 'N3');
+  assert.ok(method.includes('When your brief\'s product is another, keep her hands, her hurry, what she knows and what she refuses, and change only the setting.'), 'N2');
+  assert.ok(method.includes('A task that needs any of it is not finished. Where she would stop, you stop: never work a step out with patience she lacks.'), 'N1');
 });
 
 test('the task reader answers six things for each task, ranks with the size of each gap, and has the other reading for a public page', () => {
@@ -976,7 +980,11 @@ test('the outside describer runs the script for a proposal at Structure, and wit
   assert.equal(commands.length, 2, 'one command at Structure, one at Look');
   const [structure, look] = commands;
   assert.equal(structure, 'node <kit root>/scripts/describe.mjs --provider <openai|gemini> --model <id> --brief <the brief> --out <proposals folder>/<name>.json --profile <PROFILE.md>');
-  assert.equal(look, 'node <kit root>/scripts/describe.mjs --text --provider <openai|gemini> --model <id> --brief <the fresh brief> --out <fresh pass folder>/<name>.md --profile <PROFILE.md>');
+  // G19 of the final review: at Look the answer is the page the picture script opens, under the one name Look's pages give it.
+  assert.equal(look, 'node <kit root>/scripts/describe.mjs --text --provider <openai|gemini> --model <id> --brief <the fresh brief> --out <fresh pass folder>/<name>.html --profile <PROFILE.md>');
+  const fresh = readFileSync(at('skills/look/references/fresh.md'), 'utf8');
+  assert.ok(fresh.includes('--out <package>/06-look/fresh/<name>.html') && fresh.includes('node <kit root>/scripts/shots.mjs <package>/06-look/fresh/<name>.html'), 'fresh.md writes and pictures the same file');
+  assert.ok(readFileSync(at('skills/look/references/seats.md'), 'utf8').includes('`<package>/06-look/fresh/<name>.html`: the answer, whole, as it came.'));
   // Each is a form the script's own usage gives, flag for flag, and neither names a stand-in address.
   const help = spawnSync(process.execPath, [fileURLToPath(at('scripts/describe.mjs')), '--help'], { encoding: 'utf8' }).stdout;
   const usage = flat(help.slice(0, help.indexOf('\n\n')));
