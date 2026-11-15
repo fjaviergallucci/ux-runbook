@@ -1,7 +1,8 @@
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parse, serialize } from '../scripts/lib/frontmatter.mjs';
@@ -15,6 +16,10 @@ const cli = join(here, '..', 'scripts', 'state.mjs');
 mkdirSync(join(here, '.tmp'), { recursive: true });
 const root = mkdtempSync(join(here, '.tmp', 'state-'));
 after(() => rmSync(root, { recursive: true, force: true }));
+// A source of a carry list is looked for from the folder a command is run in, the project's root: here
+// the kit's own, whose README.md the bodies below name.
+const KIT = join(here, '..');
+process.chdir(KIT);
 
 const DAY = '2026-11-13';
 const WORDS = 'sí, continúa';
@@ -74,6 +79,13 @@ function pkg(meta = {}) {
         p.write(stage);
         stamp(dir, stage, { words: WORDS, date: DAY });
       }
+    },
+    // A status no verb gives a stage any more, since begin and await hold the order of the gates: a stage
+    // in work or awaiting while one before it is not approved. A package begun before they did may be in
+    // one, so it is written by hand, in the state and, when the output is there, in its header.
+    force(stage, status, change = {}) {
+      p.setState(state => Object.assign(state.stages[stage], { status, since: DAY }) && Object.assign(state, change));
+      if (existsSync(file(stage))) p.setHeader(stage, { status: status === 'in-work' ? 'draft' : status });
     },
     problems: () => validate(dir).problems,
     codes: () => validate(dir).problems.map(q => `${q.stage}:${q.code}`),
@@ -136,14 +148,14 @@ test('init writes state.json and STATE.md; skipped stages are skipped, with a re
   for (const stage of STAGES) {
     const skipped = routeFor('correction')[stage] === 'skipped';
     const status = skipped ? 'skipped' : 'not-started';
-    assert.deepEqual(state.stages[stage], { status, version: 1, approved: null, words: null, hash: null, builtFrom: null, since: null });
+    assert.deepEqual(state.stages[stage], { status, version: 1, approved: null, words: null, hash: null, builtFrom: null, files: null, since: null });
     assert.equal(state.reasons[stage], skipped ? 'the correction route skips it' : undefined, stage);
   }
   refused(() => init(p.dir, META), /already/);
 });
 
 test('init accepts any kebab-case kind and refuses one that is not', () => {
-  assert.equal(pkg({ kind: 'radiology-shell' }).state().kind, 'radiology-shell');
+  assert.equal(pkg({ kind: 'booking-shell' }).state().kind, 'booking-shell');
   refused(() => init(fresh(), { ...META, kind: 'Radiology Shell' }), /kebab/);
   refused(() => init(fresh(), { ...META, kind: undefined }), /kebab/);
 });
@@ -189,6 +201,7 @@ test('begin takes a stage that is stale, awaiting or in work, and leaves its bod
   const p = pkg();
   p.approve('frame', 'context', 'intent');
   reopen(p.dir, 'context', { reason: 'r', date: DAY });
+  p.approve('context');
   assert.equal(p.state().stages.intent.status, 'stale');
   const { body } = p.read('intent');
   begin(p.dir, 'intent', { date: DAY });
@@ -221,10 +234,12 @@ test('begin on a stage with an output puts its header back to draft and drops th
   assert.deepEqual([entry.status, entry.approved, entry.words, entry.hash], ['in-work', null, null, hash]);
   assert.match(p.page(), /^\| intent \| short \| in-work \| 1 \| 2026-11-13 \| — \|/m);
   assert.deepEqual(validate(p.dir), { ok: true, problems: [] });
-  writeFileSync(p.file('cast'), '---\nstage: cast\n');
-  begin(p.dir, 'cast', { date: DAY });
-  assert.equal(readFileSync(p.file('cast'), 'utf8'), '---\nstage: cast\n', 'an output it cannot read is left as it is');
-  assert.equal(p.state().stages.cast.status, 'in-work');
+  const q = pkg();
+  q.approve('frame', 'context', 'intent');
+  writeFileSync(q.file('cast'), '---\nstage: cast\n');
+  begin(q.dir, 'cast', { date: DAY });
+  assert.equal(readFileSync(q.file('cast'), 'utf8'), '---\nstage: cast\n', 'an output it cannot read is left as it is');
+  assert.equal(q.state().stages.cast.status, 'in-work');
 });
 
 test('await sets the header and state.json to awaiting and stores the question with its stage and day', () => {
@@ -273,6 +288,7 @@ test('a stale stage begun and then awaited loses the approval it had, in its hea
   p.approve('frame', 'context', 'intent');
   const { hash } = p.state().stages.intent;
   reopen(p.dir, 'context', { reason: 'r', date: DAY });
+  p.approve('context');
   begin(p.dir, 'intent', { date: DAY });
   awaitFounder(p.dir, 'intent', { question: 'Is this still the one job?', date: DAY });
   const entry = p.state().stages.intent;
@@ -292,10 +308,12 @@ test('STATE.md shows the open question and the stage it belongs to', () => {
 });
 
 test("stamp closes the open question of its own stage and leaves another stage's", () => {
+  // The frame is stale while the context awaits him: its mode changed after the context was put to him.
   const p = pkg();
-  p.write('frame');
+  p.approve('frame');
   p.write('context');
   awaitFounder(p.dir, 'context', { question: 'Which angle?', date: DAY });
+  setRoute(p.dir, 'frame', 'short', { reason: 'a smaller frame', date: DAY });
   stamp(p.dir, 'frame', { words: WORDS, date: DAY });
   assert.deepEqual([p.state().question, p.state().questionStage], ['Which angle?', 'context']);
   stamp(p.dir, 'context', { words: WORDS, date: DAY });
@@ -309,7 +327,7 @@ test('reopen closes the open question of the reopened stage, of a stage it marks
   p.approve('frame', 'context', 'intent');
   p.write('cast');
   awaitFounder(p.dir, 'cast', { question: 'Which seats?', date: DAY });
-  assert.deepEqual(reopen(p.dir, 'context', { reason: 'r', date: DAY }), { version: 2, stale: ['intent'] });
+  assert.deepEqual(reopen(p.dir, 'context', { reason: 'r', date: DAY }), { version: 2, stale: ['intent'], recalled: ['cast'] });
   assert.deepEqual([p.state().question, p.state().questionStage], [null, null]);
   assert.match(p.page(), /## Open question\n\nNone\./);
 
@@ -336,9 +354,9 @@ test('reopen takes a later stage out of awaiting: back in work since the day, it
   p.write('structure');
   awaitFounder(p.dir, 'structure', { question: 'Which structure?', date: DAY });
   const { body } = p.read('structure');
-  assert.deepEqual(reopen(p.dir, 'intent', { reason: 'the job was stated wrong', date: '2026-11-14' }), { version: 2, stale: ['cast'] });
+  assert.deepEqual(reopen(p.dir, 'intent', { reason: 'the job was stated wrong', date: '2026-11-14' }), { version: 2, stale: ['cast'], recalled: ['structure'] });
   const { stages, question, questionStage } = p.state();
-  assert.deepEqual(stages.structure, { status: 'in-work', version: 1, approved: null, words: null, hash: null, builtFrom: null, since: '2026-11-14' });
+  assert.deepEqual(stages.structure, { status: 'in-work', version: 1, approved: null, words: null, hash: null, builtFrom: null, files: null, since: '2026-11-14' });
   assert.deepEqual([question, questionStage], [null, null]);
   assert.deepEqual(p.read('structure'), { data: { stage: 'structure', version: 1, status: 'draft', approved: '', words: '', 'built-from': ['cast@1'] }, body });
   assert.match(p.page(), /^\| structure \| full \| in-work \| 1 \| 2026-11-14 \| — \|/m);
@@ -349,9 +367,11 @@ test('reopen takes a later stage out of awaiting: back in work since the day, it
   // With its output moved away, the stage is in work and owes none: validate has nothing to say of it.
   unlinkSync(p.file('structure'));
   assert.deepEqual(p.codes(), ['cast:stale-input']);
-  // And it can be begun, awaited and stamped again like any stage in work.
+  // And it can be begun, awaited and stamped again like any stage in work, once the stages before it are
+  // approved again.
+  p.approve('intent', 'cast');
   begin(p.dir, 'structure', { date: DAY });
-  assert.equal(p.state().stages.structure.status, 'in-work');
+  assert.deepEqual([p.state().stages.structure.status, p.state().stages.structure.since], ['in-work', DAY]);
 });
 
 test('reopen takes out of awaiting every later stage that was, and only those: not an earlier one, not one in work or not started', () => {
@@ -361,9 +381,9 @@ test('reopen takes out of awaiting every later stage that was, and only those: n
   p.write('intent');
   awaitFounder(p.dir, 'intent', { question: 'Is this the one job?', date: DAY });
   p.write('cast');
-  awaitFounder(p.dir, 'cast', { question: 'Which seats?', date: DAY });
-  begin(p.dir, 'structure', { date: DAY });
-  assert.deepEqual(reopen(p.dir, 'context', { reason: 'r', date: '2026-11-14' }).stale, []);
+  p.force('cast', 'awaiting', { question: 'Which seats?', questionStage: 'cast' });
+  p.force('structure', 'in-work');
+  assert.deepEqual(reopen(p.dir, 'context', { reason: 'r', date: '2026-11-14' }), { version: 2, stale: [], recalled: ['intent', 'cast'] });
   const after = p.state();
   assert.deepEqual(STAGES.map(stage => after.stages[stage].status), ['approved', 'in-work', 'in-work', 'in-work', 'in-work', 'not-started', 'not-started', 'not-started', 'not-started']);
   assert.deepEqual([after.stages.intent.since, after.stages.cast.since, after.stages.structure.since], ['2026-11-14', '2026-11-14', DAY]);
@@ -375,11 +395,11 @@ test('reopen takes out of awaiting every later stage that was, and only those: n
   q.approve('frame', 'context', 'intent');
   reopen(q.dir, 'context', { reason: 'r', date: DAY });
   q.write('cast');
-  awaitFounder(q.dir, 'cast', { question: 'Which seats?', date: DAY });
+  q.force('cast', 'awaiting');
   q.write('context');
   awaitFounder(q.dir, 'context', { question: 'Which angle?', date: DAY });
   assert.equal(q.state().stages.intent.status, 'stale');
-  reopen(q.dir, 'intent', { reason: 'r', date: DAY });
+  assert.deepEqual(reopen(q.dir, 'intent', { reason: 'r', date: DAY }).recalled, ['cast']);
   const kept = q.state();
   assert.deepEqual([kept.stages.context.status, kept.stages.cast.status], ['awaiting', 'in-work']);
   assert.deepEqual([kept.question, kept.questionStage], ['Which angle?', 'context']);
@@ -401,12 +421,15 @@ test('reopen takes out of awaiting every later stage that was, and only those: n
 });
 
 test("begin closes the open question of its own stage and leaves another stage's", () => {
+  // The frame is stale while the context awaits him: its mode changed after the context was put to him.
   const p = pkg();
-  p.write('frame');
+  p.approve('frame');
   p.write('context');
   awaitFounder(p.dir, 'context', { question: 'Which angle?', date: DAY });
+  setRoute(p.dir, 'frame', 'short', { reason: 'a smaller frame', date: DAY });
   begin(p.dir, 'frame', { date: DAY });
   assert.deepEqual([p.state().question, p.state().questionStage], ['Which angle?', 'context']);
+  stamp(p.dir, 'frame', { words: WORDS, date: DAY });
   begin(p.dir, 'context', { date: DAY });
   assert.deepEqual([p.state().stages.context.status, p.state().question, p.state().questionStage], ['in-work', null, null]);
   assert.match(p.page(), /## Open question\n\nNone\./);
@@ -425,7 +448,7 @@ test('stamp approves a draft: the header records the date and the words; the sta
   assert.deepEqual(data, { stage: 'frame', version: 1, status: 'approved', approved: DAY, words: WORDS, 'built-from': [] });
   assert.equal(body, text('frame'));
   const { hash, ...rest } = p.state().stages.frame;
-  assert.deepEqual(rest, { status: 'approved', version: 1, approved: DAY, words: WORDS, builtFrom: [], since: null });
+  assert.deepEqual(rest, { status: 'approved', version: 1, approved: DAY, words: WORDS, builtFrom: [], files: null, since: null });
   assert.match(hash, /^[0-9a-f]{64}$/);
   p.approve('context');
   assert.deepEqual(p.state().stages.context.builtFrom, ['frame@1']);
@@ -614,11 +637,11 @@ test('stamp refuses a header that does not match its stage and its state', () =>
 
 test('stamp accepts carry entries that resolve: sections of outputs it is built from, punctuation, accents in either normal form', () => {
   const p = pkg();
-  p.write('frame', {}, `# Frame\n\n## The founder's own words\n\nx\n\n## Qué puede mostrar, hoy\n\ny\n\n## Carry\n\n- source:README.md\n`);
+  p.write('frame', {}, `# Frame\n\n## The founder's own words\n\nx\n\n## Qué puede mostrar, hoy\n\ny\n\n## Reviewed by the founder\n\nYes.\n\n## Carry\n\n- source:README.md\n`);
   stamp(p.dir, 'frame', { words: WORDS, date: DAY });
   p.write('context', {}, text('context', [
     '- frame@1#the-founder-s-own-words', '- frame@1#qué-puede-mostrar-hoy', `- frame@1#${'qué-puede-mostrar-hoy'.normalize('NFD')}`,
-    '- source: docs/brief.md',
+    '- source: docs/design', '- source:  tests/fixtures/acceptance.json',
   ]));
   stamp(p.dir, 'context', { words: WORDS, date: DAY });
   assert.deepEqual(validate(p.dir), { ok: true, problems: [] });
@@ -678,11 +701,11 @@ test('a stage that went stale, then was begun and awaited, gets the next version
 test('reopen(context) after frame, context and intent are approved: context at version 2 in work; intent stale', () => {
   const p = pkg();
   p.approve('frame', 'context', 'intent');
-  assert.deepEqual(reopen(p.dir, 'context', { reason: 'the angles were thin', date: DAY }), { version: 2, stale: ['intent'] });
-  const { stages, reasons } = p.state();
-  assert.deepEqual(stages.context, { status: 'in-work', version: 2, approved: null, words: null, hash: null, builtFrom: null, since: null });
+  assert.deepEqual(reopen(p.dir, 'context', { reason: 'the angles were thin', date: DAY }), { version: 2, stale: ['intent'], recalled: [] });
+  const { stages, reasons, staleBecause } = p.state();
+  assert.deepEqual(stages.context, { status: 'in-work', version: 2, approved: null, words: null, hash: null, builtFrom: null, files: null, since: null });
   assert.equal(stages.intent.status, 'stale');
-  assert.equal(reasons.intent, 'context went to version 2 on 2026-11-13');
+  assert.deepEqual([staleBecause.intent, reasons.intent], ['context went to version 2 on 2026-11-13', undefined]);
   assert.equal(stages.frame.status, 'approved');
   assert.match(reasons.context, /reopened on 2026-11-13: the angles were thin/);
   assert.deepEqual(p.read('context').data, { stage: 'context', version: 2, status: 'draft', approved: '', words: '', 'built-from': ['frame@1'] });
@@ -695,7 +718,7 @@ test('reopen marks stale every later stage stamped as built from it, or from one
   begin(p.dir, 'structure', { date: DAY });
   assert.deepEqual(reopen(p.dir, 'context', { reason: 'r', date: DAY }).stale, ['intent', 'cast']);
   assert.equal(p.state().stages.structure.status, 'in-work', 'never stamped: nothing on record');
-  assert.deepEqual(reopen(p.dir, 'intent', { reason: 'r', date: DAY }), { version: 2, stale: ['cast'] });
+  assert.deepEqual(reopen(p.dir, 'intent', { reason: 'r', date: DAY }), { version: 2, stale: ['cast'], recalled: [] });
 });
 
 test('reopen leaves a later stage that was not stamped as built from it', () => {
@@ -704,11 +727,11 @@ test('reopen leaves a later stage that was not stamped as built from it', () => 
   setRoute(p.dir, 'intent', 'skipped', { reason: 'the job is known', date: DAY });
   p.approve('cast');
   setRoute(p.dir, 'intent', 'full', { reason: 'the job is not known after all', date: DAY });
-  assert.deepEqual([p.state().stages.cast.status, p.state().reasons.cast], ['stale', 'intent was added to the route before it']);
+  assert.deepEqual([p.state().stages.cast.status, p.state().staleBecause.cast], ['stale', 'intent was added to the route before it']);
   p.approve('intent');
   assert.deepEqual(p.state().stages.cast.builtFrom, ['context@1']);
   assert.deepEqual(reopen(p.dir, 'intent', { reason: 'r', date: DAY }).stale, []);
-  assert.equal(p.state().reasons.cast, 'intent was added to the route before it', 'not on record as built from intent');
+  assert.equal(p.state().staleBecause.cast, 'intent was added to the route before it', 'not on record as built from intent');
 });
 
 test('a stamp that raises a version marks stale what was built on the old one, directly or through other stages', () => {
@@ -717,18 +740,19 @@ test('a stamp that raises a version marks stale what was built on the old one, d
   setRoute(p.dir, 'frame', 'short', { reason: 'a smaller frame', date: DAY });
   p.write('frame', {}, text('frame').replace('Find what is free now.', 'Find what is free tonight.'));
   assert.deepEqual(stamp(p.dir, 'frame', { words: WORDS, date: DAY }), { version: 2 });
-  const { stages, reasons } = p.state();
+  const { stages, staleBecause } = p.state();
   assert.deepEqual([stages.context.status, stages.intent.status], ['stale', 'stale']);
-  assert.deepEqual([reasons.context, reasons.intent], ['frame went to version 2 on 2026-11-13', 'frame went to version 2 on 2026-11-13']);
+  assert.deepEqual([staleBecause.context, staleBecause.intent], ['frame went to version 2 on 2026-11-13', 'frame went to version 2 on 2026-11-13']);
   assert.equal(next(p.dir), 'context');
 });
 
 test("a stamp that raises a version closes the open question of a stage its cascade marks stale", () => {
   const p = pkg();
   p.approve('frame', 'context', 'intent');
-  setRoute(p.dir, 'frame', 'short', { reason: 'a smaller frame', date: DAY });
   setRoute(p.dir, 'intent', 'short', { reason: 'a shorter intent', date: DAY });
   awaitFounder(p.dir, 'intent', { question: 'Is this still the one job?', date: DAY });
+  setRoute(p.dir, 'frame', 'short', { reason: 'a smaller frame', date: DAY });
+  assert.equal(p.state().questionStage, 'intent');
   p.write('frame', {}, text('frame').replace('Find what is free now.', 'Find what is free tonight.'));
   stamp(p.dir, 'frame', { words: WORDS, date: DAY });
   const state = p.state();
@@ -748,10 +772,10 @@ test('after a resize, a redone stage marks stale what was built on its old versi
   const p = pkg({ size: 'correction' });
   p.approve('frame', 'detail');
   resize(p.dir, 'adjustment');
-  assert.deepEqual([p.state().stages.detail.status, p.state().reasons.detail], ['stale', 'cast was added to the route before it']);
+  assert.deepEqual([p.state().stages.detail.status, p.state().staleBecause.detail], ['stale', 'cast was added to the route before it']);
   p.write('frame', {}, text('frame').replace('Find what is free now.', 'Find what is free tonight.'));
   assert.deepEqual(stamp(p.dir, 'frame', { words: WORDS, date: DAY }), { version: 2 });
-  assert.deepEqual([p.state().stages.detail.status, p.state().reasons.detail], ['stale', 'frame went to version 2 on 2026-11-13']);
+  assert.deepEqual([p.state().stages.detail.status, p.state().staleBecause.detail], ['stale', 'frame went to version 2 on 2026-11-13']);
 });
 
 test('reopen does not mark a stage that is skipped or not started, whatever it was stamped as built from', () => {
@@ -806,6 +830,7 @@ test('route skips a stage not started, in work or stale; the reason is kept and 
   assert.deepEqual(p.codes(), ['cast:skip-without-reason']);
 
   const q = pkg();
+  q.approve('frame');
   q.write('context');
   awaitFounder(q.dir, 'context', { question: 'Which angle?', date: DAY });
   begin(q.dir, 'context', { date: DAY });
@@ -835,9 +860,9 @@ test('route adding a stage marks the next stage on the route stale; next returns
   const p = pkg({ size: 'adjustment' });
   p.approve('frame', 'context', 'intent', 'cast', 'detail');
   setRoute(p.dir, 'structure', 'short', { reason: 'the structure changes', date: DAY });
-  const { stages, reasons } = p.state();
+  const { stages, staleBecause } = p.state();
   assert.deepEqual([stages.structure.status, stages.detail.status], ['not-started', 'stale']);
-  assert.equal(reasons.detail, 'structure was added to the route before it');
+  assert.equal(staleBecause.detail, 'structure was added to the route before it');
   assert.equal(next(p.dir), 'structure');
   p.approve('structure');
   assert.equal(next(p.dir), 'detail');
@@ -846,14 +871,14 @@ test('route adding a stage marks the next stage on the route stale; next returns
   assert.equal(p.state().stages.acceptance.status, 'not-started', 'the last stage has nothing after it');
 });
 
-test('route skipped clears the approval record but keeps its hash, not the file; routed again, the stage is not started', () => {
+test('route skipped clears the approval but keeps its hash and what it was built from, not the file; routed again, the stage is not started', () => {
   const p = pkg();
   p.approve('frame', 'context', 'intent');
   const written = readFileSync(p.file('intent'), 'utf8');
   const { hash } = p.state().stages.intent;
   setRoute(p.dir, 'intent', 'short', { reason: 'a shorter intent', date: DAY });
   setRoute(p.dir, 'intent', 'skipped', { reason: 'no intent this time', date: DAY });
-  const blank = { version: 1, approved: null, words: null, hash, builtFrom: null, since: null };
+  const blank = { version: 1, approved: null, words: null, hash, builtFrom: ['context@1'], files: null, since: null };
   assert.deepEqual(p.state().stages.intent, { status: 'skipped', ...blank });
   assert.equal(readFileSync(p.file('intent'), 'utf8'), written);
   setRoute(p.dir, 'intent', 'full', { reason: 'an intent after all', date: DAY });
@@ -890,9 +915,9 @@ test('a stage skipped and put back, stamped with a new body, gets the next versi
   const p = skippedAndPutBack();
   p.write('context', {}, text('context').replace('Find what is free now.', 'Find what is free tonight.'));
   assert.deepEqual(stamp(p.dir, 'context', { words: WORDS, date: DAY }), { version: 2 });
-  const { stages, reasons } = p.state();
+  const { stages, staleBecause } = p.state();
   for (const stage of STAGES.slice(2)) {
-    assert.deepEqual([stages[stage].status, reasons[stage]], ['stale', 'context went to version 2 on 2026-11-13'], stage);
+    assert.deepEqual([stages[stage].status, staleBecause[stage]], ['stale', 'context went to version 2 on 2026-11-13'], stage);
   }
   assert.equal(next(p.dir), 'intent');
 });
@@ -917,22 +942,22 @@ test('a stage skipped by hand and put back by a resize, stamped with a new body,
   stamp(p.dir, 'frame', { words: WORDS, date: DAY });
   p.write('context', {}, text('context').replace('Find what is free now.', 'Find what is free tonight.'));
   assert.deepEqual(stamp(p.dir, 'context', { words: WORDS, date: DAY }), { version: 2 });
-  const { stages, reasons } = p.state();
-  assert.deepEqual([stages.detail.status, reasons.detail], ['stale', 'context went to version 2 on 2026-11-13']);
-  assert.deepEqual([stages.handoff.status, reasons.handoff], ['stale', 'context went to version 2 on 2026-11-13']);
+  const { stages, staleBecause } = p.state();
+  assert.deepEqual([stages.detail.status, staleBecause.detail], ['stale', 'context went to version 2 on 2026-11-13']);
+  assert.deepEqual([stages.handoff.status, staleBecause.handoff], ['stale', 'context went to version 2 on 2026-11-13']);
 });
 
 test('route: an approved stage moved between short and full turns stale; other stages keep their status', () => {
   const p = pkg({ size: 'adjustment' });
   p.approve('frame', 'context');
-  setRoute(p.dir, 'context', 'full', { reason: 'the context is wider', date: DAY });
-  assert.deepEqual([p.state().route.context, p.state().stages.context.status], ['full', 'stale']);
-  setRoute(p.dir, 'frame', 'full', { reason: 'still full', date: DAY });
-  assert.equal(p.state().stages.frame.status, 'approved', 'the same mode is no change');
   begin(p.dir, 'intent', { date: DAY });
   setRoute(p.dir, 'intent', 'full', { reason: 'r', date: DAY });
   setRoute(p.dir, 'cast', 'full', { reason: 'r', date: DAY });
   assert.deepEqual([p.state().stages.intent.status, p.state().stages.cast.status], ['in-work', 'not-started']);
+  setRoute(p.dir, 'context', 'full', { reason: 'the context is wider', date: DAY });
+  assert.deepEqual([p.state().route.context, p.state().stages.context.status, p.state().stages.intent.status], ['full', 'stale', 'in-work']);
+  setRoute(p.dir, 'frame', 'full', { reason: 'still full', date: DAY });
+  assert.equal(p.state().stages.frame.status, 'approved', 'the same mode is no change');
   // No verb leaves a question on an approved stage, so the state is written by hand here.
   p.setState(state => Object.assign(state, { question: 'Still the job?', questionStage: 'frame' }));
   setRoute(p.dir, 'frame', 'short', { reason: 'a smaller frame', date: DAY });
@@ -987,9 +1012,9 @@ test('resize adding stages marks the next stage on the route after each stale', 
   const p = pkg({ size: 'correction' });
   p.approve('frame', 'detail', 'handoff');
   resize(p.dir, 'adjustment');
-  const { stages, reasons } = p.state();
-  assert.deepEqual([stages.detail.status, reasons.detail], ['stale', 'cast was added to the route before it']);
-  assert.deepEqual([stages.handoff.status, reasons.handoff], ['stale', 'look was added to the route before it']);
+  const { stages, staleBecause } = p.state();
+  assert.deepEqual([stages.detail.status, staleBecause.detail], ['stale', 'cast was added to the route before it']);
+  assert.deepEqual([stages.handoff.status, staleBecause.handoff], ['stale', 'look was added to the route before it']);
   assert.equal(next(p.dir), 'frame');
 });
 
@@ -1019,16 +1044,19 @@ test('a resize never lowers a mode set by hand, and keeps its note', () => {
 test('resize: a stage in work or awaiting keeps its status when its mode changes; its question stays', () => {
   const p = pkg({ size: 'correction' });
   p.approve('frame', 'detail');
-  begin(p.dir, 'handoff', { date: DAY });
-  p.write('acceptance');
-  awaitFounder(p.dir, 'acceptance', { question: 'Does it pass?', date: DAY });
+  p.write('handoff');
+  awaitFounder(p.dir, 'handoff', { question: 'May it be built?', date: DAY });
   resize(p.dir, 'surface');
-  const { stages, question } = p.state();
-  assert.deepEqual([stages.frame.status, stages.detail.status, stages.handoff.status, stages.acceptance.status],
-    ['stale', 'stale', 'in-work', 'awaiting']);
-  const { reasons } = p.state();
-  assert.deepEqual([reasons.handoff, reasons.acceptance], ['resized from correction to surface', 'resized from correction to surface']);
-  assert.equal(question, 'Does it pass?');
+  const { stages, question, reasons } = p.state();
+  assert.deepEqual([stages.frame.status, stages.detail.status, stages.handoff.status], ['stale', 'stale', 'awaiting']);
+  assert.equal(reasons.handoff, 'resized from correction to surface');
+  assert.equal(question, 'May it be built?');
+
+  const q = pkg({ size: 'correction' });
+  q.approve('frame', 'detail');
+  begin(q.dir, 'handoff', { date: DAY });
+  resize(q.dir, 'surface');
+  assert.deepEqual([q.state().stages.handoff.status, q.state().reasons.handoff], ['in-work', 'resized from correction to surface']);
 });
 
 test('resize closes the open question of a stage it marks stale', () => {
@@ -1116,11 +1144,31 @@ test('validate: a carry entry naming an earlier output that cannot be read is ca
   assert.deepEqual(p.codes(), ['frame:bad-header', 'context:carry-unresolved']);
 });
 
-test('validate accepts a source: carry entry without resolving it', () => {
+test('a source: carry entry is looked for from the project\'s root, the folder the command is run in: one that is not there is refused at the stamp, and reported by validate', () => {
+  // A project of its own, apart from the kit: a file, a folder, and a name with a space.
+  const project = fresh();
+  mkdirSync(join(project, 'docs', 'the facts'), { recursive: true });
+  writeFileSync(join(project, 'docs', 'product-facts.md'), 'facts');
+  const there = ['- source:docs/product-facts.md', '- source: docs/the facts', `- source:${join(project, 'docs')}`];
   const p = pkg();
-  p.write('frame', {}, text('frame', ['- source:docs/not-written-yet.md']));
-  stamp(p.dir, 'frame', { words: WORDS, date: DAY });
-  assert.deepEqual(validate(p.dir), { ok: true, problems: [] });
+  p.write('frame', {}, text('frame', [...there, '- source:docs/not-written-yet.md']));
+  const missing = `"- source:docs/not-written-yet.md": docs/not-written-yet.md is not there, looked for from ${project}: a source is named by its path from the project's root, where the command is run`;
+  refusedOnce(() => stamp(p.dir, 'frame', { words: WORDS, date: DAY, root: project }), /^frame cannot be stamped:\n- "- source:docs\/not-written-yet\.md": docs\/not-written-yet\.md is not there, looked for from /);
+  assert.equal(p.state().stages.frame.status, 'not-started');
+  // From the kit's root, where this file runs, none of the project's three is there either.
+  assert.throws(() => stamp(p.dir, 'frame', { words: WORDS, date: DAY }), e => refusal(e, /product-facts\.md is not there, looked for from /) && e.message.split('\n').length === 4);
+  // Written, it is stamped; taken away again, validate says so of the approved stage, by the same words.
+  writeFileSync(join(project, 'docs', 'not-written-yet.md'), 'now it is');
+  stamp(p.dir, 'frame', { words: WORDS, date: DAY, root: project });
+  assert.deepEqual(validate(p.dir, { root: project }), { ok: true, problems: [] });
+  unlinkSync(join(project, 'docs', 'not-written-yet.md'));
+  assert.deepEqual(validate(p.dir, { root: project }).problems, [{ stage: 'frame', code: 'carry-unresolved', message: missing }]);
+  // The command line looks from the folder it is run in.
+  const run = (cwd, ...args) => spawnSync(process.execPath, [cli, ...args], { encoding: 'utf8', cwd });
+  assert.deepEqual([run(project, 'validate', p.dir).status, run(project, 'validate', p.dir).stdout], [1, `frame: carry-unresolved: ${missing}\n`]);
+  writeFileSync(join(project, 'docs', 'not-written-yet.md'), 'again');
+  assert.deepEqual([run(project, 'validate', p.dir).status, run(project, 'validate', p.dir).stdout], [0, 'ok\n']);
+  assert.equal(run(KIT, 'validate', p.dir).status, 1, 'from another folder the project\'s sources are not there');
 });
 
 test('validate: a stage awaiting, approved or stale without its output is missing-artefact; a stage in work is not', () => {
@@ -1129,7 +1177,7 @@ test('validate: a stage awaiting, approved or stale without its output is missin
   // The reopening comes first: a later stage awaiting when an earlier one is reopened goes back in work.
   reopen(p.dir, 'context', { reason: 'r', date: DAY });
   p.write('cast');
-  awaitFounder(p.dir, 'cast', { question: 'Which seats?', date: DAY });
+  p.force('cast', 'awaiting');
   const { stages } = p.state();
   assert.deepEqual(['frame', 'context', 'intent', 'cast'].map(s => stages[s].status), ['approved', 'in-work', 'stale', 'awaiting']);
   for (const stage of ['frame', 'context', 'intent', 'cast']) unlinkSync(p.file(stage));
@@ -1354,11 +1402,11 @@ test('STATE.md shows since only while a stage is in work or awaiting; stamp and 
   const p = pkg();
   p.approve('frame', 'context', 'intent');
   reopen(p.dir, 'context', { reason: 'r', date: DAY });
+  p.approve('context');
   begin(p.dir, 'intent', { date: '2026-11-14' });
   assert.match(p.page(), /^\| intent \| full \| in-work \| 1 \| 2026-11-14 \|/m);
   awaitFounder(p.dir, 'intent', { question: 'Still the one job?', date: '2026-11-15' });
   assert.match(p.page(), /^\| intent \| full \| awaiting \| 1 \| 2026-11-15 \|/m);
-  p.approve('context');
   reopen(p.dir, 'context', { reason: 'r', date: DAY });
   assert.equal(p.state().stages.intent.since, '2026-11-15');
   assert.match(p.page(), /^\| intent \| full \| stale \| 1 \| — \|/m);
@@ -1401,7 +1449,7 @@ test('the CLI runs a package: init, stamp, next, status, validate, reopen, resiz
   r = run('validate', dir);
   assert.deepEqual([r.status, r.stdout], [0, 'ok\n']);
   r = run('reopen', dir, 'frame', '--reason=the job changed', '--date', DAY);
-  assert.deepEqual([r.status, r.stdout], [0, 'reopened frame at version 2; stale: none\n']);
+  assert.deepEqual([r.status, r.stdout], [0, 'reopened frame at version 2; stale: none; back in work: none\n']);
   r = run('resize', dir, '--size', 'flow');
   assert.deepEqual([r.status, r.stdout], [0, `resized ${dir} to flow\n`]);
   assert.equal(JSON.parse(readFileSync(join(dir, 'state.json'), 'utf8')).size, 'flow');
@@ -1532,5 +1580,455 @@ test('the CLI --help names every verb and flag, says line breaks in --words beco
       assert.ok(r.stdout.includes(word), word);
     }
     assert.match(r.stdout, /--words, --question.*: each line break in them becomes a single space/);
+    // What the verbs hold a stage to, as the library does.
+    const said = r.stdout.replace(/\s+/g, ' ');
+    for (const sentence of [
+      'begin <package> <stage> [--date <day>] mark the stage in work since the day; its output need not exist yet; closes its open question. Refused while a stage the route runs before it is not approved.',
+      'with the one open question. Refused while a stage the route runs before it is not approved.',
+      'It must hold what he said under "## Reviewed by the founder", and nothing left of its template: not the opening comment, and no instruction in braces on lines of its own.',
+      'and sources that are there: a file or a folder, by its path from the folder this command is run in, which is the project\'s root.',
+      'Every file of the stage\'s folder (04-structure/ to 08-acceptance/) is recorded with the stamp, what a mount or a file browser leaves behind passed over.',
+      'Prints both lists: "stale:", then "back in work:".',
+      'a file of the stage\'s folder that changed, was removed or was added since (a text file\'s line endings aside). A stage stamped before folders were recorded is held to its output alone.',
+    ]) assert.ok(said.includes(sentence), sentence);
   }
+});
+
+// ---- the stale chain through a skipped stage (R39), and a stage's two notes
+
+const TONIGHT = stage => text(stage).replace('Find what is free now.', 'Find what is free tonight.');
+const FRAME_2 = 'frame went to version 2 on 2026-11-13';
+
+test('a skip keeps what the stage was stamped as built from: a change above it reaches through it, skipped or put back, to what was built on it', () => {
+  // All nine approved; the context made stale and skipped; then the frame redone with another body.
+  const p = pkg();
+  p.approve(...STAGES);
+  setRoute(p.dir, 'context', 'short', { reason: 'a narrower context', date: DAY });
+  setRoute(p.dir, 'context', 'skipped', { reason: 'no context this time', date: DAY });
+  assert.deepEqual(p.state().stages.context.builtFrom, ['frame@1']);
+  setRoute(p.dir, 'frame', 'short', { reason: 'a smaller frame', date: DAY });
+  p.write('frame', {}, TONIGHT('frame'));
+  assert.deepEqual(stamp(p.dir, 'frame', { words: WORDS, date: DAY }), { version: 2 });
+  let { stages, staleBecause } = p.state();
+  assert.deepEqual([stages.context.status, staleBecause.context], ['skipped', undefined], 'a skipped stage holds no approval to lose');
+  for (const stage of STAGES.slice(2)) assert.deepEqual([stages[stage].status, staleBecause[stage]], ['stale', FRAME_2], stage);
+  assert.equal(next(p.dir), 'intent');
+  assert.deepEqual(p.codes(), STAGES.slice(2).map(stage => `${stage}:stale-input`));
+  // Put back, the context is to be made again, and nothing built on it passes for approved meanwhile.
+  setRoute(p.dir, 'context', 'full', { reason: 'a context after all', date: DAY });
+  assert.deepEqual([p.state().stages.context.status, next(p.dir)], ['not-started', 'context']);
+
+  // Skipped and put back before the frame moves: not started, with what it was built from still on record.
+  const q = skippedAndPutBack();
+  assert.deepEqual([q.state().stages.context.status, q.state().stages.context.builtFrom], ['not-started', ['frame@1']]);
+  setRoute(q.dir, 'frame', 'short', { reason: 'a smaller frame', date: DAY });
+  q.write('frame', {}, TONIGHT('frame'));
+  assert.deepEqual(stamp(q.dir, 'frame', { words: WORDS, date: DAY }), { version: 2 });
+  ({ stages, staleBecause } = q.state());
+  assert.deepEqual([stages.context.status, staleBecause.context], ['not-started', undefined]);
+  for (const stage of STAGES.slice(2)) assert.deepEqual([stages[stage].status, staleBecause[stage]], ['stale', FRAME_2], stage);
+
+  // A reopening reaches through a skipped stage the same way.
+  const r = pkg();
+  r.approve(...STAGES);
+  setRoute(r.dir, 'context', 'short', { reason: 'a narrower context', date: DAY });
+  setRoute(r.dir, 'context', 'skipped', { reason: 'no context this time', date: DAY });
+  assert.deepEqual(reopen(r.dir, 'frame', { reason: 'the request changed', date: DAY }), { version: 2, stale: STAGES.slice(2), recalled: [] });
+  assert.equal(r.state().stages.context.status, 'skipped');
+});
+
+test('a stage has two notes: a route reason given by hand stays when a change above, or a stage added before it, marks it stale; the stale note goes when it is approved again', () => {
+  const ROUTE = 'only the label changes (set short on 2026-11-13)';
+  const MOVED = 'context went to version 2 on 2026-11-13';
+  const p = pkg();
+  p.approve('frame', 'context', 'intent');
+  setRoute(p.dir, 'intent', 'short', { reason: 'only the label changes', date: DAY });
+  assert.equal(p.problems()[0].message, `intent is stale: ${ROUTE}; redo it or re-confirm it, then stamp it`, 'the route\'s note says why, where nothing else moved');
+  reopen(p.dir, 'context', { reason: 'r', date: DAY });
+  assert.deepEqual([p.state().reasons.intent, p.state().staleBecause.intent], [ROUTE, MOVED]);
+  assert.match(p.page(), /^\| intent \| short \| stale \| 1 \| — \| 2026-11-13 \| `02-intent\.md` \| only the label changes \(set short on 2026-11-13\); context went to version 2 on 2026-11-13 \|$/m);
+  assert.deepEqual(p.problems().filter(q => q.stage === 'intent'), [{ stage: 'intent', code: 'stale-input', message: `intent is stale: ${MOVED}; redo it or re-confirm it, then stamp it` }]);
+  // Begun and put to him again, it still says what moved; approved again, it no longer does.
+  p.approve('context');
+  begin(p.dir, 'intent', { date: DAY });
+  p.write('intent');
+  assert.equal(p.state().staleBecause.intent, MOVED);
+  stamp(p.dir, 'intent', { words: WORDS, date: DAY });
+  assert.deepEqual([p.state().reasons.intent, p.state().staleBecause.intent], [ROUTE, undefined]);
+  assert.match(p.page(), /^\| intent \| short \| approved \| 1 \| — \| 2026-11-13 \| `02-intent\.md` \| only the label changes \(set short on 2026-11-13\) \|$/m);
+
+  // A stage added before it: the same note, and the same end.
+  const q = pkg({ size: 'adjustment' });
+  q.approve('frame', 'context', 'intent', 'cast');
+  setRoute(q.dir, 'detail', 'full', { reason: 'every state is redrawn', date: DAY });
+  q.approve('detail');
+  setRoute(q.dir, 'structure', 'short', { reason: 'the structure changes', date: DAY });
+  assert.deepEqual([q.state().reasons.detail, q.state().staleBecause.detail], ['every state is redrawn (set full on 2026-11-13)', 'structure was added to the route before it']);
+  q.approve('structure', 'detail');
+  assert.deepEqual([q.state().reasons.detail, q.state().staleBecause.detail, q.state().stages.detail.status], ['every state is redrawn (set full on 2026-11-13)', undefined, 'approved']);
+
+  // Reopened or skipped, a stage is no longer stale: its stale note goes with that.
+  const r = pkg();
+  r.approve('frame', 'context', 'intent', 'cast');
+  reopen(r.dir, 'frame', { reason: 'r', date: DAY });
+  assert.deepEqual(Object.keys(r.state().staleBecause), ['context', 'intent', 'cast']);
+  setRoute(r.dir, 'context', 'skipped', { reason: 'no context this time', date: DAY });
+  r.approve('frame');
+  reopen(r.dir, 'intent', { reason: 'r', date: DAY });
+  assert.deepEqual(Object.keys(r.state().staleBecause), ['cast']);
+  assert.match(r.state().reasons.intent, /^reopened on 2026-11-13: r$/);
+
+  // A state written before a stage had two notes holds what moved under it in the one it had: it is read.
+  const old = pkg();
+  old.approve('frame', 'context');
+  reopen(old.dir, 'frame', { reason: 'r', date: DAY });
+  old.setState(state => {
+    state.reasons.context = state.staleBecause.context;
+    delete state.staleBecause;
+  });
+  assert.deepEqual(old.problems().map(q => q.message), ['context is stale: frame went to version 2 on 2026-11-13; redo it or re-confirm it, then stamp it']);
+  old.approve('frame');
+  assert.deepEqual(old.state().staleBecause, {});
+});
+
+test('route leaves the open question where it is when only a mode changes: the stage is still in front of him', () => {
+  const p = pkg({ size: 'adjustment' });
+  p.approve('frame');
+  p.write('context');
+  awaitFounder(p.dir, 'context', { question: 'Which angle?', date: DAY });
+  const asked = () => [p.state().stages.context.status, p.state().question, p.state().questionStage, p.read('context').data.status];
+  // Its own mode, short to full.
+  setRoute(p.dir, 'context', 'full', { reason: 'the context is wider', date: DAY });
+  assert.deepEqual([p.state().route.context, ...asked()], ['full', 'awaiting', 'Which angle?', 'context', 'awaiting']);
+  // Another stage's: routed otherwise, skipped, and put on the route.
+  setRoute(p.dir, 'intent', 'full', { reason: 'r', date: DAY });
+  setRoute(p.dir, 'look', 'skipped', { reason: 'r', date: DAY });
+  setRoute(p.dir, 'structure', 'short', { reason: 'r', date: DAY });
+  assert.deepEqual(asked(), ['awaiting', 'Which angle?', 'context', 'awaiting']);
+  assert.match(p.page(), /## Open question\n\ncontext: Which angle\?\n/);
+});
+
+// ---- nothing before the gate that precedes it (G16)
+
+test('begin and await refuse a stage while a stage the route runs before it is not approved; a skipped stage is passed over, and nothing is written', () => {
+  const p = pkg();
+  p.approve('frame');
+  p.write('detail', { 'built-from': ['frame@1'] });
+  const before = [readFileSync(join(p.dir, 'state.json'), 'utf8'), readFileSync(p.file('detail'), 'utf8')];
+  const held = (stage, by, status) => new RegExp(`^${stage} cannot (?:be begun|await the founder): ${by}, before it on the route, is ${status}, not approved; \`next\` names the stage to run$`);
+  refused(() => begin(p.dir, 'detail', { date: DAY }), /^detail cannot be begun: context, before it on the route, is not-started, not approved; `next` names the stage to run$/);
+  refused(() => awaitFounder(p.dir, 'detail', { question: 'Do you approve this prototype for Look?', date: DAY }), /^detail cannot await the founder: context, before it on the route, is not-started, not approved; `next` names the stage to run$/);
+  assert.deepEqual([readFileSync(join(p.dir, 'state.json'), 'utf8'), readFileSync(p.file('detail'), 'utf8')], before, 'nothing is written');
+  assert.equal(next(p.dir), 'context');
+  // Whatever keeps the stage before it from being approved holds it back: in work, awaiting, stale.
+  begin(p.dir, 'context', { date: DAY });
+  refused(() => begin(p.dir, 'intent', { date: DAY }), held('intent', 'context', 'in-work'));
+  p.write('context');
+  awaitFounder(p.dir, 'context', { question: 'Which angle?', date: DAY });
+  refused(() => begin(p.dir, 'intent', { date: DAY }), held('intent', 'context', 'awaiting'));
+  p.write('intent');
+  refused(() => awaitFounder(p.dir, 'intent', { question: 'Is this the one job?', date: DAY }), held('intent', 'context', 'awaiting'));
+  assert.equal(p.state().questionStage, 'context', 'the question in front of him is still the one asked');
+  stamp(p.dir, 'context', { words: WORDS, date: DAY });
+  begin(p.dir, 'intent', { date: DAY });
+  awaitFounder(p.dir, 'intent', { question: 'Is this the one job?', date: DAY });
+  // Not only the stage just before it: the first one on the route that is not approved is named.
+  setRoute(p.dir, 'frame', 'short', { reason: 'a smaller frame', date: DAY });
+  refused(() => begin(p.dir, 'intent', { date: DAY }), held('intent', 'frame', 'stale'));
+  refused(() => awaitFounder(p.dir, 'intent', { question: 'Is this the one job?', date: DAY }), held('intent', 'frame', 'stale'));
+  refused(() => begin(p.dir, 'acceptance', { date: DAY }), held('acceptance', 'frame', 'stale'));
+  // The first stage has none before it, whatever comes after.
+  begin(p.dir, 'frame', { date: DAY });
+  assert.equal(p.state().stages.frame.status, 'in-work');
+
+  // A correction: the stages its route skips are passed over, and the order of the four still holds.
+  const c = pkg({ size: 'correction' });
+  refused(() => begin(c.dir, 'detail', { date: DAY }), held('detail', 'frame', 'not-started'));
+  c.approve('frame');
+  begin(c.dir, 'detail', { date: DAY });
+  refused(() => begin(c.dir, 'handoff', { date: DAY }), held('handoff', 'detail', 'in-work'));
+  c.approve('detail', 'handoff');
+  c.write('acceptance');
+  awaitFounder(c.dir, 'acceptance', { question: 'Is the build what you nodded at?', date: DAY });
+  assert.equal(c.state().stages.acceptance.status, 'awaiting');
+
+  // The command line: exit 1, the one line, no stack.
+  const d = pkg();
+  for (const args of [['begin', d.dir, 'detail'], ['await', d.dir, 'detail', '--question', 'Do you approve?']]) {
+    const r = run(...args);
+    assert.deepEqual([r.status, r.stdout], [1, ''], args.join(' '));
+    assert.match(r.stderr, /^detail cannot (be begun|await the founder): frame, before it on the route, is not-started, not approved; `next` names the stage to run\n$/);
+  }
+});
+
+// ---- his words in the output, and nothing of the template (G7)
+
+// A body with the section given where "Reviewed by the founder" goes, between a filled heading and the carry list.
+const reviewed = section => `# Frame\n\n## The one job\n\nFind what is free now.\n${section}\n## Carry\n\n- source:README.md\n`;
+const SAY = 'what he said is written there, in his words, before the stamp';
+const stamped = (p, stage = 'frame') => stamp(p.dir, stage, { words: WORDS, date: DAY });
+
+test('stamp refuses an output that holds none of his words: no "Reviewed by the founder" section, or one that holds nothing but an instruction in braces', () => {
+  const p = pkg();
+  const none = [`00-frame.md has no "## Reviewed by the founder" section: ${SAY}`];
+  const empty = [`00-frame.md holds nothing under "## Reviewed by the founder": ${SAY}`];
+  const instructed = [
+    '00-frame.md still holds an instruction in braces of its template, under "Reviewed by the founder": replace each with what it asks for',
+    `00-frame.md holds nothing under "## Reviewed by the founder" but an instruction in braces: ${SAY}`,
+  ];
+  const cases = [
+    ['', none],
+    // A heading of another level, or of other words, is not the section.
+    ['\n### Reviewed by the founder\n\nYes.\n', none],
+    ['\n## Reviewed\n\nYes.\n', none],
+    ['\n## Reviewed by the founder\n', empty],
+    ['\n## Reviewed by the founder\n\n   \n', empty],
+    // The comment every template keeps above the carry list is not his words.
+    ['\n## Reviewed by the founder\n\n<!-- The carry list is the last section: what the next stage may open\n     besides this output. -->\n', empty],
+    // The section as each template has it: one instruction, on one line or on two.
+    ['\n## Reviewed by the founder\n\n{What he corrected, and the words he confirmed it with, as he said them.}\n', instructed],
+    ['\n## Reviewed by the founder\n\n{What he corrected, and the words he approved the prototype with, as he said them. Where the words are\nthe product, his answer on the words is written apart.}\n\n<!-- The carry list is the last section. -->\n', instructed],
+  ];
+  for (const [section, problems] of cases) {
+    p.write('frame', {}, reviewed(section));
+    assert.throws(() => stamped(p), e => e instanceof StateError && e.message === `frame cannot be stamped:\n${problems.map(q => `- ${q}`).join('\n')}`, JSON.stringify(section));
+    assert.equal(p.state().stages.frame.status, 'not-started');
+    assert.equal(p.read('frame').data.status, 'draft');
+  }
+  // His words in any shape pass: a line, a list, a quote in a fence, a heading of its own under the section,
+  // the short form of a correction. The frame is stale, and so stamped again, for each.
+  const said = [
+    '\n## Reviewed by the founder\n\nYes.\n',
+    '\n## Reviewed by the founder\n\n- "sí, continúa"\n',
+    '\n## Reviewed by the founder\n\n```\nsí, continúa\n```\n',
+    '\n## Reviewed by the founder\n\n### On the words\n\n"Book room", not "Reserve".\n',
+    '\n## Reviewed by the founder\n\nIt should read "Book room". The line waits for his nod at Detail.\n\n<!-- The carry list is the last section. -->\n',
+  ];
+  for (const section of said) {
+    p.write('frame', {}, reviewed(section));
+    stamped(p);
+    assert.equal(p.state().stages.frame.status, 'approved', JSON.stringify(section));
+    assert.deepEqual(validate(p.dir), { ok: true, problems: [] });
+    setRoute(p.dir, 'frame', p.state().route.frame === 'full' ? 'short' : 'full', { reason: 'r', date: DAY });
+  }
+});
+
+test('stamp refuses what is left of the template: its opening comment, and an instruction in braces on lines of its own; braces in fenced code, in a JSON object and inside a line are let be', () => {
+  const p = pkg();
+  const YES = '\n## Reviewed by the founder\n\nYes.\n';
+  const body = (before, under = '') => `${before}# Frame\n\n## The request\n\n${under}\n## The one job\n\nFind what is free now.\n${YES}\n## Carry\n\n- source:README.md\n`;
+  const COMMENT = '<!-- Template. Keep the headings and the tables, replace each {instruction in braces}, and delete this\n     comment. The header is the state script\'s. -->\n\n';
+  const left = (n, where) => `00-frame.md still holds ${n === 1 ? 'an instruction in braces' : `${n} instructions in braces`} of its template, ${where}: replace each with what it asks for`;
+  const cases = [
+    [body(COMMENT, 'A booking action.\n'), ['00-frame.md still holds its template\'s opening comment: it is deleted once the template is filled in']],
+    [body('', '{What he asked for, in his own words, as he wrote it. Never a summary.}\n'), [left(1, 'under "The request"')]],
+    [body('', '{A correction needs only the request, the three values and its route in one line. At any other size,\ndelete this line.}\n'), [left(1, 'under "The request"')]],
+    // An instruction that holds braces of its own is one still; up to three lines of indent are no code.
+    [body('', '   {Each stage\'s mode, as the size sets it: {full · short · skipped}.}\n'), [left(1, 'under "The request"')]],
+    [body('{The design\'s name.}\n\n', 'A booking action.\n'), [left(1, 'before its first heading')]],
+    [body(COMMENT, '{What he asked for.}\n\n{And why.}\n\n### Who\n\n{One profile.}\n\n### Where\n\n{The screen.}\n\n### When\n\n{The day.}\n'), [
+      '00-frame.md still holds its template\'s opening comment: it is deleted once the template is filled in',
+      left(5, 'under "The request", under "Who", under "Where" and 1 more'),
+    ]],
+  ];
+  for (const [text_, problems] of cases) {
+    p.write('frame', {}, text_);
+    assert.throws(() => stamped(p), e => e instanceof StateError && e.message === `frame cannot be stamped:\n${problems.map(q => `- ${q}`).join('\n')}`, text_);
+    assert.equal(p.state().stages.frame.status, 'not-started');
+  }
+  // What is no instruction left over: all of it in one output, which is stamped.
+  const let_be = [
+    '```json\n{\n  "id": "book-action"\n}\n```\n',
+    '~~~\n{What the fence holds is shown, not asked.}\n<!-- Template. A comment shown as code. -->\n~~~\n',
+    '{ "id": "book-action", "type": "visible" }\n',
+    '{\n  "id": "book-action"\n}\n',
+    '| Kind | {working-surface · first-run} | {what the interface is for} |\n',
+    'The greeting reads {name}, then the day.\n',
+    '{name}, you have {count} rooms free: {rooms}\n',
+    '{count} rooms free, as {rooms}\n\nThe braces above name two things on one line.\n',
+    '{an aside left open before a blank line\n\nand a later line that happens to end in a brace: }\n',
+    '{an aside that is never closed\n',
+    '<!-- A note of the stage\'s own, with {braces} in it. -->\n',
+  ].join('\n');
+  p.write('frame', {}, body('', let_be).replace('# Frame', '# Frame · {the design\'s name}'));
+  stamped(p);
+  assert.deepEqual(validate(p.dir), { ok: true, problems: [] });
+});
+
+test('validate reports the same of an approved stage, as of one stamped before the stamp looked', () => {
+  const p = pkg();
+  p.approve('frame', 'context');
+  // Stamped by an earlier script: the template as it came, its hash on record.
+  const unfilled = '<!-- Template. Replace each {instruction in braces}, and delete this comment. -->\n\n# Context\n\n## Product facts\n\n{What the product can show, today.}\n\n## Reviewed by the founder\n\n{What he corrected, and the words he approved it with, as he said them.}\n\n## Carry\n\n- source:README.md\n';
+  p.write('context', { status: 'approved', approved: DAY, words: WORDS }, unfilled);
+  p.setState(state => (state.stages.context.hash = createHash('sha256').update(unfilled, 'utf8').digest('hex')));
+  assert.deepEqual(p.problems(), [
+    { stage: 'context', code: 'unfilled', message: '01-context.md still holds its template\'s opening comment: it is deleted once the template is filled in' },
+    { stage: 'context', code: 'unfilled', message: '01-context.md still holds 2 instructions in braces of its template, under "Product facts", under "Reviewed by the founder": replace each with what it asks for' },
+    { stage: 'context', code: 'approved-without-words', message: `01-context.md holds nothing under "## Reviewed by the founder" but an instruction in braces: ${SAY}` },
+  ]);
+  // A stage that is not approved yet is still being written: nothing is said of what it has not filled in.
+  p.write('intent', {}, unfilled);
+  assert.deepEqual(p.codes().filter(code => code.startsWith('intent')), []);
+});
+
+// ---- every file of a stamped stage's folder (R184)
+
+const sha = content => createHash('sha256').update(content).digest('hex');
+// The first bytes of a PNG, which hold a CR LF pair, and are no text.
+const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x01, 0x02]);
+// A surface approved up to Look, and a handoff folder as Handoff fills it, with what a mount and a file
+// browser leave in a folder; `stamp` approves it.
+function handedOff() {
+  const p = pkg();
+  p.approve('frame', 'context', 'intent', 'cast', 'structure', 'detail', 'look');
+  const folder = join(p.dir, '07-handoff');
+  const at = (...parts) => join(folder, ...parts);
+  mkdirSync(at('prototype', 'shots'), { recursive: true });
+  writeFileSync(at('SPEC.md'), '# Spec\r\n\r\nThe list of free rooms.\r\n');
+  writeFileSync(at('strings.json'), '{\n  "book": { "en": "Book room" }\n}\n');
+  writeFileSync(at('prototype', 'today-default-en.html'), '<p data-ux="free-count">2 rooms free</p>\n');
+  writeFileSync(at('prototype', 'shots', 'today-default-en-390-light.png'), PNG);
+  for (const name of ['.DS_Store', 'Thumbs.db', 'desktop.ini', '.fuse_hidden0001']) writeFileSync(at(name), 'nobody wrote this');
+  writeFileSync(at('prototype', 'shots', '.fuse_hidden0002a'), PNG);
+  p.write('handoff', {}, text('handoff', null));
+  return Object.assign(p, { at, approve_: () => stamp(p.dir, 'handoff', { words: WORDS, date: DAY }) });
+}
+const CHANGED = name => ({ stage: 'handoff', code: 'changed-since-approval', message: `07-handoff/${name} changed after handoff was approved on 2026-11-13; reopen handoff, or put back what was approved` });
+const REMOVED = name => ({ stage: 'handoff', code: 'changed-since-approval', message: `07-handoff/${name} was removed after handoff was approved on 2026-11-13; reopen handoff, or put it back` });
+const ADDED = name => ({ stage: 'handoff', code: 'changed-since-approval', message: `07-handoff/${name} was added after handoff was approved on 2026-11-13; reopen handoff, or take it out` });
+
+test('a stamp records every file of the stage\'s folder by its path from it: a text file with its line endings made one, any other by its bytes; not the output, not what a mount leaves behind', () => {
+  const p = handedOff();
+  p.approve_();
+  const { files } = p.state().stages.handoff;
+  assert.deepEqual(files, {
+    'SPEC.md': sha('# Spec\n\nThe list of free rooms.\n'),
+    'prototype/shots/today-default-en-390-light.png': sha(PNG),
+    'prototype/today-default-en.html': sha('<p data-ux="free-count">2 rooms free</p>\n'),
+    'strings.json': sha('{\n  "book": { "en": "Book room" }\n}\n'),
+  });
+  assert.deepEqual(Object.keys(files), ['SPEC.md', 'prototype/shots/today-default-en-390-light.png', 'prototype/today-default-en.html', 'strings.json'], 'in the order of the paths');
+  // A stage whose output lies in the package's own folder owns that file alone; one with a folder that
+  // holds its output and nothing else has an empty list, which is a list.
+  const { stages } = p.state();
+  assert.deepEqual(['frame', 'context', 'intent', 'cast'].map(stage => stages[stage].files), [null, null, null, null]);
+  assert.deepEqual(['structure', 'detail', 'look'].map(stage => stages[stage].files), [{}, {}, {}]);
+  assert.deepEqual(validate(p.dir), { ok: true, problems: [] });
+});
+
+test('validate reports a file of an approved stage\'s folder that changed, was removed or was added after its stamp; line endings alone change no text file, and do change any other', () => {
+  const p = handedOff();
+  p.approve_();
+  const ok = what => assert.deepEqual(validate(p.dir), { ok: true, problems: [] }, what);
+  const spec = readFileSync(p.at('SPEC.md'));
+  // Checked out with other line endings, or looked at in a file browser: nothing of his changed.
+  writeFileSync(p.at('SPEC.md'), '# Spec\n\nThe list of free rooms.\n');
+  writeFileSync(p.at('strings.json'), '{\r\n  "book": { "en": "Book room" }\r\n}\r\n');
+  writeFileSync(p.at('prototype', '.DS_Store'), 'nobody wrote this');
+  unlinkSync(p.at('.fuse_hidden0001'));
+  ok('line endings and leftovers');
+  // A word of a text file.
+  writeFileSync(p.at('SPEC.md'), '# Spec\n\nThe list of all rooms.\n');
+  assert.deepEqual(p.problems(), [CHANGED('SPEC.md')]);
+  writeFileSync(p.at('SPEC.md'), spec);
+  ok('put back');
+  // A picture is held to its bytes: its CR LF made LF is another picture.
+  writeFileSync(p.at('prototype', 'shots', 'today-default-en-390-light.png'), Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0a, 0x1a, 0x0a, 0x00, 0x01, 0x02]));
+  assert.deepEqual(p.problems(), [CHANGED('prototype/shots/today-default-en-390-light.png')]);
+  writeFileSync(p.at('prototype', 'shots', 'today-default-en-390-light.png'), PNG);
+  // Removed, added, and all three at once: changed first, then removed, then added.
+  unlinkSync(p.at('prototype', 'today-default-en.html'));
+  assert.deepEqual(p.problems(), [REMOVED('prototype/today-default-en.html')]);
+  writeFileSync(p.at('prototype', 'today-empty-en.html'), '<p>No rooms.</p>\n');
+  writeFileSync(p.at('strings.json'), '{}\n');
+  assert.deepEqual(p.problems(), [CHANGED('strings.json'), REMOVED('prototype/today-default-en.html'), ADDED('prototype/today-empty-en.html')]);
+  // The output is no file of the list: it is reported as it always was, once.
+  p.edit('handoff', whole => whole.replace('Find what is free now.', 'Find what is free tonight.'));
+  assert.deepEqual(p.problems().slice(-4, -3), [{ stage: 'handoff', code: 'changed-since-approval', message: '07-handoff/HANDOFF.md changed after it was approved on 2026-11-13; reopen it, or put back what was approved' }]);
+  assert.equal(p.problems().length, 4);
+  // Reopened, changed and stamped again, the folder as it is now is what is guarded.
+  assert.deepEqual(reopen(p.dir, 'handoff', { reason: 'an accepted deviation', date: DAY }), { version: 2, stale: [], recalled: [] });
+  assert.equal(p.state().stages.handoff.files, null);
+  assert.deepEqual(p.codes(), []);
+  assert.deepEqual(stamp(p.dir, 'handoff', { words: WORDS, date: DAY }), { version: 2 });
+  assert.deepEqual(Object.keys(p.state().stages.handoff.files), ['SPEC.md', 'prototype/shots/today-default-en-390-light.png', 'prototype/today-empty-en.html', 'strings.json']);
+  ok('stamped again');
+});
+
+test('validate names ten changed files of a folder and counts the rest; the command line prints each and exits 1', () => {
+  const p = handedOff();
+  for (let n = 1; n <= 12; n++) writeFileSync(p.at('prototype', `page-${String(n).padStart(2, '0')}.html`), `<p>${n}</p>\n`);
+  p.approve_();
+  for (let n = 1; n <= 12; n++) writeFileSync(p.at('prototype', `page-${String(n).padStart(2, '0')}.html`), `<p>${n + 1}</p>\n`);
+  const problems = p.problems();
+  assert.deepEqual(problems.slice(0, 10), Array.from({ length: 10 }, (_, i) => CHANGED(`prototype/page-${String(i + 1).padStart(2, '0')}.html`)));
+  assert.deepEqual(problems.slice(10), [{ stage: 'handoff', code: 'changed-since-approval', message: '2 more files of 07-handoff/ changed, were removed or were added after handoff was approved on 2026-11-13; reopen handoff, or put back what was approved' }]);
+  writeFileSync(p.at('prototype', 'page-12.html'), '<p>12</p>\n');
+  assert.match(p.problems().at(-1).message, /^1 more file of 07-handoff\/ changed, were removed or were added after/);
+  const r = run('validate', p.dir);
+  assert.equal(r.status, 1);
+  assert.equal(r.stdout.split('\n').filter(Boolean).length, 11);
+  assert.ok(r.stdout.startsWith('handoff: changed-since-approval: 07-handoff/prototype/page-01.html changed after handoff was approved on 2026-11-13; reopen handoff, or put back what was approved\n'), r.stdout);
+});
+
+test('a stage stamped before folders were guarded has no list of files on record, and is held to its output alone; stamped again, it has one', () => {
+  for (const legacy of [state => delete state.stages.handoff.files, state => (state.stages.handoff.files = null)]) {
+    const p = handedOff();
+    p.approve_();
+    p.setState(legacy);
+    writeFileSync(p.at('SPEC.md'), '# Spec\n\nThe list of all rooms.\n');
+    unlinkSync(p.at('strings.json'));
+    writeFileSync(p.at('notes.md'), 'a note');
+    assert.deepEqual(validate(p.dir), { ok: true, problems: [] });
+    p.edit('handoff', whole => whole.replace('Find what is free now.', 'Find what is free tonight.'));
+    assert.deepEqual(p.codes(), ['handoff:changed-since-approval']);
+    // Made stale and re-confirmed, it is stamped by this script, and its folder is on record from then on.
+    setRoute(p.dir, 'handoff', 'short', { reason: 'r', date: DAY });
+    assert.deepEqual(stamp(p.dir, 'handoff', { words: WORDS, date: DAY }), { version: 2 });
+    assert.deepEqual(Object.keys(p.state().stages.handoff.files), ['SPEC.md', 'notes.md', 'prototype/shots/today-default-en-390-light.png', 'prototype/today-default-en.html']);
+    writeFileSync(p.at('notes.md'), 'another note');
+    assert.deepEqual(p.problems(), [CHANGED('notes.md')]);
+  }
+});
+
+test('a link in the folder is never followed: it is held to where it points, and a folder it points to is not walked', t => {
+  const p = handedOff();
+  const outside = join(p.dir, 'work');
+  mkdirSync(outside);
+  writeFileSync(join(outside, 'brief.md'), 'a brief');
+  try {
+    symlinkSync(join('..', 'work', 'brief.md'), p.at('brief.md'));
+    // A link back to the folder above: followed, it would never end.
+    symlinkSync('..', p.at('prototype', 'above'), 'dir');
+  } catch (e) {
+    t.skip(`this file system makes no link here (${e.code})`);
+    return;
+  }
+  p.approve_();
+  const { files } = p.state().stages.handoff;
+  assert.deepEqual(Object.keys(files), ['SPEC.md', 'brief.md', 'prototype/above', 'prototype/shots/today-default-en-390-light.png', 'prototype/today-default-en.html', 'strings.json']);
+  assert.equal(files['brief.md'], sha(`link: ${join('..', 'work', 'brief.md')}`));
+  // What it points to is another stage's, or nobody's: a change there is not a change here.
+  writeFileSync(join(outside, 'brief.md'), 'another brief');
+  assert.deepEqual(validate(p.dir), { ok: true, problems: [] });
+  // Pointed elsewhere, it has changed.
+  unlinkSync(p.at('brief.md'));
+  symlinkSync(join('..', 'work', 'other.md'), p.at('brief.md'));
+  assert.deepEqual(p.problems(), [CHANGED('brief.md')]);
+});
+
+test('the CLI reopen names the stages it marked stale and those it took out of awaiting', () => {
+  // A correction at its last stage: the report awaits him on handoff@1 when the handoff is reopened.
+  const p = pkg({ size: 'correction' });
+  p.approve('frame', 'detail', 'handoff');
+  p.write('acceptance');
+  awaitFounder(p.dir, 'acceptance', { question: 'Is the build what you nodded at?', date: DAY });
+  let r = run('reopen', p.dir, 'handoff', '--reason', 'an accepted deviation', '--date', DAY);
+  assert.deepEqual([r.status, r.stdout, r.stderr], [0, 'reopened handoff at version 2; stale: none; back in work: acceptance\n', '']);
+  assert.deepEqual([p.state().stages.acceptance.status, p.state().question], ['in-work', null]);
+  // The report was built from the version reopened, and says so until its built-from is written again.
+  assert.deepEqual(p.problems(), [{ stage: 'acceptance', code: 'stale-input', message: 'built from handoff@1, but handoff is at version 2: a stale input; rebuild on handoff@2 or re-confirm it' }]);
+  r = run('reopen', p.dir, 'frame', '--reason', 'the request changed', '--date', DAY);
+  assert.deepEqual([r.status, r.stdout], [0, 'reopened frame at version 2; stale: detail; back in work: none\n']);
 });

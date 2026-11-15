@@ -1,11 +1,12 @@
 // The carry list (spec § 6): the last section of a stage output, headed `## Carry`. Each entry names a
 // section of an earlier output this one is built from, at that output's current version
-// (`- stage@version#heading-slug`), or a project source (`- source:path`), which is accepted without
-// resolving: the project root is not the package's to know. The checks here read text only; the package
-// is reached through the `context` that scripts/lib/state.mjs passes in.
+// (`- stage@version#heading-slug`), or a project source (`- source:path`): a file or a folder, by its path
+// from the project's root, which is the folder the command is run in. One that is not there is refused:
+// a stage is handed its pictures, its ledgers and its prototype by such lines. The checks here read text
+// only; the package and the project are reached through the `context` that scripts/lib/state.mjs passes in.
 
 const SECTION_ENTRY = /^- ([a-z]+)@(\d+)#(\S+)$/;
-const SOURCE_ENTRY = /^- source:\s*\S/;
+const SOURCE_ENTRY = /^- source:\s*(\S.*)$/;
 const HEADING = /^#{1,6}[ \t]+(.+?)[ \t]*$/;
 const CARRY_HEADING = /^##[ \t]+Carry[ \t]*$/;
 
@@ -18,7 +19,8 @@ export function slug(heading) {
 const slugsOf = body => body.split('\n').map(line => HEADING.exec(line)).filter(Boolean).map(match => slug(match[1]));
 
 // context: { stage, file, required, earlier(stage) → boolean, inputs: the stages in built-from,
-//            earlierBody(stage, version) → { body, file } or { code, message } }
+//            earlierBody(stage, version) → { body, file } or { code, message },
+//            source(path) → null when the path is there, or why it is not, in words }
 export function carryProblems(body, context) {
   const lines = body.split('\n');
   const start = lines.findLastIndex(line => CARRY_HEADING.test(line));
@@ -33,7 +35,12 @@ export function carryProblems(body, context) {
       unresolved(`"## Carry" must be the last section, but "${line}" follows it`);
       continue;
     }
-    if (SOURCE_ENTRY.test(line)) continue;
+    const source = SOURCE_ENTRY.exec(line);
+    if (source) {
+      const missing = context.source(source[1]);
+      if (missing) unresolved(`"${line}": ${missing}`);
+      continue;
+    }
     const match = SECTION_ENTRY.exec(line);
     if (!match) {
       unresolved(`"${line}" is not a carry entry; write - <stage>@<version>#<heading-slug> or - source:<path>`);

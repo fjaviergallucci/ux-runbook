@@ -201,6 +201,8 @@ const carryContext = stage => ({
   earlier: () => true,
   inputs: [],
   earlierBody: () => ({ code: 'carry-unresolved', message: 'not read in this test' }),
+  // A source is there when the kit has it: the kit's root stands for the project's.
+  source: path => (existsSync(join(kit, path)) ? null : `${path} is not there`),
 });
 
 test('a template\'s carry list is accepted as it is and with a real entry, and its instruction is never read as one', () => {
@@ -211,6 +213,7 @@ test('a template\'s carry list is accepted as it is and with a real entry, and i
     const problems = text => carryProblems(text, carryContext(stage)).map(p => p.message);
     assert.deepEqual(problems(body), [], `${file}, as it is`);
     assert.deepEqual(problems(`${body}\n- source:README.md\n`), [], `${file}, with one entry`);
+    assert.deepEqual(problems(`${body}\n- source:no-such-file.md\n`), ['"- source:no-such-file.md": no-such-file.md is not there'], `${file}: a source that is not there`);
     // The reader passes over nothing below the heading: a line that is not an entry is refused there.
     assert.equal(problems(`${body}\nThe tokens file.\n`).length, 1, `${file}: a note under the heading is refused`);
     // So the instruction sits above the heading, in a comment, and gives both forms an entry takes.

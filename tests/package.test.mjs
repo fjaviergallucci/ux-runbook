@@ -28,7 +28,14 @@ function copy(from, to) {
   }
 }
 
-const state = (...args) => spawnSync(process.execPath, [cli, ...args], { encoding: 'utf8' });
+// Run from the kit's root, which stands for the project's here: a source of a carry list is looked for
+// from the folder the command is run in.
+const state = (...args) => spawnSync(process.execPath, [cli, ...args], { encoding: 'utf8', cwd: join(here, '..') });
+// What a stage writes into its template: the opening comment deleted, each instruction in braces that
+// stands on lines of its own replaced by what it asks for (here, one line), and his words where the
+// template asks for them. The comment above the carry list stays, as the template says.
+const SAID = 'Written by the stage, as its template asks.';
+const filledIn = text => text.replace(/<!-- Template\.[\s\S]*?-->\n/, '').replace(/^\{[\s\S]*?\}$/gm, SAID);
 // A verb that succeeds: exit 0 and nothing on standard error. What it printed, trimmed.
 function ok(...args) {
   const run = state(...args);
@@ -48,20 +55,23 @@ function pkg(size) {
     read: stage => readFileSync(file(stage), 'utf8'),
     write: (stage, text) => writeFileSync(file(stage), text),
     header: stage => parse(readFileSync(file(stage), 'utf8')).data,
-    // What a stage does to its template before the gate, and no more: it names what the output is built
-    // from, and adds entries to the carry list where the output has one.
-    fill(stage, inputs, entries = [ENTRY]) {
+    // What a stage does to its template before the gate, and no more: it fills it in, names what the
+    // output is built from, and adds entries to the carry list where the output has one. With
+    // `asItIs`, it only names what the output is built from: the template is left as it came.
+    fill(stage, inputs, entries = [ENTRY], { asItIs = false } = {}) {
       const text = readFileSync(file(stage), 'utf8');
       assert.equal(text.split('built-from: []').length, 2, `${ARTEFACT[stage]} has the header the template gave it`);
       const carried = /^## Carry$/m.test(text);
-      writeFileSync(file(stage), text.replace('built-from: []', `built-from: [${inputs.join(', ')}]`) + (carried ? `\n${entries.join('\n')}\n` : ''));
+      const written = asItIs ? text : filledIn(text);
+      if (!asItIs) assert.ok(written.length < text.length && written.includes(`## Reviewed by the founder\n\n${SAID}\n`), `${ARTEFACT[stage]}: the template asks for his words`);
+      writeFileSync(file(stage), written.replace('built-from: []', `built-from: [${inputs.join(', ')}]`) + (carried ? `\n${entries.join('\n')}\n` : ''));
       return carried;
     },
     stamp: stage => state('stamp', dir, stage, '--words', WORDS, '--date', DAY),
   };
 }
 
-test('a surface is stamped from frame to handoff on the templates as they are, with one carry entry each', () => {
+test('a surface is stamped from frame to handoff on the templates, filled in, with one carry entry each', () => {
   const p = pkg('surface');
   const stages = STAGES.slice(0, STAGES.indexOf('handoff') + 1);
   const carried = [];
@@ -112,12 +122,38 @@ test('a correction skips to detail, handoff and acceptance, each built from the 
   assert.ok(existsSync(join(p.dir, ARTEFACT.structure)));
 });
 
-test('the frame template is stamped untouched, and an instruction moved under "## Carry" is refused', () => {
+test('a template as it came is never stamped: the stamp names what is left of it, and that none of his words are in it', () => {
+  // The four templates of a correction, each copied as it is, only built-from written: the route a
+  // design could once finish on with four empty pages.
+  const p = pkg('correction');
+  const route = ['frame', 'detail', 'handoff', 'acceptance'];
+  route.forEach((stage, i) => {
+    p.fill(stage, i === 0 ? [] : [`${route[i - 1]}@1`], [ENTRY], { asItIs: true });
+    const run = p.stamp(stage);
+    assert.deepEqual([run.status, run.stdout], [1, ''], stage);
+    const lines = run.stderr.trimEnd().split('\n');
+    assert.equal(lines[0], `${stage} cannot be stamped:`);
+    assert.equal(lines[1], `- ${ARTEFACT[stage]} still holds its template's opening comment: it is deleted once the template is filled in`);
+    assert.match(lines[2], new RegExp(`^- ${ARTEFACT[stage].replace('.', '\\.')} still holds (\\d+) instructions in braces of its template, .* and \\d+ more: replace each with what it asks for$`));
+    assert.equal(lines[3], `- ${ARTEFACT[stage]} holds nothing under "## Reviewed by the founder" but an instruction in braces: what he said is written there, in his words, before the stamp`);
+    assert.equal(lines.length, 4, run.stderr);
+    assert.equal(Number(/holds (\d+) instructions/.exec(lines[2])[1]), (p.read(stage).match(/^\{/gm) ?? []).length, `${stage}: every instruction that opens a line is counted`);
+    assert.equal(p.header(stage).status, 'draft');
+    // Filled in, the same file is stamped, and the next stage has something to be built from.
+    p.write(stage, filledIn(p.read(stage)));
+    assert.equal(ok('stamp', p.dir, stage, '--words', WORDS, '--date', DAY), `stamped ${stage} approved at version 1 on ${DAY}`);
+  });
+  assert.equal(ok('validate', p.dir), 'ok');
+  assert.equal(ok('next', p.dir), 'none');
+});
+
+test('the frame template, filled in, is stamped with an empty carry list, and an instruction moved under "## Carry" is refused', () => {
   const p = pkg('surface');
   // Frame is built from nothing, and a carry list may be empty.
+  p.write('frame', filledIn(p.read('frame')));
   assert.equal(ok('stamp', p.dir, 'frame', '--words', WORDS, '--date', DAY), `stamped frame approved at version 1 on ${DAY}`);
   // The reader passes over nothing below the heading: the template keeps its instruction above it.
-  const text = p.read('context');
+  const text = filledIn(p.read('context'));
   const from = text.lastIndexOf('<!--');
   const to = text.indexOf('-->', from) + 3;
   assert.ok(from !== -1 && to < text.lastIndexOf('\n## Carry\n'), 'the instruction is a comment above the heading');
@@ -139,7 +175,7 @@ test('a section of one template can be carried by the next, under the slug of it
   const p = pkg('surface');
   p.fill('frame', []);
   assert.equal(p.stamp('frame').status, 0);
-  p.fill('context', ['frame@1'], ['- source:design/PROFILE.md', `- frame@1#${slugOf('The request')}`]);
+  p.fill('context', ['frame@1'], ['- source:templates/project/PROFILE.md', `- frame@1#${slugOf('The request')}`]);
   assert.equal(p.stamp('context').status, 0, 'context carries the request');
   // Intent carries the inventory and the founder's words from the context, and may still name the frame.
   const carried = ['What the product can show and do', 'The founder\'s own words', 'Project sources'];

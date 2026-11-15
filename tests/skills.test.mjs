@@ -7,7 +7,7 @@ import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, extname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { INPAGE, TYPES, validateAcceptance } from '../scripts/accept.mjs';
 import { parse } from '../scripts/lib/frontmatter.mjs';
@@ -1631,6 +1631,21 @@ test('project-kit.md: each class of the contract is restyled on the project\'s t
 
 mkdirSync(fileURLToPath(at('tests/.tmp/')), { recursive: true });
 const scratchRoot = mkdtempSync(join(fileURLToPath(at('tests/.tmp/')), 'skills-'));
+// What a stage writes into the template of its output before the gate: the opening comment deleted, and
+// each instruction in braces that stands on lines of its own replaced by what it asks for (here, one line),
+// his words among them. The stamp refuses a template left as it came.
+const FILLED_IN = 'Written by the stage, as its template asks.';
+const filledIn = text => text.replace(/<!-- Template\.[\s\S]*?-->\n/, '').replace(/^\{[\s\S]*?\}$/gm, FILLED_IN);
+// A source a carry list names, by its path from the project's root, where the stamp looks for it: put there
+// when a test stands in for whoever wrote it, a file for a name with an extension and a folder for any other.
+const placeSource = (project, ...lines) => {
+  for (const line of lines.filter(line => line.startsWith('- source:'))) {
+    const path = join(project, line.slice('- source:'.length).trim());
+    if (existsSync(path)) continue;
+    mkdirSync(extname(path) ? dirname(path) : path, { recursive: true });
+    if (extname(path)) writeFileSync(path, 'A source, stood in for.\n');
+  }
+};
 after(() => rmSync(scratchRoot, { recursive: true, force: true }));
 
 test('project-kit.md: its specimen proposal is valid, and its drawing command draws it with a kit that imports its tokens, the tokens beside the page', () => {
@@ -2444,11 +2459,12 @@ test('the four opening stages run as written: each state and card command with i
   const write = (name, carry, inputs = name === 'frame' ? '[]' : builtFrom(name)) => {
     const text = read(`templates/package/${ARTEFACT[name]}`);
     assert.ok(text.endsWith('\n## Carry\n') && text.includes('\nbuilt-from: []\n'), name);
-    writeFileSync(join(project, 'design', 'today', ARTEFACT[name]), `${text.replace('built-from: []', `built-from: ${inputs}`)}\n${carry.join('\n')}\n`);
+    writeFileSync(join(project, 'design', 'today', ARTEFACT[name]), `${filledIn(text).replace('built-from: []', `built-from: ${inputs}`)}\n${carry.join('\n')}\n`);
   };
   const STAMPED = name => new RegExp(`^stamped ${name} approved at version 1 on \\d{4}-\\d\\d-\\d\\d$`);
   const slugOf = (name, heading) => run(commandOf(name, 'state.mjs slug'), { '<heading text>': heading });
   const SOURCE = '- source:src/styles/tokens.css';
+  placeSource(project, SOURCE);
 
   // Frame: the package is made and begun, a stage is routed with its reason, and the frame is stamped.
   assert.equal(run(commandOf('frame', 'state.mjs init')), 'initialised design/today: working-surface, new-surface, surface; next: frame');
@@ -2456,6 +2472,7 @@ test('the four opening stages run as written: each state and card command with i
   assert.equal(run(commandOf('frame', 'state.mjs route')), 'look is routed full');
   assert.match(run(commandOf('frame', 'state.mjs status')), /^\| look \| full \| not-started \| — \| — \| — \| `06-look\/LOOK\.md` \| he asked for the whole look \(set full on /m);
   const [, profileLine] = /as `(- source:design\/pool\/profiles\/[a-z-]+\.md)`/.exec(flat(section(stageSkill('frame'), 'Gate')));
+  placeSource(project, profileLine);
   write('frame', [profileLine]);
   assert.match(run(commandOf('frame', 'state.mjs stamp')), STAMPED('frame'));
 
@@ -3066,7 +3083,7 @@ test('rounds.md: a graft is redrawn once and read again once, a rejected round m
   inOrder(again, [/The next merge deals the letters anew, so whatever speaks of the old letters goes with them/, /1\. \*\*Tell the founder first,\*\* and move nothing without his yes\. If the decision page was already in front of him, put the stage back in work with the `begin` of step 1 of the skill: that closes its question, which is asked again on the new board/,
     /2\. \*\*Move together\*\* into `<package>\/04-structure\/earlier\/<n>\/`: the board, the map, the pick if one was begun, the reads, and the decision page with its data\. The briefs, the proposals folder and `fresh\/` stay/,
     /3\. \*\*Go on from step 6 of the skill:\*\* tag, merge, draw, photograph, then readers who have read no earlier board/, /The merge refuses while a map or a pick lies beside the board folder: where its refusal says to delete, move/], 'a board made again');
-  assert.match(KIT.usage('scripts/merge.mjs'), /delete it and its map on purpose/);
+  assert.match(KIT.usage('scripts/merge.mjs').replace(/\s+/g, ' '), /A sealed board is never merged again, and never deleted: move it and its map into earlier\/<n>\/ to rebuild it, and a pick left from another board with them\./);
 
   // A fresh pass he asks for at the decision page: recorded, its brief read by him at its own stop, then the board made again before he picks.
   const asked = flat(section(rounds, 'A fresh pass he asks for at the decision page'));
@@ -3117,13 +3134,14 @@ test('Structure runs as written: its own commands on the fixture proposals, the 
     const text = read(`templates/package/${ARTEFACT[name]}`);
     assert.ok(text.endsWith('\n## Carry\n') && text.includes('\nbuilt-from: []\n'), name);
     mkdirSync(round, { recursive: true });
-    writeFileSync(join(pkg, ARTEFACT[name]), `${text.replace('built-from: []', `built-from: ${inputs}`)}\n${carry.join('\n')}\n`);
+    writeFileSync(join(pkg, ARTEFACT[name]), `${filledIn(text).replace('built-from: []', `built-from: ${inputs}`)}\n${carry.join('\n')}\n`);
   };
   const STAMPED = (name, version) => new RegExp(`^stamped ${name} approved at version ${version} on \\d{4}-\\d\\d-\\d\\d$`);
 
   // The package as Cast leaves it: four outputs approved, the cast sheet carrying on a section of the intent and one of the context.
   run(`${STATE} init <package> --design today --kind working-surface --foundation new-surface --size surface`);
   const castCarry = version => [`- intent@${version}#${slug('The one job')}`, `- context@1#${slug('The people')}`, '- source:design/pool/persons/desk-cover.md'];
+  placeSource(project, ...castCarry(1));
   for (const [name, inputs, carry] of [['frame', '[]'], ['context', '[frame@1]'], ['intent', '[context@1]'], ['cast', '[intent@1, context@1]', castCarry(1)]]) {
     run(`${STATE} begin <package> ${name}`);
     write(name, inputs, carry);
@@ -3233,7 +3251,7 @@ test('Structure runs as written: its own commands on the fixture proposals, the 
 
   // He rejects them all: the pick says none, Intent is reopened, and the round moves whole into earlier/1.
   pick('none', 'Ninguna: el trabajo está mal planteado.');
-  assert.equal(run(commandOf('state.mjs reopen')), 'reopened intent at version 2; stale: cast');
+  assert.equal(run(commandOf('state.mjs reopen')), 'reopened intent at version 2; stale: cast; back in work: structure');
   const held = readdirSync(round).filter(visible).sort();
   assert.deepEqual(held, ['CHOSEN.md', MAP, PICK, 'board', 'decision.html', 'decision.json', 'fresh', 'proposals'].sort());
   mkdirSync(join(round, 'earlier', '1'), { recursive: true });
@@ -3312,6 +3330,9 @@ test('Structure runs as written: its own commands on the fixture proposals, the 
     '- source:design/today/04-structure/chosen/chosen.json', '- source:design/today/04-structure/chosen/chosen-390-light.png', '- source:design/today/04-structure/chosen/chosen-1280-light.png', `- source:design/today/04-structure/${PICK}`,
     '- source:design/today/04-structure/fresh/today-1.png'];
   assert.ok(carry.includes('- cast@2#blind-rules') && carry.includes('- cast@2#fresh-pass'));
+  // The pictures of the redrawn pick are the picture script's to take, and its own tests drive the browser: here each is a
+  // stand-in, under the name the script gives it. A source that is not there is refused at the stamp.
+  for (const width of ['390', '1280']) writeFileSync(join(round, 'chosen', `chosen-${width}-light.png`), '');
   write('structure', '[cast@2]', carry);
   const refused = exec(commandOf('state.mjs stamp'));
   assert.deepEqual([refused.status, refused.stdout], [1, '']);
@@ -4336,7 +4357,7 @@ test('Detail and Look run as written: their own commands on a package Structure 
     const text = read(`templates/package/${ARTEFACT[name]}`);
     assert.ok(text.endsWith('\n## Carry\n') && text.includes('\nbuilt-from: []\n'), name);
     mkdirSync(join(base, ARTEFACT[name], '..'), { recursive: true });
-    writeFileSync(join(base, ARTEFACT[name]), `${text.replace('built-from: []', `built-from: ${inputs}`)}\n${carry.join('\n')}\n`);
+    writeFileSync(join(base, ARTEFACT[name]), `${filledIn(text).replace('built-from: []', `built-from: ${inputs}`)}\n${carry.join('\n')}\n`);
   };
   const STAMPED = name => new RegExp(`^stamped ${name} approved at version 1 on \\d{4}-\\d\\d-\\d\\d$`);
   // What a stage's output is built from, as its skill gives it, each stage at the version `status` prints.
@@ -4362,6 +4383,7 @@ test('Detail and Look run as written: their own commands on a package Structure 
   for (const [name, inputs, carry] of [['frame', '[]'], ['context', '[frame@1]'], ['intent', '[context@1]'], ['cast', '[intent@1, context@1]', castCarry], ['structure', '[cast@1, intent@1, context@1]', chosenCarry]]) {
     run(`${STATE} begin <package> ${name}`);
     write(name, inputs, carry);
+    placeSource(project, ...(carry ?? []));
     assert.match(run(`${STATE} stamp <package> ${name} --words "sí, adelante"`), STAMPED(name));
   }
   assert.equal(run(`${STATE} next <package>`), 'detail');
@@ -4417,6 +4439,8 @@ test('Detail and Look run as written: their own commands on a package Structure 
   for (const line of ['- structure@1#what-the-readers-found', '- source:design/today/04-structure/reads', '- cast@1#structure', '- cast@1#detail', '- cast@1#look', '- cast@1#handoff', '- cast@1#acceptance']) assert.ok(detailCarry.includes(line), line);
   // The chosen structure itself carries the tables of the stages still to run, and not its own.
   assert.ok(!chosenCarry.includes('- cast@1#structure'));
+  // The readers' folders and the package's log are stood in for: a source that is not there is refused too.
+  placeSource(project, ...detailCarry);
   write('detail', '[structure@1]', detailCarry);
   assert.equal(refusedFor('detail', ['cast', 'intent', 'context']), detailCarry.filter(line => /^- (?:cast|intent|context)@/.test(line)).length);
   write('detail', standingAt('detail'), detailCarry);
@@ -4519,6 +4543,9 @@ test('Detail and Look run as written: their own commands on a package Structure 
   assert.deepEqual(detailCarry.filter(line => !lookCarry.includes(line)), ['- source:design/today/04-structure/fresh/today-1.png']);
   assert.ok(!lookCarry.some(line => /\/(?:fresh|beside)\/|BESIDE/.test(line)) && lookCarry.includes('- source:design/today/DECISIONS.md') && lookCarry.includes('- detail@1#data-map'));
   for (const line of ['- detail@1#what-the-readers-found', '- structure@1#what-the-readers-found', '- source:design/today/04-structure/reads', '- source:design/today/05-detail/reads', '- cast@1#structure', '- cast@1#look']) assert.ok(lookCarry.includes(line), line);
+  // The readers' folder is stood in for, and the project's token file, which setup copies: a source that is not there is
+  // refused at the stamp. Everything else the list names, this walk has made.
+  placeSource(project, '- source:design/today/06-look/reads', '- source:design/kit/tokens.css');
   write('look', '[detail@1]', lookCarry);
   assert.equal(refusedFor('look', ['structure', 'cast', 'intent', 'context']), lookCarry.filter(line => /^- (?:structure|cast|intent|context)@/.test(line)).length);
   write('look', standingAt('look'), lookCarry);
@@ -4537,6 +4564,8 @@ test('Detail and Look run as written: their own commands on a package Structure 
   const small = join(project, 'design', 'label');
   run(`${STATE} init <package> --design label --kind working-surface --foundation small-change --size correction`, fix);
   run(`${STATE} begin <package> frame`, fix);
+  // The screen the request names is the project's own: it is there, as the stamp asks of every source.
+  placeSource(project, '- source:src/today/rooms.html');
   write('frame', '[]', ['- source:src/today/rooms.html'], small);
   assert.match(run(`${STATE} stamp <package> frame --words "sí"`, fix), STAMPED('frame'));
   assert.equal(run(`${STATE} next <package>`, fix), 'detail');
@@ -5426,7 +5455,7 @@ test('Handoff and Acceptance run as written: the folder assembled from a package
     const text = read(`templates/package/${ARTEFACT[name]}`);
     assert.ok(text.includes('\nbuilt-from: []\n'), name);
     mkdirSync(join(base, ARTEFACT[name], '..'), { recursive: true });
-    writeFileSync(join(base, ARTEFACT[name]), `${text.replace('built-from: []', `built-from: ${inputs}`)}${carry ? `\n${carry.join('\n')}\n` : ''}`);
+    writeFileSync(join(base, ARTEFACT[name]), `${filledIn(text).replace('built-from: []', `built-from: ${inputs}`)}${carry ? `\n${carry.join('\n')}\n` : ''}`);
   };
   const STAMPED = name => new RegExp(`^stamped ${name} approved at version 1 on \\d{4}-\\d\\d-\\d\\d$`);
   // What a stage's output is built from, as its skill gives it, each stage at the version `status` prints.
@@ -5449,10 +5478,32 @@ test('Handoff and Acceptance run as written: the folder assembled from a package
     ...['states.md', 'strings.json', 'prototype', 'shots', 'reads'].map(file => `- source:design/today/05-detail/${file}`), '- source:design/today/DECISIONS.md'];
   const lookCarry = [...detailCarry, ...['Rules', 'Edge cases', 'Data map', 'Dependencies', 'Strings', 'What the readers found'].map(heading => `- detail@1#${slug(heading)}`),
     ...['screens', 'shots', 'reads', 'measures.md', 'checks.json', 'results.json'].map(file => `- source:design/today/06-look/${file}`), '- source:design/kit/tokens.css'];
+  // What Look left on disk, there before Look is stamped, since a stamp records every file of its stage's folder: the final screens, each linking the project's token file by its path; their pictures, and one of a
+  // variant he did not pick; the checks its measures rest on; the strings; and what a fresh maker made, with the sealed file.
+  const PAGES = ['today-default-en', 'today-default-es', 'today-empty-en'];
+  const [look, detail] = [join(pkg, '06-look'), join(pkg, '05-detail')];
+  mkdirSync(join(project, 'design', 'kit'), { recursive: true });
+  // The project's token file loads a font of its own, by a path from its own folder.
+  mkdirSync(join(project, 'design', 'kit', 'fonts'));
+  writeFileSync(join(project, 'design', 'kit', 'fonts', 'desk.woff2'), 'a font');
+  writeFileSync(join(project, 'design', 'kit', 'tokens.css'), `${read('tests/fixtures/prototype/kit.css')}\n@font-face { font-family: Desk; src: url("fonts/desk.woff2") format("woff2"); }\n`);
+  const TOKENS = '../../../kit/tokens.css';
+  for (const folder of ['screens', 'shots', 'fresh', 'beside']) mkdirSync(join(look, folder), { recursive: true });
+  for (const page of PAGES) writeFileSync(join(look, 'screens', `${page}.html`), read(`tests/fixtures/prototype/${page}.html`).replace('href="kit.css"', `href="${TOKENS}"`));
+  for (const page of PAGES) for (const width of [390, 1280]) for (const theme of ['light', 'dark']) writeFileSync(join(look, 'shots', `${page}-${width}-${theme}.png`), `${page} at ${width}, ${theme}`);
+  writeFileSync(join(look, 'shots', 'today-default-en-compact-390-light.png'), 'a variant');
+  writeFileSync(join(look, 'fresh', 'outside-openai.html'), '<!doctype html>\n<title>Today</title>\n');
+  writeFileSync(join(look, 'beside', 'A.png'), 'a version');
+  writeFileSync(join(look, 'BESIDE.sealed.json'), '{}\n');
+  copyFileSync(at('tests/fixtures/acceptance.json'), join(look, 'checks.json'));
+  mkdirSync(detail, { recursive: true });
+  for (const file of ['states.md', 'strings.json']) copyFileSync(at(`templates/package/05-detail/${file}`), join(detail, file));
+
   for (const [name, inputs, carry] of [['frame', '[]', []], ['context', '[frame@1]', []], ['intent', '[context@1]', []], ['cast', '[intent@1, context@1]', castCarry], ['structure', '[cast@1, intent@1, context@1]', chosenCarry],
     ['detail', '[structure@1, cast@1, intent@1, context@1]', detailCarry], ['look', '[detail@1, structure@1, cast@1, intent@1, context@1]', lookCarry]]) {
     run(`${STATE} begin <package> ${name}`);
     write(name, inputs, carry);
+    placeSource(project, ...carry);
     assert.match(run(`${STATE} stamp <package> ${name} --words "sí, adelante"`), STAMPED(name));
   }
   assert.equal(run(`${STATE} next <package>`), 'handoff');
@@ -5466,26 +5517,6 @@ test('Handoff and Acceptance run as written: the folder assembled from a package
   for (const line of ['- context@1#the-problem-and-why-now', '- context@1#what-exists-today', '- context@1#what-it-must-not-become', '- intent@1#what-the-readers-found']) assert.ok(lookCarry.includes(line), line);
   const [, fromIntent] = /a later stage is written from: its ((?:"[^"]+"(?:, | and )?)+)\./.exec(flat(section(stageSkill('intent'), 'Gate')));
   for (const [, heading] of fromIntent.matchAll(/"([^"]+)"/g)) assert.ok(castCarry.includes(`- context@1#${slug(heading)}`), heading);
-
-  // What Look left on disk: the final screens, each linking the project's token file by its path; their pictures, and one of a
-  // variant he did not pick; the checks its measures rest on; the strings; and what a fresh maker made, with the sealed file.
-  const PAGES = ['today-default-en', 'today-default-es', 'today-empty-en'];
-  const [look, detail] = [join(pkg, '06-look'), join(pkg, '05-detail')];
-  mkdirSync(join(project, 'design', 'kit'), { recursive: true });
-  // The project's token file loads a font of its own, by a path from its own folder.
-  mkdirSync(join(project, 'design', 'kit', 'fonts'));
-  writeFileSync(join(project, 'design', 'kit', 'fonts', 'desk.woff2'), 'a font');
-  writeFileSync(join(project, 'design', 'kit', 'tokens.css'), `${read('tests/fixtures/prototype/kit.css')}\n@font-face { font-family: Desk; src: url("fonts/desk.woff2") format("woff2"); }\n`);
-  const TOKENS = '../../../kit/tokens.css';
-  for (const folder of ['screens', 'shots', 'fresh', 'beside']) mkdirSync(join(look, folder));
-  for (const page of PAGES) writeFileSync(join(look, 'screens', `${page}.html`), read(`tests/fixtures/prototype/${page}.html`).replace('href="kit.css"', `href="${TOKENS}"`));
-  for (const page of PAGES) for (const width of [390, 1280]) for (const theme of ['light', 'dark']) writeFileSync(join(look, 'shots', `${page}-${width}-${theme}.png`), `${page} at ${width}, ${theme}`);
-  writeFileSync(join(look, 'shots', 'today-default-en-compact-390-light.png'), 'a variant');
-  writeFileSync(join(look, 'fresh', 'outside-openai.html'), '<!doctype html>\n<title>Today</title>\n');
-  writeFileSync(join(look, 'beside', 'A.png'), 'a version');
-  writeFileSync(join(look, 'BESIDE.sealed.json'), '{}\n');
-  copyFileSync(at('tests/fixtures/acceptance.json'), join(look, 'checks.json'));
-  for (const file of ['states.md', 'strings.json']) copyFileSync(at(`templates/package/05-detail/${file}`), join(detail, file));
 
   // Handoff, steps 1 and 2: begun, and built from the six stages its files are written from. Built from nothing, it is refused.
   assert.equal(run(commandOf('handoff', 'state.mjs begin')), 'handoff is in work');
@@ -5764,7 +5795,7 @@ test('Handoff and Acceptance run as written: the folder assembled from a package
   writeFileSync(join(handoff, 'acceptance.json'), `${JSON.stringify(rewritten, null, 2)}\n`);
   // "Must not change" names the list, and HANDOFF.md is stamped: it is reopened by the command the page gives, the line is written
   // beside the item, and it is stamped again in the words he accepted the deviation with. Handoff then stands at version 2.
-  assert.match(run(commandOf('acceptance', 'state.mjs reopen'), accepted), /^reopened handoff at version 2; stale: none$/);
+  assert.match(run(commandOf('acceptance', 'state.mjs reopen'), accepted), /^reopened handoff at version 2; stale: none; back in work: none$/);
   const reopened = readFileSync(join(handoff, 'HANDOFF.md'), 'utf8');
   assert.match(reopened, /^version: 2\nstatus: draft$/m);
   writeFileSync(join(handoff, 'HANDOFF.md'), reopened.replace('\n## Left to the builder\n', '\nThe list of rooms: the build as accepted differs from the page this names. It shows twelve to a page.\n\n## Left to the builder\n'));
@@ -5802,6 +5833,8 @@ test('Handoff and Acceptance run as written: the folder assembled from a package
   for (const [name, inputs, carry] of [['frame', '[]', []], ['detail', '[frame@1]', ['- source:design/label/05-detail/correction/before-1280-light.png', '- source:design/label/05-detail/correction/after-1280-light.png']]]) {
     run(`${STATE} begin <package> ${name}`, fix);
     write(name, inputs, carry, small2);
+    // The two pictures of a correction are Detail's to take: stood in for here, since the stamp looks for them.
+    placeSource(project, ...carry);
     assert.match(run(`${STATE} stamp <package> ${name} --words "sí, cámbialo"`, fix), STAMPED(name));
   }
   assert.equal(run(`${STATE} next <package>`, fix), 'handoff');

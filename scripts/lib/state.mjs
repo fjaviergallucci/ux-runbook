@@ -1,11 +1,23 @@
 // The state of a package: the stages a design's size routes (spec § 5), which outputs are approved and
 // in which of the founder's words, and whether anything they were built from moved afterwards (§ 6).
 // state.json is the record. STATE.md is generated from it on every write and never edited by hand.
+//
+// What a stamp holds an output to, beside its header: it is built from the stage before it on the route,
+// on inputs that are approved and current; his words are in it, under "## Reviewed by the founder", and
+// nothing of its template is left (see `unfilled`); its carry list names sections that are there, and
+// project sources that are there, each looked for from `root`, the folder the command is run in.
+// What a stamp guards: the output's body, and every file of the stage's folder (see `filesOf`), each by
+// its hash. A stage stamped before folders were guarded has no list on record, and is held to its output.
+// Nothing is begun, or put to the founder, before the gate that precedes it (§ 18): `begin` and `await`
+// refuse a stage while a stage the route runs before it is not approved.
+// A stage has two notes: why the route has it as it does (`reasons`), and, while it is stale, what moved
+// under it (`staleBecause`). The second goes when the stage is approved again.
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, mkdirSync, readdirSync, readFileSync, readlinkSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
 import { FrontmatterError, parse, serialize } from './frontmatter.mjs';
 import { carryProblems, slug } from './carry.mjs';
+import { isLeftover } from './leftovers.mjs';
 
 export { slug };
 
@@ -56,7 +68,11 @@ const larger = (a, b) => MODES[Math.min(MODES.indexOf(a), MODES.indexOf(b))];
 // The built-from list a stage was stamped with; nothing for a stage never stamped.
 const recordedInputs = entry => (Array.isArray(entry.builtFrom) ? entry.builtFrom : []).map(reference).filter(Boolean);
 // A stage's entry in state.json with no approval on record.
-const entryOf = (status, version) => ({ status, version, approved: null, words: null, hash: null, builtFrom: null, since: null });
+const entryOf = (status, version) => ({ status, version, approved: null, words: null, hash: null, builtFrom: null, files: null, since: null });
+// The folder a stage owns, from the package's: the one its output lies in. From frame to cast the output
+// lies in the package's own folder, beside the other stages' and the state: such a stage owns its output
+// and nothing else, and has no folder.
+const folderOf = stage => (dirname(ARTEFACT[stage]) === '.' ? null : dirname(ARTEFACT[stage]));
 
 // ---- routes (§ 5)
 
@@ -96,17 +112,19 @@ export function init(pkgDir, { design, kind, foundation, size, date } = {}) {
     if (skipped) reasons[stage] = skippedBy(size);
   }
   io(pkgDir, 'create the folder', () => mkdirSync(pkgDir, { recursive: true }));
-  save(pkgDir, { design: name, kind, foundation, size, started: date, route, reasons, stages, question: null, questionStage: null });
+  save(pkgDir, { design: name, kind, foundation, size, started: date, route, reasons, staleBecause: {}, stages, question: null, questionStage: null });
 }
 
 // The stage is in work since `date`. Its output may not exist yet; when it does, its header goes back to
 // draft. An approval it had before it went stale no longer stands; the hash and inputs stay, for stamp.
 // A question that was open for it is closed: a stage back in work is no longer in front of the founder.
+// Refused while a stage the route runs before it is not approved.
 export function begin(pkgDir, stage, { date } = {}) {
   const state = load(pkgDir);
   requireStage(stage);
   requireDate(date);
   requireOpen(state, stage);
+  requireGates(state, stage, 'be begun');
   backInWork(pkgDir, state, stage, date);
   closeQuestion(state, [stage]);
   save(pkgDir, state);
@@ -120,6 +138,7 @@ function backInWork(pkgDir, state, stage, date) {
 }
 
 // The stage's output goes to the founder with the one open question (`await` is a reserved word).
+// Refused while a stage the route runs before it is not approved.
 export function awaitFounder(pkgDir, stage, { question, date } = {}) {
   const state = load(pkgDir);
   requireStage(stage);
@@ -127,6 +146,7 @@ export function awaitFounder(pkgDir, stage, { question, date } = {}) {
   if (!asked) throw new StateError(`${stage} cannot await the founder without the one question to put to him`);
   requireDate(date);
   requireOpen(state, stage);
+  requireGates(state, stage, 'await the founder');
   const entry = state.stages[stage];
   const { data, body } = mustRead(pkgDir, stage);
   refuse(`${stage} cannot await the founder`, headerProblems(stage, data, entry.version));
@@ -137,7 +157,9 @@ export function awaitFounder(pkgDir, stage, { question, date } = {}) {
   save(pkgDir, state);
 }
 
-export function stamp(pkgDir, stage, { words, date } = {}) {
+// `root` is the project's root, which the carry list's sources are looked for from: the folder the command
+// is run in, when it is not given.
+export function stamp(pkgDir, stage, { words, date, root = process.cwd() } = {}) {
   const state = load(pkgDir);
   requireStage(stage);
   const said = oneLine(words);
@@ -152,14 +174,19 @@ export function stamp(pkgDir, stage, { words, date } = {}) {
     ...headerProblems(stage, data, entry.version),
     ...(before && !named ? [`it must be built from ${before}, the stage before it on the route: add ${before}@${state.stages[before].version} to built-from`] : []),
     ...staleInputs(state, stage, data),
-    ...carryProblems(body, carryContext(pkgDir, state, stage, data)).map(p => p.message),
+    ...unfilled(ARTEFACT[stage], body).map(p => p.message),
+    ...carryProblems(body, carryContext(pkgDir, state, stage, data, root)).map(p => p.message),
   ]);
   // Approved once and not reopened since (gone stale, or skipped and put back on the route), and stamped
   // with a different body: that is a new version (§ 6). The hash is the memory of the last approval.
   const hash = hashOf(body);
   const version = entry.hash && entry.hash !== hash ? entry.version + 1 : entry.version;
+  // Every file of the stage's folder as it is at this stamp: read before anything is written.
+  const files = filesOf(pkgDir, stage);
   writeArtefact(pkgDir, stage, { ...data, version, status: 'approved', approved: date, words: said }, body);
-  state.stages[stage] = { ...entryOf('approved', version), approved: date, words: said, hash, builtFrom: data['built-from'] };
+  state.stages[stage] = { ...entryOf('approved', version), approved: date, words: said, hash, builtFrom: data['built-from'], files };
+  // Approved again: what had moved under it is no longer its note.
+  delete state.staleBecause[stage];
   const stale = version > entry.version ? cascade(state, stage, `${stage} went to version ${version} on ${date}`) : [];
   closeQuestion(state, [stage, ...stale]);
   save(pkgDir, state);
@@ -170,6 +197,7 @@ export function stamp(pkgDir, stage, { words, date } = {}) {
 // stage that was awaiting the founder rested on the version reopened, whether or not it was ever stamped:
 // the question put for it can no longer be answered as asked, so it goes back in work and its question is
 // closed. One the cascade marks stale is stale, and its question is closed with it.
+// → { version, stale, recalled }: the new version, the stages marked stale, and those taken out of awaiting.
 export function reopen(pkgDir, stage, { reason, date } = {}) {
   const state = load(pkgDir);
   requireStage(stage);
@@ -185,12 +213,13 @@ export function reopen(pkgDir, stage, { reason, date } = {}) {
   writeArtefact(pkgDir, stage, { ...data, version, status: 'draft', approved: '', words: '' }, body);
   state.stages[stage] = entryOf('in-work', version);
   state.reasons[stage] = `reopened on ${date}: ${why}`;
+  delete state.staleBecause[stage];
   const stale = cascade(state, stage, `${stage} went to version ${version} on ${date}`);
   const recalled = STAGES.slice(at(stage) + 1).filter(later => state.stages[later].status === 'awaiting');
   for (const later of recalled) backInWork(pkgDir, state, later, date);
   closeQuestion(state, [stage, ...stale, ...recalled]);
   save(pkgDir, state);
-  return { version, stale };
+  return { version, stale, recalled };
 }
 
 // Frame's call for one stage (§ 4.0): full, short or skipped, always with the reason.
@@ -207,8 +236,10 @@ export function setRoute(pkgDir, stage, mode, { reason, date } = {}) {
     if (stage === 'frame') throw new StateError('frame cannot be skipped: it is the stage that decides the route');
     if (entry.status === 'approved') throw new StateError(`${stage} is approved: reopen it before skipping it`);
     if (entry.status === 'awaiting') throw new StateError(`${stage} is awaiting the founder: stamp it or begin it again before skipping it`);
-    // The approval no longer stands; its hash and version stay, so a later stamp can tell what changed.
-    Object.assign(entry, { status: 'skipped', approved: null, words: null, builtFrom: null, since: null });
+    // The approval no longer stands. Its hash and version stay, so a later stamp can tell what changed;
+    // and what it was built from stays, so a change above it still reaches what was built on it.
+    Object.assign(entry, { status: 'skipped', approved: null, words: null, since: null });
+    delete state.staleBecause[stage];
   } else if (added) {
     entry.status = 'not-started';
   } else if (entry.status === 'approved' && mode !== state.route[stage]) {
@@ -271,8 +302,9 @@ export function status(pkgDir) {
   return page(load(pkgDir));
 }
 
-// Checks every stage that has begun against its output on disk, and against what was stamped.
-export function validate(pkgDir) {
+// Checks every stage that has begun against its output on disk, and against what was stamped. `root` is
+// the project's root, as for stamp.
+export function validate(pkgDir, { root = process.cwd() } = {}) {
   const state = load(pkgDir);
   const problems = [];
   for (const stage of STAGES) {
@@ -299,7 +331,7 @@ export function validate(pkgDir) {
       continue;
     }
     if (entry.status === 'stale') {
-      add('stale-input', `${stage} is stale: ${oneLine(state.reasons[stage]) || 'no reason recorded'}; redo it or re-confirm it, then stamp it`);
+      add('stale-input', `${stage} is stale: ${oneLine(state.staleBecause[stage]) || oneLine(state.reasons[stage]) || 'no reason recorded'}; redo it or re-confirm it, then stamp it`);
       continue;
     }
     const { data, body } = art;
@@ -326,26 +358,194 @@ export function validate(pkgDir) {
     if (changed.length) {
       add('changed-since-approval', `the header's ${changed.join(', ')} changed after ${stage} was stamped on ${entry.approved}; reopen it, or put back what was stamped`);
     }
-    for (const p of carryProblems(body, carryContext(pkgDir, state, stage, data))) add(p.code, p.message);
+    for (const p of unfilled(ARTEFACT[stage], body)) add(p.code, p.message);
+    for (const p of carryProblems(body, carryContext(pkgDir, state, stage, data, root))) add(p.code, p.message);
     if (hashOf(body) !== entry.hash) {
       add('changed-since-approval', `${ARTEFACT[stage]} changed after it was approved on ${entry.approved}; reopen it, or put back what was approved`);
     }
+    // A stage stamped before folders were guarded has no list on record: it is held to its output alone.
+    if (isObject(entry.files)) for (const message of filesMoved(stage, entry, filesOf(pkgDir, stage))) add('changed-since-approval', message);
   }
   return { ok: problems.length === 0, problems };
 }
 
+// ---- what a stamp guards beside the output (R184)
+
+// One hash for each file of the stage's folder, by its path from that folder with `/` between the parts,
+// in the order of the paths; null for a stage that has no folder. Every file counts, in every folder
+// under it, but the output itself (its body has a hash of its own, and its header is the script's) and
+// what a mount or a file browser leaves behind (lib/leftovers.mjs). A link is never followed: it is held
+// to where it points.
+function filesOf(pkgDir, stage) {
+  const folder = folderOf(stage);
+  if (folder === null) return null;
+  const found = [];
+  const walk = inside => {
+    const dir = join(pkgDir, folder, inside);
+    for (const entry of io(dir, 'read', () => readdirSync(dir, { withFileTypes: true }))) {
+      if (isLeftover(entry.name)) continue;
+      const name = (inside ? `${inside}/${entry.name}` : entry.name).normalize('NFC');
+      const path = join(dir, entry.name);
+      if (entry.isDirectory()) walk(name);
+      else if (entry.isSymbolicLink()) found.push([name, hashOf(`link: ${io(path, 'read', () => readlinkSync(path))}`)]);
+      else if (entry.isFile() && join(folder, name) !== join(ARTEFACT[stage])) found.push([name, fileHash(path)]);
+    }
+  };
+  if (existsSync(join(pkgDir, folder))) walk('');
+  return Object.fromEntries(found.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)));
+}
+
+// A text file is hashed as the output's body is: its line endings made one, so that a checkout that
+// writes them another way changes nothing. Any other file (a picture, a font) by its bytes. Text is what
+// reads as UTF-8 and holds no NUL.
+const UTF8 = new TextDecoder('utf-8', { fatal: true });
+function fileHash(path) {
+  const bytes = io(path, 'read', () => readFileSync(path));
+  let text = null;
+  try {
+    text = UTF8.decode(bytes);
+  } catch {}
+  if (text === null || text.includes('\u0000')) return createHash('sha256').update(bytes).digest('hex');
+  return hashOf(text.replace(/\r\n/g, '\n'));
+}
+
+// How many files a problem line is written for, each by its name; the rest are counted in one line.
+const FILES_NAMED = 10;
+
+// What became of the files a stamp recorded: one line for each that changed, went or came since, the
+// first FILES_NAMED of them by name.
+function filesMoved(stage, entry, now) {
+  const folder = folderOf(stage);
+  const was = entry.files;
+  const moved = [
+    ...Object.keys(was).filter(name => Object.hasOwn(now, name) && now[name] !== was[name]).map(name => [name, 'changed', 'put back what was approved']),
+    ...Object.keys(was).filter(name => !Object.hasOwn(now, name)).map(name => [name, 'was removed', 'put it back']),
+    ...Object.keys(now).filter(name => !Object.hasOwn(was, name)).map(name => [name, 'was added', 'take it out']),
+  ];
+  const lines = moved.slice(0, FILES_NAMED).map(([name, what, undo]) => `${folder}/${name} ${what} after ${stage} was approved on ${entry.approved}; reopen ${stage}, or ${undo}`);
+  const more = moved.length - lines.length;
+  if (more > 0) lines.push(`${more} more ${more === 1 ? 'file' : 'files'} of ${folder}/ changed, were removed or were added after ${stage} was approved on ${entry.approved}; reopen ${stage}, or put back what was approved`);
+  return lines;
+}
+
+// ---- what a stamp asks of the output's own words (G7)
+
+const FENCE = /^ {0,3}(`{3,}|~{3,})/;
+const REVIEWED = /^##[ \t]+Reviewed by the founder[ \t]*$/;
+const ANY_HEADING = /^#{1,6}[ \t]+(.+?)[ \t]*$/;
+const SECTION_HEADING = /^#{1,2}[ \t]+\S/;
+const TEMPLATE_COMMENT = /^<!--\s*Template\./;
+// How many headings a problem names where instructions are left; the rest are counted.
+const HEADINGS_NAMED = 3;
+
+// What is still missing from an output, or still left in it of its template, each as { code, message }:
+//   - no "## Reviewed by the founder" section, or one that holds nothing but an instruction in braces:
+//     an approval that is only in the chat is not one;
+//   - the template's opening comment, the one that begins "Template.";
+//   - an instruction in braces left as the template has it: a block of lines of its own that opens with
+//     `{` and closes with `}`, the one closing the other.
+// Fenced code is never read as either, and a block in braces that is a JSON object is no instruction.
+// Braces inside a line (a table's cell, a heading) are not looked at: the short forms pass, and so does
+// any output that says something under each heading.
+function unfilled(file, body) {
+  // The lines as prose: a line of fenced code is kept as a mark that is not blank, and comments are
+  // taken out (the carry list's own comment stays in every output, above its heading).
+  let fence = null;
+  const marked = body.split('\n').map(line => {
+    const open = FENCE.exec(line)?.[1];
+    if (fence === null && open) {
+      fence = open;
+      return '\u0001';
+    }
+    if (fence !== null) {
+      if (open && open[0] === fence[0] && open.length >= fence.length && line.trim() === open) fence = null;
+      return '\u0001';
+    }
+    return line;
+  });
+  let templateComment = false;
+  const lines = marked.join('\n').replace(/<!--[\s\S]*?-->/g, comment => {
+    if (TEMPLATE_COMMENT.test(comment)) templateComment = true;
+    // The lines it took stay, empty, so that what follows keeps its place.
+    return comment.replace(/[^\n]/g, '');
+  }).split('\n');
+  // The instructions left: each block that opens a line with `{` and closes one with `}` before a blank
+  // line, and is no JSON.
+  const left = new Set();
+  const under = [];
+  let heading = null;
+  for (let i = 0; i < lines.length; i++) {
+    heading = ANY_HEADING.exec(lines[i])?.[1] ?? heading;
+    if (!/^ {0,3}\{/.test(lines[i])) continue;
+    let end = i;
+    while (end < lines.length && lines[end].trim() !== '' && !lines[end].trimEnd().endsWith('}')) end++;
+    if (end === lines.length || lines[end].trim() === '') continue;
+    const block = lines.slice(i, end + 1).join('\n').trim();
+    if (oneGroup(block) && !isJson(block)) {
+      for (let k = i; k <= end; k++) left.add(k);
+      under.push(heading);
+    }
+    i = end;
+  }
+  const out = [];
+  const add = (code, message) => out.push({ code, message: `${file} ${message}` });
+  if (templateComment) add('unfilled', 'still holds its template\'s opening comment: it is deleted once the template is filled in');
+  if (under.length > 0) {
+    const where = [...new Set(under)].map(name => (name === null ? 'before its first heading' : `under "${name}"`));
+    const named = where.slice(0, HEADINGS_NAMED).join(', ') + (where.length > HEADINGS_NAMED ? ` and ${where.length - HEADINGS_NAMED} more` : '');
+    add('unfilled', `still holds ${under.length === 1 ? 'an instruction in braces' : `${under.length} instructions in braces`} of its template, ${named}: replace each with what it asks for`);
+  }
+  const start = lines.findIndex(line => REVIEWED.test(line));
+  const say = 'what he said is written there, in his words, before the stamp';
+  if (start === -1) {
+    add('approved-without-words', `has no "## Reviewed by the founder" section: ${say}`);
+    return out;
+  }
+  let end = lines.findIndex((line, i) => i > start && SECTION_HEADING.test(line));
+  if (end === -1) end = lines.length;
+  const instructed = lines.slice(start + 1, end).some((_, i) => left.has(start + 1 + i));
+  const written = lines.slice(start + 1, end).some((line, i) => !left.has(start + 1 + i) && line.trim() !== '');
+  if (!written) add('approved-without-words', `holds nothing under "## Reviewed by the founder"${instructed ? ' but an instruction in braces' : ''}: ${say}`);
+  return out;
+}
+
+// Whether a text that opens with `{` and closes with `}` is one group in braces: its first brace is closed
+// by its last, and by none before it. `{name}, as in {greeting}` is a line that names two things.
+function oneGroup(text) {
+  let depth = 0;
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] === '{') depth++;
+    else if (text[i] === '}' && --depth === 0) return i === text.length - 1;
+  }
+  return false;
+}
+
+function isJson(text) {
+  try {
+    JSON.parse(text);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // ---- what turns stale
 
-// Every later stage on record as built from `stage`, directly or through a stage this marks, turns stale
-// (§ 6). Read from what was stamped, never from the files as they are now. A stage skipped or not started
-// has nothing on record: skipping clears it.
+// Every later stage on record as built from `stage`, directly or through a stage this reaches, turns stale
+// (§ 6). Read from what was stamped, never from the files as they are now. A stage that is skipped, or
+// not started since it was put back on the route, keeps what it was stamped as built from: the change
+// passes through it to what was built on it, and its own status stays as it is, since it holds no
+// approval to lose. → the stages marked stale. The reason is the stage's stale note, and no other.
 function cascade(state, stage, reason) {
+  const reached = [stage];
   const stale = [];
   for (const later of STAGES.slice(at(stage) + 1)) {
     const entry = state.stages[later];
-    if (!recordedInputs(entry).some(ref => [stage, ...stale].includes(ref.stage))) continue;
-    Object.assign(entry, { status: 'stale' });
-    state.reasons[later] = reason;
+    if (!recordedInputs(entry).some(ref => reached.includes(ref.stage))) continue;
+    reached.push(later);
+    if (['skipped', 'not-started'].includes(entry.status)) continue;
+    entry.status = 'stale';
+    state.staleBecause[later] = reason;
     stale.push(later);
   }
   return stale;
@@ -357,7 +557,7 @@ function builtWithout(state, added) {
   const after = STAGES.slice(at(added) + 1).find(later => state.route[later] !== 'skipped');
   if (!after || state.stages[after].status !== 'approved') return;
   state.stages[after].status = 'stale';
-  state.reasons[after] = `${added} was added to the route before it`;
+  state.staleBecause[after] = `${added} was added to the route before it`;
 }
 
 // ---- checks shared by the verbs and validate
@@ -390,9 +590,11 @@ function staleness(state, { stage, version }) {
   if (now.status !== 'approved') return `${stage}@${version}, but ${stage} is ${now.status}, not approved`;
 }
 
-// What the carry checks need from the package: stage order, the built-from list, and an earlier output.
-function carryContext(pkgDir, state, stage, data) {
+// What the carry checks need from the package and the project: stage order, the built-from list, an
+// earlier output, and whether a source is there, looked for from the project's root.
+function carryContext(pkgDir, state, stage, data, root) {
   return {
+    source: path => (existsSync(resolve(root, path)) ? null : `${path} is not there, looked for from ${resolve(root)}: a source is named by its path from the project's root, where the command is run`),
     stage,
     file: ARTEFACT[stage],
     required: !['handoff', 'acceptance'].includes(stage),
@@ -423,6 +625,8 @@ function load(pkgDir) {
   }
   const damage = damaged(state);
   if (damage) throw new StateError(`${file} is damaged (${damage}); this script writes it, so restore it from version control`);
+  // A state written before a stage had a stale note of its own has none: its notes are all in `reasons`.
+  if (!isObject(state.staleBecause)) state.staleBecause = {};
   return state;
 }
 
@@ -522,8 +726,10 @@ function page(state) {
     const { status, version, approved, since } = state.stages[stage];
     const begun = !['not-started', 'skipped'].includes(status);
     const working = ['in-work', 'awaiting'].includes(status);
+    // The two notes: why the route has it so, then what moved under it.
+    const note = [state.reasons[stage], state.staleBecause[stage]].map(oneLine).filter(Boolean).join('; ');
     const columns = [stage, state.route[stage], status, begun ? version : '—', cell(working ? since : null), cell(approved),
-      `\`${ARTEFACT[stage]}\``, cell(state.reasons[stage])];
+      `\`${ARTEFACT[stage]}\``, cell(note)];
     return `| ${columns.join(' | ')} |`;
   });
   return [
@@ -577,6 +783,15 @@ function refuse(what, problems) {
 
 function requireStage(stage) {
   if (!STAGES.includes(stage)) throw new StateError(`unknown stage "${stage}"; the stages are ${STAGES.join(', ')}`);
+}
+
+// Nothing is begun, or put to the founder, before the gate that precedes it (§ 18): every stage the route
+// runs before this one is approved first. The stamp holds an output to its inputs; this holds the order.
+function requireGates(state, stage, doing) {
+  const open = STAGES.slice(0, at(stage)).find(earlier => !['skipped', 'approved'].includes(state.stages[earlier].status));
+  if (open) {
+    throw new StateError(`${stage} cannot ${doing}: ${open}, before it on the route, is ${state.stages[open].status}, not approved; \`next\` names the stage to run`);
+  }
 }
 
 // A stage the route skips cannot be worked on until it is routed; an approved one until it is reopened.

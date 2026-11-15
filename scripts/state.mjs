@@ -13,22 +13,34 @@ and is never edited by hand.
 
   init <package> --design <name> --kind <kind> --foundation <foundation> --size <size> [--date <day>]
   begin <package> <stage> [--date <day>]
-      mark the stage in work since the day; its output need not exist yet; closes its open question
+      mark the stage in work since the day; its output need not exist yet; closes its open question.
+      Refused while a stage the route runs before it is not approved.
   await <package> <stage> --question "<the one question>" [--date <day>]
-      mark the stage's output as awaiting the founder, with the one open question
+      mark the stage's output as awaiting the founder, with the one open question. Refused while a
+      stage the route runs before it is not approved.
   stamp <package> <stage> --words "<the founder's words>" [--date <day>]
       approve the stage's output in the words the founder approved it with; closes its open question.
-      The output must be built from the stage before it on the route, and its carry list may only
-      name stages it is built from. A stale stage redone with a different body gets a new version.
+      The output must be built from the stage before it on the route. It must hold what he said
+      under "## Reviewed by the founder", and nothing left of its template: not the opening comment,
+      and no instruction in braces on lines of its own. Its carry list may only name stages it is
+      built from, and sources that are there: a file or a folder, by its path from the folder this
+      command is run in, which is the project's root. A stale stage redone with a different body
+      gets a new version. Every file of the stage's folder (04-structure/ to 08-acceptance/) is
+      recorded with the stamp, what a mount or a file browser leaves behind passed over.
   reopen <package> <stage> --reason "<why>" [--date <day>]
       give an approved or stale stage a new version; later stages stamped as built from it turn stale,
-      and a later stage awaiting the founder goes back in work, its question closed
+      and a later stage awaiting the founder goes back in work, its question closed. Prints both
+      lists: "stale:", then "back in work:".
   route <package> <stage> <${MODES.join('|')}> --reason "<why>" [--date <day>]
       route one stage full, short or skipped, with the reason; an approved stage whose mode changes
       turns stale, and an approved or awaiting stage cannot be skipped
   resize <package> --size <size>
       the size only moves up; an approved stage whose mode changes turns stale
   validate <package>                  prints ok, or one line per problem: <stage>: <code>: <message>
+      Of an approved stage it says what the stamp would refuse, an output that changed since, and a
+      file of the stage's folder that changed, was removed or was added since (a text file's line
+      endings aside). A stage stamped before folders were recorded is held to its output alone.
+      Run it from the project's root, as stamp is: a carry list's sources are looked for from there.
   next <package>                      prints the first stage on the route not approved, or none
   status <package>                    prints STATE.md as generated from state.json
   slug "<heading text>"               prints the slug a carry entry uses for that heading
@@ -123,8 +135,8 @@ function run({ verb, positional, flags }) {
       break;
     }
     case 'reopen': {
-      const { version, stale } = reopen(pkg, stage, { reason: flags.reason, date });
-      console.log(`reopened ${stage} at version ${version}; stale: ${stale.join(', ') || 'none'}`);
+      const { version, stale, recalled } = reopen(pkg, stage, { reason: flags.reason, date });
+      console.log(`reopened ${stage} at version ${version}; stale: ${stale.join(', ') || 'none'}; back in work: ${recalled.join(', ') || 'none'}`);
       break;
     }
     case 'route':
