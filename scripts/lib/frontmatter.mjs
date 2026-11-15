@@ -1,6 +1,9 @@
 // Flat frontmatter: the header of stage outputs, pool cards and a project's profile.
 // Its limits: one `key: value` per line between two `---` lines, keys ^[a-z][a-z0-9-]*$; a value is a
 // string, a whole number or an inline list `[a, b]` of strings; nothing nested.
+// parse refuses a value of digits alone that cannot be a number as written (a leading zero, or one above
+// the largest whole number that is safe: quote it to keep it as text), and a list that holds an empty
+// item (an extra comma: write "" for an empty string).
 // The grammar is a subset of YAML: a header that serialize writes is one a YAML reader takes too, with the
 // same text in every string (it may take a plain `true`, `null`, `1.5` or a date for more than text; here
 // they are text). A string is written plain, or in one of two quoted forms, with no escapes in either but

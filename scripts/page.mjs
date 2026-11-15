@@ -8,10 +8,12 @@
 // him, in the question and in the reason of the recommendation; what a seat or a finding says may quote one.
 // The page is one self-contained file: its styles inline, a light and a dark set, no script, nothing
 // fetched but the pictures, which it references by the relative paths the data gives, as written. The
-// options sit in one row that scrolls sideways on its own, the page never: each shows its first picture
-// (by convention its phone-width one) whole, never cropped, at its own size up to its column's width, and
-// lists its other pictures as links by file name. The gallery is a second such row. The question is the
-// last thing on the page and stays pinned to the bottom of the screen, so it is in view wherever he scrolls.
+// options stand side by side in columns that wrap: as many to a line as the window holds, the rest on the
+// lines below, so that no option is ever cut or off the screen, however many there are, and nothing
+// scrolls sideways. Each shows its first picture (by convention its phone-width one) whole, never cropped,
+// at its own size up to its column's width, and lists its other pictures as links by file name. The
+// gallery's items stand the same way. The question is the last thing on the page and stays pinned to the
+// bottom of the screen, so it is in view wherever he scrolls.
 //
 // As a module: validateDecision(data) → every error, [] when valid · renderDecision(data) → the page, as a
 // string; pure, the same data gives the same bytes.
@@ -273,12 +275,12 @@ h2 { margin: 2.25rem 0 0.75rem; font-size: 1.125rem; }
 h3 { margin: 0 0 0.5rem; font-size: 1.0625rem; line-height: 1.35; }
 p { margin: 0 0 0.5rem; }
 .options h2 { margin-top: 0; }
-/* The options in one row, and the gallery's items in another: a row wider than the page scrolls sideways
-   on its own, the page never. A column holds a phone-width picture at its own width, and three columns fit
-   side by side in a window 1440 wide (the page is 90rem at most); on a phone a column takes the whole
-   width. */
-.row { display: flex; align-items: flex-start; gap: 1rem; overflow-x: auto; padding-bottom: 0.5rem; }
-.option, .item { flex: 0 0 auto; width: min(27rem, 100%); padding: 1rem; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+/* The options side by side, and the gallery's items the same way, in columns that wrap: as many to a line
+   as fit, the rest on the lines below, so the last option is in sight like the first and nothing scrolls
+   sideways. A column holds a phone-width picture at its own width, and three columns fit side by side in a
+   window 1440 wide (the page is 90rem at most); on a phone a column takes the whole width. */
+.row { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(27rem, 100%), 1fr)); align-items: start; gap: 1rem; padding-bottom: 0.5rem; }
+.option, .item { min-width: 0; padding: 1rem; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
 .letter {
   display: inline-block;
   min-width: 1.75em;

@@ -394,14 +394,20 @@ test('the page is one self-contained file: inline styles with a light and a dark
   for (const src of pictures) assert.equal(count(page, `<a class="picture" href="${src}"><img src="${src}" `), 1, src);
   // Three columns, each holding a phone picture whole, fit side by side in a window 1440 wide.
   const rem = (rule, property) => Number(style.match(new RegExp(`${rule} \\{[^}]*?\\b${property}: (?:min\\()?([\\d.]+)rem`))[1]);
-  const [page_, column, gap, cardPad] = [rem('body', 'max-width'), rem('\\.option, \\.item', 'width'), rem('\\.row', 'gap'), rem('\\.option, \\.item', 'padding')];
+  // The options and the gallery's items stand in columns that wrap: as many as fit, each at least a column wide
+  // (the whole width where the window is narrower than one), and the next line takes the rest.
+  const row = style.match(/\.row \{[^}]*\}/)[0];
+  assert.match(row, /display: grid;/);
+  const [, column_] = /grid-template-columns: repeat\(auto-fill, minmax\(min\(([\d.]+)rem, 100%\), 1fr\)\);/.exec(row);
+  const [page_, column, gap, cardPad] = [rem('body', 'max-width'), Number(column_), rem('\\.row', 'gap'), rem('\\.option, \\.item', 'padding')];
   const bodyPad = Number(style.match(/body \{[^}]*?padding: [\d.]+rem ([\d.]+)rem/)[1]);
   assert.ok(3 * column + 2 * gap <= page_ - 2 * bodyPad, `three columns of ${column}rem and two gaps fit in ${page_}rem less its padding`);
   assert.ok(page_ * 16 <= 1440, `the page is at most 1440 px wide: ${page_ * 16}`);
   assert.ok((column - 2 * cardPad) * 16 - 2 >= 390 + 2, 'a column holds a 390 px picture and its border');
-  // The options' row scrolls sideways on its own; nothing else declares an overflow, so the page never does.
-  assert.match(style.match(/\.row \{[^}]*\}/)[0], /overflow-x: auto;/);
-  assert.equal(style.match(/\boverflow(-[xy])?\s*:/g).length, 1, 'one overflow declared: the row\'s');
+  // Nothing declares an overflow: no row scrolls sideways on its own, where its last option would be out of
+  // sight, and the page never does.
+  assert.equal(style.match(/\boverflow(-[xy])?\s*:/g), null, 'no overflow declared');
+  assert.doesNotMatch(style, /flex: 0 0 auto|nowrap/);
   // The question is pinned to the bottom of the screen, on a solid background of the page's own colours.
   const question = style.match(/\.question \{[^}]*\}/)[0];
   assert.match(question, /position: sticky;/);
@@ -718,72 +724,86 @@ const greyPng = (width, height) => {
   return Buffer.concat([signature, pngChunk('IHDR', header), pngChunk('IDAT', deflateSync(Buffer.concat(Array(height).fill(row)))), pngChunk('IEND', Buffer.alloc(0))]);
 };
 
-test('in Chrome: the options in one row that scrolls on its own, one whole picture each, and the question in view wherever he scrolls', async () => {
-  const dir = fresh();
-  const data = sample();
-  // Each wide picture 1280 by 1600, each phone picture (and the gallery's) 390 by 2400.
-  for (const image of picturesOf(data)) {
-    mkdirSync(dirname(join(dir, image)), { recursive: true });
-    writeFileSync(join(dir, image), image.includes('-1280-') ? greyPng(1280, 1600) : greyPng(390, 2400));
-  }
-  const file = join(dir, 'decision.html');
-  writeFileSync(file, renderDecision(data));
+test('in Chrome: the options side by side in columns that wrap, none cut or off the screen however many there are, one whole picture each, and the question in view wherever he scrolls', async () => {
+  // Three options, as a surface has; and five, as a design sized system, or one more letter from a fresh
+  // pass, can have: the last letter is in sight like the first. The gallery wraps the same way.
+  const five = changed(d => {
+    for (const letter of ['D', 'E']) d.options.push({ ...d.options[0], letter, title: `Option ${letter}`, images: d.options[0].images.map(image => image.replace('A', letter)) });
+    for (const n of [2, 3, 4]) d.gallery.items.push({ ...d.gallery.items[0], title: `Fresh screen ${n}`, images: [`fresh/today-${n}.png`] });
+  });
+  assert.deepEqual(validateDecision(five), []);
   const browser = await chromium.launch({ executablePath: findChrome(), headless: true });
   try {
-    for (const width of [1440, 1280, 390]) {
-      const context = await browser.newContext({ viewport: { width, height: 900 }, deviceScaleFactor: 1, reducedMotion: 'reduce' });
-      const page = await context.newPage();
-      await page.goto(pathToFileURL(file).href);
-      const seen = await page.evaluate(() => {
-        const box = element => element.getBoundingClientRect();
-        const row = document.querySelector('.options .row');
-        const question = document.querySelector('.question');
-        const inView = () => box(question).top >= 0 && box(question).bottom <= innerHeight + 0.5;
-        const seen = {
-          overflow: document.documentElement.scrollWidth > innerWidth,
-          last: document.body.lastElementChild === question,
-          scrolls: getComputedStyle(row).overflowX === 'auto' && row.scrollWidth > row.clientWidth,
-          options: [...row.children].map(option => ({ left: box(option).left, right: box(option).right, pictures: option.querySelectorAll('img').length })),
-          pictures: [...document.images].map(img => ({
-            src: img.getAttribute('src'),
-            loaded: img.complete && img.naturalWidth > 0,
-            link: img.parentElement.tagName === 'A' && img.parentElement.getAttribute('href') === img.getAttribute('src'),
-            fit: getComputedStyle(img).objectFit,
-            natural: [img.naturalWidth, img.naturalHeight],
-            shown: [img.clientWidth, img.clientHeight],
-          })),
-          inView: [inView()],
-        };
-        for (const at of [0.5, 1]) {
-          scrollTo(0, document.documentElement.scrollHeight * at);
-          seen.inView.push(inView());
+    for (const [data, count] of [[sample(), 3], [five, 5]]) {
+      const dir = fresh();
+      // Each wide picture 1280 by 1600, each phone picture (and the gallery's) 390 by 2400.
+      for (const image of picturesOf(data)) {
+        mkdirSync(dirname(join(dir, image)), { recursive: true });
+        writeFileSync(join(dir, image), image.includes('-1280-') ? greyPng(1280, 1600) : greyPng(390, 2400));
+      }
+      const file = join(dir, 'decision.html');
+      writeFileSync(file, renderDecision(data));
+      for (const width of [1440, 1280, 390]) {
+        const context = await browser.newContext({ viewport: { width, height: 900 }, deviceScaleFactor: 1, reducedMotion: 'reduce' });
+        const page = await context.newPage();
+        await page.goto(pathToFileURL(file).href);
+        const seen = await page.evaluate(() => {
+          const box = element => element.getBoundingClientRect();
+          const question = document.querySelector('.question');
+          const inView = () => box(question).top >= 0 && box(question).bottom <= innerHeight + 0.5;
+          const placed = row => [...row.children].map(shown => ({ left: box(shown).left, right: box(shown).right, top: box(shown).top + scrollY, pictures: shown.querySelectorAll('img').length }));
+          const rows = [...document.querySelectorAll('.row')];
+          const seen = {
+            overflow: document.documentElement.scrollWidth > innerWidth,
+            last: document.body.lastElementChild === question,
+            scrolls: rows.map(row => row.scrollWidth > row.clientWidth || getComputedStyle(row).overflowX !== 'visible'),
+            options: placed(document.querySelector('.options .row')),
+            gallery: placed(document.querySelector('.gallery .row')),
+            pictures: [...document.images].map(img => ({
+              src: img.getAttribute('src'),
+              loaded: img.complete && img.naturalWidth > 0,
+              link: img.parentElement.tagName === 'A' && img.parentElement.getAttribute('href') === img.getAttribute('src'),
+              fit: getComputedStyle(img).objectFit,
+              natural: [img.naturalWidth, img.naturalHeight],
+              shown: [img.clientWidth, img.clientHeight],
+            })),
+            inView: [inView()],
+          };
+          for (const at of [0.5, 1]) {
+            scrollTo(0, document.documentElement.scrollHeight * at);
+            seen.inView.push(inView());
+          }
+          return seen;
+        });
+        const at = `${count} options at ${width}`;
+        assert.equal(seen.overflow, false, `${at}: the page itself never scrolls sideways`);
+        assert.equal(seen.last, true, `${at}: the question is the last element of the body`);
+        assert.deepEqual(seen.inView, [true, true, true], `${at}: the question is in view at the top, the middle and the end`);
+        assert.deepEqual(seen.scrolls, [false, false], `${at}: neither row scrolls sideways on its own`);
+        assert.equal(seen.options.length, count);
+        assert.deepEqual(seen.options.map(option => option.pictures), new Array(count).fill(1), `${at}: one picture an option`);
+        // Every option, and every item of the gallery, lies whole inside the window's width: none is cut,
+        // and none is off the screen to the right.
+        for (const shown of [...seen.options, ...seen.gallery]) assert.ok(shown.left >= 0 && shown.right <= width, `${at}: nothing cut: ${JSON.stringify(shown)}`);
+        // How many stand on the first line: three in a window 1440 wide, two at 1280, one on a phone. The
+        // rest follow on the lines below, as many to a line.
+        const perLine = { 1440: 3, 1280: 2, 390: 1 }[width];
+        for (const placed of [seen.options, seen.gallery]) {
+          const lines = [...new Set(placed.map(shown => shown.top))];
+          assert.deepEqual(lines.map(top => placed.filter(shown => shown.top === top).length), Array.from({ length: Math.ceil(placed.length / perLine) }, (_, i) => Math.min(perLine, placed.length - i * perLine)), `${at}: ${perLine} to a line`);
         }
-        return seen;
-      });
-      assert.equal(seen.overflow, false, `${width}: the page itself never scrolls sideways`);
-      assert.equal(seen.last, true, `${width}: the question is the last element of the body`);
-      assert.deepEqual(seen.inView, [true, true, true], `${width}: the question is in view at the top, the middle and the end`);
-      assert.equal(seen.scrolls, width < 1440, `${width}: the row of options scrolls sideways on its own only when it must`);
-      assert.deepEqual(seen.options.map(option => option.pictures), [1, 1, 1], `${width}: one picture an option`);
-      if (width === 1440) {
-        const whole = seen.options.filter(option => option.left >= 0 && option.right <= width);
-        assert.equal(whole.length, 3, `${width}: three options side by side, nothing cut: ${JSON.stringify(seen.options)}`);
-      } else if (width === 1280) {
-        const whole = seen.options.filter(option => option.left >= 0 && option.right <= width);
-        assert.ok(whole.length >= 2, `${width}: two options side by side in the first screen: ${JSON.stringify(seen.options)}`);
-      } else {
-        assert.ok(seen.options[0].right - seen.options[0].left >= 0.85 * width, `${width}: one option takes close to the whole width`);
+        if (width === 390) assert.ok(seen.options[0].right - seen.options[0].left >= 0.85 * width, `${at}: one option takes close to the whole width`);
+        assert.equal(seen.pictures.length, count + seen.gallery.length);
+        for (const { src, loaded, link, fit, natural, shown } of seen.pictures) {
+          const of = `${at}: ${src}, shown ${shown.join('x')} of ${natural.join('x')}`;
+          assert.ok(loaded && link && fit === 'fill', of);
+          assert.ok(Math.abs(shown[1] - (shown[0] * natural[1]) / natural[0]) <= 1, `${of}: whole, never cropped`);
+          assert.ok(shown[0] <= natural[0], `${of}: never blown up`);
+          if (width > 390) assert.equal(shown[0], 390, `${of}: a phone picture at its own width`);
+          else assert.ok(shown[0] >= 300, `${of}: as wide as the phone allows`);
+        }
+        await context.close();
       }
-      assert.equal(seen.pictures.length, 4);
-      for (const { src, loaded, link, fit, natural, shown } of seen.pictures) {
-        const at = `${width}: ${src}, shown ${shown.join('x')} of ${natural.join('x')}`;
-        assert.ok(loaded && link && fit === 'fill', at);
-        assert.ok(Math.abs(shown[1] - (shown[0] * natural[1]) / natural[0]) <= 1, `${at}: whole, never cropped`);
-        assert.ok(shown[0] <= natural[0], `${at}: never blown up`);
-        if (width > 390) assert.equal(shown[0], 390, `${at}: a phone picture at its own width`);
-        else assert.ok(shown[0] >= 300, `${at}: as wide as the phone allows`);
-      }
-      await context.close();
     }
   } finally {
     await browser.close();
