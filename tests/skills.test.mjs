@@ -5461,14 +5461,19 @@ test('acceptance: each item matches or deviates and he decides each; an accepted
   const deviations = stageRef('acceptance', 'deviations.md');
   assert.deepEqual(headings(deviations), ['He accepts it', 'He wants it fixed', 'A fix the size of a correction']);
   const accepted = section(deviations, 'He accepts it');
-  assert.deepEqual(boldSteps(accepted).map(([, name]) => name), ['Write it in the report,', 'Log it, twice', 'Bring the folder\'s files up to date,', 'Run the changed check again,', 'A page of `prototype/` is never redrawn here']);
+  // R184: every file of a stamped stage's folder is held to its stamp, so Handoff is reopened before any file of 07-handoff/ changes,
+  // once for the batch, and stamped again after the last.
+  assert.deepEqual(boldSteps(accepted).map(([, name]) => name), ['Write it in the report,', 'Reopen Handoff, before any file of `07-handoff/` changes', 'Log it, twice', 'Bring the folder\'s files up to date,', 'Stamp Handoff again,', 'Run the changed check again,', 'A page of `prototype/` is never redrawn here']);
+  assert.match(flat(accepted), /\*\*Reopen Handoff, before any file of `07-handoff\/` changes\.\*\* Once for the batch: one reopening for all he accepted in that answer, never one for each\. His accepting them is the yes a reopening needs, and its reason/);
+  assert.match(flat(accepted), /No `begin` is run while Handoff is reopened: the script refuses a stage whose stage before it is not approved/);
+  assert.match(flat(accepted), /a file of `07-handoff\/` changed, added or removed after Handoff was stamped is reported by `validate`, one line a file/);
   inOrder(flat(accepted), [/after this, the handoff folder describes what shipped, and no file of it contradicts another/, /Append it to the package's `DECISIONS\.md`, in the shape of `templates\/package\/DECISIONS\.md`, numbered after the last entry, which is the one entry of that file you read/,
     /And append it to the folder's own, `<package>\/07-handoff\/DECISIONS\.md`, in that file's shape, written out in full/, /it is also logged where `decisions-log` of the project profile says/,
     /the check, in `acceptance\.json`: rewritten to hold the build as accepted, never deleted\. A check of 44 by 44 on a booking action he accepted at 40 by 40 becomes one of 40 by 40/,
     /the item in `ACCEPTANCE\.md`: its new value, and beside it the line "the build as accepted differs from the page this names", with what differs and the day he accepted it/,
-    /"Must not change" of `HANDOFF\.md` may name the very thing he has just accepted as changed\. It then says so, beside that item: "the build as accepted differs from the page this names", with what differs/,
-    /`HANDOFF\.md` is stamped, so it is reopened first, changed, and stamped again\. His accepting the deviation is the yes a reopening needs, and its reason/,
-    /Handoff now stands at a new version\. Write that version into `built-from` of `REPORT\.md`, as `status` prints it: a report built from the old one is refused at its own stamp/], 'an accepted deviation');
+    /in `HANDOFF\.md`, his words on the deviations under `## Reviewed by the founder`, below his go, and the line of "Must not change" below, where it names what he accepted/,
+    /Handoff now stands at a new version\. Write that version into `built-from` of `REPORT\.md`, as `status` prints it: a report built from the old one is refused at its own stamp/,
+    /"Must not change" of `HANDOFF\.md` may name the very thing he has just accepted as changed\. It then says so, beside that item: "the build as accepted differs from the page this names", with what differs\. It is written at step 4, while Handoff is reopened, with the other files of the batch/], 'an accepted deviation');
   assert.deepEqual(fencedLines(deviations), ['node <kit root>/scripts/state.mjs reopen <package> handoff --reason "<why>"', 'node <kit root>/scripts/state.mjs stamp <package> handoff --words "<the founder\'s words>"']);
   assert.match(flat(conductor()), /Three commands change where a design stands\. Each needs the founder's yes first/);
   assert.match(flat(section(deviations, 'He wants it fixed')), /Any session can take it knowing nothing else: it is handed `FIXES\.md` and the handoff folder, and nothing of the package besides/);
@@ -5966,6 +5971,12 @@ test('Handoff and Acceptance run as written: the folder assembled from a package
   const accepted = { '<the one question>': 'Is the list of rooms accepted as built, twelve to a page, or fixed?', '<the founder\'s words>': 'aceptado así, doce por página', '<why>': 'he accepted twelve rooms to a page, and "Must not change" names the list' };
   assert.equal(run(commandOf('acceptance', 'state.mjs await'), accepted), 'acceptance awaits the founder');
   assert.equal(run(commandOf('acceptance', 'state.mjs begin')), 'acceptance is in work');
+  // R184: Handoff is reopened before any file of 07-handoff/ changes, by the command the page gives, once for the batch. A begin
+  // while it is reopened is refused, as the page says.
+  assert.match(run(commandOf('acceptance', 'state.mjs reopen'), accepted), /^reopened handoff at version 2; stale: none; back in work: none$/);
+  const held = exec(commandOf('acceptance', 'state.mjs begin'));
+  assert.deepEqual([held.status, held.stdout], [1, '']);
+  assert.match(held.stderr, /^acceptance cannot be begun: handoff, before it on the route, is in-work, not approved/);
   for (const file of [join(pkg, 'DECISIONS.md'), join(handoff, 'DECISIONS.md')]) {
     if (!existsSync(file)) copyFileSync(at('templates/package/DECISIONS.md'), file);
     writeFileSync(file, `${readFileSync(file, 'utf8')}\n## The list of rooms shows twelve to a page\n\n**Decision.** Accepted as built at Acceptance.\n`);
@@ -5974,9 +5985,10 @@ test('Handoff and Acceptance run as written: the folder assembled from a package
   assert.deepEqual(validateAcceptance(rewritten), []);
   assert.equal(rewritten.checks.length, total, 'the check is rewritten, never deleted');
   writeFileSync(join(handoff, 'acceptance.json'), `${JSON.stringify(rewritten, null, 2)}\n`);
-  // "Must not change" names the list, and HANDOFF.md is stamped: it is reopened by the command the page gives, the line is written
-  // beside the item, and it is stamped again in the words he accepted the deviation with. Handoff then stands at version 2.
-  assert.match(run(commandOf('acceptance', 'state.mjs reopen'), accepted), /^reopened handoff at version 2; stale: none; back in work: none$/);
+  // While Handoff is in work, its folder may change: validate says only that the report rests on the old Handoff.
+  assert.doesNotMatch(exec(`${STATE} validate <package>`).stdout, /changed-since-approval/);
+  // "Must not change" names the list: the line is written beside the item, and it is stamped again in the words he accepted the
+  // deviation with. Handoff then stands at version 2.
   const reopened = readFileSync(join(handoff, 'HANDOFF.md'), 'utf8');
   assert.match(reopened, /^version: 2\nstatus: draft$/m);
   writeFileSync(join(handoff, 'HANDOFF.md'), reopened.replace('\n## Left to the builder\n', '\nThe list of rooms: the build as accepted differs from the page this names. It shows twelve to a page.\n\n## Left to the builder\n'));
