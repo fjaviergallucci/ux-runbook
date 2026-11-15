@@ -45,6 +45,11 @@ table gives is such a case: say which line is missing, and never write the secti
 The folder's `prototype/` is the final screens. The plain prototype of Detail is not copied: it wears
 the shared kit, and a builder would take its grey for the look.
 
+- **First, the tokens, before any page is copied.** See that `<tokens>`, the project kit's copy, is
+  still the project's own token file, `tokens` of the project profile, as
+  `skills/setup/references/project-kit.md` says under "When the tokens move": while the two differ,
+  nothing is copied, `PARTS.md` is not written, and the founder is told. The way on is to reopen Look,
+  which is his to ask for, and the pages are copied once Look is stamped again.
 - **The pages.** Every page of `<package>/06-look/screens/`, under its own name. A variant he did not
   pick is not a screen, and nothing of `<package>/06-look/variants/` is copied.
 - **The pictures.** For each page copied, its pictures in `<package>/06-look/shots/`, every width and
@@ -55,9 +60,7 @@ the shared kit, and a builder would take its grey for the look.
   file, `tokens` of the project profile, which the kit's copy was made from: its path, from the
   project's root, and the commit that last changed it, as the project's history gives it for that
   file. A file with changes not yet committed, or a project with no history, is said so in place of
-  a commit. And first, see that the kit's copy is still that file, as
-  `skills/setup/references/project-kit.md` says under "When the tokens move": while the two differ,
-  `PARTS.md` is not written, and the founder is told.
+  a commit.
 - **The one line that changes.** Each page links `<tokens>` by its path in the project. In the copy,
   that one link names the copy, `../tokens.css`. Change it by a script, in every page alike, and
   nothing else. A link left as it was still loads the project's file from here, since the copy sits

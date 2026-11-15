@@ -54,15 +54,14 @@ A file you write while working that is none of these goes in `<scratch>`: never 
    under it nothing, the template's instruction, or a line that is not his. With his words there, the
    project is set up: say so, and stop. Without them, a setup was left unfinished: go on from the
    first step whose output is missing, and ask nothing the project profile already answers.
-2. **Read the project.** Find its design system: the token files, the folder of the component source,
-   its documents. Find the document that says what the product does (`facts`), the languages and the
-   format of their strings (`languages`, `strings-format`), how a browser check is run here
-   (`browser-check`), the decision log (`decisions-log`). Note each by its path from the project's root.
-   What you cannot find stays empty: you never guess a path or a fact. A project with no script for a
-   browser check reads "no script": Acceptance then writes one, on his yes, for a build that opens as
-   files. **When the project has no design system, say so.** `tokens` and `components` stay empty,
-   "Design system" says "None yet", the project kit is the grey kit as it is, and Look will run once as
-   a direction. You do not start one here.
+2. **Read the project.** Find its design system: the token files, the folder of the component source, its
+   documents. Find the document that says what the product does (`facts`), the languages and the format
+   of their strings (`languages`, `strings-format`), how a browser check is run here (`browser-check`),
+   the decision log (`decisions-log`). Note each by its path from the project's root. What you cannot
+   find stays empty: you never guess a path or a fact. A project with no script for a browser check reads
+   "no script": Acceptance then writes one, on his yes, for a build that opens as files. **When the
+   project has no design system, say so.** `tokens` and `components` stay empty, "Design system" says
+   "None yet", the project kit is the grey kit as it is, and Look will run once as a direction.
 3. **Start the project profile.** First, where it goes: if `design` at the project's root already
    holds something else, ask him where the packages go before you write anything, and write his answer
    as `packages`, with `kit` under it. Then copy `templates/project/PROFILE.md` to
@@ -168,6 +167,8 @@ the project kit's parts, and ask one question: what is wrong or missing in it?
 - Tell him that each stub of a profession's profile is a guess, and stays one until someone of that
   profession has been heard.
 - **"No script", for a product that does not open as files:** tell him Acceptance stops until it has one.
+- **Tell him to keep formatters off `<packages>`:** a formatter, a hook that formats on commit or an
+  editor that trims on save changes the files he approved there, and `state.mjs validate` says so.
 - When he has nothing more, write under `## Reviewed by the founder`, the last section: the day, what
   he corrected, and the words he approved it with. An approval that is only in the chat is not one,
   and until his words are there the project is not set up.
@@ -178,9 +179,8 @@ first design starts at Frame.
 
 ## Never
 
-- **Never open a keys file, and never list it.** `keys-file` is a path the founder gives. You write the
-  path into the project profile and do nothing else with it: not to see that it exists, not to see what
-  it holds.
+- **Never open a keys file, and never list it.** `keys-file` is a path he gives. You write the path into
+  the project profile and do nothing else with it: not to see that it exists, not to see what it holds.
 - **Never put a keys file's path, or a key, on a command line.** `scripts/describe.mjs` finds its key
   itself: pass it `--profile` and nothing about a key, and never pass `--endpoint`. The shell is a
   command line too: write the path into the project profile with a file tool, never with a command.

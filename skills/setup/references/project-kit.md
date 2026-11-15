@@ -189,8 +189,8 @@ alone. What he corrects, you change in `kit.css`, and picture again.
 The copy is the project's tokens as they stood the day it was made, and the product goes on changing.
 So it is looked at again: by Frame, before it puts the frame to him, and the copy made again once the
 frame is stamped, before any later stage draws; by Look, at its step 2, before the visual designer
-starts; and by Handoff, before it writes `PARTS.md`. A correction draws on no kit, and looks at
-nothing here.
+starts; and by Handoff, at the start of its step 3, before any page is copied, and again before it
+writes `PARTS.md`. A correction draws on no kit, and looks at nothing here.
 
 Read the first line of `<packages>/kit/tokens.css`: the file it names, or each file an export names,
 and the commit it was read at. Then ask the project's history whether that file changed since:
@@ -212,10 +212,10 @@ Name every file the first line names, each as a word of its own.
   history knows no such commit or no such file; or the first line says "with uncommitted changes". Say
   which, and ask him whether the tokens changed since the day or the commit it gives. His answer is
   written where the stage that asked writes his words. A yes, or "I don't know", is taken as a change.
-- **At Handoff, `PARTS.md` is not written while the copy and the file differ.** Look's screens, their
-  measured values and their pictures were drawn on tokens the product no longer has. Stop, and tell
-  him so: the way on is to reopen Look, which is his to ask for, and at its step 2 the copy is made
-  again before anything is drawn.
+- **At Handoff, nothing is copied and `PARTS.md` is not written while the copy and the file differ.**
+  Look's screens, their measured values and their pictures were drawn on tokens the product no longer
+  has. Stop, and tell him so: the way on is to reopen Look, which is his to ask for, and at its step 2
+  the copy is made again before anything is drawn. Handoff copies the pages once Look is stamped again.
 
 ## Never
 

@@ -21,7 +21,6 @@ never in it, for what the gate needs and a builder does not.
 
 ## Question
 Can a session that was not here build it without asking?
-
 ## Reads
 
 - **The look,** `<package>/06-look/LOOK.md`, approved, and exactly what its carry list names: the
@@ -73,7 +72,8 @@ Each path is from `<package>/`. `<version>` is the version a stage stands at, as
    go on from what the folder holds, at the first step whose file is missing. **When a file of the
    folder needs something that is on no line of the carry list, stop and tell the founder what is
    missing:** you never reach into the package's history for it.
-3. **Copy in what was approved, and prove the folder stands alone.** `references/folder.md` has each:
+3. **Copy in what was approved, and prove the folder stands alone.** First, see that `<tokens>` is still
+   the project's: while the two differ, nothing is copied. `references/folder.md` has each:
    - every page of `<package>/06-look/screens/` into `<package>/07-handoff/prototype/`, and the
      pictures of those pages into `<package>/07-handoff/prototype/shots/`;
    - `<tokens>` to `<package>/07-handoff/tokens.css`, noting the path of the project's own token

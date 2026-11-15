@@ -50,7 +50,9 @@ Did what was built match what was approved?
 
 Everything below is in `<package>/08-acceptance/`, and the seats' briefs in `<package>/work/`, but the
 last two rows: they are the project's, and each is written only on his yes. `<version>` is the version
-Handoff stands at, as `status` prints it: after a reopening it is not 1.
+Handoff stands at, as `status` prints it: after a reopening it is not 1. You also append to the
+package's `DECISIONS.md` and to the project's `LESSONS.md`, and you bring the handoff folder up to date
+with each deviation he accepts, once Handoff is reopened: "Gate" says how.
 
 | File or folder | What it holds | From |
 |---|---|---|
@@ -64,9 +66,6 @@ Handoff stands at, as `status` prints it: after a reopening it is not 1.
 | `decision.json`, `decision.html` | the decision page, and its data | `templates/outputs/decision-approve.json` |
 | the driver, at the path of his answer | for a build that opens as files, where the project profile names no script: one script in the project, only on his yes | `scripts/lib/browser.mjs`, `references/driving.md` |
 | its line in `<packages>/PROFILE.md` | the driver's command, under "How a browser check is run here", only on his yes | step 3 |
-
-You also append to the package's `DECISIONS.md` and to the project's `LESSONS.md`, and you bring the
-handoff folder up to date with each deviation he accepts: "Gate" says how.
 
 ## Steps
 
@@ -92,8 +91,8 @@ handoff folder up to date with each deviation he accepts: "Gate" says how.
    him, open, and stop, as step 2 stops on a credential. That page has both.
 4. **Put each state on screen, check it there, and photograph it.** For each row of "States to drive" in
    `ACCEPTANCE.md`, reach the state as its row of `STATES.md` says, at the width and in the theme its
-   checks name, and stay at the top of the page, where a list of rooms begins. The kit's in-page file
-   makes the checks, and this prints its path:
+   checks name, and stay at the top of the page. The kit's in-page file makes the checks, and this
+   prints its path:
    ```
    node <kit root>/scripts/accept.mjs inpage
    ```
@@ -119,9 +118,10 @@ handoff folder up to date with each deviation he accepts: "Gate" says how.
    file in `<package>/08-acceptance/reads/`. No reader drives the build.
 7. **Write the report, item by item.** One row for each success criterion, each state, each entry of
    `DEVIATIONS.md`, and each difference a reader found: *matches* or *deviates*, with the check's id or
-   the picture that shows it. A failed check deviates. So does a deviation the builder wrote down,
-   however reasonable. Where two seats disagree, both are written, each in its words. What a reader
-   found that the approved design already had is no deviation: the report has a place of its own for it.
+   the picture that shows it. A failed check deviates, as a booking action that reads "Reserve" where
+   "Book room" was approved. So does a deviation the builder wrote down, however reasonable. Where two
+   seats disagree, both are written, each in its words. What a reader found that the approved design
+   already had is no deviation: the report has a place of its own for it.
 8. **Build the decision page.** Write `<package>/08-acceptance/decision.json` in the shape of
    `templates/outputs/decision-approve.json`: the build as its one option, with two of its pictures
    named from the page, the phone width first, as `shots/today-default-en-390-light.png`; one line for
@@ -151,11 +151,11 @@ work with the `begin` of step 1. One he leaves unanswered stays open, and is ask
 node <kit root>/scripts/state.mjs await <package> acceptance --question "<the one question>"
 ```
 
-- **A deviation he accepts** is written under "Deviations accepted", in his words, and appended to
-  the package's `DECISIONS.md` and to the folder's own. Then the handoff folder is brought up to
-  date, so that the design on disk is what shipped and no file of it contradicts another: the
-  check is rewritten to hold the build as accepted, and run again. `references/deviations.md` has
-  every file it touches, and how a stamped `HANDOFF.md` is changed.
+- **A deviation he accepts** is written under "Deviations accepted", in his words, and, once Handoff is
+  reopened, as `references/deviations.md` says, appended to the package's `DECISIONS.md` and to the
+  folder's own. Then the handoff folder is brought up to date, so that the design on disk is what
+  shipped and no file of it contradicts another: the check is rewritten to hold the build as accepted,
+  and run again. That page has every file it touches, and how a stamped `HANDOFF.md` is changed.
 - **A deviation to fix** goes out in `<package>/08-acceptance/FIXES.md`, written like a slice of the
   handoff: *Context · Task · Done when · Verify*, so that any session can take it knowing nothing
   else. You do not build it. **The stage is not stamped while a fix is out:** `references/forms.md`

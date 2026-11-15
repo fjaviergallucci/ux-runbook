@@ -5,9 +5,10 @@
 // says. Who made it (author, engine, track, model, source) and the maker's first idea are never drawn.
 // It draws either form of a proposal (lib/walkthrough.mjs): a source file, or a letter copy from the merge;
 // the two draw the same page under the same letter.
-// A page is drawn with the makers' notes, for the founder and the judges, or without them, for a reader
-// who must not be told what a design means to do (an audience): then its heading is the letter alone, and
-// no name, bet, cost, absence, hardest state or note is drawn. The screens are the same either way.
+// A page is drawn with the proposal's own account, for the founder and the judges, or without it, for a
+// reader who must not see it (an audience, who is not told what a design means to do): then its heading
+// is the letter alone, and no name, bet, cost, absence, hardest state or note is drawn. The screens are
+// the same either way.
 //
 // As a module: renderProposal(proposal, { letter, notes }) → the page, as a string; `notes` is true when
 // not given. Pure; the same proposal, letter and notes give the same bytes.
@@ -50,8 +51,8 @@ const check = proposal => validate(proposal, { sealed: !SOURCE_ONLY.some(key => 
 // ---- the drawing
 
 // renderProposal(proposal, { letter, notes }) → a whole HTML document that links kit.css from beside it;
-// with `notes` false, without the makers' notes. Throws a TypeError when the letter is not one capital
-// letter, `notes` is not true or false, or the proposal is not valid.
+// with `notes` false, without the proposal's own account. Throws a TypeError when the letter is not one
+// capital letter, `notes` is not true or false, or the proposal is not valid.
 export function renderProposal(proposal, { letter, notes = true } = {}) {
   if (typeof letter !== 'string' || !LETTER.test(letter)) {
     throw new TypeError(`the letter must be one capital letter, A to Z; it is ${JSON.stringify(letter)}`);
@@ -98,7 +99,7 @@ ${proposal.absent.map(line => html`        <li>${line}</li>\n`)}      </ul>
 `;
 }
 
-// The header of a page drawn without the makers' notes: which option this is, and no more.
+// The header of a page drawn without the proposal's own account: which option this is, and no more.
 const drawLetter = letter => html`<header>
   <h1>Option ${letter}</h1>
 </header>
@@ -168,10 +169,10 @@ proposal.
   --out <file.html>   the page to write: not named like one of the kit's stylesheets, and
                       not the proposal itself; its folder is made when it does not exist
   --letter <A to Z>   the option's letter on the board; A when not given
-  --without-notes     draw the page for a reader who must not see the makers' notes, as an audience:
-                      its heading is the option's letter alone, with no name, no bet, no cost, nothing
-                      of what is absent or of the hardest state, and no note on a screen or an item;
-                      the screens, their captions and every part are drawn as they are with the notes
+  --without-notes     draw the page without the proposal's own account (its name, its bet, its cost,
+                      what is absent, its hardest state, and the note on a screen or an item), for a
+                      reader who must not see it, as an audience: its heading is the option's letter
+                      alone; the screens, their captions and every part are drawn as they are with it
 
 A flag may also be written --flag=value.
 
@@ -253,7 +254,7 @@ function draw({ path, kit, out, letter, notes }) {
   }
   writeOutput(out, page);
   for (const [name, data] of css) writeOutput(join(folder, name), data);
-  process.stdout.write(`drew option ${letter} to ${out},${notes ? '' : ' without the makers\' notes,'} with ${sheets.join(', ')} beside it\n`);
+  process.stdout.write(`drew option ${letter} to ${out},${notes ? '' : ' without the proposal\'s own account,'} with ${sheets.join(', ')} beside it\n`);
 }
 
 function main(argv) {

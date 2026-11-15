@@ -48,6 +48,11 @@ Say what you want designed, redesigned, adjusted or corrected. The first time in
 project up: it writes the project's profile, with you. After that every design starts at Frame, and any
 session can pick a design up again from its folder alone, on any day.
 
+**Keep formatters off the designs.** A formatter, a hook that formats on commit or an editor that trims
+white space on save, run over the folder that holds them (`design/` unless the project's profile says
+otherwise), changes files you approved, and the state script's `validate` then reports each one as
+changed since you approved it.
+
 ## The nine stages
 
 | # | Stage | The question it answers | What it leaves | You |

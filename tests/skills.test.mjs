@@ -1523,6 +1523,10 @@ test('the gate: the founder corrects the project profile once, hears that the st
   assert.match(gate, /An approval that is only in the chat is not one, and until his words are there the project is not set up/);
   assert.match(gate, /changed by the designs that change it \(a new direction, a new standing rule\), never rewritten from memory/);
   assert.match(gate, /go back to the conductor: the first design starts at Frame/);
+  // N6 of the last re-review: every file of a stamped stage's folder is held to its stamp, so the project's own tools that rewrite
+  // files are kept off the packages folder, and he hears so here and in the README.
+  assert.match(gate, /\*\*Tell him to keep formatters off `<packages>`:\*\* a formatter, a hook that formats on commit or an editor that trims on save changes the files he approved there, and `state\.mjs validate` says so\./);
+  assert.match(flat(read('README.md')), /\*\*Keep formatters off the designs\.\*\* A formatter, a hook that formats on commit or an editor that trims white space on save/);
 });
 
 test('the project\'s pool is five folders, each with a one-line README; a stub is written from the template with every characteristic marked a guess', () => {
@@ -2948,10 +2952,11 @@ test('the kit\'s copy of the tokens is held to the project\'s file at Frame, at 
   assert.deepEqual(linesOf(moved).filter(({ fenced }) => fenced).map(({ line }) => line.trim()).filter(line => !line.startsWith('```')),
     ['git log --oneline <the commit>..HEAD -- <the file>', 'git status --short -- <the file>']);
   const said = flat(moved);
-  assert.match(said, /by Frame, before it puts the frame to him, and the copy made again once the frame is stamped, before any later stage draws; by Look, at its step 2, before the visual designer starts; and by Handoff, before it writes `PARTS\.md`/);
+  // N5 of the last re-review: Handoff looks before any page is copied, so that pages drawn on moved tokens are never copied in.
+  assert.match(said, /by Frame, before it puts the frame to him, and the copy made again once the frame is stamped, before any later stage draws; by Look, at its step 2, before the visual designer starts; and by Handoff, at the start of its step 3, before any page is copied, and again before it writes `PARTS\.md`/);
   assert.match(said, /\*\*Either prints a line:\*\* the file changed after the copy was made\. Tell the founder which file, the commit on the copy's first line, and what the commands printed\. Then, before anything is drawn, make the copy again as step 2 above says, with the new commit on its first line, and run steps 5 and 6 again/);
   assert.match(said, /\*\*It cannot be told:\*\* the project keeps no history, as a first line that holds a day says; the history knows no such commit or no such file; or the first line says "with uncommitted changes"\. Say which, and ask him whether the tokens changed since the day or the commit it gives/);
-  assert.match(said, /\*\*At Handoff, `PARTS\.md` is not written while the copy and the file differ\.\*\*/);
+  assert.match(said, /\*\*At Handoff, nothing is copied and `PARTS\.md` is not written while the copy and the file differ\.\*\* .* the way on is to reopen Look, which is his to ask for, and at its step 2 the copy is made again before anything is drawn\. Handoff copies the pages once Look is stamped again\./);
   // The copy's first line holds what the commands need: the file, and the commit it was read at.
   assert.match(flat(kit), /\*\*Its first line says where it came from\*\*: the source, by its path from the project's root, and the commit the source was read at/);
   // Each stage points to it, in no more than a line or two of its own.
@@ -2959,7 +2964,10 @@ test('the kit\'s copy of the tokens is held to the project\'s file at Frame, at 
   assert.match(flat(section(stageSkill('frame'), 'Reads')), /\*\*The first line of the project kit's `tokens\.css`,\*\* and what the project's history says of the file it names, as step 6 says/);
   assert.match(flat(stepOf(section(stageSkill('look'), 'Steps'), 'Read the detail, and what its carry list names')), /Before anything is drawn, see that `<tokens>` is still the project's: `skills\/setup\/references\/project-kit\.md`/);
   assert.match(flat(stepOf(section(stageSkill('handoff'), 'Steps'), 'Write `PARTS.md` from the component source, read now')), /\*\*Not while `<tokens>` and the project's file differ:\*\* `skills\/setup\/references\/project-kit\.md`/);
-  assert.match(flat(section(stageRef('handoff', 'folder.md'), '`prototype/`, and `tokens.css`')), /And first, see that the kit's copy is still that file, as `skills\/setup\/references\/project-kit\.md` says under "When the tokens move": while the two differ, `PARTS\.md` is not written, and the founder is told/);
+  assert.match(flat(stepOf(section(stageSkill('handoff'), 'Steps'), 'Copy in what was approved')), /\*\*Copy in what was approved, and prove the folder stands alone\.\*\* First, see that `<tokens>` is still the project's: while the two differ, nothing is copied\. `references\/folder\.md` has each: - every page of/);
+  const proto = section(stageRef('handoff', 'folder.md'), '`prototype/`, and `tokens.css`');
+  assert.deepEqual(proto.split('\n').filter(line => line.startsWith('- **')).map(line => /^- \*\*([^*]+)\*\*/.exec(line)[1]).slice(0, 2), ['First, the tokens, before any page is copied.', 'The pages.']);
+  assert.match(flat(proto), /\*\*First, the tokens, before any page is copied\.\*\* See that `<tokens>`, the project kit's copy, is still the project's own token file, `tokens` of the project profile, as `skills\/setup\/references\/project-kit\.md` says under "When the tokens move": while the two differ, nothing is copied, `PARTS\.md` is not written, and the founder is told\. The way on is to reopen Look, which is his to ask for, and the pages are copied once Look is stamped again\./);
   // A correction draws on no kit, and Frame does not run the step that looks.
   assert.match(said, /A correction draws on no kit, and looks at nothing here/);
   assert.match(flat(stageSkill('frame')), /Steps 4 to 6 are not run: a correction casts no seat/);
@@ -2993,6 +3001,10 @@ test('the final review\'s wording: the proposal\'s own account, the stage as the
   // The lines `validate` prints of an approved stage since the final wave's scripts.
   const before = flat(section(conductor(), 'Before a stage'));
   assert.match(before, /A line with `changed-since-approval` says an approved output, or a file of its stage's folder, was changed, removed or added after its stamp; one with `unfilled` or `approved-without-words`, that an approved output still holds its template's words or none of his/);
+  // N1 of the last re-review: a project source a stamped stage names, moved or gone since, as the build may move one, goes to
+  // him by source and stage, and he chooses the way out. The words are the ones validate prints of it.
+  assert.match(before, /A line with `carry-unresolved` that holds `"- source:<path>": <path> is not there` says a file of the project that a stage's carry list names has moved or gone since its stamp, as a build may move a screen it replaces\. Tell him which source and which stage\. That stage is reopened, or the source put back: he chooses which, never you\. Any other line means the package and its state disagree/);
+  assert.ok(read('scripts/lib/state.mjs').includes('is not there, looked for from') && read('scripts/lib/carry.mjs').includes("'carry-unresolved'"), 'the words validate prints of a source');
 });
 
 // G6 of the final review: what the intent approves as "The measure" is built, and "The feeling" reaches the one seat it steers.
@@ -3204,8 +3216,8 @@ test('rounds.md: a graft is redrawn once and read again once, a rejected round m
   const graft = section(rounds, 'A pick with a graft');
   assert.deepEqual(boldSteps(graft).map(([, name]) => name), ['It is redrawn once, by a maker, never by you', 'Draw it and photograph it,', 'It is read again once', 'Once means once', 'Then the map is opened,']);
   assert.match(flat(graft), /Start one fresh `maker\.structure-describer`, as step 5 of the skill says\. The blind between makers ended with the pick, so this one is handed the picked letter's file and the file of each letter he named, from the board, by letter, and his words, exactly\. It is not told who made them/);
-  // S2 and W2 of the fix review: the redrawn pick is drawn a second time without the makers' notes and pictured with its
-  // first screen, as the board is, so that the audience re-reading it is handed no maker's note (R171, R154).
+  // S2 and W2 of the fix review: the redrawn pick is drawn a second time without the proposal's own account and pictured
+  // with its first screen, as the board is, so that the audience re-reading it is handed none of it (R171, R154).
   assert.deepEqual(commandsOf(graft), ['node <kit root>/scripts/render.mjs <package>/04-structure/chosen/chosen.json --kit <kit dir> --out <package>/04-structure/chosen/chosen.html --letter <letter>',
     'node <kit root>/scripts/render.mjs <package>/04-structure/chosen/chosen.json --kit <kit dir> --out <package>/04-structure/chosen/chosen-screens.html --letter <letter> --without-notes',
     'node <kit root>/scripts/shots.mjs <package>/04-structure/chosen --out <package>/04-structure/chosen --widths <primary>,<phone> --first-screen']);
@@ -3367,7 +3379,7 @@ test('Structure runs as written: its own commands on the fixture proposals, the 
       assert.ok(page.includes(`<h1>Option ${letter}: `) && page.includes('<link rel="stylesheet" href="kit.css">'), letter);
       assert.doesNotMatch(page, /tool:stitch|calendar\.json|free-first|unified-list/, letter);
       // R171 with R154: the page for the audiences carries the letter and the screens, and nothing a maker said of the design.
-      assert.match(run(withoutNotes, { '<letter>': letter }), new RegExp(`^drew option ${letter} to \\S.*${letter}-screens\\.html, without the makers' notes, with `));
+      assert.match(run(withoutNotes, { '<letter>': letter }), new RegExp(`^drew option ${letter} to \\S.*${letter}-screens\\.html, without the proposal's own account, with `));
       const bare = readFileSync(join(round, 'board', `${letter}-screens.html`), 'utf8');
       assert.ok(bare.includes(`<h1>Option ${letter}</h1>`) && page.includes('class="ux-note"') && page.includes('<dt>Its bet</dt>'), letter);
       assert.doesNotMatch(bare, /ux-note|<dl>|Its bet|Deliberately bad at/, letter);
@@ -3469,7 +3481,7 @@ test('Structure runs as written: its own commands on the fixture proposals, the 
   run(graftWithNotes, { '<letter>': 'B' });
   assert.ok(readFileSync(join(round, 'chosen', 'chosen.html'), 'utf8').includes('<h1>Option B: '));
   // S2: the page its audience is pictured from carries the letter and the screens, and nothing a maker said of the design.
-  assert.match(run(graftWithout, { '<letter>': 'B' }), /^drew option B to \S.*chosen-screens\.html, without the makers' notes, with /);
+  assert.match(run(graftWithout, { '<letter>': 'B' }), /^drew option B to \S.*chosen-screens\.html, without the proposal's own account, with /);
   const redrawn = readFileSync(join(round, 'chosen', 'chosen-screens.html'), 'utf8');
   assert.ok(redrawn.includes('<h1>Option B</h1>') && readFileSync(join(round, 'chosen', 'chosen.html'), 'utf8').includes('<dt>Its bet</dt>'));
   assert.doesNotMatch(redrawn, /ux-note|<dl>|Its bet|Deliberately bad at/);
@@ -4827,9 +4839,13 @@ test('handoff and acceptance: the six sections and no other, the question the co
       // No version is written as a number: after a reopening a remembered 1 is wrong.
       assert.doesNotMatch(body, /\b(?:frame|context|intent|cast|structure|detail|look|handoff)@\d/, `${name}/${file}`);
     }
-    // Its example is the kit's own product: a room, never a real one.
-    assert.match(text, /\brooms?\b/, name);
+    // Its example is the kit's own product: a room, never a real one. N2 of the last re-review: Acceptance's is the one of
+    // step 7, a failed check, and no clause stands in a step only to hold the word.
+    const EXAMPLE = { handoff: /\brooms?\b/, acceptance: /A failed check deviates, as a booking action that reads "Reserve" where "Book room" was approved\./ };
+    assert.match(flat(text), EXAMPLE[name], name);
   }
+  assert.match(stepOf(section(stageSkill('acceptance'), 'Steps'), 'Write the report, item by item'), /\*matches\* or \*deviates\*, with the check's id or the picture that shows it\. A failed check deviates, as a booking action that reads "Reserve" where "Book room" was approved\. So does a deviation the builder wrote down/);
+  assert.doesNotMatch(flat(stageSkill('acceptance')), /where a list of rooms begins/);
   // Each opens with what the session never does itself at that stage.
   const opens = name => flat(stageSkill(name).slice(0, stageSkill(name).indexOf('\n## ')));
   assert.match(opens('handoff'), /You design nothing, and you change nothing that was approved: no string, no state, no rule, no id and no value/);
@@ -5463,9 +5479,10 @@ test('acceptance: each item matches or deviates and he decides each; an accepted
   const gate = flat(section(text, 'Gate'));
   inOrder(gate, [/^ \*\*He accepts\.\*\* Put `<package>\/08-acceptance\/decision\.html` in front of him, with `checks\.md` and the pictures/, /\*\*Each deviation is his to decide: is it accepted as built, or fixed\?\*\* The list is one question: the deviations numbered, each with what follows from each answer, answered by number in one message/,
     /Record it, write his answers into `REPORT\.md` as he said them, and put the stage back in work with the `begin` of step 1\. One he leaves unanswered stays open, and is asked again/, /state\.mjs await <package> acceptance --question/,
-    /\*\*A deviation he accepts\*\* is written under "Deviations accepted", in his words, and appended to the package's `DECISIONS\.md` and to the folder's own/,
+    // N4 of the last re-review: the bullet a session reads first gives the order of deviations.md, the reopening before any write.
+    /\*\*A deviation he accepts\*\* is written under "Deviations accepted", in his words, and, once Handoff is reopened, as `references\/deviations\.md` says, appended to the package's `DECISIONS\.md` and to the folder's own/,
     /Then the handoff folder is brought up to date, so that the design on disk is what shipped and no file of it contradicts another: the check is rewritten to hold the build as accepted, and run again/,
-    /`references\/deviations\.md` has every file it touches, and how a stamped `HANDOFF\.md` is changed/,
+    /That page has every file it touches, and how a stamped `HANDOFF\.md` is changed/,
     /\*\*A deviation to fix\*\* goes out in `<package>\/08-acceptance\/FIXES\.md`, written like a slice of the handoff: \*Context · Task · Done when · Verify\*, so that any session can take it knowing nothing else\. You do not build it\. \*\*The stage is not stamped while a fix is out:\*\*/,
     /\*\*A fix the size of a correction,\*\* a wrong label, token or spacing value, may be applied by you, after his nod on a picture of before and after, and never before\. Its state is then checked again/,
     /\*\*When no deviation is left undecided and no fix is out,\*\* ask the last question, with the same `await`: do you accept this build\? \*\*Stop: you do not accept it, and you go no further without his words\.\*\*/,
@@ -5479,6 +5496,7 @@ test('acceptance: each item matches or deviates and he decides each; an accepted
   for (const never of ['Never implement, mend or restyle the build', 'Never settle a deviation yourself', 'Never edit a stamped output as it stands:', 'Never change a check to make a build pass', 'Never tell a judge what to find', 'Never ask two things at once']) {
     assert.ok(nevers(text).includes(never), never);
   }
+  assert.match(flat(section(text, 'Writes')), /You also append to the package's `DECISIONS\.md` and to the project's `LESSONS\.md`, and you bring the handoff folder up to date with each deviation he accepts, once Handoff is reopened: "Gate" says how\./);
   // R184: a stamp guards every file of the stage's folder, not its output alone.
   assert.match(flat(section(text, 'Never')), /\*\*Never edit a stamped output as it stands:\*\* `HANDOFF\.md` or an earlier stage's, nor any file of its folder\. Where an accepted deviation makes one false, it is reopened first: `references\/deviations\.md`/);
   // M2: deviations.md. An accepted deviation is logged in the package's decisions and in the folder's own, every file of the folder that
@@ -6185,7 +6203,7 @@ test('the dry run, Structure and Detail: a rule selects what a maker is given, t
       'with every row that states a limit, a delay or a failure', 'A real label that names a screen of today is given as the facts it states, never in its own words.');
   }
   says(stageRef('detail', 'seats.md'), 'every row of the context\'s inventory that states a limit, a delay or a failure, as the context states it. The rule selects them: you weigh none, and leave none out.');
-  // R171: each letter is drawn with the makers\' notes and without, each page pictured whole and as its first screen.
+  // R171: each letter is drawn with the proposal\'s own account and without, each page pictured whole and as its first screen.
   says(stepOf(section(structure, 'Steps'), 'Merge, draw, photograph'), 'Render twice for each letter, the second time without the proposal\'s own account, for the audiences; then the shots once, at the brief\'s two widths, every page pictured twice, whole and as its first screen alone');
   says(stepOf(section(structure, 'Steps'), 'Start the readers, by letter'), 'then the audiences, once every judge has written its ledger', 'an audience is handed the pictures only, each by its path, those drawn without the proposal\'s own account');
   says(seats, 'The audiences are handed the pictures of the pages drawn without it, and no other.', 'A brief says which is which, and that "without scrolling" is answered on the first.',

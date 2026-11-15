@@ -439,6 +439,9 @@ that every heading of a stage's template be named by a later stage: twenty-six h
 none in their own words, most of them read whole by a seat handed the output, and a list of exceptions
 that long would hold today's text, not find the next heading that is lost.
 
+**The re-review of the final wave** found nothing above Minor, and its six minors were fixed before the
+proving run.
+
 **What is left for the proving run.**
 
 - **The script for Handoff's mechanical part (R182),** as above.

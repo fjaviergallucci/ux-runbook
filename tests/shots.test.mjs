@@ -984,7 +984,7 @@ test('the CLI pictures the first screen of each page too with --first-screen, an
   const names = ['A', 'A-screens', 'B', 'C'].flatMap(name => [1280, 390].flatMap(width => [`${name}-${width}-light.png`, `${name}-${width}-light-first.png`]));
   assert.deepEqual(readdirSync(out).sort(), names.sort());
   for (const name of names.filter(file => file.endsWith('-first.png'))) assert.equal(pngSize(join(out, name)).height, 900, name);
-  // The page drawn without the makers' notes is the shorter of the two, and its first screen reaches further into its screens.
+  // The page drawn without the proposal's own account is the shorter of the two, and its first screen reaches further into its screens.
   assert.ok(pngSize(join(out, 'A-screens-390-light.png')).height < pngSize(join(out, 'A-390-light.png')).height);
   // A switch takes no value; without it, the line and the folder are as they always were.
   const valued = run(pages, '--out', out, '--widths', '390', '--first-screen=yes');

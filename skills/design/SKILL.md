@@ -100,14 +100,16 @@ of his. Tell him which stage, what the line says, and the way out its message na
 re-confirm it, then stamp it; reopen it, or put back what was approved. Then act on his answer. Never
 mend either one quietly, and never start a later stage over it.
 
-Any other line means the package and its state disagree, and its message says how. Report it too. The
-answer is never to edit `state.json` or `STATE.md`: the script writes both.
+A line with `carry-unresolved` that holds `"- source:<path>": <path> is not there` says a file of the
+project that a stage's carry list names has moved or gone since its stamp, as a build may move a screen
+it replaces. Tell him which source and which stage. That stage is reopened, or the source put back: he
+chooses which, never you. Any other line means the package and its state disagree, and its message says
+how. Report it too. The answer is never to edit `state.json` or `STATE.md`: the script writes both.
 
 `node <kit root>/scripts/state.mjs status <package>` prints the whole state: the route, each stage's
 status, and the one open question when there is one. An open question is the founder's: put it to him
-again, as it is written, and wait for his answer.
-
-Then invoke the skill of the stage `next` named. A new design has no package to ask: go to Frame.
+again, as it is written, and wait for his answer. Then invoke the skill of the stage `next` named. A new
+design has no package to ask: go to Frame.
 
 ## The loop
 
@@ -148,10 +150,9 @@ conversation is needed, and nothing of one is used.
 
 1. Find the package: the folder of the design, in the project's packages folder. It holds `state.json`.
 2. Run `validate`, `next` and `status`, as in "Before a stage". Report a stale or changed artefact first.
-3. If `status` shows an open question, a stage is awaiting the founder. Put that question to him. On
-   his answer, invoke that stage's skill and go on from step 8 of the loop. An awaiting stage is not
-   begun again. A question a stage asked mid-way is put again by that stage's own skill, at the step
-   that asked it.
+3. If `status` shows an open question, a stage is awaiting the founder. Put it to him. On his answer,
+   invoke that stage's skill and go on from step 8 of the loop. An awaiting stage is not begun again. A
+   question a stage asked mid-way is put again by that stage's own skill, at the step that asked it.
 4. Otherwise read the output of the stage before the one `next` named, and what its carry list names.
    That is all the stage may know. The package's `work/` folder is scratch, prompts and raw outputs:
    it is never read back.
@@ -191,8 +192,7 @@ node <kit root>/scripts/state.mjs route <package> <stage> <full|short|skipped> -
   itself: pass it `--profile` and nothing about a key, and never pass `--endpoint`. Never open a key
   file, and never print a key or the environment.
 - **Never read `work/` as an input.** What a stage needs is in an approved output, or it is missing.
-- **Never paste a card or an artefact into a brief.** Name the file by its absolute path: the seat reads
-  it itself.
+- **Never paste a card or an artefact into a brief.** Name its absolute path: the seat reads it itself.
 - **Never average or settle a disagreement between seats.** Lay the findings side by side and say where
   two seats disagree. He settles it.
 - **Never stop a process by name or by pattern.** The machine is shared. A seat or a script stops only

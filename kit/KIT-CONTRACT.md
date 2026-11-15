@@ -64,9 +64,10 @@ proposal's name), then a `<dl>` whose `<dt>` and `<dd>` pairs give the proposal'
 deliberately bad at, what is absent on purpose (a `<ul>` with one `<li>` per line, inside its `<dd>`)
 and how it meets its hardest state. None of it carries a class, and no kit styles it: a kit styles
 `header`, `ul` and `li` by name only where the markup below puts them, inside a frame, so the page's
-header shows in the browser's defaults, the same for every proposal. Drawn without the makers' notes,
-for a reader who must not see them, the page's header is that `<h1>` alone, `Option ` and the letter,
-with no name and no `<dl>`, and no `ux-note` is drawn in any frame: nothing else of the markup differs.
+header shows in the browser's defaults, the same for every proposal. Drawn without the proposal's own
+account, for a reader who must not see it, the page's header is that `<h1>` alone, `Option ` and the
+letter, with no name and no `<dl>`, and no `ux-note` is drawn in any frame: nothing else of the markup
+differs.
 
 ## The markup
 
