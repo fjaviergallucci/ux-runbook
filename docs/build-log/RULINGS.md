@@ -7,7 +7,7 @@ open. The controller then decided it and wrote a numbered **ruling** in the buil
 the design and the plan, but you were not asked about each of these. This page lists all of them, so that
 you can overturn any you disagree with.
 
-- There are **192 numbered rulings, R1 to R192**. Every number is in the ledger. None is missing. Eight
+- There are **193 numbered rulings, R1 to R193**. Every number is in the ledger. None is missing. Eight
   have no line of their own and sit inside another line: R39, R84, R98, R102, R108, R109, R146, R154.
 - The ledger is `.superpowers/sdd/2026-11-13-PIPELINE-KIT-PLAN/progress.md` (a committed copy is in
   `docs/build-log/`). In the same folder: the full text of R159–R188 is in `task-20-fix-rulings.md`,
@@ -18,15 +18,28 @@ you can overturn any you disagree with.
 - **To overturn a ruling, tell the controller its number** and what you want instead, for example
   "Overturn R174". Where a later ruling corrected an earlier one, the later one holds now: overturn that
   one.
-- Where things stood at the ledger's last line: the final fix wave's scripts part was done; its words part
-  had been sent out and had not reported back. The evaluation re-run that R187 orders after the final wave
-  had not happened yet.
+- Where things stand (2026-11-15, the end of the build): the final fix wave is done in both its parts and
+  was re-read by the final reviewer ("ready for the proving run, nothing must change first"); R192 is
+  built. The evaluation suite was run again as R187 ordered: six cases of nine at 1.00, two failed for
+  faults of the cases themselves, and one for a fault of the kit that ruling R160 had caused. **R193**
+  corrects it and is the last ruling; a paid run to confirm its wording is owed and waits for your word.
 
 In the tables: **built** means the ledger shows it was carried out. **stands** means it holds, but the
 ledger does not clearly show it carried out, or it is a standing rule. **corrected by R<n>** means a later
 ruling changed it. **dropped** means it was dropped. "She" is the person a design is for.
 
 ## The ones worth your eye
+
+### R193 — a Structure brief names a state by what has happened
+
+- **Decided:** in the two brief templates of Structure, the states are listed one line each, named by what
+  has happened ("the list is empty"), never by what she is told in it. What the screen shows then is the
+  maker's to write.
+- **Why:** R160 had the templates list "every state the intent says she must be told about". Sessions then
+  copied what the screen must tell her into the brief — a piece of design in a document that must hold
+  none. The evaluation case for that rule failed three votes of three, twice.
+- **If wrong:** the judges still fail the brief, and the next run of that case says so. That run is paid
+  and has not been made yet.
 
 Twenty entries, most recent first. A few join two rulings that belong together.
 

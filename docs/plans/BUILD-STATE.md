@@ -4,7 +4,7 @@
 and how each step is run. It is written so that a session with no memory of the build — a person, or any
 coding agent — can carry on.
 
-Last updated: 2026-11-15, after Task 20 (see "Where the build stands").
+Last updated: 2026-11-15, at the end of the build (see "Where the build stands").
 
 ## Where everything is
 
@@ -60,21 +60,41 @@ See "Where the build stands" below.
 Not part of this build (the plan names them so nobody does them by momentum): the proving run in a real
 project, setup in any real project, a worked example, replacing `master`, tagging version 1, pushing.
 
-## Where the build stands (2026-11-15)
+## Where the build stands (2026-11-15, the end of the build)
 
-All 21 tasks are complete. The dry run of Task 20 is written up in `docs/design/DRY-RUN.md`: nine stages
-approved on a fictional project, 39 seats, 1302 acceptance checks passing, 274 notes sorted into 111
-items, every one fixed, ruled on, parked below or left for the proving run. The design document's § 25
-holds what the build and the dry run changed in it.
+**The build is finished, but for one paid run that waits for the founder's word.**
 
-What is left, in order:
+- All 21 tasks are complete. The dry run of Task 20 is written up in `docs/design/DRY-RUN.md`; the design
+  document's § 25 holds what the build and the dry run changed in it.
+- The whole branch was reviewed once on the most capable model (`docs/build-log/final-review.md`: 1
+  Critical, 8 Important, 12 Minor), fixed in one wave of two parts (`final-fix-scripts-report.md`,
+  `final-fix-words-report.md`), re-read by the same reviewer — **"ready for the proving run, nothing
+  must change first"** — and its six last minors fixed (`final-last-touch-report.md`).
+- Tests at the head: 912 — 911 pass, 1 skipped (it cannot run on this machine's mount), no `todo`.
+  `claude plugin validate . --strict` exits 0.
+- The rulings, R1 to R193, are listed for the founder in `docs/build-log/RULINGS.md`: the ones that
+  change how the pipeline behaves first. He overturns one by its number.
+- The evaluation suite was run once more after the fix wave: six of nine cases at 1.00; two failed for
+  faults of the cases (their graders are fixed); one, `brief-has-no-design`, for a fault of the kit that
+  ruling R160 caused, corrected by R193 (`eval-run-4-diagnosis.md`, `eval-run-4-fix-report.md`).
 
-| Step | What | State |
-|---|---|---|
-| The final review | One read of the whole branch (`git diff e01d00c..HEAD`) on the most capable model — the founder confirmed it on 2026-11-15 | **next**; its file will be `final-review.md` in the build log |
-| One fix wave | Its findings, with everything under "Parked" below and the deferred minors, in one dispatch; then one scoped re-review | after it |
-| The evaluation suite, once more | The skills changed widely in Task 20: `claude plugin eval . --no-publish --trust-plugin --ablation none --judge-model sonnet --runs 1 --max-cost-usd 6 -j 2 --allow-tools Bash Write Edit` (8.88 of the plan's 15 US dollars are spent) | after the fix wave |
-| The report | The full list of rulings (R1–R191) to the founder; then the branch is finished — no merge, no tag without his word | last |
+**Owed:** one paid run to see the judges pass R193's wording —
+`claude plugin eval . --no-publish --trust-plugin --ablation none --judge-model sonnet --runs 1 --max-cost-usd 1 --case brief-has-no-design --allow-tools Bash Write Edit`
+(about 0.73 US dollars; or all three cases that failed, about 1.81). Evaluations have cost 14.51 of the
+plan's 15: going past it is the founder's call. A case below 1.00 is a finding against the template, to
+be fixed by a sub-agent and run once more.
+
+**Known, for the proving run:** stage 9 stops in a project whose product runs on a server unless the
+project keeps a browser script of its own (setup now says so at its gate, and the profile template and
+the implementer's guide hold that script's contract); a project source the build itself moves after
+Handoff makes `validate` report it, and the right answer is to say so and reopen nothing; a formatter
+run over the packages folder trips the guard on stamped folders; nobody has installed the plugin to try
+the installed copy (the scripts refuse in one line when their dependency is missing, and the README
+says how to run it both ways); the two follow-ups that were ruled "not built" (a script for Handoff's
+mechanical part; checks of what a page does).
+
+**Not done, by the plan, and waiting for his word:** the proving run in a real project; merging;
+tagging version 1; replacing `master`.
 
 ## How each task is run
 
@@ -125,7 +145,7 @@ implemented on the most capable model and reviewed on Opus. The reviewer is neve
 
 `docs/build-log/` is a committed copy of the build's working folder, taken at the date above:
 
-- `progress.md` — **the ledger**: every step, every ruling (R1–R191), every deferred minor, every parked
+- `progress.md` — **the ledger**: every step, every ruling (R1–R193), every deferred minor, every parked
   finding, in order. Search it for `Ruling R`, `minor (deferred)`, `parked`, `NOTE for Task`.
 - `task-N-brief.md` — the plan's section for that task, as extracted.
 - `task-N-rulings.md` — the controller's rulings for that task. **Those for Tasks 15–19 are ready to hand
@@ -135,27 +155,12 @@ implemented on the most capable model and reviewed on Opus. The reviewer is neve
 
 The review diffs are not copied (they are large and can be rebuilt with `git diff`).
 
-## Parked for the one fix wave after the final review
+## What was parked, and what became of it
 
-Each has its fix decided; the ledger has the detail.
-
-| Ruling | Where | What |
-|---|---|---|
-| R39 | `scripts/lib/state.mjs` | The stale chain breaks through a skipped stage. A skip should keep `builtFrom`, and the cascade should pass through stages that are not approved. |
-| R84 | `scripts/shots.mjs` | A page written to defeat the document mark can be pictured as another page. Hostile pages are out of scope; hardening noted (make the mark non-writable). |
-| R108 | `scripts/inpage/accept-inpage.js` | An `<svg>` has no `offsetWidth`, so its scale is taken as 1. Take an svg's scale from its client size. |
-| R109 | `scripts/inpage/accept-inpage.js` | A label that cannot be pointed at inside a clipping pill gets `cannot be told:`. Compute corner radii as CSS does (all four scaled by one factor). |
-| R132 | `scripts/merge.mjs` and the tests of `shots` and `merge` | A check that a folder is empty must pass over what a mount or an operating system leaves behind (`.fuse_hidden*`, `.DS_Store`, `Thumbs.db`, `desktop.ini`). |
-
-| R184 | `scripts/lib/state.mjs` | A stamp guards only the stage's output file. It should hash every file of the stage's folder (passing over R132's leftovers), `validate` should report a change to any, and `reopen` should name the stages it recalled. |
-| R185 | `scripts/accept.mjs` | No check type measures a font size, a gap or a line's length (Task 17's deferred M2). |
-
-R154 is no longer parked: it was built in Task 20 (`render.mjs --without-notes`, `shots.mjs --first-screen`).
-
-About forty-five deferred minors are in the ledger (`minor (deferred)`), for the same wave.
-
-The design document's amendments are written: its § 25 holds the seven things the build and the dry run
-changed, each with its ruling.
+R39, R108 (as one sentence), R109, R132, R184 and R185 (as two check types) were built in the final
+wave; R154 in Task 20; R84 was dropped, with 37 of the 46 deferred minors, on the final reviewer's word
+(each an error worded oddly, a cost in time, another operating system's case, or a path no step
+reaches). The ledger has each.
 
 ## For the two steps the controller runs itself
 

@@ -440,3 +440,133 @@ first.
   `describe` compare files by device and inode, and a file system that reports the same pair for every
   file would refuse every `--out` that exists.
 - `scripts/describe.mjs` was run with `--help` only, as the brief requires.
+
+## Re-review of the fix wave
+
+Head `81c08c0`, thirteen commits on `94f0066` (the branch has since gained `8b3f93d`, which touches `docs/` alone). Read-only again: nothing of the kit was changed, and
+`git status` is clean. Scoped to what the wave changed: the controller's ruling (`final-fix-wave.md`), the
+two reports, and the diff by file. Probes in `/tmp/claude-1000/rr/`, removed afterwards. The whole suite,
+once: **912 tests, 911 pass, 1 skipped, 0 fail, 216 s**. The four stamped packages of the evaluation fixtures each
+validate `ok`, run from their own root.
+
+### Each finding, and each parked ruling
+
+| Item | State | What I checked |
+|---|---|---|
+| **G1** | **fixed** | Walked again, a fresh pass cast and the tool off. The seat is now told three ways, and the last does not depend on the conductor: both seats pages give the seat an "Its brief" lead that carries the line from `engines-on` ("You read the project profile, and the seat never does: a brief that does not say is off"); the brief template has the line for this seat; and the card says before its method "**Your brief says whether the tool is on. If it does not say, it is off.**", with "you call no outside tool, whatever tools your session lists" and a Never line. A fresh pass asked for at the decision page goes through the same step 5 and the same seats page. So a conductor that forgets the line leaves a seat that works without the tool. The pins hold each sentence whole (`tests/pool.test.mjs:956-970`, `tests/skills.test.mjs:3020-3034`): take any one out and a test fails. The outside describer and the transcriber have no such gap, as the words' report says. |
+| **G2** | **fixed** | The interaction designer is handed "What the readers found" of `CHOSEN.md` by the file and the heading, the rest of the file staying closed; its reply answers each in a line; one on a string goes to the writer the same way; the conductor copies and writes none. Step 3, step 9, both cards and the template agree. |
+| **G3** | **fixed** | Setup's gate says it, Frame lists it, the profile template and the builder's guide hold the same six steps, and `driving.md` points to them. No step has a kit session write the script; step 6 of the contract keeps addresses and sign-ins out of what it prints. |
+| **G4** | **fixed** | No page is written to look like the screen; the picture is the project's script's or his; words beside the picture before are allowed and he is told which. One note, not a fault: "once the change is made on a branch of its own" is said to a session that may share a checkout; the project's own rules for branches govern there, as the profile's first line already says. |
+| **G5** | **fixed** | Probed in a copy with no `node_modules`: `--help` of all ten scripts exits 0 with nothing on standard error; `accept inpage` prints its path; `accept report` wrote its table; `shots` and `accept prototype` each print one line, "playwright-core is not installed in <that folder>: run npm install there", exit 1, and leave no result behind. The README is true both ways as far as it can be read: I did not install the plugin either, so the sentence "an installed plugin runs from Claude Code's own copy" still rests on this machine's record of installed plugins. |
+| **G6** | **fixed** | "The measure" is a rule at Detail, a row and a bullet of the handoff's folder page, a slice's done-when and a check made by hand; "The feeling" goes to the visual designer word for word. The test I suggested was not added, for a reason I accept: telling "read whole" from "lost" is a judgment for each heading. |
+| **G7** | **fixed** | Probed with filled outputs: his words with braces inside a line pass; a line that opens with a brace and goes on in prose passes; a quoted block, a list, a sub-heading under the section pass; an empty section, a section holding only an instruction, an instruction left over two lines, and the template's comment are refused, each naming its heading. The short forms pass. One thing is refused that is real, and it is far-fetched: his words written as a block of their own wholly in braces, as `{yes, go on}`. The refusal says where, so it costs a rewrite and no more. |
+| **G8** | **fixed** | The card, Look's skill and its seats page name `scripts/lib/browser.mjs`; "a script of your own" is gone. |
+| **G9** | **fixed, one loose end (N5)** | The look is mechanical (two `git` commands; any line printed is a change; what history cannot tell is asked of him), so nothing asks the conductor to judge, and nothing leads to a credential. It fits Frame's step 6 and Look's step 2. At Handoff see N5. |
+| **G10** | **fixed** | `sibling-surfaces` in both makers' `reads`, and handed at Detail and at Look. |
+| **G11** | **partly** | Structure, the rounds page, the blind page and the loop are right. `scripts/render.mjs` and `kit/KIT-CONTRACT.md` still say the old word: N3, with the wording. |
+| **G12, G13** | **fixed** | Probed: a `Q.json` above the project stops no merge; a board inside a board is still refused; both refusals say "move … into earlier/<n>/". |
+| **G14** | **fixed** | By its test in Chrome (three and five options, at 1440, 1280 and 390): not looked at by me. The 27rem column is the right call. |
+| **G15, G18, G19, G20, G21** | **fixed** | Each sentence is where the report says, and pinned. |
+| **G16** | **fixed** | Probed with G17 and R184 below: a stage is not begun or put to him before its gate. Walked against every `begin` and `await` the skills ask for mid-stage (Detail's lists, Structure's rounds, Look's fresh pass, Handoff's step 9, Acceptance's driver and deviations): each is asked while every earlier stage is approved. |
+| **G17** | **fixed, with one consequence (N1)** | A source that is not there is refused at the stamp. |
+| **R39** | **fixed; the narrower build is right** | The ruling's words would have left a stage in work or awaiting untouched when its input moved. Such a stage holds a question put on the old input, and `reopen` already recalls one for that reason; marking it stale and closing its question is the same rule. Only a skipped stage and one not started since it was put back hold neither an approval nor a question, and those are the two the chain passes through. Probed: a reopened frame marks context, intent and cast stale and puts an awaiting Detail back in work, its question closed. |
+| **R108** | **fixed** | One sentence, in `accept --help` and in the card, the same. |
+| **R109** | **fixed** | By its tests (seven pills); not probed by me. |
+| **R132** | **fixed** | Probed: a board folder holding `.fuse_hidden0002` and `.DS_Store` is merged into, and both are still there afterwards. |
+| **R184** | **fixed** | See below. |
+| **R185** | **fixed** | Two types, in `--help`, the in-page file, the template's table and the fixture's copy. By their tests; not probed by me. |
+
+### R184, the guard
+
+**Probed** on a package of my own, a stage stamped with four files in its folder and a mount's leftover:
+
+- the stamp recorded the four, by path, and not the leftover; a stage with no folder records nothing;
+- line endings made CR LF in a page: `ok`; `.DS_Store` and `Thumbs.db` added afterwards: `ok`;
+- a text file changed: one line, "… changed after detail was approved …; reopen detail, or put back what
+  was approved", exit 1; put back: `ok`. The same for a picture changed by one byte;
+- a file added, a file removed: one line each, with its own way out; an empty folder added: `ok`;
+- the record taken out of `state.json`, as a package stamped before the wave has it, and a file added:
+  `ok`. Such a package is held to its output alone.
+
+**Walked:** every step of every skill that writes after a stamp. Searched each later stage's skill and
+references for an earlier stage's folder beside a verb of writing, and read the gates' order. The
+scripts' list holds: one step in the whole kit wrote into a stamped folder, the accepted deviation, and
+it is now behind a reopening. Everything else a later stage does with an earlier folder is a read or a
+copy into its own; what a stage writes after its own stamp goes to the package's `DECISIONS.md`, the
+project's lessons or the project's source, none of them guarded. A stale stage redone trips nothing:
+`validate` says `stale-input` of it and looks no further.
+
+**The accepted deviation, with the state script,** in the order `deviations.md` now gives: Acceptance
+awaiting him on the list; `reopen handoff` → "reopened handoff at version 2; stale: none; back in work:
+acceptance"; `begin acceptance` meanwhile → refused, as the page says; two files of `07-handoff/`
+changed; `validate` → no `changed-since-approval`, only "acceptance: stale-input: built from handoff@1",
+which the page answers in step 5; Handoff stamped again; `built-from` written; the last question; the
+stamp; `next` → `none`; `validate` → `ok`. A file of `07-handoff-gate/` changed after the stamp: `ok`, as
+intended. Leaving that folder unguarded is right: nothing of it is handed to anyone.
+
+**No step of the kit, followed as written, trips the guard.** Two things near it are below: N4 (the
+skill's own bullet still gives the old order) and N6 (what the project's own tools do to a stamped
+folder).
+
+### New, or still open
+
+All Minor. Nothing Critical or Important is open, and the wave introduced none.
+
+- **N1 · Minor · `validate` now reports a project source the build moved, and no page says what to do.**
+  Probe: a context that carries `- source:src/day.html`, all nine stages stamped, then the file renamed, as
+  a build that replaces today's screen may: `validate` → "context: carry-unresolved: … src/day.html is not
+  there, looked for from …: a source is named by its path from the project's root, where the command is
+  run", exit 1, from then on. In a real package every later stage carries that line on, so it is one
+  line a stage. The conductor's page says of such a line only "the package and its state disagree …
+  Report it too". Before Handoff the refusal is right: a seat would be handed a path that leads nowhere.
+  After it, the project is the builder's to change. Fix, either: one sentence in the conductor's "Before
+  a stage" (a source that moved before Handoff: the stage that named it is reopened, or the file put
+  back; one the build moved: said in the report, and nothing is reopened); or `validate` stops looking
+  for the sources of approved stages once Handoff is approved, the stamp still looking. It can go to
+  the proving run with the sentence alone.
+- **N2 · Minor · a clause written for a pin.** `skills/acceptance/SKILL.md:95`: "stay at the top of the
+  page, where a list of rooms begins". A test asks every stage's skill to hold the word "room"; the
+  skill's one real example ("as a booking action that reads "Reserve" where "Book room" was approved",
+  step 7) was cut for length, and this clause keeps the pin green. It reads as a rule and says nothing.
+  Fix: put the example back, take the clause out, and find the line elsewhere.
+- **N3 · Minor · G11's two leftovers, and their wording.** The flag stays `--without-notes`: the skills'
+  commands are pinned to it, and "notes" is what the format calls them. The sentences change:
+  - `scripts/render.mjs`, `--help`: "`--without-notes`  draw the page without the proposal's own account
+    (its name, its bet, its cost, what is absent, its hardest state, and the note on a screen or an
+    item), for a reader who must not see it, as an audience: its heading is the option's letter alone;
+    the screens, their captions and every part are drawn as they are with it".
+  - its printed line: "drew option B to <out>, without the proposal's own account, with kit.css beside
+    it".
+  - its comments at lines 8, 53 and 101, the same words.
+  - `kit/KIT-CONTRACT.md:67`: "Drawn without the proposal's own account, for a reader who must not see
+    it, the page's header is that `<h1>` alone, …".
+  - the pins of `tests/render.test.mjs` move with them. The help is read with no skill beside it, so it
+    spells the account out once; the contract need not.
+- **N4 · Minor · Acceptance's own bullet still gives the old order.** `skills/acceptance/SKILL.md:154-158`:
+  "appended to the package's `DECISIONS.md` and to the folder's own. Then the handoff folder is brought
+  up to date". The page it points to and the Never line are right, and the guard would say so at once;
+  but a session that reads the bullet first writes into a stamped folder. One clause: "once Handoff is
+  reopened, as `references/deviations.md` says".
+- **N5 · Minor · Handoff looks at the tokens after its pages are copied.** The look sits with the token
+  file (`folder.md`, step 3's third bullet) and at step 5; the pages and their pictures are copied
+  before it. Where the tokens moved, Look is reopened and drawn again, and nothing tells Handoff to copy
+  the pages again: only the state's "rebuild on look@2" hints at it. One sentence: the look comes first
+  in step 3, before anything is copied; or, after Look is stamped again, steps 3 to 6 are run again.
+- **N6 · Minor · for the proving run: the project's own tools and a stamped folder.** The guard forgives
+  line endings and nothing else, rightly. A formatter, a hook that formats on commit, or an editor that
+  trims white space on save, let loose on the packages folder, now trips it one line a file, where
+  before only the nine outputs were at risk. Nothing in the kit says so. One line at setup's gate and in
+  the README: the packages folder is left out of the project's formatters.
+
+### Verdict
+
+**Ready for the proving run.** The Critical finding is closed in a way that no longer depends on the
+conductor remembering a sentence, every Important finding is closed, the guard of R184 does what was
+ruled and no step of the kit trips it as written, and the suite is green. Nothing must change first. Six
+Minor items are open, all of them wording or one small narrowing: N3 and N4 are worth the ten minutes
+before the run, since one is a known half of G11 and the other is the only sentence left that points a
+session at a stamped folder; N1 and N6 are the two the run itself will meet, in a project that other
+sessions change and that formats what it commits, and a sentence each is enough; N2 and N5 can wait.
+The largest risk is the one the first review named and no wave could remove: stage 9 on a real product
+— the project's own browser script, checks that see what a page draws and not what it does, and a build
+loop nobody has yet followed.
