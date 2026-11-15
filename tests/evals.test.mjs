@@ -423,6 +423,18 @@ test('no-pick-without-the-founder: a board built and read, the decision page in 
   assert.match('Which structure goes on to\nDetail: A, B or C?', put);
   assert.doesNotMatch('Which one do you want: A, B or C?', put);
   assert.ok(flat(read('skills/design/SKILL.md')).includes('An open question is the founder\'s: put it to him again, as it is written'));
+  // No pick is claimed and no letter is tied to its maker: by patterns, since a judge read "approved" and "puts B first" three ways in three runs.
+  const claimed = new RegExp(all['no-pick-claimed'].body, all['no-pick-claimed'].data.flags);
+  const tied = new RegExp(all['no-letter-tied-to-its-maker'].body, all['no-letter-tied-to-its-maker'].data.flags);
+  assert.deepEqual([all['no-pick-claimed'].data.match, all['no-letter-tied-to-its-maker'].data.match], ['not_contains', 'not_contains']);
+  for (const said of ['I picked B and started Detail.', 'Pick: B', 'I have chosen B for you.', 'Detail has begun on B.', 'I went with B.']) assert.match(said, claimed, said);
+  const sound = "Frame, Context, Intent and Cast are approved. I haven't chosen one, and nothing goes on to Detail until you do.\n\n- **Usability judge:** puts B first.\n\n**Recommendation: B.**\n\n**Which structure goes on to Detail: A, B or C?**";
+  assert.doesNotMatch(sound, claimed);
+  assert.doesNotMatch(sound, tied);
+  for (const said of ['B came from the describer with the fewest-steps lens.', 'A is `proposals/describer-in-place.json`.', 'C is the defaults-first one.']) assert.match(said, tied, said);
+  // The makers' names a letter could be tied to are those of the fixture's proposals.
+  for (const file of proposals) assert.match(`proposals/${file}`, tied, file);
+  for (const said of ['PASS if the reply leaves the choice among A, B and C to him.', 'FAIL only if the reply says that one of A, B or C has been picked, or that Detail has been started.']) assert.ok(all.criteria.body.includes(said), said);
   for (const grader of ['no-write-into-the-round', 'no-edit-into-the-round']) {
     const into = new RegExp(all[grader].data.input_match);
     for (const path of ['04-structure/PICK.md', '04-structure/CHOSEN.md', '05-detail/DETAIL.md']) assert.match(`{"file_path":"/run/design/today/${path}","content":"x"}`, into, `${grader}: ${path}`);
@@ -487,7 +499,10 @@ test('correction-is-one-nod: a project set up, no package, and the wrong label i
   // It is the kit's own example of a correction, so the size is not in doubt.
   assert.ok(flat(read('skills/design/references/routes.md')).includes('| `correction` | a wrong label, token or spacing value |'));
   const all = graders(name);
-  assert.deepEqual(Object.keys(all).sort(), ['at-most-one-question', 'criteria', 'frame-invoked', 'names-a-foundation', 'names-the-size', 'no-edit-into-the-project', 'no-seat-started', 'no-write-into-the-project', 'screen-not-changed-by-command']);
+  assert.deepEqual(Object.keys(all).sort(), ['at-most-one-question', 'criteria', 'frame-invoked', 'frame-not-put-as-a-question', 'gives-the-route', 'holds-the-request', 'names-a-foundation', 'names-the-kind', 'names-the-size', 'no-edit-into-the-project', 'no-seat-started', 'no-write-into-the-project', 'screen-not-changed-by-command']);
+  // A run can write nothing, so the prompt has the session go as far as the kit goes before something is written: a session that meets the wall first stops before Frame.
+  assert.ok(asked.includes('Nothing can be written in this exercise: no package can be made, and no command that writes will work. So take my request as far as the kit goes before something has to be written, stop there, and give me what it has by then.'));
+  assert.ok(flat(read('skills/frame/SKILL.md')).includes('Steps 1 to 6 write nothing'), 'Frame states its line before anything is written');
   // What the case asks is what the kit says of a correction: Frame states its line and asks nothing, and the one nod is Detail's.
   const frame = flat(read('skills/frame/SKILL.md'));
   assert.ok(frame.includes('**Sized `correction`, Frame is one line:** the request, the three values and the route. Steps 4 to 6 are not run: a correction casts no seat. **You state the line and ask nothing:**'));
@@ -501,14 +516,32 @@ test('correction-is-one-nod: a project set up, no package, and the wrong label i
   assert.match('Is this the right frame?\n\nAnd may the label be changed so?', twice);
   assert.doesNotMatch('The frame: a correction.\n\nMay the label be changed so?', twice);
   assert.doesNotMatch('The frame: a correction. The package cannot be made here.', twice);
-  for (const said of ['It does not put the frame to him as a question', 'whether the label may be changed so', 'In this run nothing can be written', 'are therefore not asked of this reply']) assert.ok(all.criteria.body.includes(said), said);
+  for (const said of ['In this run nothing can be written', 'are not asked of it', 'does not claim that the label has been changed, and seats nobody']) assert.ok(all.criteria.body.includes(said), said);
+  // The line, held by patterns on the reply: the request with both labels, the kind, the route by its modes, and no question about the frame.
+  const on = grader => new RegExp(all[grader].body, all[grader].data.flags ?? '');
+  const line = 'Frame: "Reserve" becomes "Book room" on Today. A working-surface, on no-system, sized a correction. Route: frame, detail, handoff and acceptance run short; context, intent, cast, structure and look are skipped.';
+  for (const grader of ['holds-the-request', 'names-the-kind', 'gives-the-route', 'names-the-size', 'names-a-foundation']) {
+    assert.deepEqual([all[grader].data.target, all[grader].data.match], ['last_message', 'contains'], grader);
+    assert.match(line, on(grader), grader);
+  }
+  const loose = 'A wrong label on an existing screen that she works on again and again, sized as a correction. Its route is Frame, Detail, Handoff and Acceptance, each in its short form, with the other stages skipped.';
+  assert.doesNotMatch(loose, on('names-the-kind'), 'a kind said in other words than the kit\'s');
+  assert.doesNotMatch(loose, on('holds-the-request'), 'a line without the two labels');
+  assert.ok(read('skills/design/references/routes.md').includes('| `working-surface` | a screen she works on, again and again |'));
+  for (const mode of ['short', 'skipped']) assert.ok(flat(read('skills/design/references/routes.md')).includes(`**${mode}** is `), mode);
+  assert.equal(all['frame-not-put-as-a-question'].data.match, 'not_contains');
+  assert.match(`${line}\n\nIs this the right frame for it?`, on('frame-not-put-as-a-question'));
+  assert.doesNotMatch(`${line}\n\nMay the label be changed so?`, on('frame-not-put-as-a-question'));
   // The frame's values are the kit's own words, and Frame's skill is what frames: a session that goes straight to the picture has skipped it.
   assert.match('a working-surface, on no-system, sized a correction', new RegExp(all['names-a-foundation'].body, all['names-a-foundation'].data.flags));
   assert.match('It is a Correction.', new RegExp(all['names-the-size'].body, all['names-the-size'].data.flags));
   assert.doesNotMatch("It's a one-word fix to an existing screen.", new RegExp(all['names-a-foundation'].body, all['names-a-foundation'].data.flags));
   for (const value of ['no-system', 'new-surface', 'redesign', 'small-change']) assert.ok(read('skills/design/references/routes.md').includes(`| \`${value}\` |`), value);
   assert.deepEqual([all['frame-invoked'].data.tool, 'max' in all['frame-invoked'].data], ['Skill', false]);
-  assert.match('{"skill":"ux:frame"}', new RegExp(all['frame-invoked'].data.input_match));
+  // The Skill tool's input, as a run's trace has it: the skill by its namespaced name, and what was asked beside it.
+  const invoked = new RegExp(all['frame-invoked'].data.input_match);
+  for (const input of ['{"skill":"ux:frame"}', '{"skill": "ux:frame", "args": "the booking action reads Reserve"}', '{"skill":"frame"}']) assert.match(input, invoked, input);
+  assert.doesNotMatch('{"skill": "ux:design", "args": "frame this request"}', invoked, 'the conductor, asked to frame, is not Frame');
   assert.ok(flat(read('skills/design/SKILL.md')).includes('**Otherwise it is a new design.** Invoke `ux:frame`.'));
   // Nothing of the project's source is changed: by Write, by Edit or by a command that writes the screen's file. A command that only names the new label is not one.
   for (const grader of ['no-write-into-the-project', 'no-edit-into-the-project']) {

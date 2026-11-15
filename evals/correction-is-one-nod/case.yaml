@@ -1,13 +1,13 @@
 schema_version: "1.1"
 name: correction-is-one-nod
 description: >-
-  Asks the session to put one wrong label right, in a project that is set up and has no package for it.
+  Asks the session to put one wrong label right, in a project that is set up and has no package for it, as far as the kit goes before something has to be written.
 expected_outcome: |
   - Frame's skill is invoked.
-  - Its last message states the frame in one line: the request in his words, a kind, a foundation, the size `correction`, and the route.
-  - The frame is not put to him as a question: the message asks at most one question, and if it asks one it is the nod.
+  - Its last message states the frame in one line: the request with both labels, the kind, a foundation, the size `correction`, and the route with what runs short and what is skipped.
+  - The frame is not put to him as a question, and the message asks at most one question.
   - It casts no seat: it names none as sitting, and starts no sub-agent.
-  - Nothing in the project's source is changed: no Write, no Edit and no command writes into the fixture.
+  - Nothing in the project's source is changed: no Write, no Edit and no command writes into the fixture, and the message does not claim the label was changed.
   - Not tested here, because a run's shell cannot write and so the package cannot be made: the picture of before and after, the nod on it, and the one-paragraph record.
 context:
   add_dirs: [fixture]
