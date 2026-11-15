@@ -138,10 +138,11 @@ One question, about one thing: do you approve this intent?
   hers: check the card again.
 - **Write the carry list,** `## Carry`: what Cast and the stages after it may open besides this page.
   A `- source:<path>` line, from the project's root, for her card, for her profession's profile and
-  for each project source of the context. And a `- context@1#<slug>` line for each section of the
-  context a later stage is written from: its "The people", "What the product can show and do",
-  "Constraints", "The founder's own words", "The problem, and why now", "What exists today" and
-  "What it must not become". A heading's slug is printed by
+  for each project source of the context. And a `- context@<version>#<slug>` line for each section
+  of the context a later stage is written from: its "The people", "What the product can show and
+  do", "Constraints", "The founder's own words", "The problem, and why now", "What exists today" and
+  "What it must not become". `<version>` is the version the context stands at, as `status` prints
+  it: after a reopening it is not 1. A heading's slug is printed by
   `node <kit root>/scripts/state.mjs slug "<heading text>"`.
 - **Stamp it,** in the words he approved it with:
 

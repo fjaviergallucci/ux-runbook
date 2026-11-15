@@ -79,7 +79,7 @@ Each path is from `<package>/`. `<version>` is the version a stage stands at, as
      pictures of those pages into `<package>/07-handoff/prototype/shots/`;
    - `<tokens>` to `<package>/07-handoff/tokens.css`, noting the path it came from and the commit
      that last changed it; in each copied page the one link to `<tokens>` then names that copy, as
-     `../tokens.css`, and nothing else of a page changes;
+     `../tokens.css`: a page changes there, and where an asset is copied in for it, and nowhere else;
    - `<package>/07-handoff/prototype/index.html`: every page as a link, by screen, state, language;
    - the guide, whole; and the three pages of `templates/package/build/` into `<package>/build/`.
 
@@ -87,9 +87,9 @@ Each path is from `<package>/`. `<version>` is the version a stage stands at, as
    node <kit root>/scripts/alone.mjs <package>/07-handoff
    ```
 
-   It prints every address a page or a stylesheet of the folder loads from outside it. What the
-   token file loads, a font or a picture, is copied in beside it and its address rewritten, or taken
-   out of the copy and listed in `HANDOFF.md` for the builder to supply. Run it until it prints none.
+   It must print nothing. What the token file loads from outside is copied in beside it, or taken
+   out of the copy and listed in `HANDOFF.md` for the builder to supply. What a page loads that
+   cannot be copied in goes to the founder, open: no page is edited to pass.
 4. **Write `SPEC.md`, the strings and `DECISIONS.md`.** Each heading is filled from the approved
    section `references/folder.md` names for it, and whatever a builder needs is written out in full:
    nothing in the folder points back into the package. `strings.json` is the detail's, copied.
@@ -182,13 +182,14 @@ handed to a builder before his go, and you do not give it.**
 ## Never
 
 - **Never change what was approved:** a string, a state, a rule, an id, a measured value or a page,
-  but the one link to the token file. A fault you find in them goes to the founder, open.
+  but its link to the token file and the address of an asset copied in. A fault goes to him, open.
 - **Never write a part, a token or a path from memory.** `PARTS.md` holds what you opened and saw.
 - **Never hand off a check that was not run on the prototype,** or one that fails there.
 - **Never copy into the folder, or name in it, anything a fresh maker made:**
   `<package>/06-look/fresh/`, `<package>/06-look/beside/`, the sealed file, a fresh brief.
 - **Never let the folder point outside itself:** no path into the package or the gate's folder, no
-  command that names them, no "as discussed", no address on the web.
+  command that names them, no "as discussed", and no address on the web but a source the builder
+  must fetch, named without its query.
 - **Never give the cold implementer anything but the folder,** or an answer not written in it.
 - **Never settle a default in silence,** and never run a second re-read.
 - **Never open what is on no line of Look's carry list,** the package's history least of all.

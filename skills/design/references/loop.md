@@ -48,8 +48,10 @@ conductor's "Resuming"). Do not supply it from the conversation.
 
 Acceptance alone reads otherwise: it runs in a session of its own, after the build, and reads the
 handoff folder, what the build wrote back, and, of the package, only the cast sheet's "Acceptance"
-table with the lines for the person and her profession's profile that it names, and the intent's tasks
-for the audience.
+table with the lines for the person and her profession's profile that it names, the intent's tasks for
+the audience, and the last entry of the package's `DECISIONS.md`, to number its own. It may reopen and
+stamp Handoff for a deviation he accepts, and a correction is the one case where the session that
+conducts accepts its own change.
 
 ## 3. Write what the stage writes
 

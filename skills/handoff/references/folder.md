@@ -74,19 +74,27 @@ It reads every page and stylesheet of the folder and prints one line for each ad
 lead to a file inside it: the file, the address, and why. It leaves the folder, it is remote, or the
 file is not there. It exits 0 when there is none, and step 6 of the skill is not run before it does.
 
-- **A page's link that leaves the folder** is the one line above, missed in that page, or a second
-  link the page carries: point it at the copy, by the same script. A picture or a script a page
-  loads from the project is copied in beside the pages, and its address rewritten.
+- **A page's link that leaves the folder** is the one line above, missed in that page: point it at
+  the copy, by the same script. A picture or a script a page loads from the project is copied in
+  beside the pages, and its address in the page made to lead to the copy. Those are the two
+  changes a copied page takes, and the only two: its link to the token file, and the address of an
+  asset copied in.
+- **What a page loads that cannot be copied in,** as a script or a picture from another host: the
+  page is not edited to pass. It is a fault in what was approved, and it goes to the founder, open,
+  as a question, recorded with the `await` of the skill's gate. Nothing goes on until he answers.
 - **What the token file loads,** a font or a picture, by `url()` or `@import`: copy the file into
   the folder, beside `tokens.css`, and make the address in the copy of the token file lead to it:
   kept where the file sits at the same path from the copy, rewritten where it does not. `PARTS.md`
   says, under its token file line, what was copied and from where.
-- **What cannot be copied,** as a font served from another host or one the project may not hand
-  on: take the line that loads it out of the copy, and list it in `HANDOFF.md`, under "Left to the
-  builder", as a file the builder must supply: its name, what loads it, and where the project gets
-  it. The reference pictures were taken with it: say so beside it.
-- **Never leave one unsaid.** Every address the command printed is copied in, or taken out and
-  listed. None is left to load from outside, and none is dropped in silence.
+- **What the token file loads that cannot be copied,** as a font served from another host or one
+  the project may not hand on: take the line that loads it out of the folder's copy of the token
+  file, which is a copy of the project's own file and no approved page, and list it in
+  `HANDOFF.md`, under "Left to the builder", as a file the builder must supply: its name, what
+  loads it, and where the project gets it. That address is written without its query: a key may
+  ride there. The reference pictures were taken with it: say so beside it.
+- **Never leave one unsaid.** Every address the command printed is copied in; or, in the copy of the
+  token file, taken out and listed; or, in a page, put to the founder. None is left to load from
+  outside, none is dropped in silence, and no page is edited to make the command pass.
 
 ## `IMPLEMENTER-GUIDE.md`, and `build/`
 

@@ -10,6 +10,9 @@ into `<package>/work/`.
 A card of the project's own that the cast sheet seats here is handed what its header's `reads`
 allows, by the same rule, and of `<package>/04-structure/` no more than the kit's seats of its shelf.
 
+The intent's "What the readers found", which the cast sheet carries on, is for the handoff's coverage
+page: it is never put into a maker's brief, nor into a reader's.
+
 ## The makers
 
 The makers are started in one message, after his yes to the brief and never before. Those that drive

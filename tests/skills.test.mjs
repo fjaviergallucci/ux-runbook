@@ -2191,7 +2191,11 @@ test('cast: each seat explained in one line, the checks on and off, the fresh pa
   assert.match(gate, /\*\*After the gate the sheet is his\.\*\* A later stage may add a seat or a check when the artefact calls for it, and says so\. Nothing is removed silently: a seat on the approved sheet sits, or he is told why it cannot, and the sheet changes with his yes/);
   // What it carries on: the intent, section by section, and what the intent itself carried.
   // Ruling R151: the readers' findings of the intent go on too, and the read of the surface as it is travels in the context's first section.
-  assert.match(gate, /A `- intent@1#<slug>` line for each section of the intent but the two last: "What the readers found" goes on too, so that the handoff covers every seat\. The `- context@1#<slug>` and `- source:<path>` lines of the intent's own carry list, as they are: the read of the surface as it is travels in "The problem, and why now"/);
+  assert.match(gate, /A `- intent@<version>#<slug>` line for each section of the intent but the two last, `<version>` being the version the intent stands at, as `status` prints it: "What the readers found" goes on too, so that the handoff covers every seat\. The `- context@<version>#<slug>` and `- source:<path>` lines of the intent's own carry list, as they are: the read of the surface as it is travels in "The problem, and why now"/);
+  // No version of a carry line is written as a number, here or at Intent: after a reopening a remembered 1 is wrong.
+  for (const name of ['intent', 'cast']) assert.doesNotMatch(leads(section(stageSkill(name), 'Gate'))['Write the carry list'], /@\d/, name);
+  assert.match(leads(section(stageSkill('intent'), 'Gate'))['Write the carry list'], /And a `- context@<version>#<slug>` line for each section of the context a later stage is written from: .* `<version>` is the version the context stands at, as `status` prints it: after a reopening it is not 1/);
+  for (const name of ['intent', 'cast']) assert.ok(stageCommands(name).includes('node <kit root>/scripts/state.mjs status <package>'), `${name} reads the state`);
   assert.match(flat(read('templates/package/01-context.md')), /## The problem, and why now \{What is wrong or missing today, for whom, and why it is worth doing now\. When the surface already exists: what the cast's judges found reading it as it is/);
   assert.match(gate, /And a `- source:<path>` line for each profession's profile that is loaded into a seat, and for each card and each person of the project's own that sits: a card of the kit is found in the kit, by its id/);
 });
@@ -4444,7 +4448,9 @@ test('handoff: it opens what Look\'s carry list names and nothing else; a gap is
     }
   }
   // The intent's sections travel through the cast sheet's carry list: every one but the two last, its readers' findings among them.
-  assert.match(flat(section(carriedBy.intent, 'Gate')), /A `- intent@1#<slug>` line for each section of the intent but the two last: "What the readers found" goes on too, so that the handoff covers every seat/);
+  assert.match(flat(section(carriedBy.intent, 'Gate')), /A `- intent@<version>#<slug>` line for each section of the intent but the two last, `<version>` being the version the intent stands at, as `status` prints it: "What the readers found" goes on too, so that the handoff covers every seat/);
+  // And they are for the coverage page alone: Structure, which meets them first, puts them into no brief.
+  assert.match(flat(stageRef('structure', 'seats.md')), /The intent's "What the readers found", which the cast sheet carries on, is for the handoff's coverage page: it is never put into a maker's brief, nor into a reader's/);
   // Ruling R151: why it is built now, what exists today and what it must not become reach the handoff, each by its line.
   const fromContext = handed.find(([line]) => line.includes('"The problem, and why now"'));
   assert.deepEqual(fromContext.slice(0, 1), ['`- context@<version>#<slug>` for "The problem, and why now", "What exists today", "What it must not become"']);
@@ -4493,10 +4499,10 @@ test('handoff: the folder holds the eight files, the prototype, the token file a
   // The final screens, their pictures, the token file with where it came from, the one link, the index, the guide and the builder's pages.
   const copy = stepOf(steps, 'Copy in what was approved');
   inOrder(copy, [/every page of `<package>\/06-look\/screens\/` into `<package>\/07-handoff\/prototype\/`, and the pictures of those pages into `<package>\/07-handoff\/prototype\/shots\/`/,
-    /`<tokens>` to `<package>\/07-handoff\/tokens\.css`, noting the path it came from and the commit that last changed it/, /in each copied page the one link to `<tokens>` then names that copy, as `\.\.\/tokens\.css`, and nothing else of a page changes/,
+    /`<tokens>` to `<package>\/07-handoff\/tokens\.css`, noting the path it came from and the commit that last changed it/, /in each copied page the one link to `<tokens>` then names that copy, as `\.\.\/tokens\.css`: a page changes there, and where an asset is copied in for it, and nowhere else/,
     /`<package>\/07-handoff\/prototype\/index\.html`: every page as a link, by screen, state, language/, /the guide, whole; and the three pages of `templates\/package\/build\/` into `<package>\/build\/`/,
-    /``` node <kit root>\/scripts\/alone\.mjs <package>\/07-handoff ```/, /It prints every address a page or a stylesheet of the folder loads from outside it/,
-    /What the token file loads, a font or a picture, is copied in beside it and its address rewritten, or taken out of the copy and listed in `HANDOFF\.md` for the builder to supply\. Run it until it prints none/], 'what is copied in');
+    /``` node <kit root>\/scripts\/alone\.mjs <package>\/07-handoff ```/, /It must print nothing\. What the token file loads from outside is copied in beside it, or taken out of the copy and listed in `HANDOFF\.md` for the builder to supply/,
+    /What a page loads that cannot be copied in goes to the founder, open: no page is edited to pass/], 'what is copied in');
   // Ruling R148: the kit's own script proves the folder stands alone, after the copy and before the checks.
   const proving = 'node <kit root>/scripts/alone.mjs <package>/07-handoff';
   assert.ok(fencedLines(text).includes(proving) && fencedLines(stageRef('handoff', 'folder.md')).includes(proving), proving);
@@ -4505,8 +4511,15 @@ test('handoff: the folder holds the eight files, the prototype, the token file a
   const stands = flat(section(stageRef('handoff', 'folder.md'), 'The folder stands alone, proved'));
   inOrder(stands, [/^ Once the pages, the token file and the index are in, and again after any of them changes/, /prints one line for each address that does not lead to a file inside it: the file, the address, and why\. It leaves the folder, it is remote, or the file is not there\. It exits 0 when there is none, and step 6 of the skill is not run before it does/,
     /\*\*What the token file loads,\*\* a font or a picture, by `url\(\)` or `@import`: copy the file into the folder, beside `tokens\.css`, and make the address in the copy of the token file lead to it: kept where the file sits at the same path from the copy, rewritten where it does not/,
-    /\*\*What cannot be copied,\*\* .* take the line that loads it out of the copy, and list it in `HANDOFF\.md`, under "Left to the builder", as a file the builder must supply: its name, what loads it, and where the project gets it/,
-    /\*\*Never leave one unsaid\.\*\* Every address the command printed is copied in, or taken out and listed\. None is left to load from outside, and none is dropped in silence/], 'the folder stands alone');
+    /\*\*What the token file loads that cannot be copied,\*\* .* take the line that loads it out of the folder's copy of the token file, which is a copy of the project's own file and no approved page, and list it in `HANDOFF\.md`, under "Left to the builder", as a file the builder must supply: its name, what loads it, and where the project gets it\. That address is written without its query: a key may ride there/,
+    /\*\*Never leave one unsaid\.\*\* Every address the command printed is copied in; or, in the copy of the token file, taken out and listed; or, in a page, put to the founder\. None is left to load from outside, none is dropped in silence, and no page is edited to make the command pass/], 'the folder stands alone');
+  // A page takes two changes and no other; what it loads that cannot be copied in is a fault in what was approved, and his.
+  assert.match(stands, /Those are the two changes a copied page takes, and the only two: its link to the token file, and the address of an asset copied in/);
+  assert.match(stands, /\*\*What a page loads that cannot be copied in,\*\* as a script or a picture from another host: the page is not edited to pass\. It is a fault in what was approved, and it goes to the founder, open, as a question, recorded with the `await` of the skill's gate\. Nothing goes on until he answers/);
+  assert.doesNotMatch(stands, /or a second link the page carries|is copied in, or taken out and listed\./);
+  assert.match(flat(section(text, 'Never')), /\*\*Never change what was approved:\*\* a string, a state, a rule, an id, a measured value or a page, but its link to the token file and the address of an asset copied in\. A fault goes to him, open/);
+  // The command itself never prints a query: what it says of an address is its path.
+  assert.match(KIT.usage('scripts/alone.mjs'), /An address is printed without its query and its fragment, and without a sign-in written into it/);
   for (const why of ['it leaves the folder', 'it is remote', 'the file is not there']) assert.ok(KIT.usage('scripts/alone.mjs').includes(why), why);
   assert.ok(headings(read('templates/package/07-handoff/HANDOFF.md')).includes('Left to the builder'));
   const folder = stageRef('handoff', 'folder.md');
@@ -4662,7 +4675,7 @@ test('handoff: the cold implementer is handed the folder only, every item is clo
   assert.match(reread, /`<package>\/07-handoff-gate\/judge\.cold-implementer-reread\.md`, beside the first and never over it/);
   assert.match(reread, /There is no second round\. .* The handoff is ready when the lists are empty, or every item left has its answer or its default written in the folder/);
   assert.ok(nevers(text).includes('Never give the cold implementer anything but the folder'));
-  assert.match(flat(section(text, 'Never')), /\*\*Never let the folder point outside itself:\*\* no path into the package or the gate's folder, no command that names them, no "as discussed", no address on the web/);
+  assert.match(flat(section(text, 'Never')), /\*\*Never let the folder point outside itself:\*\* no path into the package or the gate's folder, no command that names them, no "as discussed", and no address on the web but a source the builder must fetch, named without its query/);
   assert.ok(nevers(text).includes('Never settle a default in silence'));
 
   // The decision page, the one question, his go in the artefact, the stamp, and what he is told.
@@ -4723,7 +4736,9 @@ test('acceptance: a separate session that reads the handoff folder and what the 
   for (const key of ['browser-check', 'languages', 'components', 'facts', 'decisions-log']) assert.ok(profileKeys().includes(key), key);
   assert.ok(headings(outputOf('cast')).includes('Acceptance') && headings(outputOf('intent')).includes('Tasks for the audience'));
   // Ruling R150: the conductor's loop says what Acceptance reads, in one sentence, and the skill's narrow reading is that sentence.
-  assert.match(flat(section(reference('loop.md'), '2. Read the package, not the chat')), /Acceptance alone reads otherwise: it runs in a session of its own, after the build, and reads the handoff folder, what the build wrote back, and, of the package, only the cast sheet's "Acceptance" table with the lines for the person and her profession's profile that it names, and the intent's tasks for the audience\.\s*$/);
+  assert.match(flat(section(reference('loop.md'), '2. Read the package, not the chat')), /Acceptance alone reads otherwise: it runs in a session of its own, after the build, and reads the handoff folder, what the build wrote back, and, of the package, only the cast sheet's "Acceptance" table with the lines for the person and her profession's profile that it names, the intent's tasks for the audience, and the last entry of the package's `DECISIONS\.md`, to number its own\. It may reopen and stamp Handoff for a deviation he accepts, and a correction is the one case where the session that conducts accepts its own change\.\s*$/);
+  // Two sentences, and no more.
+  assert.equal(flat(section(reference('loop.md'), '2. Read the package, not the chat')).split('Acceptance alone reads otherwise')[1].split(/\.(?:\s|$)/).filter(part => part.trim()).length, 2);
   // M10: a settings file, and anything else that holds a sign-in, is never opened. M11: the one entry of the package's decisions it reads.
   assert.match(reads, /the files `BUILD\.md` lists as built or changed, but a settings file and anything else that holds a sign-in: those are never opened/);
   assert.match(reads, /And of the package's `DECISIONS\.md`, its last entry alone, for the number of the one you append/);
