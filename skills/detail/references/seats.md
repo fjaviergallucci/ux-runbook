@@ -114,6 +114,11 @@ under "Do not open":
 - **It drives a browser,** and counts among the three.
 - **What it could not build as specified** is in its reply: it goes on the decision page under
   `findings`, by seat. A string missing in one language goes back to the interface writer.
+- **A page that waits for its example rows,** which its reply names when its brief handed it no data,
+  goes to the founder first: ask him for the data, one question, as step 4 of the skill says, and
+  write his answer under "Reviewed by the founder" of `DETAIL.md`. A fresh prototype builder is then
+  handed it in a brief, as he gave it: his words, or the file he names, by its path. Only what it still
+  could not build goes on the decision page. You write no row.
 
 ## The fix round
 
@@ -147,15 +152,14 @@ never by who made it.
 loaded with, so that no two readers share a file: `judge.usability`, `judge.profile-<name>` for each
 profession's profile, `audience.task-reader-<name>-<language>` for each person and language.
 
-Make `<package>/05-detail/reads/` before you start the first reader: a seat writes its own file
-there, and never lists the folder. Every judge's brief hands it "Accepted deviations" of
-`DETAIL.md`, by the file and the heading, as part of what was approved, when that section holds
-any: an audience's never does. A brief names first the pictures the seat's checks, or her tasks,
-need. **No first screen is pictured here:** that is Structure's, and every picture of Detail is of
-a whole page. So where a success criterion of the intent says "without scrolling", a judge's brief
-says that a measured check answers it, the `in-viewport` check Look adds to its checks, and that
-no picture of this stage does; an audience's brief says nothing of first screens. Every reader's
-brief lists these under "Do not open":
+Make `<package>/05-detail/reads/` before you start the first reader: a seat writes its own file there,
+and never lists the folder. Every judge's brief hands it "Accepted deviations" of `DETAIL.md`, by the
+file and the heading, as part of what was approved, when that section holds any: an audience's never
+does. A brief names first the pictures the seat's checks, or her tasks, need. **No first screen is
+pictured here:** that is Structure's, and every picture of Detail is of a whole page. So where a success
+criterion of the intent says "without scrolling", a judge's brief says that a measured check answers it,
+the `in-viewport` check the visual designer writes at Look, and that no picture of this stage does; an
+audience's brief says nothing of first screens. Every reader's brief lists these under "Do not open":
 
 - `<package>/work/`, where the makers' briefs and replies are;
 - `<package>/04-structure/MAP.sealed.json`, the author map, and `<package>/04-structure/CHOSEN.md`,

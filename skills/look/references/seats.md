@@ -35,12 +35,15 @@ gives it:
 
 ### `maker.visual-designer`
 
-- **Its brief,** from `templates/briefs/maker.md`, gives three things. Its lens: the skill its line
-  of the cast sheet names as its engine, to load if it is installed; inside a design system it
-  shapes hierarchy and emphasis, not the palette. Whether motion is cast, as the sheet's "Look"
-  table says. And what the founder marked in a fresh gallery at Structure: his marks as he said
-  them, copied word for word from the package's `DECISIONS.md`, each with what on the screen it was
-  about, or "Nothing marked".
+- **Its brief,** from `templates/briefs/maker.md`, gives four things. Its lens: the skill its line of
+  the cast sheet names as its engine, to load if it is installed; inside a design system it shapes
+  hierarchy and emphasis, not the palette. Whether motion is cast, as the sheet's "Look" table says;
+  what the founder marked in a fresh gallery at Structure: his marks as he said them, copied word for
+  word from the package's `DECISIONS.md`, each with what on the screen it was about, or "Nothing
+  marked". And each success criterion of the intent that says "without scrolling", copied word for word,
+  since the seat is not handed the intent: for each, it writes an `in-viewport` check of the element
+  that answers it, at the width the criterion names, in `checks.json` and in a variant's own. Which
+  element answers it is the seat's to choose, never yours.
 - **Handed:** `<chosen>`. The states and the rules. `<package>/05-detail/strings.json`, the strings.
   `<package>/05-detail/prototype/`, the pages and the stable ids on them. `<tokens>`. What the
   project says of its design system. For each of his marks, its picture, where the carry list names
@@ -79,15 +82,20 @@ gives it:
 - **What the look decides** is in its reply too, one line for each that this design settles. You
   copy those lines into `LOOK.md` as they came: you never write them from the stylesheet.
 - **When it is started again,** for the send-back of step 5, a fix round, a variant he picked, a
-  correction of his or a thing he borrows, it is a fresh sub-agent with the same hand-over, the
-  screens as they stand, and what it is started for: the rows of the table that your run does not
-  bear out, as facts, each by its result id and its measured value; the ledgers that hold its
-  findings, each by its path with the findings' numbers; or his words as he said them. For a thing
-  he borrows it is also handed the fresh screen he marked it on, to understand what he liked: it
-  copies none of its code or its values.
+  correction of his or a thing he borrows, it is a fresh sub-agent with the same hand-over, the screens
+  as they stand, and what it is started for: the rows of the table that your run does not bear out, and
+  the checks that failed, as facts, each by its result id and its measured value, and each criterion
+  that has no `in-viewport` check, in its words; the ledgers that hold its findings, each by its path
+  with the findings' numbers; or his words as he said them. For a thing he borrows it is also handed the
+  fresh screen he marked it on, to understand what he liked: it copies none of its code or its values.
 - **The send-back of step 5 is run once for each run of that step,** before any reader starts or
   reads again, and it is no fix round: the fix round is the readers', and there is one. A table
-  that still does not hold after its send-back goes to the founder, open. You write no value.
+  that still does not hold after its send-back, or a criterion still with no check, goes to the
+  founder, open. You write no value and no check.
+- **An `in-viewport` check that fails** is a check of step 5 that failed: it goes back to the visual
+  designer in that send-back, and nobody but the visual designer changes a screen for it. One that still
+  fails after the send-back is handed to the judges in their briefs, as "The readers" below says, and is
+  listed on the decision page as an open finding under `findings`, its seat `check: <id>`.
 - **Cast for a direction,** it has no token file and no design system to read:
   `references/direction.md`.
 
@@ -138,9 +146,9 @@ file there, and never lists the folder. Every judge's brief hands it "Accepted d
 `DETAIL.md`, by the file and the heading, as part of what was approved, when that section holds
 any. A brief names first the pictures the seat's checks need. **No first screen is pictured here:**
 that is Structure's. Where a success criterion of the intent says "without scrolling", a judge's
-brief carries one line for it: the criterion, the id of the `in-viewport` check that step 5 of the
-skill added for it, and what the run returned for that check, as it came. That result answers the
-criterion, and no picture does. Every reader's brief lists these under "Do not open":
+brief carries one line for it: the criterion, the id of the `in-viewport` check the visual designer
+wrote for it, and what the last run of step 5 returned for that check, as it came. That result
+answers the criterion, and no picture does. Every reader's brief lists these under "Do not open":
 
 - `<package>/work/`, where the makers' briefs and replies are, and `<package>/06-look/measure/`,
   the visual designer's own tools;

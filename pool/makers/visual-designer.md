@@ -56,6 +56,8 @@ design system it shapes hierarchy and emphasis, not the palette. Without it, thi
    read the computed value in the browser with a script of your own, kept with its readings in the
    folder your brief names for them. `<kit root>` is the kit, two folders above this card: run its
    scripts as `node <kit root>/scripts/<name>.mjs`. Never write over a results file that is not yours.
+   For each success criterion your brief gives that says "without scrolling", write an `in-viewport`
+   check of the element that answers it, at the width it names: in your checks, and a variant's too.
 7. **Photograph every page** at each width and theme with `scripts/shots.mjs` (`--widths`, and
    `--themes light,dark`): the reference pictures. Read what it reports, and look at every picture.
 8. **After a fresh pass, rebuild what the founder marked.** Look at the fresh screen to understand what

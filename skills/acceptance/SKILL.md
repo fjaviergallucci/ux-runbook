@@ -48,8 +48,9 @@ Did what was built match what was approved?
 
 ## Writes
 
-Everything below is in `<package>/08-acceptance/`, and the seats' briefs in `<package>/work/`.
-`<version>` is the version Handoff stands at, as `status` prints it: after a reopening it is not 1.
+Everything below is in `<package>/08-acceptance/`, and the seats' briefs in `<package>/work/`, but the
+last two rows: they are the project's, and each is written only on his yes. `<version>` is the version
+Handoff stands at, as `status` prints it: after a reopening it is not 1.
 
 | File or folder | What it holds | From |
 |---|---|---|
@@ -61,6 +62,8 @@ Everything below is in `<package>/08-acceptance/`, and the seats' briefs in `<pa
 | `reads/` | one ledger for each judge, and the audience's task read | `templates/outputs/LEDGER.md`, `templates/outputs/TASK-READ.md` |
 | `FIXES.md` | each deviation to fix, as a slice any session can take | `templates/package/08-acceptance/FIXES.md` |
 | `decision.json`, `decision.html` | the decision page, and its data | `templates/outputs/decision-approve.json` |
+| the driver, at the path of his answer | for a build that opens as files, where the project profile names no script: one script in the project, only on his yes | `scripts/lib/browser.mjs`, `references/driving.md` |
+| its line in `<packages>/PROFILE.md` | the driver's command, under "How a browser check is run here", only on his yes | step 3 |
 
 You also append to the package's `DECISIONS.md` and to the project's `LESSONS.md`, and you bring the
 handoff folder up to date with each deviation he accepts: "Gate" says how.
@@ -78,16 +81,15 @@ handoff folder up to date with each deviation he accepts: "Gate" says how.
    `<package>/build/` that is still to fill, or a state of `SPEC.md` with no row in `STATES.md`,
    goes back to the builder:** tell the founder which, and stop. You never work a state's way out
    yourself. **If a file holds a password, a token or a key, say where, never what, and stop.**
-3. **Start the build and sign in, the way the project says.** `BUILD.md` says how it is run, and
-   "How a browser check is run here" how it is looked at: headless, reduced motion set. `STATES.md`
-   names an account by its role, and says where its sign-in is kept: the driver takes it from there.
-   Use seeded or test data, and nothing else. `references/driving.md` has the whole of this step and
-   the next. **Where the project profile names no script, there is no driver.** For a build that
-   opens as files, say so to the founder and, on his yes, written under `## Reviewed by the founder`
-   first, write the project's driver, one script in the project, on the kit's
-   `scripts/lib/browser.mjs`, and write its command into the project profile. For a build that needs
-   a server or a sign-in the kit can write none: say so to him, open, and stop, as step 2 stops on a
-   credential. That page has both.
+3. **Start the build and sign in, the way the project says.** `BUILD.md` says how it is run, and "How a
+   browser check is run here" how it is looked at: headless, reduced motion set. `STATES.md` names an
+   account by its role, and says where its sign-in is kept: the driver takes it from there. Use seeded or
+   test data, and nothing else. `references/driving.md` has the whole of this step and the next. **Where
+   the project profile names no script, there is no driver.** For a build that opens as files, say so to
+   the founder and, on his yes, written under `## Reviewed by the founder` first, write the project's
+   driver, one script in the project, on the kit's `scripts/lib/browser.mjs`, and write its command into
+   the project profile. For a build that needs a server or a sign-in the kit can write none: say so to
+   him, open, and stop, as step 2 stops on a credential. That page has both.
 4. **Put each state on screen, check it there, and photograph it.** For each row of "States to
    drive" in `ACCEPTANCE.md`, reach the state as its row of `STATES.md` says, at the width and in the
    theme its checks name, and stay at the top of the page. The kit's in-page file makes the checks,
@@ -96,11 +98,10 @@ handoff folder up to date with each deviation he accepts: "Gate" says how.
    node <kit root>/scripts/accept.mjs inpage
    ```
 
-   Evaluate that file's text in the page through the driver, call
-   `window.__uxAccept(checks)` with that state's checks of `acceptance.json`, and have the driver
-   write what comes back, as it came, to `<package>/08-acceptance/results/<state>.json`. Then take
-   the state's picture. One state at a time. A state that cannot be reached gets no file: its checks
-   show as not run, and step 5 asks why.
+   Evaluate that file's text in the page through the driver, call `window.__uxAccept(checks)` with that
+   state's checks of `acceptance.json`, and have the driver write what comes back, as it came, to
+   `<package>/08-acceptance/results/<state>.json`. Then take the state's picture. One state at a time. A
+   state that cannot be reached gets no file: its checks show as not run, and step 5 asks why.
 5. **Build the table of the checks.** Name every file of `results/`, one after another:
    ```
    node <kit root>/scripts/accept.mjs report <package>/08-acceptance/results/<state>.json --checks <package>/07-handoff/acceptance.json --out <package>/08-acceptance/checks.md
@@ -123,14 +124,13 @@ handoff folder up to date with each deviation he accepts: "Gate" says how.
    Where two seats disagree, both are written, each in its words. What a reader found that the
    approved design already had is no deviation: the report has a place of its own for it.
 8. **Build the decision page.** Write `<package>/08-acceptance/decision.json` in the shape of
-   `templates/outputs/decision-approve.json`: the build as its one option, with two of its pictures
-   named from the page, the phone width first, as `shots/today-default-en-390-light.png`; one line
-   for each seat that read; each deviation under `findings`, by what found it, a seat,
-   `check: <id>` or `by hand`; one recommendation, resting on the reads; one question: the list of
-   the deviations, or, with none, whether he accepts the build. The option's line gives the count
-   of the checks, and says what they do not see: nothing is pressed, loaded, sent or focused, so
-   the keyboard pass and the builder's deviations stand beside the count. Its identity is as
-   `status` prints it, at stage 9 of 9.
+   `templates/outputs/decision-approve.json`: the build as its one option, with two of its pictures named
+   from the page, the phone width first, as `shots/today-default-en-390-light.png`; one line for each
+   seat that read; each deviation under `findings`, by what found it, a seat, `check: <id>` or `by hand`;
+   one recommendation, resting on the reads; one question: the list of the deviations, or, with none,
+   whether he accepts the build. The option's line gives the count of the checks, and says what they do
+   not see: nothing is pressed, loaded, sent or focused, so the keyboard pass and the builder's
+   deviations stand beside the count. Its identity is as `status` prints it, at stage 9 of 9.
    ```
    node <kit root>/scripts/page.mjs <package>/08-acceptance/decision.json --out <package>/08-acceptance/decision.html
    ```

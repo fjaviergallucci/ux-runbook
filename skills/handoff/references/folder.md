@@ -120,22 +120,26 @@ from Frame on and the folder only from step 4; and the files of steps 4 to 7, wh
 most often written, would never be read. Each place it prints is put right before the cold
 implementer starts:
 
-- **In a file you wrote,** write out what the pointer stood for, and take the pointer out.
-- **In a file that was approved,** at an earlier stage, and copied in unchanged, as a comment of a
-  stylesheet or a row of the states that reads "as answered", the file is not rewritten: what was
-  approved does not change here. `PARTS.md` says where the pointer is and what it stood for, under
-  its token file line, so that a builder who meets it finds its answer in the folder. It never
-  writes the name the pointer points to, which would be one more place for the command to print:
-  "the comment that opens `prototype/today.css` points to the list of the look's extensions: they
+- **In a file you wrote,** write out what the pointer stood for, and take the pointer out. `SPEC.md`
+  is one: a row of the states that reads "as answered" is written out there in full, as any file you
+  wrote is mended.
+- **In a file approved at an earlier stage and copied in, unchanged or changed only by the rewrites of
+  step 3** of the skill, as the comment that opens a stylesheet of the screens, the file is not
+  rewritten: what was approved does not change here. `PARTS.md` says where the pointer is and what it
+  stood for, under its token file line, so that a builder who meets it finds its answer in the folder.
+  It never writes the name the pointer points to, which would be one more place for the command to
+  print: "the comment that opens `prototype/today.css` points to the list of the look's extensions: they
   are under 'Changes to the system', below".
 - **A link** the command prints is no file of the folder: copy in what it leads to, under the
   link's own name, or take the link out.
 
-**When it may exit 1.** Only so: every place it prints is in a file that was approved at an earlier
-stage and copied in unchanged, and each is listed in `PARTS.md`, as above. Then the stage goes on:
-the cold implementer is started, and those places are put to the founder with the gate, each as an
-open finding on the decision page and named in the gate's question. He may leave one as it is, or
-reopen the stage whose file holds it. Any other place is mended first, and the command run again.
+**When it may exit 1.** Only so: every place it prints is in a file approved at an earlier stage and
+copied in, unchanged or changed only by the rewrites of step 3, and each is listed in `PARTS.md`, as
+above. Then the stage goes on: the cold implementer is started, and those places are put to the founder
+with the gate, each as an open finding on the decision page and named in the gate's question. On the
+page, the `seat` of each names the check that found it, as Acceptance names a finding a check found:
+`check: alone.mjs --package`. He may leave one as it is, or reopen the stage whose file holds it. Any
+other place is mended first, and the command run again.
 
 ## `IMPLEMENTER-GUIDE.md`, and `build/`
 

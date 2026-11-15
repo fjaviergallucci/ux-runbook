@@ -53,9 +53,11 @@ of those.
 
 Three items come up on every folder, and each is closed the first way:
 
-- **A reference that points outside the folder.** Write out what it pointed to, and take the
-  reference out. A path into the project's source stays, once you have opened it and seen that it
-  is there.
+- **A reference that points outside the folder.** In a file you wrote, write out what it pointed to, and
+  take the reference out. In a file approved at an earlier stage and copied in, unchanged or changed
+  only by the rewrites of step 3 of the skill, the file is not rewritten: `references/folder.md` says
+  what is done, under "When it may exit 1". A path into the project's source stays, once you have opened
+  it and seen that it is there.
 - **`../build/`.** It is the one way out of the folder, and it is meant: `HANDOFF.md` names it,
   under "What you write back", as where the build writes its three pages. See that the sentence
   says so plainly, and close the item with it. It is never taken out.

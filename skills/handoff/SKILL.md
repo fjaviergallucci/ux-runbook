@@ -109,9 +109,7 @@ Each path is from `<package>/`. `<version>` is the version a stage stands at, as
    ```
    The script refuses a file that is not valid, and names each fault. **A check that fails on the
    approved prototype is a wrong check:** rewrite the check, never the page, and run it again until
-   none fails. A check answered `cannot be told:` or `cannot be measured:` is rewritten so that it
-   can be made, or taken out and listed in `ACCEPTANCE.md` as one a person must look at.
-   `--allow-errors` is passed only with its reason written in `COVERAGE.md`, as a sentence.
+   none fails. A check it cannot make, and `--allow-errors`, are as `references/folder.md` says.
 7. **Write `COVERAGE.md`, and fill `HANDOFF.md`.** Coverage: every seat that read, from Context on, with
    what it read, the model it ran on and its checks run and not run; every finding with what became of
    it; and the counts step 6 printed, with the day: never a command, or a path out of the folder.
@@ -120,8 +118,8 @@ Each path is from `<package>/`. `<version>` is the version a stage stands at, as
    nothing points back,** in a comment or a note: no text file of the folder names a file of the package
    that the folder does not hold. Run it, and mend each place it prints, before any seat reads:
    `node <kit root>/scripts/alone.mjs <package>/07-handoff --package <package>`. It may exit 1 only so:
-   every place left is in a file approved earlier and copied in unchanged, which is not rewritten, and
-   `PARTS.md` lists each without the name it points to. Those go to him with the gate, as open findings.
+   every place left is in a file approved earlier and copied in, unchanged or changed only by the
+   rewrites of step 3, which is not rewritten, and `PARTS.md` lists each without the name it points to.
 8. **Start the cold implementer.** One `judge.cold-implementer`, a fresh sub-agent, started as
    "Starting a seat" in the loop says, on the model and the effort its line of the cast sheet's
    "Handoff" table names: a dash means the session's model, and you enforce none. Its brief, from
@@ -148,8 +146,9 @@ Each path is from `<package>/`. `<version>` is the version a stage stands at, as
     `templates/outputs/decision-approve.json`: the folder as its one option, with two reference
     pictures named from the page, the phone width first, as
     `../07-handoff/prototype/shots/today-default-en-390-light.png`; the cold implementer's line;
-    under `findings`, each item still open and each default, by seat; one recommendation; one
-    question. Its identity is as `status` prints it, at stage 8 of 9.
+    under `findings`, each item still open and each default, by seat, and each pointer step 7 left
+    open, its seat `check: alone.mjs --package`; one recommendation; one question. Its identity is as
+    `status` prints it, at stage 8 of 9.
     ```
     node <kit root>/scripts/page.mjs <package>/07-handoff-gate/decision.json --out <package>/07-handoff-gate/decision.html
     ```
@@ -189,7 +188,8 @@ handed to a builder before his go, and you do not give it.**
   `<package>/06-look/fresh/`, `<package>/06-look/beside/`, the sealed file, a fresh brief.
 - **Never let the folder point outside itself:** no path into the package or the gate's folder, no
   command that names them, no "as discussed", and no address on the web but a source the builder
-  must fetch, named without its query.
+  must fetch, named without its query. A file approved at an earlier stage and copied in, unchanged
+  or changed only by the rewrites of step 3, is not rewritten: step 7 says what is done with it.
 - **Never give the cold implementer anything but the folder,** or an answer not written in it.
 - **Never settle a default in silence,** fill in an answer he did not give, or run a second re-read.
 - **Never open what is on no line of Look's carry list,** the package's history least of all.

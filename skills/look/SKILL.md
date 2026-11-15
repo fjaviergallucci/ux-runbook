@@ -92,31 +92,31 @@ the version a stage stands at, as `status` prints it: after a reopening it is no
    - `variants/`, only where the system leaves a real choice, and then on one named axis, as how
      dense the list of rooms is: one screen, the same content, two or three times, each with what it
      buys and what it costs. Its reply names the axis, and the variant the screens are drawn in.
-   - `checks.json`, one check for each contrast and each size its table states, in the shape
-     `scripts/accept.mjs` takes, and `measures.md`, the table and the named extensions.
+   - `checks.json`, one check for each contrast and each size its table states, and an `in-viewport`
+     check for each criterion its brief gives that says "without scrolling", in a variant's own too, in
+     the shape `scripts/accept.mjs` takes; and `measures.md`, the table and the named extensions.
 5. **Photograph and measure, one command after the other,** never both at once:
    ```
    node <kit root>/scripts/shots.mjs <package>/06-look/screens --out <package>/06-look/shots --widths <primary>,<phone> --themes <themes>
    node <kit root>/scripts/accept.mjs prototype <package>/06-look/checks.json --root <package>/06-look/screens --out <package>/06-look/results.json
    ```
    The widths are those of "Constraints"; `<themes>` is `light`, or `light,dark` when `<tokens>` defines
-   a dark theme. With variants, both are run on `variants/` too: `references/seats.md`. **Before the
-   first run, add to `checks.json` an `in-viewport` check for each success criterion that says "without
-   scrolling":** the criterion in its words, its element by its `data-ux`, the width it names. From
-   Detail on that check answers it, and no picture does. **The table of `measures.md` is written from
-   what these two scripts return, never by eye,** and this run is what you hold it to. Each contrast and
-   each size is the `actual` of a result in `results.json`, at its width and theme; any other value was
-   read in the browser by a script of the visual designer's own, kept with its readings in `measure/`. A
-   row with neither behind it, a value that differs, a line `error:` or `overflow:`, or a check that
-   failed goes back to a fresh visual designer, once for each run of this step, before the readers
-   start, as facts: each row by its result id and its measured value. You write no value, and correct
-   none. Both commands are run again after every change to the screens.
-6. **With a fresh pass, show the versions side by side, blind, and stop twice.** The system's
-   picture of the one screen and each fresh one are copied under letters dealt at random into
-   `beside/`, read by letter, and put to him: what would he keep? Then, with what each thing would
-   cost the system on the page: which of the three outcomes? What he borrows is rebuilt on the tokens
-   by the visual designer and flagged in `LOOK.md` as a named extension of the system:
-   `references/fresh.md`. Then step 5 again.
+   a dark theme. With variants, both are run on `variants/` too: `references/seats.md`. **The table of
+   `measures.md` is written from what these two scripts return, never by eye,** and this run is what you
+   hold it to. In the same way, see that `checks.json` holds an `in-viewport` check for each success
+   criterion that says "without scrolling": the visual designer writes it, and you choose no element.
+   Each contrast and each size is the `actual` of a result in `results.json`, at its width and theme; any
+   other value was read in the browser by a script of the visual designer's own, kept with its readings
+   in `measure/`. A row with neither behind it, a value that differs, a line `error:` or `overflow:`, a
+   check that failed, or a criterion with no check goes back to a fresh visual designer, once for each
+   run of this step, before the readers start, as facts: each row by its result id and its measured
+   value, a criterion in its words. You write no value and no check, and correct none. Both commands are
+   run again after every change to the screens.
+6. **With a fresh pass, show the versions side by side, blind, and stop twice.** The system's picture of
+   the one screen and each fresh one are copied under letters dealt at random into `beside/`, read by
+   letter, and put to him: what would he keep? Then, with what each thing would cost the system on the
+   page: which of the three outcomes? What he borrows is rebuilt on the tokens by the visual designer and
+   flagged in `LOOK.md` as a named extension of the system: `references/fresh.md`. Then step 5 again.
 7. **Start the readers.** The judges of the cast sheet's "Look" table, each a fresh sub-agent on what
    its line names, in one message, and those that drive a browser three at a time at most. Each is
    handed what `references/seats.md` gives its seat, the accepted deviations with it, and its "Do

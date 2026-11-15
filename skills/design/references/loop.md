@@ -127,9 +127,10 @@ What it reads is named by its letter or by what it is, never by who made it.
   page.
 - **A first screen is pictured at Structure only.** From Detail on, "without scrolling" is answered by
   a check, and never by reading a picture: the `in-viewport` type of the acceptance script,
-  `scripts/accept.mjs`. Look adds one to its checks for each success criterion that says it, and
-  Handoff takes it over. From Detail on a judge's brief points to that check, and an audience's brief
-  says nothing of first screens.
+  `scripts/accept.mjs`. At Look the visual designer writes one for each success criterion that says
+  it, which its brief carries, and Handoff takes it over: which element answers it is a maker's to
+  choose. From Detail on a judge's brief points to that check, and an audience's brief says nothing
+  of first screens.
 - **Make the stage's `reads/` folder before you start its readers.** A seat writes its own file there,
   and never lists the folder: the names in it say who else read.
 

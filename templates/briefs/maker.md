@@ -20,7 +20,7 @@ this seat, filled:}
   skill, when it has one.}
 - {A prototype builder: the folder of the kit, and the two widths.}
 - {A visual designer: the lens to load; whether motion is cast; what the founder marked in a fresh pass;
-  for a direction, the one detailed screen to draw.}
+  each "without scrolling" criterion, word for word; for a direction, the one detailed screen to draw.}
 - {A maker started again: the founder's answers this seat waits for, as he said them; or the entries it
   is sent back with, by where they sit.}
 

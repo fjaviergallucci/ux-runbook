@@ -3784,7 +3784,8 @@ test('look: two modes; inside a system one visual designer on the project\'s tok
   assert.match(designer, /`variants\/`, only where the system leaves a real choice, and then on one named axis, as how dense the list of rooms is: one screen, the same content, two or three times, each with what it buys and what it costs\. Its reply names the axis, and the variant the screens are drawn in/);
   assert.match(flat(read('pool/makers/visual-designer.md')), /\*\*Offer variants only on one named axis\.\*\*/);
   assert.match(flat(section(text, 'Never')), /\*\*Never ask for variants where the system leaves no real choice,\*\* or on more than one named axis/);
-  assert.match(designer, /`checks\.json`, one check for each contrast and each size its table states, in the shape `scripts\/accept\.mjs` takes, and `measures\.md`, the table and the named extensions/);
+  // R191: the designer also writes the `in-viewport` check of each criterion its brief gives that says "without scrolling".
+  assert.match(designer, /`checks\.json`, one check for each contrast and each size its table states, and an `in-viewport` check for each criterion its brief gives that says "without scrolling", in a variant's own too, in the shape `scripts\/accept\.mjs` takes; and `measures\.md`, the table and the named extensions/);
   // The measured values are written from what the two scripts return, never by eye; the session writes no value.
   const measure = stepOf(steps, 'Photograph and measure, one command after the other,');
   assert.match(measure, /^5\. \*\*Photograph and measure, one command after the other,\*\* never both at once:/);
@@ -3792,7 +3793,7 @@ test('look: two modes; inside a system one visual designer on the project\'s tok
     /The widths are those of "Constraints"; `<themes>` is `light`, or `light,dark` when `<tokens>` defines a dark theme/, /With variants, both are run on `variants\/` too: `references\/seats\.md`/,
     /\*\*The table of `measures\.md` is written from what these two scripts return, never by eye,\*\* and this run is what you hold it to/,
     /Each contrast and each size is the `actual` of a result in `results\.json`, at its width and theme; any other value was read in the browser by a script of the visual designer's own, kept with its readings in `measure\/`/,
-    /A row with neither behind it, a value that differs, a line `error:` or `overflow:`, or a check that failed goes back to a fresh visual designer, once for each run of this step, before the readers start, as facts: each row by its result id and its measured value\. You write no value, and correct none/,
+    /A row with neither behind it, a value that differs, a line `error:` or `overflow:`, a check that failed, or a criterion with no check goes back to a fresh visual designer, once for each run of this step, before the readers start, as facts: each row by its result id and its measured value, a criterion in its words\. You write no value and no check, and correct none/,
     /Both commands are run again after every change to the screens/], 'photograph and measure');
   assert.match(KIT.usage('scripts/accept.mjs'), /\{ id, pass, actual, message, criterion, state, page, width, theme \}/);
   // Variants are photographed, measured and read like the screens: a page named for its screen and its variant, checks of its own, and the same two commands on its folder.
@@ -4729,14 +4730,17 @@ test('handoff: the folder holds the eight files, the prototype, the token file a
   assert.deepEqual(boldSteps(steps).map(([, name]) => name).slice(6, 8), ['Write `COVERAGE.md`, and fill `HANDOFF.md`', 'Start the cold implementer']);
   inOrder(written, [/`HANDOFF\.md`: the slices in build order/, /\*\*Then prove that nothing points back,\*\* in a comment or a note: no text file of the folder names a file of the package that the folder does not hold\. Run it, and mend each place it prints, before any seat reads: `node <kit root>\/scripts\/alone\.mjs <package>\/07-handoff --package <package>`/,
     // S3: when it may still exit 1, so that "must exit 0" and "is not rewritten" do not meet.
-    /It may exit 1 only so: every place left is in a file approved earlier and copied in unchanged, which is not rewritten, and `PARTS\.md` lists each without the name it points to\. Those go to him with the gate, as open findings\./], 'the proof that nothing points back');
+    // S-N1 of the re-review: an approved file copied in is changed by step 3's rewrites, so "unchanged" alone left no page an allowed exit.
+    /It may exit 1 only so: every place left is in a file approved earlier and copied in, unchanged or changed only by the rewrites of step 3, which is not rewritten, and `PARTS\.md` lists each without the name it points to\./], 'the proof that nothing points back');
   const proved = flat(section(stageRef('handoff', 'folder.md'), 'The folder stands alone, proved'));
   inOrder(proved, [/``` node <kit root>\/scripts\/alone\.mjs <package>\/07-handoff ```/, /\*\*Nothing points back, proved too\.\*\*/,
     /It is run once the folder's last file is written: after step 7 of the skill, before the cold implementer is started, and again when a file of the folder changes at step 9\. ``` node <kit root>\/scripts\/alone\.mjs <package>\/07-handoff --package <package> ```/,
     /Run at step 3 it could not pass: the entry and the guide name `DECISIONS\.md`, which the package holds from Frame on and the folder only from step 4/,
     /It never writes the name the pointer points to, which would be one more place for the command to print/,
     /\*\*A link\*\* the command prints is no file of the folder: copy in what it leads to, under the link's own name, or take the link out/,
-    /\*\*When it may exit 1\.\*\* Only so: every place it prints is in a file that was approved at an earlier stage and copied in unchanged, and each is listed in `PARTS\.md`, as above\. Then the stage goes on: the cold implementer is started, and those places are put to the founder with the gate, each as an open finding on the decision page and named in the gate's question/,
+    /\*\*When it may exit 1\.\*\* Only so: every place it prints is in a file approved at an earlier stage and copied in, unchanged or changed only by the rewrites of step 3, and each is listed in `PARTS\.md`, as above\. Then the stage goes on: the cold implementer is started, and those places are put to the founder with the gate, each as an open finding on the decision page and named in the gate's question/,
+    // W-N3 and S-N4 of the re-review: such a finding's seat is the check that found it, in the form Acceptance uses.
+    /On the page, the `seat` of each names the check that found it, as Acceptance names a finding a check found: `check: alone\.mjs --package`/,
     /Any other place is mended first, and the command run again/], 'folder.md: where the proof runs, and when it may exit 1');
   assert.match(flat(section(stageRef('handoff', 'folder.md'), '`PARTS.md`')), /Under it, each pointer an approved file still holds: where it is and what it stood for, never the name it points to/);
   assert.match(flat(section(stageSkill('frame'), 'Writes')), /The package's `DECISIONS\.md`, started from `templates\/package\/DECISIONS\.md`/, 'Frame starts the package\'s own DECISIONS.md');
@@ -4815,8 +4819,8 @@ test('handoff: the checks are written by stable id and run on the prototype firs
   assert.ok(fencedLines(text).includes(command), command);
   assert.ok(takenBy('accept', words(command).slice(2).join(' ')), command);
   inOrder(step, [/The script refuses a file that is not valid, and names each fault/, /\*\*A check that fails on the approved prototype is a wrong check:\*\* rewrite the check, never the page, and run it again until none fails/,
-    /A check answered `cannot be told:` or `cannot be measured:` is rewritten so that it can be made, or taken out and listed in `ACCEPTANCE\.md` as one a person must look at/,
-    /`--allow-errors` is passed only with its reason written in `COVERAGE\.md`, as a sentence/], 'the checks');
+    // Round 2 of the fix: a check it cannot make, and --allow-errors, are said once, in folder.md, held below; the skill points there.
+    /A check it cannot make, and `--allow-errors`, are as `references\/folder\.md` says/], 'the checks');
   assert.ok(nevers(text).includes('Never hand off a check that was not run on the prototype'));
   // The two answers the in-page file gives when it will not guess, word for word, and the switch the script takes.
   const inpage = readFileSync(INPAGE, 'utf8');
@@ -4833,6 +4837,7 @@ test('handoff: the checks are written by stable id and run on the prototype firs
   assert.match(checks, /\*\*`failed: <id>: <why>`:\*\* the check is wrong, or the id is\. Fix the check\. A page is never changed to make a check pass\. Where the check says what the criterion says and the approved screen still does not meet it, neither is yours to change: it goes to the founder, open/);
   assert.match(checks, /\*\*`cannot be told:`\*\* an `in-viewport` check where pointing cannot say\. \*\*`cannot be measured:`\*\* a `contrast` over a picture, an opacity, a filter or a blend/);
   assert.match(checks, /`--allow-errors` turns it into a warning: pass it only when the error is known and harmless, and write the reason in `COVERAGE\.md`, as a sentence: which page, which error, and why it is harmless/);
+  assert.match(checks, /Neither is a guess to keep: rewrite the check on an element where it can be made, or take it out and list it as one a person must look at/);
   // I1: the last run is written as the day and the counts; what the command prints after them names the gate's folder, and is left out.
   assert.match(checks, /Write the last run into `ACCEPTANCE\.md`: the day and the counts, as "8 checks: 0 failed, 8 passed"\. The line the command prints goes on to say where its results are, in a folder the builder is never given: that part is left out, and so is the command/);
   assert.match(read('scripts/accept.mjs'), /process\.stdout\.write\(`\$\{counts\(results\)\}; results in \$\{out\}\\n`\)/);
@@ -4915,13 +4920,23 @@ test('handoff: the cold implementer is handed the folder only, every item is clo
   assert.match(reread, /A pointer in an approved file is closed that way, by its line in `PARTS\.md`; the pointer itself still goes to him with the gate, as an open finding/);
   assert.ok(nevers(text).includes('Never give the cold implementer anything but the folder'));
   assert.match(flat(section(text, 'Never')), /\*\*Never let the folder point outside itself:\*\* no path into the package or the gate's folder, no command that names them, no "as discussed", and no address on the web but a source the builder must fetch, named without its query/);
+  // W-N2 of the re-review: the Never line and the seats page carry the one exception step 7 and folder.md make, in their words.
+  assert.match(flat(section(text, 'Never')), /named without its query\. A file approved at an earlier stage and copied in, unchanged or changed only by the rewrites of step 3, is not rewritten: step 7 says what is done with it\./);
+  assert.match(closing, /\*\*A reference that points outside the folder\.\*\* In a file you wrote, write out what it pointed to, and take the reference out\. In a file approved at an earlier stage and copied in, unchanged or changed only by the rewrites of step 3 of the skill, the file is not rewritten: `references\/folder\.md` says what is done, under "When it may exit 1"\. A path into the project's source stays/);
+  const exception = 'copied in, unchanged or changed only by the rewrites of step 3';
+  for (const [where, said] of [['step 7', stepOf(steps, 'Write `COVERAGE.md`, and fill `HANDOFF.md`')], ['Never', flat(section(text, 'Never'))], ['seats.md', closing], ['folder.md', flat(section(stageRef('handoff', 'folder.md'), 'The folder stands alone, proved'))]]) {
+    assert.ok(said.includes(exception), where);
+    assert.doesNotMatch(said, /copied in unchanged|as a comment of a stylesheet or a row of the states/, where);
+  }
   assert.ok(nevers(text).includes('Never settle a default in silence'));
 
   // The decision page, the one question, his go in the artefact, the stamp, and what he is told.
   // The tenth step: the helper reads a step's number as one digit, so this one is cut out by its own words.
   const page = flat(steps.slice(steps.indexOf('10. **Build the decision page.**'), steps.indexOf('**Routed `short`**')));
   assert.match(page, /Write `<package>\/07-handoff-gate\/decision\.json` in the shape of `templates\/outputs\/decision-approve\.json`: the folder as its one option, with two reference pictures named from the page, the phone width first, as `\.\.\/07-handoff\/prototype\/shots\/today-default-en-390-light\.png`/);
-  assert.match(page, /under `findings`, each item still open and each default, by seat; one recommendation; one question\. Its identity is as `status` prints it, at stage 8 of 9/);
+  assert.match(page, /under `findings`, each item still open and each default, by seat, and each pointer step 7 left open, its seat `check: alone\.mjs --package`; one recommendation; one question\. Its identity is as `status` prints it, at stage 8 of 9/);
+  // The one form for a finding a check found, as Acceptance gives it: no second form is made for Handoff's.
+  assert.match(flat(stepOf(section(stageSkill('acceptance'), 'Steps'), 'Build the decision page')), /each deviation under `findings`, by what found it, a seat, `check: <id>` or `by hand`/);
   assert.equal(STAGES.indexOf('handoff') + 1, 8);
   const gate = flat(section(text, 'Gate'));
   inOrder(gate, [/^ \*\*He gives one go\.\*\* Put `<package>\/07-handoff-gate\/decision\.html` in front of him, and the folder itself, `<package>\/07-handoff\/HANDOFF\.md` first/,
@@ -4986,7 +5001,12 @@ test('acceptance: a separate session that reads the handoff folder and what the 
   assert.ok(nevers(text).includes('Never open the package\'s history:'));
   // What it writes: the report built from the handoff, the results by state, the table, the pictures, the reads, the fixes, the page.
   const rows = tableRows(section(text, 'Writes')).slice(2);
-  assert.deepEqual(rows.map(([file]) => file), ['`REPORT.md`', '`results/<state>.json`', '`checks.md`', '`by-hand.md`', '`shots/`', '`reads/`', '`FIXES.md`', '`decision.json`, `decision.html`']);
+  // W-N4 of the re-review: the two things it writes in the project, the driver and its line in the profile, each on his yes.
+  assert.deepEqual(rows.map(([file]) => file), ['`REPORT.md`', '`results/<state>.json`', '`checks.md`', '`by-hand.md`', '`shots/`', '`reads/`', '`FIXES.md`', '`decision.json`, `decision.html`',
+    'the driver, at the path of his answer', 'its line in `<packages>/PROFILE.md`']);
+  assert.deepEqual(rows.slice(-2).map(([, holds]) => holds), ['for a build that opens as files, where the project profile names no script: one script in the project, only on his yes',
+    'the driver\'s command, under "How a browser check is run here", only on his yes']);
+  assert.match(flat(section(text, 'Writes')), /but the last two rows: they are the project's, and each is written only on his yes/);
   assert.match(rows[0][1], /`built-from: \[handoff@<version>\]`: each item, \*matches\* or \*deviates\*/);
   assert.deepEqual([rows[0][2], rows[6][2]], ['`templates/package/08-acceptance/REPORT.md`', '`templates/package/08-acceptance/FIXES.md`']);
   assert.deepEqual(filesUnder('templates/package/08-acceptance/'), ['FIXES.md', 'REPORT.md']);
@@ -5860,7 +5880,8 @@ test('the dry run, the loop again: a list is one question, what he accepted is p
   // R190: a first screen is pictured at Structure only. From Detail on "without scrolling" is a measured check's to answer.
   says(loop, 'At Structure, an audience\'s brief also says which pictures show the first screen only',
     '**A first screen is pictured at Structure only.** From Detail on, "without scrolling" is answered by a check, and never by reading a picture: the `in-viewport` type of the acceptance script, `scripts/accept.mjs`.',
-    'Look adds one to its checks for each success criterion that says it, and Handoff takes it over. From Detail on a judge\'s brief points to that check, and an audience\'s brief says nothing of first screens.');
+    // R191: the check is the visual designer's to write, at Look: which element answers a criterion is a maker's judgement.
+    'At Look the visual designer writes one for each success criterion that says it, which its brief carries, and Handoff takes it over: which element answers it is a maker\'s to choose. From Detail on a judge\'s brief points to that check, and an audience\'s brief says nothing of first screens.');
   assert.ok(Object.hasOwn(TYPES, 'in-viewport'));
   for (const stage of STAGES) {
     const takesFirst = stageCommands(stage).some(command => command.includes('--first-screen'));
@@ -5869,10 +5890,24 @@ test('the dry run, the loop again: a list is one question, what he accepted is p
   says(read('templates/briefs/audience.md'), '{Which pictures her tasks need first, by name.}', '{At Structure: which pictures show the first screen only, as she meets it before any scrolling, and which the whole page: "without scrolling" is answered on the first. From Detail on, delete this.}');
   says(read('templates/briefs/judge.md'), '{From Detail on, for each success criterion that says "without scrolling": that a measured check answers it, the `in-viewport` check, with its id and its result where it has run; no picture does.}');
   says(stageRef('detail', 'seats.md'), '**No first screen is pictured here:** that is Structure\'s, and every picture of Detail is of a whole page.',
-    'a judge\'s brief says that a measured check answers it, the `in-viewport` check Look adds to its checks, and that no picture of this stage does; an audience\'s brief says nothing of first screens.');
+    'a judge\'s brief says that a measured check answers it, the `in-viewport` check the visual designer writes at Look, and that no picture of this stage does; an audience\'s brief says nothing of first screens.');
   says(stageRef('look', 'seats.md'), '**No first screen is pictured here:** that is Structure\'s.',
-    'a judge\'s brief carries one line for it: the criterion, the id of the `in-viewport` check that step 5 of the skill added for it, and what the run returned for that check, as it came. That result answers the criterion, and no picture does.');
-  says(stepOf(section(stageSkill('look'), 'Steps'), 'Photograph and measure'), '**Before the first run, add to `checks.json` an `in-viewport` check for each success criterion that says "without scrolling":** the criterion in its words, its element by its `data-ux`, the width it names. From Detail on that check answers it, and no picture does.');
+    'a judge\'s brief carries one line for it: the criterion, the id of the `in-viewport` check the visual designer wrote for it, and what the last run of step 5 returned for that check, as it came. That result answers the criterion, and no picture does.');
+  // R191: the visual designer writes the check, in its own checks.json and a variant's, from a brief that carries each such
+  // criterion word for word; the conductor sees that one is there, as it holds the table to its run, and writes none.
+  const lookSteps = section(stageSkill('look'), 'Steps');
+  says(stepOf(lookSteps, 'Photograph and measure'), 'and this run is what you hold it to. In the same way, see that `checks.json` holds an `in-viewport` check for each success criterion that says "without scrolling": the visual designer writes it, and you choose no element.',
+    'a check that failed, or a criterion with no check goes back to a fresh visual designer', 'each row by its result id and its measured value, a criterion in its words. You write no value and no check, and correct none.');
+  says(stepOf(lookSteps, 'Start the visual designer'), 'and an `in-viewport` check for each criterion its brief gives that says "without scrolling", in a variant\'s own too');
+  assert.doesNotMatch(flat(stageSkill('look')), /add to `checks\.json`|`in-viewport` check (?:that step 5|Look adds)/);
+  const lookDesigner = flat(subsection(stageRef('look', 'seats.md'), '`maker.visual-designer`'));
+  says(lookDesigner, 'gives four things.', 'And each success criterion of the intent that says "without scrolling", copied word for word, since the seat is not handed the intent: for each, it writes an `in-viewport` check of the element that answers it, at the width the criterion names, in `checks.json` and in a variant\'s own. Which element answers it is the seat\'s to choose, never yours.',
+    'and the checks that failed, as facts, each by its result id and its measured value, and each criterion that has no `in-viewport` check, in its words;',
+    'A table that still does not hold after its send-back, or a criterion still with no check, goes to the founder, open. You write no value and no check.',
+    '**An `in-viewport` check that fails** is a check of step 5 that failed: it goes back to the visual designer in that send-back, and nobody but the visual designer changes a screen for it. One that still fails after the send-back is handed to the judges in their briefs, as "The readers" below says, and is listed on the decision page as an open finding under `findings`, its seat `check: <id>`.');
+  assert.ok(!kitCards()['maker.visual-designer'].reads.includes('intent'), 'the designer is not handed the intent: its brief carries the criteria');
+  says(read('templates/briefs/maker.md'), 'what the founder marked in a fresh pass; each "without scrolling" criterion, word for word; for a direction');
+  says(read('pool/makers/visual-designer.md'), 'For each success criterion your brief gives that says "without scrolling", write an `in-viewport` check of the element that answers it, at the width it names: in your checks, and a variant\'s too.');
   says(read('pool/audiences/task-reader.md'), 'At Structure a picture of the first screen shows what she meets before any scrolling', 'After Structure every picture is of a whole page, and says nothing of where a screen ends.');
   // M4: a judge's reply is its card's own, and the cold implementer's is not the others'.
   assert.ok(read('templates/briefs/judge.md').trimEnd().endsWith('\nWhat your card\'s Output says the reply is.'));
@@ -5911,6 +5946,10 @@ test('the dry run, Structure and Detail: a rule selects what a maker is given, t
   for (const id of ['judge.truth', 'maker.prototype-builder']) assert.ok(kitCards()[id].reads.includes('example-data'), id);
   says(read('pool/CARD-FORMAT.md'), '| `example-data` | The project source the context names for the rows its inventory gives as examples');
   says(read('pool/makers/prototype-builder.md'), 'comes from the data your brief hands you: you make none up.');
+  // W-N1 of the re-review: Detail's seats page does what the builder's card promises, before the gate.
+  says(subsection(stageRef('detail', 'seats.md'), '`maker.prototype-builder`'),
+    '**A page that waits for its example rows,** which its reply names when its brief handed it no data, goes to the founder first: ask him for the data, one question, as step 4 of the skill says, and write his answer under "Reviewed by the founder" of `DETAIL.md`.',
+    'A fresh prototype builder is then handed it in a brief, as he gave it: his words, or the file he names, by its path. Only what it still could not build goes on the decision page. You write no row.');
   // Detail: F74, F77, F80, F63.
   const detail = stageSkill('detail');
   says(stepOf(section(detail, 'Steps'), 'Photograph every page'), 'Light only: the themes are Look\'s.');
@@ -5944,7 +5983,7 @@ test('the dry run, Structure and Detail: a rule selects what a maker is given, t
 test('the dry run, Look, Handoff and Acceptance: the table is held to the run, nothing points back, a default is held first, and a build with no driver gets one on his yes', () => {
   // Look: F81, F83, R178, F88, F86, F82, F90.
   const look = stageSkill('look');
-  says(stepOf(section(look, 'Steps'), 'Photograph and measure'), 'kept with its readings in `measure/`', 'goes back to a fresh visual designer, once for each run of this step, before the readers start, as facts: each row by its result id and its measured value.');
+  says(stepOf(section(look, 'Steps'), 'Photograph and measure'), 'kept with its readings in `measure/`', 'goes back to a fresh visual designer, once for each run of this step, before the readers start, as facts: each row by its result id and its measured value, a criterion in its words.');
   const lookSeats = stageRef('look', 'seats.md');
   says(lookSeats, 'It never writes `<package>/06-look/results.json`: that file is your run, and its brief says so.', '`<package>/06-look/measure/`, the visual designer\'s own tools;',
     '**The send-back of step 5 is run once for each run of that step,** before any reader starts or reads again, and it is no fix round: the fix round is the readers\', and there is one.',
@@ -5964,7 +6003,10 @@ test('the dry run, Look, Handoff and Acceptance: the table is held to the run, n
     'A pointer that names no file, as "answer 28" or "as decided at Detail", it does not see: the first rule of this page still holds for what you write, and the cold implementer reads for the rest.');
   const aloneUsage = KIT.usage('scripts/alone.mjs').replace(/\s+/g, ' ');
   for (const said of ['for the name of any file or folder of the package that the folder does not hold', 'the package\'s build/ folder, which is the builder\'s place', 'it is found only where it is written as a path, a slash before it or after it', 'A pointer that names no file, as "answer 28" or "as decided at Detail", is not seen']) assert.ok(aloneUsage.includes(said), said);
-  says(folder, '**Nothing points back, proved too.**', '**In a file that was approved,**', 'the file is not rewritten: what was approved does not change here. `PARTS.md` says where the pointer is and what it stood for',
+  says(folder, '**Nothing points back, proved too.**', 'the file is not rewritten: what was approved does not change here. `PARTS.md` says where the pointer is and what it stood for',
+    // S-N1: a row of the states is in SPEC.md, a file the conductor writes, and is mended there; the example of an approved file is true.
+    '**In a file you wrote,** write out what the pointer stood for, and take the pointer out. `SPEC.md` is one: a row of the states that reads "as answered" is written out there in full, as any file you wrote is mended.',
+    '**In a file approved at an earlier stage and copied in, unchanged or changed only by the rewrites of step 3** of the skill, as the comment that opens a stylesheet of the screens, the file is not rewritten',
     '`scripts/inpage/accept-inpage.js` of the kit is copied whole, as it is, to `<package>/07-handoff/accept-inpage.js`', 'The builder still has no kit',
     'A stylesheet, a picture or a script a page loads from the project is an asset', 'On success it prints one line, that the folder stands alone, with its counts: that line is not a fault.',
     'and the languages by the codes `languages` of the project profile gives.', 'The `min` of a `contrast` is the standard the row is held to: the measured value stands beside it',
