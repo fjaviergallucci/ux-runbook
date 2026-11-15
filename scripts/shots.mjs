@@ -8,8 +8,11 @@
 // loaded was still the one in the tab once the picture was taken. Nothing about one page ends the run, and
 // no run goes on for ever: every wait has a limit, and every retry a count. The browser handling is
 // lib/browser.mjs, shared with accept.
+// A page is pictured whole, however tall. Asked for, its first screen is pictured alone too: the window as
+// the page opens, with no scrolling, so that a reader can say what is there "without scrolling".
 //
-// As a module: shoot(inputs, { out, widths, themes, chrome, timeout }) → { files, overflow, errors, titles }.
+// As a module: shoot(inputs, { out, widths, themes, chrome, timeout, firstScreen }) → { files, first,
+// overflow, errors, titles }.
 // As a command: see USAGE. Exit codes: 0 success · 1 a refusal (a page with an error, unless
 // --allow-errors; an unreadable input; an unwritable output; no Chrome) · 2 bad usage.
 import { mkdirSync, readdirSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
@@ -29,18 +32,26 @@ export class ShotsError extends Error {
 }
 
 // What is done with each page once it has settled: it is pictured whole, and the picture held in memory
-// until its document is known to have stayed in the tab.
-const PICTURE = Object.freeze({
-  run: (page, timeout) => page.screenshot({ fullPage: true, timeout }),
+// until its document is known to have stayed in the tab. With `firstScreen`, the window is pictured first,
+// as the page opened in it and before anything moves it: what is pinned to the window is in that picture.
+const pictureOf = firstScreen => Object.freeze({
+  run: async (page, timeout) => {
+    const first = firstScreen ? await page.screenshot({ timeout }) : null;
+    return { whole: await page.screenshot({ fullPage: true, timeout }), first };
+  },
   failed: 'the picture could not be taken',
   during: ' while it was being pictured',
   unread: 'the page could not be read again once pictured',
 });
 
-// shoot(inputs, { out, widths, themes, chrome, timeout }) → { files, overflow, errors, titles }.
+// shoot(inputs, { out, widths, themes, chrome, timeout, firstScreen }) → { files, first, overflow, errors,
+// titles }.
 //   inputs  pages to photograph: an .html file, or a folder, which means every .html file directly in it
 //   out     the folder the pictures go to, made when it is not there; each is <name>-<width>-<theme>.png,
 //           <name> being the page's file name without its extension, pictured whole
+//   firstScreen  true to picture each page's first screen too, the window as the page opens (its width by
+//           HEIGHT), as <name>-<width>-<theme>-first.png beside the whole page; false when not given: then
+//           no such picture is taken, and none is touched
 //   widths  screen widths in CSS pixels; themes 'light' and/or 'dark' (light when not given)
 //   chrome  the Chrome to drive (lib/chrome.mjs finds one when not given)
 //   timeout how long a page is given to load, to settle, and for each step on it, in milliseconds (TIMEOUT
@@ -49,14 +60,15 @@ const PICTURE = Object.freeze({
 // before Chrome starts. A page that will not close, or a browser that dies, is an error of that page, and
 // the run goes on in a fresh browser; a page whose browser stops twice before it can be opened is an error
 // of that page; every browser the run started is gone when it ends, however it ends.
-// files: the pictures taken, in the order taken. overflow: { file, width } for each page wider than the
+// files: the pictures of whole pages taken, in the order taken. first: the pictures of first screens, in
+// the same order; a page has both or neither. overflow: { file, width } for each page wider than the
 // screen at a width, once whatever the theme. errors: { file, message } for each fault of a page, once
 // however many pictures saw it; no picture is kept of a page that did not open, did not settle, was no
 // longer the document in the tab before or after its picture, or could not be read or pictured. titles:
 // each page's document title once loaded, from the first picture of it.
 // Throws a TypeError for bad options, a ShotsError or a ChromeError for a refusal; never for one page.
-export async function shoot(inputs, { out, widths, themes = ['light'], chrome, timeout = TIMEOUT } = {}) {
-  checkOptions(inputs, { out, widths, themes, timeout });
+export async function shoot(inputs, { out, widths, themes = ['light'], chrome, timeout = TIMEOUT, firstScreen = false } = {}) {
+  checkOptions(inputs, { out, widths, themes, timeout, firstScreen });
   const pages = pagesOf(inputs);
   const executablePath = findChrome(chrome);
   makeFolder(out);
@@ -64,13 +76,25 @@ export async function shoot(inputs, { out, widths, themes = ['light'], chrome, t
   const names = new Map(pages.map(({ file, name }) => [file, name]));
   const files = pages.map(({ file }) => file);
   const runs = widths.flatMap(width => themes.map(theme => ({ width, theme, files })));
-  await visitPages(executablePath, runs, { timeout, act: PICTURE, Refusal: ShotsError }, (file, visit, { width, theme }) => {
+  await visitPages(executablePath, runs, { timeout, act: pictureOf(firstScreen), Refusal: ShotsError }, (file, visit, { width, theme }) => {
     const picture = join(out, `${names.get(file)}-${width}-${theme}.png`);
+    const first = join(out, `${names.get(file)}-${width}-${theme}-first.png`);
     // Whenever no picture is written, an older one under the same name is removed, so that none is read in
-    // its place.
+    // its place: the whole page's, and the first screen's when first screens are pictured.
+    const removeOlderOnes = () => {
+      removeOlder(picture);
+      if (firstScreen) removeOlder(first);
+    };
+    const write = (path, bytes) => {
+      try {
+        writeFileSync(path, bytes);
+      } catch (e) {
+        throw new ShotsError(`cannot write ${path}: ${reason(e)}`);
+      }
+    };
     if (visit.lost) {
       found.error(file, 'the browser stopped twice while opening this page');
-      removeOlder(picture);
+      removeOlderOnes();
       return;
     }
     if (visit.fault) {
@@ -78,21 +102,21 @@ export async function shoot(inputs, { out, widths, themes = ['light'], chrome, t
     } else {
       if (!Object.hasOwn(found.titles, file)) found.titles[file] = visit.read.title;
       if (visit.read.wide) found.overflows(file, width);
-      try {
-        writeFileSync(picture, visit.value);
-      } catch (e) {
-        throw new ShotsError(`cannot write ${picture}: ${reason(e)}`);
-      }
+      write(picture, visit.value.whole);
       found.files.push(picture);
+      if (firstScreen) {
+        write(first, visit.value.first);
+        found.first.push(first);
+      }
     }
     for (const message of visit.reports) found.error(file, message);
-    if (visit.fault) removeOlder(picture);
+    if (visit.fault) removeOlderOnes();
     if (visit.closing) found.error(file, visit.closing);
   });
   return found.result();
 }
 
-function checkOptions(inputs, { out, widths, themes, timeout }) {
+function checkOptions(inputs, { out, widths, themes, timeout, firstScreen }) {
   if (!Array.isArray(inputs) || inputs.length === 0 || !inputs.every(input => typeof input === 'string' && input !== '')) {
     throw new TypeError(`inputs must be a list of at least one path; it is ${JSON.stringify(inputs)}`);
   }
@@ -106,6 +130,7 @@ function checkOptions(inputs, { out, widths, themes, timeout }) {
   if (!Number.isSafeInteger(timeout) || timeout < 1) {
     throw new TypeError(`timeout must be a whole number of milliseconds from 1; it is ${JSON.stringify(timeout)}`);
   }
+  if (typeof firstScreen !== 'boolean') throw new TypeError(`firstScreen must be true or false; it is ${JSON.stringify(firstScreen)}`);
   for (const list of [widths, themes]) {
     const twice = list.find((value, i) => list.indexOf(value) !== i);
     if (twice !== undefined) throw new TypeError(`${twice} is given twice`);
@@ -170,6 +195,7 @@ function makeFolder(folder) {
 // What the pictures found, each fault and each overflow once.
 class Found {
   files = [];
+  first = [];
   overflow = [];
   errors = [];
   titles = {};
@@ -190,7 +216,7 @@ class Found {
   }
 
   result() {
-    return { files: this.files, overflow: this.overflow, errors: this.errors, titles: this.titles };
+    return { files: this.files, first: this.first, overflow: this.overflow, errors: this.errors, titles: this.titles };
   }
 }
 
@@ -203,7 +229,7 @@ function removeOlder(picture) {
 
 // ---- the command line
 
-const USAGE = `Usage: node scripts/shots.mjs <file or folder>... --out <folder> --widths <w,w...> [--themes light,dark] [--chrome <path>] [--timeout <ms>] [--allow-errors]
+const USAGE = `Usage: node scripts/shots.mjs <file or folder>... --out <folder> --widths <w,w...> [--themes light,dark] [--first-screen] [--chrome <path>] [--timeout <ms>] [--allow-errors]
 
 Photographs each page headless, in the machine's own Chrome, at each width and theme, with reduced motion
 set: one full-page PNG per page, width and theme, named <name>-<width>-<theme>.png, <name> being the
@@ -213,6 +239,12 @@ page's file name without its extension. A folder means every .html file directly
   --widths <w,w...>    screen widths in CSS pixels, whole numbers joined by commas, as 1280,390;
                        the screen is 900 px high, and a taller page is pictured whole
   --themes <t,t...>    light, dark or both, joined by a comma; light when not given
+  --first-screen       also picture the first screen of each page alone: the window as the page opens,
+                       its width by 900 px, with no scrolling, named <name>-<width>-<theme>-first.png,
+                       beside the whole page. It is the picture that answers what she sees "without
+                       scrolling". What is pinned to the window is in it, where she meets it. A page
+                       has both pictures or neither. Without it no first screen is pictured, and one
+                       an earlier run left is not touched
   --chrome <path>      the Chrome to drive; else UX_CHROME, else the first that exists of
                        /usr/bin/google-chrome, /usr/bin/chromium, and the macOS and Windows defaults
   --timeout <ms>       how long a page is given to load, to settle, and for each step on it, in
@@ -259,7 +291,7 @@ function listFlag(flags, name, pattern, what, ok = () => true) {
 }
 
 function readArgs(argv) {
-  const args = parseArgs(argv, { flags: ['out', 'widths', 'themes', 'chrome', 'timeout'], switches: ['allow-errors'] });
+  const args = parseArgs(argv, { flags: ['out', 'widths', 'themes', 'chrome', 'timeout'], switches: ['allow-errors', 'first-screen'] });
   if (args.help) return args;
   const { positional, flags } = args;
   if (positional.length === 0) throw new UsageError('shots takes at least one <file or folder>');
@@ -269,14 +301,14 @@ function readArgs(argv) {
   const widths = listFlag(flags, 'widths', WIDTHS, 'whole numbers from 1, joined by commas, as 1280,390', width => Number.isSafeInteger(Number(width))).map(Number);
   const themes = Object.hasOwn(flags, 'themes') ? listFlag(flags, 'themes', THEME_LIST, 'light, dark or both, joined by a comma') : ['light'];
   const timeout = readTimeout(flags);
-  return { inputs: positional, out: flags.out, widths, themes, chrome: flags.chrome, timeout, allowErrors: flags['allow-errors'] === true };
+  return { inputs: positional, out: flags.out, widths, themes, chrome: flags.chrome, timeout, allowErrors: flags['allow-errors'] === true, firstScreen: flags['first-screen'] === true };
 }
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
-async function run({ inputs, out, widths, themes, chrome, timeout, allowErrors }) {
-  const { files, overflow, errors } = await shoot(inputs, { out, widths, themes, chrome, timeout });
-  const lines = [`shot ${plural(files.length, 'picture')} at ${widths.join(', ')} px, ${themes.join(' and ')}, into ${out}\n`];
+async function run({ inputs, out, widths, themes, chrome, timeout, allowErrors, firstScreen }) {
+  const { files, overflow, errors } = await shoot(inputs, { out, widths, themes, chrome, timeout, firstScreen });
+  const lines = [`shot ${plural(files.length, 'picture')} at ${widths.join(', ')} px, ${themes.join(' and ')},${firstScreen ? ' and the first screen of each,' : ''} into ${out}\n`];
   for (const { file, width } of overflow) lines.push(`overflow: ${file} is wider than the screen at ${width} px\n`);
   process.stdout.write(lines.join(''));
   process.stderr.write(errors.map(({ file, message }) => `error: ${file}: ${message}\n`).join(''));

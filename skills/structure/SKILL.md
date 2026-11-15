@@ -107,13 +107,13 @@ is built from the cast, the intent and the context. `<version>` is the version a
    ```
    node <kit root>/scripts/merge.mjs <package>/04-structure/proposals --out <package>/04-structure/board
    node <kit root>/scripts/render.mjs <package>/04-structure/board/<letter>.json --kit <kit dir> --out <package>/04-structure/board/<letter>.html --letter <letter>
-   node <kit root>/scripts/shots.mjs <package>/04-structure/board --out <package>/04-structure/board --widths <primary>,<phone>
+   node <kit root>/scripts/render.mjs <package>/04-structure/board/<letter>.json --kit <kit dir> --out <package>/04-structure/board/<letter>-screens.html --letter <letter> --without-notes
+   node <kit root>/scripts/shots.mjs <package>/04-structure/board --out <package>/04-structure/board --widths <primary>,<phone> --first-screen
    ```
-
    The merge prints the letters, and writes the map to `<package>/04-structure/MAP.sealed.json`: beside
-   the board, never in it. Render once for each letter, then the shots once, at the brief's two widths.
-   Each letter is then drawn once more for the audiences, without the makers' notes, and every page is
-   pictured twice, whole and as its first screen alone: `references/seats.md` says who is handed which.
+   the board, never in it. Render twice for each letter, the second time without the makers' notes,
+   for the audiences; then the shots once, at the brief's two widths, every page pictured twice,
+   whole and as its first screen alone: `references/seats.md` says who is handed which.
    The board holds the letters' files, the drawn pages with the kit's stylesheets, and the pictures:
    nothing else is ever put in it. Never more than three browser-driving commands or seats at once.
 8. **Start the readers, by letter.** The judges and the audiences of the cast sheet's "Structure"

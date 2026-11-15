@@ -5,9 +5,12 @@
 // says. Who made it (author, engine, track, model, source) and the maker's first idea are never drawn.
 // It draws either form of a proposal (lib/walkthrough.mjs): a source file, or a letter copy from the merge;
 // the two draw the same page under the same letter.
+// A page is drawn with the makers' notes, for the founder and the judges, or without them, for a reader
+// who must not be told what a design means to do (an audience): then its heading is the letter alone, and
+// no name, bet, cost, absence, hardest state or note is drawn. The screens are the same either way.
 //
-// As a module: renderProposal(proposal, { letter }) → the page, as a string. Pure; the same proposal and
-// letter give the same bytes.
+// As a module: renderProposal(proposal, { letter, notes }) → the page, as a string; `notes` is true when
+// not given. Pure; the same proposal, letter and notes give the same bytes.
 // As a command: see USAGE. Exit codes: 0 success · 1 an invalid proposal, an unreadable input or an
 // unwritable output · 2 bad usage.
 import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
@@ -46,12 +49,14 @@ const check = proposal => validate(proposal, { sealed: !SOURCE_ONLY.some(key => 
 
 // ---- the drawing
 
-// renderProposal(proposal, { letter }) → a whole HTML document that links kit.css from beside it.
-// Throws a TypeError when the letter is not one capital letter or the proposal is not valid.
-export function renderProposal(proposal, { letter } = {}) {
+// renderProposal(proposal, { letter, notes }) → a whole HTML document that links kit.css from beside it;
+// with `notes` false, without the makers' notes. Throws a TypeError when the letter is not one capital
+// letter, `notes` is not true or false, or the proposal is not valid.
+export function renderProposal(proposal, { letter, notes = true } = {}) {
   if (typeof letter !== 'string' || !LETTER.test(letter)) {
     throw new TypeError(`the letter must be one capital letter, A to Z; it is ${JSON.stringify(letter)}`);
   }
+  if (typeof notes !== 'boolean') throw new TypeError(`notes must be true or false; it is ${JSON.stringify(notes)}`);
   const errors = check(proposal);
   if (errors.length) throw new TypeError(`not a valid proposal:\n${errors.join('\n')}`);
   const titles = new Map(proposal.screens.map(screen => [screen.id, screen.title]));
@@ -65,7 +70,7 @@ export function renderProposal(proposal, { letter } = {}) {
 </head>
 <body>
 
-${drawHeader(proposal, letter)}${proposal.screens.map(screen => drawFrame(screen, titles))}
+${notes ? drawHeader(proposal, letter) : drawLetter(letter)}${proposal.screens.map(screen => drawFrame(notes ? screen : unnoted(screen), titles))}
 </body>
 </html>
 `.text;
@@ -91,6 +96,18 @@ ${proposal.absent.map(line => html`        <li>${line}</li>\n`)}      </ul>
   </dl>
 </header>
 `;
+}
+
+// The header of a page drawn without the makers' notes: which option this is, and no more.
+const drawLetter = letter => html`<header>
+  <h1>Option ${letter}</h1>
+</header>
+`;
+
+// A screen, or an item, without its note, and without the notes of what it holds.
+function unnoted(holder) {
+  const { note, ...rest } = holder;
+  return Object.hasOwn(rest, 'items') ? { ...rest, items: rest.items.map(unnoted) } : rest;
 }
 
 // One frame per screen: its caption (the title; for a dialog, the title of the screen it opens over; then
@@ -139,7 +156,7 @@ const drawNote = (holder, pad) => (Object.hasOwn(holder, 'note') ? html`${pad}<p
 
 // ---- the command line
 
-const USAGE = `Usage: node scripts/render.mjs <proposal.json> --kit <kit dir> --out <file.html> [--letter A]
+const USAGE = `Usage: node scripts/render.mjs <proposal.json> --kit <kit dir> --out <file.html> [--letter A] [--without-notes]
 
 Draws one Structure proposal, written in the walkthrough format, as one HTML document in the shared kit,
 and copies every stylesheet directly in <kit dir> (each .css file, kit.css among them) beside it, so a
@@ -151,6 +168,10 @@ proposal.
   --out <file.html>   the page to write: not named like one of the kit's stylesheets, and
                       not the proposal itself; its folder is made when it does not exist
   --letter <A to Z>   the option's letter on the board; A when not given
+  --without-notes     draw the page for a reader who must not see the makers' notes, as an audience:
+                      its heading is the option's letter alone, with no name, no bet, no cost, nothing
+                      of what is absent or of the hardest state, and no note on a screen or an item;
+                      the screens, their captions and every part are drawn as they are with the notes
 
 A flag may also be written --flag=value.
 
@@ -161,7 +182,7 @@ Exit codes: 0 success · 1 an invalid proposal, an unreadable input or an unwrit
 class Failure extends Error {}
 
 function readArgs(argv) {
-  const args = parseArgs(argv, { flags: ['kit', 'out', 'letter'] });
+  const args = parseArgs(argv, { flags: ['kit', 'out', 'letter'], switches: ['without-notes'] });
   if (args.help) return args;
   const { positional, flags } = args;
   if (positional.length !== 1) throw new UsageError(`render takes one <proposal.json>, got ${positional.length}`);
@@ -170,7 +191,7 @@ function readArgs(argv) {
   }
   const letter = flags.letter ?? 'A';
   if (!LETTER.test(letter)) throw new UsageError(`--letter must be one capital letter, A to Z; it is "${letter}"`);
-  return { path: positional[0], kit: flags.kit, out: flags.out, letter };
+  return { path: positional[0], kit: flags.kit, out: flags.out, letter, notes: flags['without-notes'] !== true };
 }
 
 function readInput(file) {
@@ -213,7 +234,7 @@ function stylesheets(kit) {
 }
 
 // Everything is read and checked before anything is written.
-function draw({ path, kit, out, letter }) {
+function draw({ path, kit, out, letter, notes }) {
   if (sameFile(out, path)) throw new UsageError('--out is the proposal itself: drawing would overwrite it');
   const sheets = stylesheets(kit);
   // Each stylesheet lands beside the page under its own name, on a file system that may ignore case.
@@ -223,7 +244,7 @@ function draw({ path, kit, out, letter }) {
   const errors = check(proposal);
   if (errors.length) throw new Failure(`cannot draw ${path}: it is not a valid proposal\n${errors.join('\n')}`);
   const css = sheets.map(name => [name, readInput(join(kit, name))]);
-  const page = renderProposal(proposal, { letter });
+  const page = renderProposal(proposal, { letter, notes });
   const folder = dirname(out);
   try {
     mkdirSync(folder, { recursive: true });
@@ -232,7 +253,7 @@ function draw({ path, kit, out, letter }) {
   }
   writeOutput(out, page);
   for (const [name, data] of css) writeOutput(join(folder, name), data);
-  process.stdout.write(`drew option ${letter} to ${out}, with ${sheets.join(', ')} beside it\n`);
+  process.stdout.write(`drew option ${letter} to ${out},${notes ? '' : ' without the makers\' notes,'} with ${sheets.join(', ')} beside it\n`);
 }
 
 function main(argv) {

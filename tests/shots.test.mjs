@@ -693,6 +693,60 @@ test('the screen is the width by 900 px at scale 1, and the picture is the whole
   assert.deepEqual(pngSize(join(out, 'tall-390-light.png')), { width: 390, height: 3000 });
 });
 
+// R171 of the dry run: a board's pictures were whole pages, up to 5074 px high, and no reader could say what is
+// on the first screen "without scrolling". Asked for, the first screen is pictured alone, beside the whole page.
+test('with firstScreen, each page is pictured twice: the whole page, and its first screen alone, the window as it opens, 900 px high', async () => {
+  const dir = fresh();
+  // 900 px of red, then 2100 of blue; and a green bar held to the bottom of the window, as a pinned question is.
+  const tall = page(dir, 'tall.html', '<div style="height: 900px; background: rgb(255,0,0)"></div><div style="height: 2100px; background: rgb(0,0,255)"></div><div style="position: fixed; left: 0; right: 0; bottom: 0; height: 60px; background: rgb(0,255,0)"></div>', '<style>html, body { margin: 0 }</style>\n');
+  const short = page(dir, 'short.html', '<div style="height: 100px; background: rgb(255,255,0)"></div>', '<style>html, body { margin: 0 }</style>\n');
+  const out = join(dir, 'shots');
+  const result = await shoot([dir], { out, widths: [1280, 390], themes: ['light'], firstScreen: true });
+  assert.deepEqual(result.errors, []);
+  const whole = [1280, 390].flatMap(width => ['short', 'tall'].map(name => join(out, `${name}-${width}-light.png`)));
+  const first = whole.map(file => file.replace(/\.png$/, '-first.png'));
+  assert.deepEqual(result.files, whole, 'the whole pages, as ever');
+  assert.deepEqual(result.first, first, 'and the first screen of each, in the same order');
+  assert.deepEqual(readdirSync(out).sort(), [...whole, ...first].map(file => basename(file)).sort());
+  for (const width of [1280, 390]) {
+    // The whole page is as high as the page; its first screen is the window, whatever the page's height.
+    assert.deepEqual(pngSize(join(out, `tall-${width}-light.png`)), { width, height: 3000 });
+    assert.deepEqual(pngSize(join(out, `tall-${width}-light-first.png`)), { width, height: 900 });
+    assert.deepEqual(pngSize(join(out, `short-${width}-light-first.png`)), { width, height: 900 });
+    // It is the top of the page, not scrolled: red to the bar, which sits where the window ends.
+    assert.equal(colourAt(join(out, `tall-${width}-light-first.png`), 3, 3), RED);
+    assert.equal(colourAt(join(out, `tall-${width}-light-first.png`), 3, 830), RED);
+    assert.equal(colourAt(join(out, `tall-${width}-light-first.png`), 3, 880), GREEN, 'what is pinned to the window is on its first screen');
+    assert.equal(colourAt(join(out, `tall-${width}-light.png`), 3, 1500), BLUE);
+    assert.equal(colourAt(join(out, `short-${width}-light-first.png`), 3, 50), YELLOW);
+  }
+  assert.equal(result.titles[tall], 'tall.html');
+  assert.equal(result.titles[short], 'short.html');
+});
+
+test('without firstScreen no first screen is pictured, and one an earlier run left is not touched; with it, a page that gets no picture loses both', async () => {
+  const dir = fresh();
+  const fine = page(dir, 'fine.html', '<p>Fine.</p>');
+  const gone = page(dir, 'gone.html', '<script>location.href = "nowhere.html"</script>\n<p>Sent away.</p>');
+  const out = join(dir, 'shots');
+  mkdirSync(out);
+  for (const name of ['fine-390-light-first.png', 'gone-390-light-first.png', 'gone-390-light.png']) writeFileSync(join(out, name), 'an older picture');
+  const plain = await shoot([dir], { out, widths: [390] });
+  assert.deepEqual(plain.files, [join(out, 'fine-390-light.png')]);
+  assert.deepEqual(plain.first, []);
+  assert.deepEqual(readdirSync(out).sort(), ['fine-390-light-first.png', 'fine-390-light.png', 'gone-390-light-first.png']);
+  assert.equal(readFileSync(join(out, 'fine-390-light-first.png'), 'utf8'), 'an older picture');
+  // Asked for: the page that opened has both, fresh; the one that left has neither, and its older ones are gone.
+  writeFileSync(join(out, 'gone-390-light.png'), 'an older picture');
+  const both = await shoot([dir], { out, widths: [390], firstScreen: true });
+  assert.deepEqual([both.files, both.first], [[join(out, 'fine-390-light.png')], [join(out, 'fine-390-light-first.png')]]);
+  assert.deepEqual(readdirSync(out).sort(), ['fine-390-light-first.png', 'fine-390-light.png']);
+  assert.deepEqual(pngSize(join(out, 'fine-390-light-first.png')), { width: 390, height: 900 });
+  assert.equal(messagesOf(both, gone).length, 1);
+  assert.deepEqual(messagesOf(both, fine), []);
+  for (const firstScreen of ['yes', 1, null]) await assert.rejects(shoot([dir], { out, widths: [390], firstScreen }), e => e instanceof TypeError && /^firstScreen must be true or false; it is /.test(e.message));
+});
+
 test('each theme is its own colour scheme; light is the default, and dark is asked for by name', async () => {
   const dir = fresh();
   const themed = page(
@@ -912,6 +966,29 @@ test('the CLI shoots a folder named with two words into another, prints one line
   assert.equal(r.stdout, `shot 12 pictures at 1280, 390 px, light and dark, into ${out}\n`);
   assert.equal(readdirSync(out).length, 12);
   assert.deepEqual(pngSize(join(out, 'C-390-dark.png')).width, 390);
+});
+
+test('the CLI pictures the first screen of each page too with --first-screen, and says so', () => {
+  const dir = fresh();
+  const pages = drawBoard(join(dir, 'board'));
+  writeFileSync(join(pages, 'A-screens.html'), renderProposal(load(LETTERS.A), { letter: 'A', notes: false }));
+  const out = join(dir, 'shots');
+  const r = run(pages, '--out', out, '--widths', '1280,390', '--first-screen');
+  assert.deepEqual([r.status, r.stderr], [0, '']);
+  assert.equal(r.stdout, `shot 8 pictures at 1280, 390 px, light, and the first screen of each, into ${out}\n`);
+  const names = ['A', 'A-screens', 'B', 'C'].flatMap(name => [1280, 390].flatMap(width => [`${name}-${width}-light.png`, `${name}-${width}-light-first.png`]));
+  assert.deepEqual(readdirSync(out).sort(), names.sort());
+  for (const name of names.filter(file => file.endsWith('-first.png'))) assert.equal(pngSize(join(out, name)).height, 900, name);
+  // The page drawn without the makers' notes is the shorter of the two, and its first screen reaches further into its screens.
+  assert.ok(pngSize(join(out, 'A-screens-390-light.png')).height < pngSize(join(out, 'A-390-light.png')).height);
+  // A switch takes no value; without it, the line and the folder are as they always were.
+  const valued = run(pages, '--out', out, '--widths', '390', '--first-screen=yes');
+  assert.equal(valued.status, 2);
+  assert.ok(valued.stderr.startsWith('--first-screen takes no value\n\nUsage: node scripts/shots.mjs'), valued.stderr);
+  const plain = join(dir, 'plain');
+  const again = run(pages, '--out', plain, '--widths', '390');
+  assert.deepEqual([again.status, again.stdout], [0, `shot 4 pictures at 390 px, light, into ${plain}\n`]);
+  assert.deepEqual(readdirSync(plain).sort(), ['A-390-light.png', 'A-screens-390-light.png', 'B-390-light.png', 'C-390-light.png']);
 });
 
 test('the CLI prints one line per error and exits 1, unless --allow-errors; the pictures are taken either way', () => {
@@ -1308,7 +1385,10 @@ describe('what never comes back is waited for no longer than its limit', { concu
 test('the CLI prints its usage for --help and exits 0', () => {
   const r = run('--help');
   assert.equal(r.status, 0);
-  assert.ok(r.stdout.startsWith('Usage: node scripts/shots.mjs <file or folder>... --out <folder> --widths <w,w...>'), r.stdout);
+  assert.ok(r.stdout.startsWith('Usage: node scripts/shots.mjs <file or folder>... --out <folder> --widths <w,w...> [--themes light,dark] [--first-screen] [--chrome <path>] [--timeout <ms>] [--allow-errors]\n'), r.stdout);
+  const help = r.stdout.replace(/\s+/g, ' ');
+  for (const said of ['--first-screen also picture the first screen of each page alone: the window as the page opens, its width by 900 px, with no scrolling', 'named <name>-<width>-<theme>-first.png, beside the whole page',
+    'What is pinned to the window is in it, where she meets it', 'Without it no first screen is pictured, and one an earlier run left is not touched']) assert.ok(help.includes(said), said);
   assert.match(r.stdout, /reduced motion/);
   // What a user could trip on, said where they look.
   assert.match(r.stdout, /A script error raised after the picture is taken is not seen\./);

@@ -2716,7 +2716,7 @@ test('structure: the map and the pick sit beside the board and never in it, and 
   assert.match(drawn, /The board holds the letters' files, the drawn pages with the kit's stylesheets, and the pictures: nothing else is ever put in it/);
   // The pictures are taken into the board, where the conductor puts them, and the decision page is built beside it.
   const commands = stageCommands('structure');
-  assert.ok(commands.includes('node <kit root>/scripts/shots.mjs <package>/04-structure/board --out <package>/04-structure/board --widths <primary>,<phone>'));
+  assert.ok(commands.includes('node <kit root>/scripts/shots.mjs <package>/04-structure/board --out <package>/04-structure/board --widths <primary>,<phone> --first-screen'));
   assert.ok(commands.includes('node <kit root>/scripts/page.mjs <package>/04-structure/decision.json --out <package>/04-structure/decision.html'));
   assert.match(flat(reference('blind.md')), /scripts\/shots\.mjs <board dir> --out <board dir> --widths/);
   // The pick: from its template, beside the board, one line and his words under it.
@@ -2805,7 +2805,11 @@ test('structure: a judge is handed the board folder, an audience the pictures on
     }
   }
   const audience = leads(subsection(seats, '`audience.task-reader`'));
-  assert.match(audience.Handed, /the pictures of every letter drawn without the makers' notes, at the width each task puts her at, each by its path in `<package>\/04-structure\/board\/`: the whole page, and its first screen alone\. The pictures, and pictures only\./);
+  assert.match(audience.Handed, /the pictures of every letter drawn without the makers' notes, at the width each task puts her at, each by its path in `<package>\/04-structure\/board\/`: the whole page, as `A-screens-390-light\.png`, and its first screen alone, as `A-screens-390-light-first\.png`\. The pictures, and pictures only\./);
+  // The names are the ones the two scripts give: the page drawn without the notes, pictured whole and as its first screen.
+  assert.match(KIT.usage('scripts/shots.mjs').replace(/\s+/g, ' '), /named <name>-<width>-<theme>-first\.png, beside the whole page/);
+  assert.match(flat(seats), /`<letter>\.html` carries them, and `<letter>-screens\.html` does not\./);
+  assert.match(flat(seats), /A picture of the first screen is the window's height, with no scrolling, and its name ends `-first\.png`\./);
   assert.match(audience['Do not open'], /her profession's profile itself; the pages and the letters' files of the board/);
   // The copy of her profession's traits lies beside her brief, as the loop has it: the one file of work/ she is handed.
   assert.match(audience.Handed, /with every `So the interface must:` field removed, written beside the brief as the loop says, and the one file of `<package>\/work\/` she opens/);
@@ -2839,7 +2843,8 @@ test('structure: every command is one its script takes, in the order of the stag
     'node <kit root>/scripts/describe.mjs --provider <openai|gemini> --model <id> --brief <package>/04-structure/<brief> --out <package>/04-structure/proposals/<name>.json --profile <packages>/PROFILE.md',
     'node <kit root>/scripts/merge.mjs <package>/04-structure/proposals --out <package>/04-structure/board',
     'node <kit root>/scripts/render.mjs <package>/04-structure/board/<letter>.json --kit <kit dir> --out <package>/04-structure/board/<letter>.html --letter <letter>',
-    'node <kit root>/scripts/shots.mjs <package>/04-structure/board --out <package>/04-structure/board --widths <primary>,<phone>',
+    'node <kit root>/scripts/render.mjs <package>/04-structure/board/<letter>.json --kit <kit dir> --out <package>/04-structure/board/<letter>-screens.html --letter <letter> --without-notes',
+    'node <kit root>/scripts/shots.mjs <package>/04-structure/board --out <package>/04-structure/board --widths <primary>,<phone> --first-screen',
     'node <kit root>/scripts/page.mjs <package>/04-structure/decision.json --out <package>/04-structure/decision.html',
     'node <kit root>/scripts/state.mjs await <package> structure --question "<the one question>"',
     'node <kit root>/scripts/merge.mjs open <package>/04-structure/board',
@@ -2947,7 +2952,7 @@ test('structure: makers start in one message on what the cast sheet names, a pro
   assert.match(tag, /That proposal goes back to its maker once, a fresh sub-agent in the same seat\. One that fails again is moved to `<package>\/04-structure\/proposals\/left-out\/`, and the decision page says so\. You repair none: that would make you a maker/);
   assert.match(KIT.usage('scripts/merge.mjs'), /sub-folders\nare not read/);
   // A shared machine: one command after another, three browser-driving at most, and no process stopped by name.
-  assert.match(stepOf(steps, 'Merge, draw, photograph'), /Render once for each letter, then the shots once, at the brief's two widths\..*Never more than three browser-driving commands or seats at once\./);
+  assert.match(stepOf(steps, 'Merge, draw, photograph'), /Render twice for each letter, the second time without the makers' notes, for the audiences; then the shots once, at the brief's two widths, every page pictured twice, whole and as its first screen alone: `references\/seats\.md` says who is handed which\..*Never more than three browser-driving commands or seats at once\./);
   assert.match(flat(structureRef('seats.md')), /The makers are started in one message, after his yes to the brief and never before\. Those that drive a browser, the screen generators, are started three at a time at most\. A proposal the merge refuses goes back once: to a fresh sub-agent in the same seat, with the same brief, its own file and the fault as the merge printed it/);
   assert.match(never, /\*\*Never stop a process by name or by pattern,\*\* or start a browser other than through the kit's scripts/);
 });
@@ -3140,17 +3145,25 @@ test('Structure runs as written: its own commands on the fixture proposals, the 
     assert.ok(existsSync(join(round, MAP)) && !existsSync(join(round, 'board', MAP)), 'the map is beside the board, never in it');
     for (const letter of LETTERS) {
       assert.deepEqual(validate(letterFile(letter), { sealed: true }), [], letter);
-      run(commandOf('render.mjs <package>/04-structure/board/'), { '<letter>': letter });
+      const [withNotes, withoutNotes] = stageCommands('structure').filter(command => command.includes('render.mjs <package>/04-structure/board/'));
+      assert.ok(!withNotes.includes('--without-notes') && withoutNotes.endsWith('--letter <letter> --without-notes'), 'drawn with the notes, then without');
+      run(withNotes, { '<letter>': letter });
       const page = readFileSync(join(round, 'board', `${letter}.html`), 'utf8');
       assert.ok(page.includes(`<h1>Option ${letter}: `) && page.includes('<link rel="stylesheet" href="kit.css">'), letter);
       assert.doesNotMatch(page, /tool:stitch|calendar\.json|free-first|unified-list/, letter);
+      // R171 with R154: the page for the audiences carries the letter and the screens, and nothing a maker said of the design.
+      assert.match(run(withoutNotes, { '<letter>': letter }), new RegExp(`^drew option ${letter} to \\S.*${letter}-screens\\.html, without the makers' notes, with `));
+      const bare = readFileSync(join(round, 'board', `${letter}-screens.html`), 'utf8');
+      assert.ok(bare.includes(`<h1>Option ${letter}</h1>`) && page.includes('class="ux-note"') && page.includes('<dt>Its bet</dt>'), letter);
+      assert.doesNotMatch(bare, /ux-note|<dl>|Its bet|Deliberately bad at/, letter);
+      for (const words of [letterFile(letter).name, letterFile(letter).bet, letterFile(letter).cost]) assert.ok(!bare.includes(words), `${letter}: ${words}`);
       // The pictures are the picture script's to take, and its own tests drive the browser: here each is a stand-in.
-      for (const width of [FILL['<phone>'], FILL['<primary>']]) writeFileSync(join(round, 'board', `${letter}-${width}-light.png`), '');
+      for (const name of [letter, `${letter}-screens`]) for (const width of [FILL['<phone>'], FILL['<primary>']]) for (const end of ['', '-first']) writeFileSync(join(round, 'board', `${name}-${width}-light${end}.png`), '');
     }
-    assert.deepEqual(inBoard(), [...LETTERS.flatMap(letter => [`${letter}-1280-light.png`, `${letter}-390-light.png`, `${letter}.html`, `${letter}.json`]), 'kit.css'].sort());
+    assert.deepEqual(inBoard(), [...LETTERS.flatMap(letter => [letter, `${letter}-screens`].flatMap(name => [`${name}-1280-light-first.png`, `${name}-1280-light.png`, `${name}-390-light-first.png`, `${name}-390-light.png`, `${name}.html`])), ...LETTERS.map(letter => `${letter}.json`), 'kit.css'].sort());
   };
   board();
-  assert.equal(commandOf('shots.mjs <package>/04-structure/board'), 'node <kit root>/scripts/shots.mjs <package>/04-structure/board --out <package>/04-structure/board --widths <primary>,<phone>');
+  assert.equal(commandOf('shots.mjs <package>/04-structure/board'), 'node <kit root>/scripts/shots.mjs <package>/04-structure/board --out <package>/04-structure/board --widths <primary>,<phone> --first-screen');
   // A board is never merged twice, and its map is shut until a pick is written.
   const twice = exec(commandOf('merge.mjs <package>'));
   assert.deepEqual([twice.status, twice.stdout], [1, '']);
@@ -3172,7 +3185,7 @@ test('Structure runs as written: its own commands on the fixture proposals, the 
     const page = readFileSync(join(round, 'decision.html'), 'utf8');
     assert.ok(page.indexOf('<section class="gallery">') > page.indexOf('<section class="options">'), 'the gallery is beneath the options');
     assert.ok(page.includes('href="board/A-390-light.png"') || page.includes('src="board/A-390-light.png"'));
-    assert.equal(inBoard().length, 13, 'the decision page and the gallery are not in the board');
+    assert.equal(inBoard().length, LETTERS.length * 11 + 1, 'the decision page and the gallery are not in the board');
     assert.equal(run(commandOf('state.mjs await')), 'structure awaits the founder');
   };
   decide();
@@ -3238,7 +3251,7 @@ test('Structure runs as written: its own commands on the fixture proposals, the 
   writeFileSync(join(round, 'chosen', 'chosen.json'), JSON.stringify(letterFile('B')));
   run(commandOf('render.mjs <package>/04-structure/chosen/'), { '<letter>': 'B' });
   assert.ok(readFileSync(join(round, 'chosen', 'chosen.html'), 'utf8').includes('<h1>Option B: '));
-  assert.equal(inBoard().length, 13);
+  assert.equal(inBoard().length, LETTERS.length * 11 + 1);
   const opened = run(commandOf('merge.mjs open')).split('\n');
   assert.deepEqual(opened.map(line => line.split('  ')[0]), LETTERS);
   assert.deepEqual(opened.map(line => line.split('  ')[1]).sort(), FIXTURES.map(name => `${name}.json`));
@@ -5750,7 +5763,7 @@ test('the dry run, Structure and Detail: a rule selects what a maker is given, t
   }
   says(stageRef('detail', 'seats.md'), 'every row of the context\'s inventory that states a limit, a delay or a failure, as the context states it. The rule selects them: you weigh none, and leave none out.');
   // R171: each letter is drawn with the makers\' notes and without, each page pictured whole and as its first screen.
-  says(stepOf(section(structure, 'Steps'), 'Merge, draw, photograph'), 'Each letter is then drawn once more for the audiences, without the makers\' notes, and every page is pictured twice, whole and as its first screen alone');
+  says(stepOf(section(structure, 'Steps'), 'Merge, draw, photograph'), 'Render twice for each letter, the second time without the makers\' notes, for the audiences; then the shots once, at the brief\'s two widths, every page pictured twice, whole and as its first screen alone');
   says(stepOf(section(structure, 'Steps'), 'Start the readers, by letter'), 'then the audiences, once every judge has written its ledger', 'an audience is handed the pictures only, each by its path, those drawn without the makers\' notes');
   says(seats, 'The audiences are handed the pictures of the pages drawn without them, and no other.', 'A brief says which is which, and that "without scrolling" is answered on the first.',
     'An audience is started once every judge has written its ledger, and not before.', 'A judge\'s brief asks that the "Where" of each finding open with the letters it holds for');

@@ -111,12 +111,13 @@ each profession's profile, `audience.task-reader-<name>` for each person.
 
 Each letter is on the board twice, and each page is pictured twice:
 
-- **Drawn with the makers' notes, and without them.** The judges read the pages with the notes: the
-  bet, the cost, what a letter is deliberately bad at, and the notes on its screens and items. The
-  audiences are handed the pictures of the pages drawn without them, and no other.
+- **Drawn with the makers' notes, and without them.** `<letter>.html` carries them, and
+  `<letter>-screens.html` does not. The judges read the pages with the notes: the bet, the cost,
+  what a letter is deliberately bad at, and the notes on its screens and items. The audiences are
+  handed the pictures of the pages drawn without them, and no other.
 - **The whole page, and its first screen alone.** A picture of the first screen is the window's
-  height, with no scrolling. A brief says which is which, and that "without scrolling" is answered on
-  the first.
+  height, with no scrolling, and its name ends `-first.png`. A brief says which is which, and that
+  "without scrolling" is answered on the first.
 
 A judge's brief asks that the "Where" of each finding open with the letters it holds for, so that
 what is open on his pick can be read off the ledger. A brief names first the pictures the seat's
@@ -184,7 +185,8 @@ person the makers were not briefed on.
   `So the interface must:` field removed, written beside the brief as the loop says, and the one
   file of `<package>/work/` she opens. And the pictures of every letter drawn without the makers'
   notes, at the width each task puts her at, each by its path in `<package>/04-structure/board/`:
-  the whole page, and its first screen alone. The pictures, and pictures only.
+  the whole page, as `A-screens-390-light.png`, and its first screen alone, as
+  `A-screens-390-light-first.png`. The pictures, and pictures only.
 - **Do not open:** the list above, and with it: `<package>/02-intent.md`, and every other file of the
   package; her profession's profile itself; the pages and the letters' files of the board, with the
   pictures of the pages that carry the makers' notes. A person cannot find a control by reading

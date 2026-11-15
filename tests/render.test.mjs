@@ -124,6 +124,39 @@ test('the header shows the letter, the name, the bet, the cost, what is absent a
   assert.ok(headerOf(free).includes('<li>A &quot;show free rooms&quot; filter: the screen does the filtering</li>'));
 });
 
+// R171 with R154 of the dry run: the pictures an audience is handed carried the makers' reasons, which she is never given.
+// What the page is without the makers' notes: the page as it is drawn, less its name and what the founder judges it by, and less every note.
+const withoutNotes = page => page
+  .replace(headerOf(page), `<header>\n  <h1>${headerOf(page).match(/<h1>(Option [A-Z]): /)[1]}</h1>\n</header>\n`)
+  .replace(/^ *<p class="ux-note">.*<\/p>\n/gm, '');
+
+test('without the makers\' notes the page keeps its letter and its screens, and holds no name, bet, cost, absence, hardest state or note; nothing else changes', () => {
+  for (const [i, name] of ALL.entries()) {
+    const p = load(name);
+    const letter = 'ABCD'[i];
+    const full = renderProposal(p, { letter });
+    const bare = renderProposal(p, { letter, notes: false });
+    assert.equal(headerOf(bare), `<header>\n  <h1>Option ${letter}</h1>\n</header>\n`, name);
+    assert.equal(bare, withoutNotes(full), `${name}: the page with the notes, less the notes`);
+    assert.doesNotMatch(bare, /<dl>|<dt>|<dd>|ux-note|Its bet|Deliberately bad at|Absent on purpose|In the hardest state/, name);
+    assert.ok(count(full, 'class="ux-note"') > 0 && full.includes('<dl>'), `${name}: the page with the notes has some`);
+    // Every frame is there, with its caption and what a dialog opens over, and every part with its id.
+    for (const part of ['<section class="ux-frame"', '<h2>', 'class="ux-over"', 'data-ux="', '<button', '<nav', '<details']) assert.equal(count(bare, part), count(full, part), `${name}: ${part}`);
+    assert.match(bare, new RegExp(`<title>Option ${letter}</title>`));
+    // With the notes is how a page is drawn when nothing is said, and when it is said.
+    assert.equal(renderProposal(p, { letter, notes: true }), full);
+  }
+  // The makers' words for the whole are not on the page, in any form.
+  const p = load(PROPOSALS[1]);
+  const bare = renderProposal(p, { letter: 'B', notes: false });
+  for (const words of [p.name, p.bet, p.cost, p.hardest, ...p.absent]) assert.ok(!bare.includes(words), words);
+  // A letter copy, which carries no first idea and no word of who made it, draws the same page without them as its source does.
+  const { firstIdea, author, engine, track, model, source, ...copy } = load(PROPOSALS[0]);
+  assert.ok(firstIdea !== undefined && [author, engine, track, model, source].some(value => value !== undefined), 'the fixture is a source');
+  assert.equal(renderProposal(copy, { letter: 'A', notes: false }), renderProposal(load(PROPOSALS[0]), { letter: 'A', notes: false }));
+  for (const notes of ['no', 0, null, 'false']) assert.throws(() => renderProposal(p, { letter: 'B', notes }), e => e instanceof TypeError && /^notes must be true or false; it is /.test(e.message), JSON.stringify(notes));
+});
+
 test('the first idea is never drawn: neither its words nor its key', () => {
   for (const name of ALL) {
     const p = load(name);
@@ -449,6 +482,25 @@ test('the CLI draws a proposal, copies kit.css beside it, works in paths with sp
   assert.deepEqual(readFileSync(join(dir, 'the board', 'kit.css')), readFileSync(join(greyKit, 'kit.css')));
 });
 
+test('the CLI draws the page without the makers\' notes with --without-notes, says so, and draws it with them without the switch', () => {
+  const dir = fresh();
+  const input = fixturePath(PROPOSALS[1]);
+  const [withNotes, without] = [join(dir, 'board', 'B.html'), join(dir, 'board', 'B-screens.html')];
+  const drawn = run(input, '--kit', greyKit, '--out', withNotes, '--letter', 'B');
+  assert.deepEqual([drawn.status, drawn.stderr, drawn.stdout], [0, '', `drew option B to ${withNotes}, with kit.css beside it\n`]);
+  const bare = run(input, '--kit', greyKit, '--out', without, '--letter', 'B', '--without-notes');
+  assert.deepEqual([bare.status, bare.stderr, bare.stdout], [0, '', `drew option B to ${without}, without the makers' notes, with kit.css beside it\n`]);
+  assert.equal(readFileSync(withNotes, 'utf8'), renderProposal(load(PROPOSALS[1]), { letter: 'B' }));
+  assert.equal(readFileSync(without, 'utf8'), renderProposal(load(PROPOSALS[1]), { letter: 'B', notes: false }));
+  assert.deepEqual(readdirSync(join(dir, 'board')).sort(), ['B-screens.html', 'B.html', 'kit.css']);
+  // A switch takes no value, and comes anywhere.
+  const first = run('--without-notes', input, '--kit', greyKit, '--out', without, '--letter', 'B');
+  assert.deepEqual([first.status, first.stdout], [0, bare.stdout]);
+  const valued = run(input, '--kit', greyKit, '--out', without, '--without-notes=yes');
+  assert.equal(valued.status, 2);
+  assert.ok(valued.stderr.startsWith('--without-notes takes no value\n\nUsage: node scripts/render.mjs'), valued.stderr);
+});
+
 test('the CLI reads a proposal file that starts with a byte-order mark, and strips only that one', () => {
   const dir = fresh();
   const json = JSON.stringify(load(EVERY), null, 2);
@@ -669,7 +721,10 @@ test('the CLI --help prints the usage, naming every flag and the exit codes, and
     const r = run(...args);
     assert.equal(r.status, 0, args.join(' '));
     assert.equal(r.stderr, '');
-    assert.match(r.stdout, /^Usage: node scripts\/render\.mjs <proposal\.json> --kit <kit dir> --out <file\.html> \[--letter A\]\n/);
+    assert.match(r.stdout, /^Usage: node scripts\/render\.mjs <proposal\.json> --kit <kit dir> --out <file\.html> \[--letter A\] \[--without-notes\]\n/);
+    const help = r.stdout.replace(/\s+/g, ' ');
+    for (const said of ['--without-notes draw the page for a reader who must not see the makers\' notes', 'its heading is the option\'s letter alone', 'with no name, no bet, no cost, nothing of what is absent or of the hardest state, and no note on a screen or an item',
+      'the screens, their captions and every part are drawn as they are with the notes']) assert.ok(help.includes(said), said);
     for (const word of ['--kit', '--out', '--letter', 'kit.css', 'every stylesheet', 'not named like one of the kit\'s stylesheets', 'not the proposal itself', 'A when not given', '--flag=value', '0 success', '1 an invalid proposal', '2 bad usage']) {
       assert.ok(r.stdout.includes(word), word);
     }
