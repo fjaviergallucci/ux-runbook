@@ -24,7 +24,11 @@
 //                select's chosen options joined by ", ", else the text whose own element is rendered
 //                (its box aside), as written, whatever text-transform does
 //                A placeholder is not text; a field that is not painted reads "".
-//                Two blocks with no white space between them read as joined.
+//                Two texts read with one space between them when a block starts or ends between them
+//                (their nearest element that is not laid out in a line differs: a paragraph, a list
+//                item, a table cell, an item of a flex or grid row), or a <br> that is shown stands
+//                between them; texts on one line of one block read as written, joined when nothing is
+//                written between them. An empty block between two texts of one block adds nothing.
 //                A container's text does not include the values of the fields inside it.
 //                A submit input with no value, and a date input, read their value, not what the browser
 //                draws.
@@ -198,7 +202,8 @@
   }
 
   // What an element shows as text: a text field's value, a select's chosen options, else the text whose
-  // own element is shown; a field that is not shown, "". Throws a Miss for an input that shows no text.
+  // own element is shown, a space put between two texts that a block's edge or a line break parts; a field
+  // that is not shown, "". Throws a Miss for an input that shows no text.
   var NO_TEXT = ['checkbox', 'radio', 'file', 'hidden', 'range', 'color', 'image', 'password'];
   function shownText(element) {
     var field = element.localName === 'input' || element.localName === 'textarea' || element.localName === 'select';
@@ -211,15 +216,48 @@
       }).join(', ');
     }
     var seen = new Map();
+    var blocks = new Map();
     var text = '';
-    var walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
-    for (var node = walker.nextNode(); node; node = walker.nextNode()) {
-      var parent = node.parentElement;
+    var last = null;
+    var broken = false;
+    var shows = function (parent) {
       // A textarea's own text is its first value, not what it shows: a field's value is not a container's.
       if (!seen.has(parent)) seen.set(parent, parent.localName !== 'textarea' && unshown(parent) === null);
-      if (seen.get(parent)) text += node.data;
+      return seen.get(parent);
+    };
+    var walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
+    for (var node = walker.nextNode(); node; node = walker.nextNode()) {
+      if (node.nodeType !== Node.TEXT_NODE) {
+        if (node.localName === 'br' && getComputedStyle(node).display !== 'none' && shows(node.parentElement)) broken = true;
+        continue;
+      }
+      if (!shows(node.parentElement)) continue;
+      // Two texts she does not see on one line, a block or a line break between them, read apart.
+      var block = blockOf(node.parentElement, element, blocks);
+      if (broken || block !== last) text += ' ';
+      text += node.data;
+      last = block;
+      broken = false;
     }
     return text;
+  }
+
+  // The block a text is laid out in: the nearest element it is in, up to `root`, that does not sit in a
+  // line itself (as an inline, an inline block and a ruby do) and has a box (display: contents has none).
+  var IN_LINE = /^(inline|ruby|contents$)/;
+  function blockOf(parent, root, known) {
+    var path = [];
+    var at = parent;
+    while (at !== root && !known.has(at) && IN_LINE.test(getComputedStyle(at).display)) {
+      path.push(at);
+      at = at.parentElement;
+    }
+    var block = known.has(at) ? known.get(at) : at;
+    path.push(at);
+    path.forEach(function (passed) {
+      known.set(passed, block);
+    });
+    return block;
   }
 
   // The elements an element is written in that might cut it away, nearest first, up to and with the body:

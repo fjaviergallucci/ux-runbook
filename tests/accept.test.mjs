@@ -1209,6 +1209,42 @@ describe('the in-page file, evaluated through a driver of its own', () => {
     ]);
   });
 
+  // F96 of the dry run: a check written to what she sees ("Room 5 free") read "Room 5free" on the approved page.
+  test('text: what the element shows, so two blocks, two lines, two cells and two items read with a space between them, and one line reads as written', async () => {
+    const body = [
+      '<div data-ux="blocks"><p>Room 5</p><p>free</p></div>',
+      '<div data-ux="mixed">Longest free first<p>Room 5, free until 12:00</p>Room 1</div>',
+      '<p data-ux="line">Room <b>5</b><span>, free</span></p>',
+      '<p data-ux="break">Room 2<br>12<span>:</span>30</p>',
+      '<ul data-ux="items"><li>Room 1</li><li>Room 2</li></ul>',
+      '<table><tr data-ux="row"><td>Room 3</td><td>09:50</td></tr></table>',
+      '<div data-ux="flex" style="display: flex"><span>Room 4</span><span>free</span></div>',
+      '<p data-ux="atomic"><span style="display: inline-block">Room</span><span style="display: inline-block">6</span></p>',
+      '<div data-ux="contents"><span>Room</span><div style="display: contents"><span>7</span></div></div>',
+      '<div data-ux="closed"><p>Room 8</p><p hidden>closed</p><p>free</p></div>',
+      '<div data-ux="nested"><section><h3>Free now</h3><div><p>Room 9</p></div></section><p>1 room</p></div>',
+      '<p data-ux="hidden-break">Room<br hidden>10</p>',
+    ].join('');
+    const ids = ['blocks', 'mixed', 'line', 'break', 'items', 'row', 'flex', 'atomic', 'contents', 'closed', 'nested', 'hidden-break'];
+    const results = await evaluate(body, [...ids.map(id => c(id, 'text', { matches: '.' })), c('blocks', 'text', { equals: 'Room 5 free' }), c('blocks', 'text', { equals: 'Room 5free' })]);
+    assert.deepEqual(shown(results), [
+      ['blocks', true, 'Room 5 free', ''],
+      ['mixed', true, 'Longest free first Room 5, free until 12:00 Room 1', ''],
+      ['line', true, 'Room 5, free', ''],
+      ['break', true, 'Room 2 12:30', ''],
+      ['items', true, 'Room 1 Room 2', ''],
+      ['row', true, 'Room 3 09:50', ''],
+      ['flex', true, 'Room 4 free', ''],
+      ['atomic', true, 'Room6', ''],
+      ['contents', true, 'Room7', ''],
+      ['closed', true, 'Room 8 free', ''],
+      ['nested', true, 'Free now Room 9 1 room', ''],
+      ['hidden-break', true, 'Room10', ''],
+      ['blocks', true, 'Room 5 free', ''],
+      ['blocks', false, 'Room 5 free', 'the text is "Room 5 free", not "Room 5free"'],
+    ]);
+  });
+
   test('order: each id after the one before it in the document; a container comes before what it holds', async () => {
     const body = '<p data-ux="a">a</p><div data-ux="list"><p data-ux="b">b</p></div><p data-ux="c">c</p>';
     const results = await evaluate(body, [
@@ -1514,7 +1550,7 @@ describe('the in-page file, evaluated through a driver of its own', () => {
       c('unseen', 'text', { equals: 'Free' }),
       c('seen-again', 'text', { equals: 'shown' }),
       c('expansion', 'text', { equals: 'Later today' }),
-      c('blocks', 'text', { equals: 'Room2' }),
+      c('blocks', 'text', { equals: 'Room 2' }),
       c('no-box', 'text', { equals: 'hanging words' }),
     ];
     assert.deepEqual(shown(await evaluate(body, checks, { then: typed })), [
@@ -1530,7 +1566,7 @@ describe('the in-page file, evaluated through a driver of its own', () => {
       ['unseen', true, 'Free', ''],
       ['seen-again', true, 'shown', ''],
       ['expansion', true, 'Later today', ''],
-      ['blocks', true, 'Room2', ''],
+      ['blocks', true, 'Room 2', ''],
       ['no-box', true, 'hanging words', ''],
     ]);
   });
@@ -1665,7 +1701,7 @@ describe('the in-page file, evaluated through a driver of its own', () => {
       c('greeting', 'text', { equals: 'Hello world' }),
       c('gone-', 'count', { equals: 0 }),
       c('skipped-', 'count', { equals: 0 }),
-      c('row-1', 'text', { equals: 'Room 1free' }),
+      c('row-1', 'text', { equals: 'Room 1 free' }),
       c('row-1', 'visible'),
       c('row-1', 'min-size', { minWidth: 1, minHeight: 1 }),
       c('row-1', 'in-viewport'),
@@ -1678,7 +1714,7 @@ describe('the in-page file, evaluated through a driver of its own', () => {
       ['greeting', true, 'Hello world', ''],
       ['gone-', true, 0, ''],
       ['skipped-', true, 0, ''],
-      ['row-1', true, 'Room 1free', ''],
+      ['row-1', true, 'Room 1 free', ''],
       ['row-1', false, null, noBox],
       ['row-1', false, null, noBox],
       ['row-1', false, null, noBox],
