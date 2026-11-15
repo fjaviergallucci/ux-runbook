@@ -21,6 +21,9 @@ this seat, filled:}
 - {A prototype builder: the folder of the kit, and the two widths.}
 - {A visual designer: the lens to load; whether motion is cast; what the founder marked in a fresh pass;
   each "without scrolling" criterion, word for word; for a direction, the one detailed screen to draw.}
+- {A screen generator: its engine, as `engines-on` of the project profile has it, on or off. On: "Your
+  tool is on in this project." Off: "Your tool is not turned on in this project: work as your card's
+  'Without the tool' says, and call no outside tool." Never leave this line out.}
 - {A maker started again: the founder's answers this seat waits for, as he said them; or the entries it
   is sent back with, by where they sit.}
 

@@ -72,6 +72,11 @@ names this seat, with the provider and the model id of that line. Its card,
 It sits in a fresh pass, or as one more kind of proposal when the cast sheet says so. Either way it
 answers the fresh brief, the one brief that asks for screens as they came, and never the describers'.
 
+- **Its brief,** from `templates/briefs/maker.md`, carries the line that template keeps for it,
+  from `engines-on` of the project profile: the tool is on where that line lists `tool:stitch`, and
+  off everywhere else, with what off means: work as its card's "Without the tool" says, and call no
+  outside tool. You read the project profile, and the seat never does: a brief that does not say
+  is off.
 - **Handed:** `<package>/04-structure/BRIEF-fresh.md`, alone. Its brief names the folder it writes
   into.
 - **Do not open:** the design system and its tokens; the project's kit, `<kit dir>`, and the

@@ -103,6 +103,11 @@ gives it:
 
 At Look it sits only inside a fresh pass, and chooses only the paint.
 
+- **Its brief,** from `templates/briefs/maker.md`, carries the line that template keeps for it,
+  from `engines-on` of the project profile: the tool is on where that line lists `tool:stitch`, and
+  off everywhere else, with what off means: work as its card's "Without the tool" says, and call no
+  outside tool. You read the project profile, and the seat never does: a brief that does not say
+  is off.
 - **Handed:** `<package>/06-look/BRIEF-fresh.md`, alone. Its brief names the folder it writes into.
 - **Do not open:** the design system and `<tokens>`; the project's kit, `<kit dir>`, and the kit's
   own; today's screens and the sibling surfaces, as pictures or as source;

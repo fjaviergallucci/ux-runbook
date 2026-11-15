@@ -2824,7 +2824,7 @@ test('structure: a judge is handed the board folder, an audience the pictures on
     for (const lead of ['Handed', 'Do not open', 'Writes']) assert.ok(said[lead], `${id}: ${lead}`);
     // Every seat a sub-agent sits in has its brief from its shelf's template; the outside describer is a script.
     if (id === 'maker.outside-describer') assert.match(flat(part), /No sub-agent sits here\. You run the command of step 5/);
-    else if (id !== 'maker.screen-generator' && id !== 'maker.transcriber') assert.ok(said['Its brief'].includes(`\`templates/briefs/${card.shelf}.md\``), `${id}: its brief`);
+    else if (id !== 'maker.transcriber') assert.ok(said['Its brief'].includes(`\`templates/briefs/${card.shelf}.md\``), `${id}: its brief`);
     // What its card reads, it is handed. Today's screens are the usability judge's at Context, and nobody's here.
     for (const token of card.reads) {
       if (token === 'brief' || AFTER_STRUCTURE.includes(token) || (id === 'judge.usability' && token === 'current-screens')) continue;
@@ -2868,6 +2868,24 @@ test('structure: a judge is handed the board folder, an audience the pictures on
   assert.match(leads(subsection(seats, '`maker.screen-generator`')).Handed, /^`<package>\/04-structure\/BRIEF-fresh\.md`, alone\./);
   assert.match(leads(subsection(seats, '`maker.transcriber`')).Writes, /You tag it with the track and the engine of the concept it wrote down, never with its own/);
   assert.match(flat(seats), /A card of the project's own that the cast sheet seats here is handed what its header's `reads` allows, by the same rule/);
+});
+
+// G1 of the final review: a sub-agent in the screen generator's seat is never handed the project profile, so its brief tells it,
+// from `engines-on`, whether its tool is on; at both stages, and a brief that does not say is off.
+test('the screen generator\'s brief says whether its tool is on, from engines-on, at Structure and at Look: off means no outside tool', () => {
+  const template = flat(read('templates/briefs/maker.md'));
+  assert.ok(template.includes('{A screen generator: its engine, as `engines-on` of the project profile has it, on or off. On: "Your tool is on in this project." Off: "Your tool is not turned on in this project: work as your card\'s \'Without the tool\' says, and call no outside tool." Never leave this line out.}'));
+  for (const [stage, seats] of [['structure', structureRef('seats.md')], ['look', stageRef('look', 'seats.md')]]) {
+    const brief = leads(subsection(seats, '`maker.screen-generator`'))['Its brief'];
+    assert.ok(brief, `${stage}: the screen generator's brief`);
+    assert.ok(brief.includes('from `templates/briefs/maker.md`, carries the line that template keeps for it, from `engines-on` of the project profile: the tool is on where that line lists `tool:stitch`, and off everywhere else, with what off means: work as its card\'s "Without the tool" says, and call no outside tool. You read the project profile, and the seat never does: a brief that does not say is off.'), stage);
+  }
+  assert.ok(flat(read('pool/makers/screen-generator.md')).includes('**Your brief says whether the tool is on. If it does not say, it is off.**'));
+  assert.match(flat(stageRef('look', 'fresh.md')), /\*\*`maker\.screen-generator`\*\* is a fresh sub-agent, handed the fresh brief alone, and its own brief says whether its tool is on, as `references\/seats\.md` gives it/);
+  assert.match(flat(stageRef('look', 'fresh.md')), /without its tool, the screen generator's seat is taken by a Claude maker, as its card says, and its brief says the tool is off/);
+  // Its card never reads the project profile, and no seat is handed one.
+  assert.ok(!kitCards()['maker.screen-generator'].reads.includes('profile'));
+  assert.match(flat(conductor()), /No seat is ever handed the project profile/);
 });
 
 test('structure: every command is one its script takes, in the order of the stage, and none passes an address, a seed or anything about a key', () => {
@@ -3896,7 +3914,7 @@ test('look: each seat is handed what its card reads and no more; a fresh maker t
     const reader = card.shelf !== 'maker';
     for (const lead of ['Handed', 'Do not open', 'Writes']) assert.ok(said[lead], `${id}: ${lead}`);
     const fresh = id === 'maker.screen-generator' || id === 'maker.outside-describer';
-    if (!fresh) assert.ok(said['Its brief'].includes(`\`templates/briefs/${card.shelf}.md\``), `${id}: its brief`);
+    if (id !== 'maker.outside-describer') assert.ok(said['Its brief'].includes(`\`templates/briefs/${card.shelf}.md\``), `${id}: its brief`);
     // What its card reads, it is handed: in its hand-over, or, for his marks, in its brief too.
     for (const token of card.reads) {
       // At Look the accessibility judge reads the final screens: the plain prototype was its read at Detail. And the visual

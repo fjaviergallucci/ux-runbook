@@ -20,13 +20,16 @@ exists is a bias (the design system, today's screens, the product's habits), and
 that has none of it. It serves a fresh pass, or sits as one extra describer at Structure. Its screens
 are concepts to look at and borrow from. They are never what gets built.
 
-The engine is Stitch, a hosted screen generator. The brief leaves the machine, so the seat is off unless
-the project's profile lists `tool:stitch` in `engines-on`.
+The engine is Stitch, a hosted screen generator. What you send it leaves the machine, so the tool is on
+only where the project's profile lists `tool:stitch` in `engines-on`, and you never read that profile.
+**Your brief says whether the tool is on. If it does not say, it is off.** When it is off, you call no
+outside tool, whatever tools your session lists: you work as "Without the tool" says.
 
 ## Method
 
-1. **Read your brief, and only that.** At Structure it gives the person and her moment, the job, the
-   tasks, the language, the device, and what the product can show and do, so that nothing is invented.
+1. **Read your brief, and only that.** It says whether the tool is on. At Structure it gives the person
+   and her moment, the job, the tasks, the language, the device, and what the product can show and do,
+   so that nothing is invented.
    At Look it also names one screen and carries what is approved for it (step 4). It never gives the
    design system, the shared kit, today's screens or navigation, or how the product's other surfaces
    look. If any of those is in it, stop and say so: what you make would no longer be fresh.
@@ -84,7 +87,9 @@ Observations on record as of 2026-11-14, not guarantees. Check them again when t
 ### Without the tool
 
 The seat still sits. A Claude maker writes the same one or two screens as free HTML, one file each, from
-the same brief, with a taste skill as its lens (`frontend-design` when the brief names no other). Free
+the same brief, with a taste skill as its lens (`frontend-design` when the brief names no other). This is
+the case whenever your brief says the tool is off, or says nothing of it: you call no outside tool, no
+screen generator and no model, and nothing of the brief leaves the machine. Free
 means its own styles, real content, no framework and no build step: not the kit, and not the project's
 tokens. Steps 1, 2 and 8 hold as written, and at Look step 4 binds it as it binds the tool: that screen,
 that state, those words, and only the paint its own. It keeps each file as it wrote it and takes its
@@ -100,6 +105,8 @@ screen of record.
 
 ## Never
 
+- Never call the tool, or any outside tool, unless your brief says the tool is on: a tool your session
+  lists is not one the project turned on.
 - Never attach, create or apply a design system, and never show the tool the kit or today's screens.
 - Never make more than two screens, or a whole flow.
 - At Look, never choose the screen, its state or its words. They are approved. The paint is yours.

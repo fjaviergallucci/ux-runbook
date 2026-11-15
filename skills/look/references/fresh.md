@@ -47,7 +47,7 @@ his yes under `## Reviewed by the founder` of `LOOK.md`, as he said it, with the
 out, and put the stage back in work with the `begin` of step 1 of the skill. A seat he holds back
 does not run. A provider that `engines-on` of the project profile does not list gets nothing, and
 you turn no engine on: without its tool, the screen generator's seat is taken by a Claude maker, as
-its card says.
+its card says, and its brief says the tool is off.
 
 - **Until `LOOK.md` holds his yes to this brief, no fresh maker is started.** A session that resumes
   and finds `BRIEF-fresh.md` with no yes to it written there is at this stop: it puts the brief to
@@ -61,8 +61,9 @@ its card says.
 After his yes, and never before. They may run while the visual designer of step 4 of the skill
 draws: neither sees the other's work. What each is handed is in `references/seats.md`.
 
-- **`maker.screen-generator`** is a fresh sub-agent, handed the fresh brief alone. It keeps its
-  screen as it came in `<package>/06-look/fresh/`, with its picture and the prompt that made it.
+- **`maker.screen-generator`** is a fresh sub-agent, handed the fresh brief alone, and its own brief
+  says whether its tool is on, as `references/seats.md` gives it. It keeps its screen as it came in
+  `<package>/06-look/fresh/`, with its picture and the prompt that made it.
 - **`maker.outside-describer`** is no sub-agent: you run it, once for each of its lines, on the
   brief he approved. These six flags and nothing else, since the script finds its key itself:
 

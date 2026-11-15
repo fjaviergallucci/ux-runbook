@@ -947,6 +947,24 @@ test('each of the five is someone in a moment at the clinic\'s front desk, with 
   }
 });
 
+// G1 of the final review: the one seat a sub-agent sits in whose engine sends the brief off the machine is told, by its brief,
+// whether its tool is on, and calls no outside tool unless it is told so.
+test('the screen generator calls its tool only when its brief says it is on: a brief that does not say is off', () => {
+  const { text } = cards.find(card => card.data.id === 'maker.screen-generator');
+  const head = flat(text.slice(0, text.indexOf('\n## ')));
+  assert.ok(head.includes('**Your brief says whether the tool is on. If it does not say, it is off.**'), 'the card says it before its method');
+  assert.match(head, /When it is off, you call no outside tool, whatever tools your session lists: you work as "Without the tool" says/);
+  assert.match(head, /you never read that profile/);
+  assert.doesNotMatch(head, /the seat is off/, 'the tool is off; the seat still sits');
+  assert.match(flat(sectionOf(text, 'Method')), /\*\*Read your brief, and only that\.\*\* It says whether the tool is on\./);
+  const without = flat(sectionOf(text, 'Method').split('### Without the tool')[1]);
+  assert.match(without, /This is the case whenever your brief says the tool is off, or says nothing of it: you call no outside tool, no screen generator and no model, and nothing of the brief leaves the machine/);
+  assert.match(flat(sectionOf(text, 'Never')), /Never call the tool, or any outside tool, unless your brief says the tool is on: a tool your session lists is not one the project turned on/);
+  // Its engine is the one setup turns on only on his yes, and the brief that tells it is a maker's brief.
+  assert.equal(cards.find(card => card.data.id === 'maker.screen-generator').data.engine, 'tool:stitch');
+  assert.match(flat(read('templates/briefs/maker.md')), /\{A screen generator: its engine, as `engines-on` of the project profile has it, on or off\. On: "Your tool is on in this project\." Off: "Your tool is not turned on in this project: work as your card's 'Without the tool' says, and call no outside tool\." Never leave this line out\.\}/);
+});
+
 test('the outside describer never mentions a key', () => {
   const { text } = cards.find(card => card.data.id === 'maker.outside-describer');
   assert.doesNotMatch(text, /\bkeys?\b|secret|credential|password/i);
