@@ -81,8 +81,9 @@ or in the specialty's section. One you do not run goes into the ledger, with the
    That list goes to the founder or to a real professional, never to the maker.
 6. **Know your stage.** At *Intent* the artefact is the intent itself: does it name the profile, the
    specialty and the person, and do its tasks and criteria fit the work as the card describes it? At
-   *Structure* you run the six on every option, by its letter, flag what blocks, then rank the options,
-   as you do the letters of a beside comparison at *Look*: each gap *clear*, *slight* or *tie*. *Detail*
+   *Structure* you run the six on every option, by its letter, flag what blocks, then rank the options
+   for this profession, with the size of each gap (*clear*, *slight* or *tie*) and one reason. You
+   rank the letters of a beside comparison at *Look* the same way, in a `-beside` ledger. *Detail*
    is your main read: every screen, state and string. At *Look* all six run on the final screens:
    criterion 6, the "nothing competing" of criterion 4 and any `physical` check are read in full, and
    the other four are confirmed unchanged by the look. At *Acceptance* you read the build, as pictures.

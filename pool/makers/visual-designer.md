@@ -6,7 +6,7 @@ sits-at: [look]
 cast-when: The detail is approved and the screens need their final look, or a change is visual.
 presets: [adjustment, surface, flow, system]
 loaded-with: none
-reads: [brief, chosen-structure, states-and-rules, strings, prototype, tokens, design-system, fresh-marks, person, profile]
+reads: [brief, chosen-structure, states-and-rules, strings, prototype, tokens, design-system, fresh-marks, person, profile, kit]
 never-reads: []
 engine: skill:frontend-design:frontend-design
 suggested-model: fable

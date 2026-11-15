@@ -3664,8 +3664,9 @@ test('look: each seat is handed what its card reads and no more; a fresh maker t
     if (!fresh) assert.ok(said['Its brief'].includes(`\`templates/briefs/${card.shelf}.md\``), `${id}: its brief`);
     // What its card reads, it is handed: in its hand-over, or, for his marks, in its brief too.
     for (const token of card.reads) {
-      // At Look the accessibility judge reads the final screens: the plain prototype was its read at Detail.
-      if (AT_ANOTHER_STAGE.includes(token) || (id === 'judge.accessibility' && token === 'prototype')) continue;
+      // At Look the accessibility judge reads the final screens: the plain prototype was its read at Detail. And the visual
+      // designer reads the kit only when it rebuilds it, after a direction is picked: direction.md hands it over there.
+      if (AT_ANOTHER_STAGE.includes(token) || (id === 'judge.accessibility' && token === 'prototype') || (id === 'maker.visual-designer' && token === 'kit')) continue;
       if (token === 'brief') {
         if (fresh) assert.match(said.Handed, /^`<package>\/06-look\/BRIEF-fresh\.md`/, `${id}: the fresh brief`);
         continue;
@@ -3687,6 +3688,12 @@ test('look: each seat is handed what its card reads and no more; a fresh maker t
       assert.match(said.Writes, /`<package>\/06-look\/reads\/<seat>(?:-<name>)?(?:-beside)?\.md`, in the shape of `templates\/outputs\/(?:LEDGER|TASK-READ)\.md`/, id);
     }
   }
+  // What the visual designer's card reads, in full: the kit is the last of it, for the rebuild after a direction pick, where it is
+  // handed the kit folder and its contract.
+  assert.deepEqual(cards['maker.visual-designer'].reads, ['brief', 'chosen-structure', 'states-and-rules', 'strings', 'prototype', 'tokens', 'design-system', 'fresh-marks', 'person', 'profile', 'kit']);
+  assert.match(flat(stageRef('look', 'direction.md')), /A fresh `maker\.visual-designer`, handed the token file, `<kit dir>` and `kit\/KIT-CONTRACT\.md`, restyles the kit's classes/);
+  assert.doesNotMatch(leads(subsection(seats, '`maker.visual-designer`')).Handed, /`<kit dir>`|KIT-CONTRACT/, 'in its main hand-over the visual designer is free of the kit\'s parts, and is not handed them');
+  assert.match(flat(read('pool/CARD-FORMAT.md')), /\| `kit` \| The shared kit, the project's or the grey one: its stylesheets, its parts and its contract\. \|/);
   // Ruling R143: the visual designer is handed her card and her profession's profile, whole; a fresh maker neither.
   assert.match(leads(subsection(seats, '`maker.visual-designer`')).Handed, /And the two lines the maker's brief template keeps for them: her card, by the path the carry list names, and her profession's profile, whole\. A fresh maker is handed neither/);
   for (const id of ['maker.screen-generator', 'maker.outside-describer']) assert.ok(!cards[id].reads.includes('person') && !cards[id].reads.includes('profile'), id);
@@ -3831,7 +3838,7 @@ test('look: a fresh pass draws the one screen with its approved words, only the 
   assert.match(flat(presets()), /With a fresh pass at Look, three seats read the beside comparison/);
   assert.match(flat(reference('fresh-pass.md')), /The profile judge, who reads with her profession's profile, and one audience rank the two\. The truth judge flags anything the product cannot do\. The system fidelity judge lists what the system lacks to make each thing he may want/);
   // The cards of the two judges say what they do in a fresh pass: the profile judge ranks the letters, the system fidelity judge reads twice.
-  assert.match(flat(read('pool/judges/profile.md')), /At \*Structure\* you run the six on every option, by its letter, flag what blocks, then rank the options, as you do the letters of a beside comparison at \*Look\*: each gap \*clear\*, \*slight\* or \*tie\*/);
+  assert.match(flat(read('pool/judges/profile.md')), /At \*Structure\* you run the six on every option, by its letter, flag what blocks, then rank the options for this profession, with the size of each gap \(\*clear\*, \*slight\* or \*tie\*\) and one reason\. You rank the letters of a beside comparison at \*Look\* the same way, in a `-beside` ledger/);
   assert.match(flat(read('pool/judges/profile.md')), /the "Cannot tell" list; at Structure or in a `-beside` ledger, the ranking, each gap with a reason/);
   assert.match(read('pool/judges/system-fidelity.md'), /\| borrow-list \| A fresh pass ran[^|]+\| Two reads\. Between his two answers, your brief asks for the list alone, in a ledger of its own: for each thing he marked, what the system has for it and what it would need, a token, a part, a pattern, or nothing new\. In your main read, check that what was rebuilt uses only tokens and named extensions, with no value and no code taken from the fresh screen/);
   assert.match(flat(read('pool/judges/system-fidelity.md')), /With the `borrow-list` check the list has a ledger of its own, between the founder's two answers/);

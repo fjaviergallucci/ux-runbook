@@ -111,16 +111,15 @@ test('each picture is copied under a letter, as <letter><its extension>; the sea
 });
 
 test('the sealed file is named for the folder, in capitals, in the folder\'s parent; the folders above the folder are made; a path with a space works', () => {
-  const dir = fresh(['the shots/today 1280.png', 'a fresh one/outside openai.jpg']);
-  const r = run(dir, 'the shots/today 1280.png', 'a fresh one/outside openai.jpg', '--out=06 look/side by side');
+  const dir = fresh(['the shots/today 1280.jpg', 'a fresh one/outside openai.jpg']);
+  const r = run(dir, 'the shots/today 1280.jpg', 'a fresh one/outside openai.jpg', '--out=06 look/side by side');
   assert.deepEqual([r.status, r.stderr], [0, '']);
   assert.equal(r.stdout, 'dealt 2 versions into 06 look/side by side: A, B\n');
   assert.equal(sealedBeside(join(dir, '06 look', 'side by side')), join(dir, '06 look', 'SIDE BY SIDE.sealed.json'));
   const sealed = sealedOf(join(dir, '06 look'), 'SIDE BY SIDE');
   assert.equal(sealed.folder, 'side by side');
-  // Each copy keeps its own extension.
-  const names = Object.entries(sealed.letters).map(([letter, source]) => `${letter}${source.slice(source.lastIndexOf('.'))}`).sort();
-  assert.deepEqual(readdirSync(join(dir, '06 look', 'side by side')).filter(visible).sort(), names);
+  // Each copy keeps its picture's extension.
+  assert.deepEqual(readdirSync(join(dir, '06 look', 'side by side')).filter(visible).sort(), ['A.jpg', 'B.jpg']);
   // An absolute folder is dealt into as well, and --out . is refused: the folder must not be there.
   const elsewhere = fresh();
   assert.equal(run(elsewhere, ...TWO, '--out', join(elsewhere, 'deep', 'er', 'beside')).status, 0);
@@ -205,6 +204,49 @@ test('a picture that is not a file, a picture named twice, versions of unequal s
   refused(many, [...Array.from({ length: 27 }, (_, i) => `p${i}.png`), '--out', 'beside'], /^cannot deal 27 versions: there are 26 letters\n$/);
   // The folder is not made by a deal that is refused, so the next one is not refused for it.
   assert.equal(run(dir, ...TWO, '--out', 'beside').status, 0);
+});
+
+test('versions whose pictures are of different types are refused before anything is written: A.png beside B.jpg would tell them apart', () => {
+  const pictures = ['shots/today.png', 'fresh/one.jpg', 'fresh/two.PNG', 'shots/today-390.jpg', 'fresh/one-390.png', 'fresh/plain'];
+  const dir = fresh(pictures);
+  const differ = types => new RegExp(`^cannot deal: the pictures at the same place in every version must share one extension, so that no letter stands out; they have ${types}\\n$`);
+  refused(dir, [pictures[0], pictures[1], '--out', 'beside'], differ('\\.jpg, \\.png'));
+  // The case of an extension shows in a name too, and so does having none.
+  refused(dir, [pictures[0], pictures[2], '--out', 'beside'], differ('\\.PNG, \\.png'));
+  refused(dir, [pictures[0], pictures[5], '--out', 'beside'], differ('none, \\.png'));
+  // In a group it is each place that must agree: the first pictures with each other, the second with each other.
+  refused(dir, ['--group', `system=${pictures[0]},${pictures[3]}`, '--group', `one=${pictures[1]},${pictures[4]}`, '--out', 'beside'], differ('\\.jpg, \\.png'));
+  refused(dir, ['--group', `system=${pictures[0]},${pictures[3]}`, '--group', `one=${pictures[4]},${pictures[2]}`, '--out', 'beside'], differ('\\.PNG, \\.jpg'));
+  const r = run(dir, '--group', `system=${pictures[0]},${pictures[3]}`, '--group', `one=${pictures[4]},${pictures[1]}`, '--out', 'beside');
+  assert.deepEqual([r.status, r.stderr], [0, '']);
+  assert.deepEqual(readdirSync(join(dir, 'beside')).filter(visible).sort(), ['A-1.png', 'A-2.jpg', 'B-1.png', 'B-2.jpg']);
+  // And it is checked before the first copy.
+  let copies = 0;
+  assert.throws(() => deal([pictures[0], pictures[1]].map(picture => ({ pictures: [join(dir, picture)] })), join(dir, 'other'), { copy: () => copies++ }), DealError);
+  assert.equal(copies, 0);
+  assert.match(run(root, '--help').stdout, /A copy keeps its picture's extension, so the pictures at the same place in every version must share one:\nA\.png beside B\.jpg would tell the two apart, and is refused\./);
+});
+
+test('open passes over what a mount or a file browser leaves in a folder, and nothing else: the sealed file can still be read after someone has looked at the pictures', () => {
+  const dir = fresh();
+  assert.equal(run(dir, ...TWO, '--out', 'beside').status, 0);
+  const { letters } = sealedOf(dir);
+  for (const left of ['.DS_Store', 'Thumbs.db', 'desktop.ini', '.fuse_hidden0000a1b200000002']) {
+    writeFileSync(join(dir, 'beside', left), '');
+    const r = run(dir, 'open', 'beside');
+    assert.deepEqual([r.status, r.stderr], [0, ''], left);
+    assert.equal(r.stdout, `A  ${letters.A}\nB  ${letters.B}\n`, left);
+  }
+  // Any other name is something the deal did not put there: a note, a hidden file of another kind, a name that only looks alike.
+  for (const stray of ['notes.txt', '.hidden', 'thumbs.db.png', 'Desktop.ini.bak', '.DS_Store2']) {
+    writeFileSync(join(dir, 'beside', stray), '');
+    const r = run(dir, 'open', 'beside');
+    assert.deepEqual([r.status, r.stdout], [1, ''], stray);
+    assert.match(r.stderr, /^cannot open beside: the folder holds /, stray);
+    assert.ok(r.stderr.includes(stray) && !r.stderr.includes('.DS_Store,') && !r.stderr.includes('Thumbs.db,'), stray);
+    rmSync(join(dir, 'beside', stray));
+  }
+  assert.match(run(root, '--help').stdout, /what a\nmount or a file browser leaves in a folder \(\.fuse_hidden\*, \.DS_Store, Thumbs\.db, desktop\.ini\) is passed\nover\./);
 });
 
 test('a folder that is already there, even empty, and a sealed file left beside it are refused before anything is copied: letters are dealt once', () => {

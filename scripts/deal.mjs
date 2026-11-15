@@ -21,8 +21,9 @@ import { reason } from './lib/json-file.mjs';
 
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 const SEALED = '.sealed.json';
-// A name a mount keeps for a file that is still open: no part of what a folder holds.
-const HIDDEN = /^\.fuse_hidden/;
+// No part of what a folder holds: a name a mount keeps for a file that is still open, and what a file
+// browser leaves behind where it has looked.
+const HIDDEN = /^(?:\.fuse_hidden.*|\.DS_Store|Thumbs\.db|desktop\.ini)$/;
 
 const USAGE = `Usage: node scripts/deal.mjs <picture>... --out <folder> [--group <name>=<picture>,<picture>]
        node scripts/deal.mjs open <folder>
@@ -49,14 +50,20 @@ or fails leaves nothing behind.
                      for each such version; <name> is kept in the sealed file and nowhere else, and a
                      picture's path holds no comma. Every version has as many pictures as the others
 
+A copy keeps its picture's extension, so the pictures at the same place in every version must share one:
+A.png beside B.jpg would tell the two apart, and is refused.
+
 open prints the sealed file of <folder>, one line per letter: the letter and its source, or its group's
-name and pictures. It refuses a folder that does not hold exactly what its sealed file dealt.
+name and pictures. It refuses a folder that does not hold exactly what its sealed file dealt; what a
+mount or a file browser leaves in a folder (.fuse_hidden*, .DS_Store, Thumbs.db, desktop.ini) is passed
+over.
 
 A flag may also be written --flag=value.
 
 Exit codes: 0 success · 1 a refusal (a picture that is not a file or is named twice, versions of unequal
-size, more than 26, a folder that is there, a sealed file beside it, an output that cannot be written; for
-open, no sealed file, one that is not a sealed file, or not this folder's) · 2 bad usage.
+size or of different picture types, more than 26, a folder that is there, a sealed file beside it, an
+output that cannot be written; for open, no sealed file, one that is not a sealed file, or not this
+folder's) · 2 bad usage.
 `;
 
 // A refusal deal explains in one message.
@@ -180,6 +187,11 @@ function check(versions, out, sealed) {
   if (twice !== undefined) throw new DealError(`cannot deal: two groups are named ${JSON.stringify(twice)}`);
   const sizes = [...new Set(versions.map(version => version.pictures.length))].sort((a, b) => a - b);
   if (sizes.length > 1) throw new DealError(`cannot deal: every version must have as many pictures as the others, so that no letter stands out; they have ${sizes.join(', ')}`);
+  // The copies keep their extensions: one that differs from version to version would name its version.
+  versions[0].pictures.forEach((_, n) => {
+    const types = [...new Set(versions.map(version => extname(version.pictures[n])))].sort();
+    if (types.length > 1) throw new DealError(`cannot deal: the pictures at the same place in every version must share one extension, so that no letter stands out; they have ${types.map(type => type || 'none').join(', ')}`);
+  });
   if (present(out)) throw alreadyThere(out);
   if (present(sealed)) throw sealedBefore(out, sealed);
 }
