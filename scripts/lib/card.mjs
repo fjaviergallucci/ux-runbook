@@ -369,9 +369,9 @@ function checkProfileHeader(data, name, errors) {
 }
 
 // A profile's body: the seven characteristics, then any the project added, then the two closing sections;
-// each characteristic, and each one of a specialty, with its four fields and no block besides them; and the
-// criterion's label nowhere but at the start of a line, since that is the rule an audience's copy is made
-// by. `first` is the number, in the file, of the body's first line.
+// each characteristic, and each one of a specialty, with its four fields, no block besides them and no
+// fence; and the criterion's label nowhere but at the start of a line, since that is the rule an
+// audience's copy is made by. `first` is the number, in the file, of the body's first line.
 function checkProfileBody(body, first, errors) {
   const fail = message => {
     errors.push(`body: ${message}`);
@@ -395,7 +395,10 @@ function checkProfileBody(body, first, errors) {
 // The four fields of one characteristic, `where` naming it: each there once, its label at the start of a
 // line, and a block of its own, so that one field can be taken out and the others left. And no block
 // besides them: a field is one block, so what stands apart from it, as a list after a blank line under the
-// criterion's label, would stay when the field is taken out. `numbers` holds each line's number in the file.
+// criterion's label, would stay when the field is taken out. Nor any code fence: a field is prose, a list
+// or both, and a blank line inside a fence, which this check never sees, would end the field there in the
+// copy. Of a fence, `lines` holds its opening line alone, as sectionsOf keeps it: a fence that opens a
+// block is said once, as a fence. `numbers` holds each line's number in the file.
 function checkFields(lines, numbers, where, fail) {
   const labels = FIELDS.map(labelOf);
   for (const label of labels) {
@@ -406,7 +409,9 @@ function checkFields(lines, numbers, where, fail) {
   }
   lines.forEach((line, i) => {
     const opens = line.trim() !== '' && (i === 0 || lines[i - 1].trim() === '');
-    if (opens && !labels.some(label => line.startsWith(label))) {
+    if (FENCE.test(line)) {
+      fail(`${where}: line ${numbers[i]} opens a code fence: a field is prose, a list or both, from its label to the next blank line, and a blank line inside a fence would end the field there, leaving the rest in an audience's copy`);
+    } else if (opens && !labels.some(label => line.startsWith(label))) {
       fail(`${where}: line ${numbers[i]} opens a block with none of the four labels (${labels.map(label => `"${label}"`).join(', ')}): a field is one block, from its label to the next blank line, and what stands apart from it would stay in an audience's copy`);
     }
   });

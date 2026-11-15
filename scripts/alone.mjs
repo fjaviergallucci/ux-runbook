@@ -422,9 +422,9 @@ of the folder" or "<link>: a link: it leads nowhere", and the exit code is 1. In
 name like any other. Without --package no link is judged, but where an address leads through one.
 
 When every address leads to a file inside the folder it prints one line, "<folder> stands alone: <n>
-references in <m> files, each to a file inside it"; with --package, and no place that points back, the
-line goes on: "; and none of its <k> text files names a file or folder of <package> that it does not
-hold". Nothing is written, and no browser is started.
+references in <m> files, each to a file inside it"; with --package, and no place that points back and no
+link that leads out of the folder or nowhere, the line goes on: "; and none of its <k> text files names
+a file or folder of <package> that it does not hold". Nothing is written, and no browser is started.
 
   --package <package>   the package the folder is in, as design/today for design/today/07-handoff; not
                         the folder itself, nor a folder inside it

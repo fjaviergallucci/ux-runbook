@@ -623,5 +623,7 @@ test('--help says what --package reads, what a name is, and what is let be', () 
     'In the package a link is a name like any other',
     'Nor is a name written another way than the package writes it, as my%20notes for "my notes", or anything in a file that is no text here, as one in UTF-16',
     'not the folder itself, nor a folder inside it',
+    // S-N3 of the re-review: the success line with --package is printed only when no link leads out either.
+    'with --package, and no place that points back and no link that leads out of the folder or nowhere, the line goes on',
   ]) assert.ok(help.includes(said), said);
 });

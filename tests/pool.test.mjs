@@ -1480,6 +1480,40 @@ test('a characteristic holds no block that opens with none of the four labels: a
   for (const faulty of [text, twice, special]) quotesNothing(faultsIn(faulty), faulty);
 });
 
+// S-N2 of the re-review: a criterion written in a fence with a blank line inside it passed the check, which reads no fenced
+// line, and its copy kept what follows the blank, the fence's close with it. A field is prose, a list or both, with no blank
+// line inside it: a characteristic holds no fence, and the copy is refused through the check.
+const inFence = line => `line ${line} opens a code fence: a field is prose, a list or both, from its label to the next blank line, and a blank line inside a fence would end the field there, leaving the rest in an audience's copy`;
+test('a characteristic holds no code fence: a field is prose, a list or both, with no blank line inside it, and the copy is refused', () => {
+  const FENCED = '```\nSay what is free now.\n\nCall a room by the name on its door.\n```\n';
+  const over = `${TRAITS}\nSo the interface must:\n${FENCED}`;
+  const text = profileText({ sections: withSection('Usage context', over) });
+  const opens = lineOf(text, 'Say what is free now.') - 1;
+  assert.deepEqual(faultsIn(text), [`body: "## Usage context": ${inFence(opens)}`]);
+  // traits is refused through the check: no copy, and nothing of the fence reaches her.
+  assert.deepEqual(traitsOf(text, { file: PROFILE_FILE }), { faults: faultsIn(text), copy: null, fields: 0, paragraphs: 0 });
+  // A fence with no blank line inside it is refused all the same, of either character, indented or with a language; and a
+  // fence that opens a block of its own is said once, as a fence.
+  for (const fence of ['```\nSay what is free now.\n```\n', '~~~\nSay what is free now.\n~~~\n', '   ```text\nSay what is free now.\n   ```\n']) {
+    const tight = profileText({ sections: withSection('Scope', `${TRAITS}\nSo the interface must:\n${fence}`) });
+    assert.deepEqual(faultsIn(tight), [`body: "## Scope": ${inFence(lineOf(tight, 'Say what is free now.') - 1)}`], fence);
+    const apart = profileText({ sections: withSection('Scope', `${fieldsOf()}\n${fence}`) });
+    assert.deepEqual(faultsIn(apart), [`body: "## Scope": ${inFence(lineOf(apart, 'Say what is free now.') - 1)}`], fence);
+    // Under a trait's label too: whatever the field, it holds no fence.
+    const trait = profileText({ sections: withSection('Scope', fieldsOf().replace('What is true: She stands at a counter, the phone at her ear.\n', `What is true:\n${fence}`)) });
+    assert.deepEqual(faultsIn(trait), [`body: "## Scope": ${inFence(lineOf(trait, 'Say what is free now.') - 1)}`], fence);
+  }
+  // In a specialty, a "####" characteristic is held the same way.
+  const special = profileText({ sections: withSection('Specialties', `### Physiotherapy\n\n#### Usage context\n\n${over}`) });
+  assert.deepEqual(faultsIn(special), [`body: "#### Usage context" of "### Physiotherapy": ${inFence(lineOf(special, 'Say what is free now.') - 1)}`]);
+  // The closing sections are held to no field, and a fence stands there, as it does in a specialty's own words.
+  assert.deepEqual(profile({ sections: withSection('Optional characteristics', `${OPTIONAL}\n\`\`\`\nA note.\n\n\`\`\`\n`) }), []);
+  assert.deepEqual(profile({ sections: withSection('Specialties', `### Physiotherapy\n\n\`\`\`\nA note.\n\n\`\`\`\n\n#### Usage context\n\n${fieldsOf()}`) }), []);
+  // With CRLF the faults are the same; none quotes the profile.
+  assert.deepEqual(validateProfile(text.replace(/\n/g, '\r\n'), { file: PROFILE_FILE }), faultsIn(text));
+  for (const faulty of [text, special]) quotesNothing(faultsIn(faulty), faulty);
+});
+
 // ---- the audience's copy of a profile: its traits (R162)
 
 // What is said of a line of a profile that would carry a criterion into the copy: its number, and where it stands (S13).
@@ -1614,6 +1648,8 @@ test('card.mjs prints its usage for --help and -h, and the usage gives the two f
   for (const said of [`its id is profile.<name>, the name its file's`, ...CHARACTERISTICS, ...PROFILE_CLOSING, ...FIELDS.map(field => `"${field}:"`),
     'and "So the interface must:" is written nowhere but at the start of a line',
     'when no block of a characteristic opens without one of the four labels: a field written over two blocks, as its label, a blank line and a list, is refused',
+    // S-N2 of the re-review.
+    'when a characteristic holds no code fence: a field is prose, a list or both, with no blank line inside it',
     'A fault names a line of a profile by its number, and a field by its label: nothing a profile says is printed',
     'traits writes the audience\'s copy of a profession\'s profile to --out', 'without each "So the interface must:" field, from its label to the next blank line',
     'and without each paragraph before the first section that speaks of the fields themselves (one that says "fourth field" or "four fields")',
@@ -1623,6 +1659,8 @@ test('card.mjs prints its usage for --help and -h, and the usage gives the two f
   assert.match(USAGE, /A folder is not checked: files are named one by one/);
   assert.match(USAGE, /pool\/CARD-FORMAT\.md/);
   assert.match(USAGE, /\nExit codes: 0 [^·]+ · 1 [^·]+ · 2 bad usage\.\n$/);
+  // S-N3 of the re-review: the usage is wrapped as the kit's prose is, no line past 105 characters.
+  for (const line of USAGE.split('\n')) assert.ok(line.length <= 105, `${line.length}: ${line}`);
 });
 
 test('card.mjs check: a sound card of each shelf and a sound person are ok, each held to the format of the folder it is in', () => {
@@ -1928,6 +1966,14 @@ test('card.mjs traits refuses a copy in which the words are still written, namin
   assert.deepEqual(check(['check', over]), [1, `${over}: ${fault}\n`, '']);
   assert.deepEqual(check(['traits', over, '--out', out]), [1, '', notWritten(over, [fault])]);
   assert.ok(!existsSync(out));
+  // S-N2: so is a criterion written in a fence with a blank line inside it, the reviewer's form.
+  const fenced = put(pool, 'profiles/day-desk.md', profileText({ id: 'profile.day-desk', sections: withSection('Usage context', `${TRAITS}\nSo the interface must:\n\`\`\`\nSay what is free now.\n\nCall a room by its door name LEAK.\n\`\`\`\n`) }));
+  const fencedText = readFileSync(fenced, 'utf8');
+  const inside = `body: "## Usage context": ${inFence(lineOf(fencedText, 'Say what is free now.') - 1)}`;
+  assert.deepEqual(check(['check', fenced]), [1, `${fenced}: ${inside}\n`, '']);
+  const refusedFence = check(['traits', fenced, '--out', out]);
+  assert.deepEqual(refusedFence, [1, '', notWritten(fenced, [inside])]);
+  assert.ok(!existsSync(out) && !refusedFence[2].includes('LEAK'));
 });
 
 test('card.mjs traits: bad usage, and a copy that cannot be written', () => {
