@@ -78,10 +78,13 @@ Steps 1 to 6 write nothing: the package is made at the gate, on his yes.
    answers. You check nothing again here, and you turn nothing on.
 
 **Sized `correction`, Frame is one line:** the request, the three values and the route. Steps 4 to 6
-are not run: a correction casts no seat. He confirms the line, and it is written where the template's
-first instruction stands; each heading under it then says "See the line above", or "None: a correction
-casts no seat". What follows a correction's frame is in `skills/design/references/routes.md`, under "A
-correction".
+are not run: a correction casts no seat. **You state the line and ask nothing:** a correction costs one
+nod, and it is asked at Detail, on the picture of before and after, beside this line. So the package is
+made at once, by the commands of "Gate". The line is written where the template's first instruction
+stands; each heading under it then says "See the line above", or "None: a correction casts no seat",
+and `## Reviewed by the founder` holds his request, as he wrote it, and that the line waits for his nod
+at Detail. It is stamped in the words of that request. What follows a correction's frame is in
+`skills/design/references/routes.md`, under "A correction".
 
 ## Gate
 
@@ -90,6 +93,8 @@ name for the design (a word or two in lower case, as `today`: it names the packa
 values each with its why, the route, who it is for, the provisional cast and the engines missing. Then
 one question, about one thing: is this the right frame for it?
 
+- **Sized `correction`, this gate asks nothing:** the line is stated, the package is made at once and
+  the frame is stamped in the words of his request, since the one nod of a correction is asked at Detail.
 - **If he corrects a value,** change it, say what moves with it (a size moves the route and the cast),
   and put the whole frame to him again, with the same one question.
 - **On his yes, and not before, make the package:**
@@ -132,7 +137,8 @@ one question, about one thing: is this the right frame for it?
 - **Never start designing.** A frame says what the request is, never what the answer is: no layout, no
   component, no "it could be a list of rooms". An idea you have is written nowhere, in the frame or in
   the chat: it would reach the makers through you.
-- **Never make the package before he has agreed the three values.** `init` runs once.
+- **Never make the package before he has agreed the three values.** `init` runs once. A correction is
+  the one exception: its line is stated and not asked, and his nod at Detail is on it too.
 - **Never take the smaller size to save stages,** and never move a size down. A design that turns out
   bigger stops, says so, and is resized with his yes.
 - **Never skip a stage by leaving it out.** Only `route` changes a mode, with its reason, and Frame

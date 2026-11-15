@@ -86,11 +86,16 @@ before it, turns stale: it is redone or re-confirmed at the larger size, then st
 
 ## A correction
 
-A correction costs one nod. It is the one size where the session that conducts may also do the work.
+A correction costs one nod. It still goes through the skills, in their order, Frame first: `ux:frame`
+states its line and asks nothing, then `ux:detail` runs in its correction form, and Handoff and
+Acceptance in theirs. This section says what is different about a correction: it is not a procedure to
+run by itself. It is the one size where the session that conducts may also do the work.
 
-- **Frame in one line:** the request, the three values, the route.
-- **A before-and-after picture** of the change.
-- **The founder's nod** on that picture.
+- **Frame in one line:** the request, the three values, the route. It is stated, and not put to him.
+- **A before-and-after picture** of the change, made at Detail.
+- **The founder's nod** is on that picture, with Frame's line beside it: the one question a correction
+  asks. If he disagrees with the line itself, that is not a nod: the design is framed again, at the
+  size he names.
 - **The same session may apply it** after the nod. It leaves a one-paragraph record (what was wrong,
   what it is now, where, and his words) and the before-and-after picture.
 - **No pool.** No seat is cast, no brief is written and nothing is merged.

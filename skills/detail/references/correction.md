@@ -1,9 +1,9 @@
 # A correction at Detail
 
 A design sized `correction` is one wrong thing put right: a label, a token or a spacing value. Its
-route runs four stages, each in its short form, and this page is Detail's. It costs one nod. What a
-correction is, and when it stops being one, is the conductor's: `skills/design/references/routes.md`,
-under "A correction".
+route runs four stages, each in its short form, and this page is Detail's. It costs one nod, and the
+nod is asked here: Frame stated its line and asked nothing. What a correction is, and when it stops
+being one, is the conductor's: `skills/design/references/routes.md`, under "A correction".
 
 `<kit root>` and `<package>` are as the skill gives them, and every command is run from the project's
 root.
@@ -48,8 +48,13 @@ root.
 
 **One nod.** Put the page in front of him, and record the question with the `await` of the skill's
 gate. One question, about one thing: may this be changed so? **Stop: nothing is changed in the
-product before his nod.**
+product before his nod.** Frame's line goes beside the page, as `<package>/00-frame.md` has it: the
+request, the three values and the route. His nod is on both.
 
+- **If he disagrees with the line itself,** that answer is not a nod: it is not a correction, or not
+  of this kind. Write what he said under `## Reviewed by the founder`, resize the design to the size
+  he names, as the conductor's "Resuming" says, and go back to Frame. Nothing is changed in the
+  product.
 - **Write the one-paragraph record** under `## Reviewed by the founder`: what was wrong, what it is
   now, where, and his words, as he said them.
 - **Write the carry list:** the lines of the frame's own carry list, as they are, and a

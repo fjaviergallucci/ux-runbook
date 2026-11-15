@@ -41,7 +41,7 @@ const CASES = Object.freeze({
   'judge-does-not-redraw': { tools: ['Write', 'Edit'] },
   'audience-stays-blind': { tools: ['Write', 'Bash'] },
   'resume-from-disk': { tools: ['Bash', 'Write', 'Edit'] },
-  'correction-is-one-nod': { tools: ['Agent', 'Edit', 'Write', 'Bash'] },
+  'correction-is-one-nod': { tools: ['Agent', 'Edit', 'Write', 'Bash', 'Skill'] },
   'profile-judge-cannot-tell': { tools: ['Write'] },
   'cold-implementer-finds-the-gap': { tools: ['Write'] },
 });
@@ -487,8 +487,21 @@ test('correction-is-one-nod: a project set up, no package, and the wrong label i
   // It is the kit's own example of a correction, so the size is not in doubt.
   assert.ok(flat(read('skills/design/references/routes.md')).includes('| `correction` | a wrong label, token or spacing value |'));
   const all = graders(name);
-  assert.deepEqual([all['no-package-before-his-yes'].data.path, all['no-package-before-his-yes'].data.exists], ['**/state.json', false]);
-  assert.match('node /kit/scripts/state.mjs init design/book-label --design book-label', new RegExp(all['init-not-run'].data.input_match));
+  assert.deepEqual(Object.keys(all).sort(), ['at-most-one-question', 'criteria', 'frame-invoked', 'names-a-foundation', 'names-the-size', 'no-edit-into-the-project', 'no-seat-started', 'no-write-into-the-project', 'screen-not-changed-by-command']);
+  // What the case asks is what the kit says of a correction: Frame states its line and asks nothing, and the one nod is Detail's.
+  const frame = flat(read('skills/frame/SKILL.md'));
+  assert.ok(frame.includes('**Sized `correction`, Frame is one line:** the request, the three values and the route. Steps 4 to 6 are not run: a correction casts no seat. **You state the line and ask nothing:**'));
+  assert.ok(flat(read('skills/design/references/routes.md')).includes('It still goes through the skills, in their order, Frame first: `ux:frame` states its line and asks nothing'));
+  assert.ok(flat(read('skills/detail/references/correction.md')).includes('**Stop: nothing is changed in the product before his nod.**'));
+  // Frame makes the package at once, so no grader forbids `init`, a package or a file in the run's folder: a run's shell cannot write, and the session stops there.
+  for (const { data } of Object.values(all)) assert.ok(!/init|state\.json/.test(`${data.input_match ?? ''}${data.path ?? ''}`), 'nothing forbids the package');
+  // One question at most: none when it stops before the picture, the nod when it asks.
+  const twice = new RegExp(all['at-most-one-question'].body);
+  assert.deepEqual([all['at-most-one-question'].data.target, all['at-most-one-question'].data.match], ['last_message', 'not_contains']);
+  assert.match('Is this the right frame?\n\nAnd may the label be changed so?', twice);
+  assert.doesNotMatch('The frame: a correction.\n\nMay the label be changed so?', twice);
+  assert.doesNotMatch('The frame: a correction. The package cannot be made here.', twice);
+  for (const said of ['It does not put the frame to him as a question', 'whether the label may be changed so', 'In this run nothing can be written', 'are therefore not asked of this reply']) assert.ok(all.criteria.body.includes(said), said);
   // The frame's values are the kit's own words, and Frame's skill is what frames: a session that goes straight to the picture has skipped it.
   assert.match('a working-surface, on no-system, sized a correction', new RegExp(all['names-a-foundation'].body, all['names-a-foundation'].data.flags));
   assert.match('It is a Correction.', new RegExp(all['names-the-size'].body, all['names-the-size'].data.flags));
@@ -497,10 +510,15 @@ test('correction-is-one-nod: a project set up, no package, and the wrong label i
   assert.deepEqual([all['frame-invoked'].data.tool, 'max' in all['frame-invoked'].data], ['Skill', false]);
   assert.match('{"skill":"ux:frame"}', new RegExp(all['frame-invoked'].data.input_match));
   assert.ok(flat(read('skills/design/SKILL.md')).includes('**Otherwise it is a new design.** Invoke `ux:frame`.'));
-  // The label is not changed by a command either, and the rubric says which turn it judges.
-  assert.deepEqual([all['label-not-changed-by-command'].data.tool, all['label-not-changed-by-command'].data.max], ['Bash', 0]);
-  assert.match("sed -i 's/>Reserve</>Book room</' src/screens/today.html", new RegExp(all['label-not-changed-by-command'].data.input_match));
-  assert.ok(all.criteria.body.includes('Only this first reply is judged: the picture of before and after, his nod on it and the one-paragraph record come after his answer'));
+  // Nothing of the project's source is changed: by Write, by Edit or by a command that writes the screen's file. A command that only names the new label is not one.
+  for (const grader of ['no-write-into-the-project', 'no-edit-into-the-project']) {
+    const into = new RegExp(all[grader].data.input_match);
+    assert.match(`{"file_path":"/kit/evals/${name}/fixture/src/screens/today.html","content":"x"}`, into, grader);
+    assert.doesNotMatch(`{"file_path":"/run/design/label/00-frame.md","content":"in /kit/evals/${name}/fixture/src/screens/today.html"}`, into, grader);
+  }
+  const byCommand = new RegExp(all['screen-not-changed-by-command'].data.input_match);
+  for (const command of ["sed -i 's/>Reserve</>Book room</' src/screens/today.html", 'perl -pi -e s/Reserve/Book/ /kit/fixture/src/screens/today.html', 'echo x > src/screens/today.html']) assert.match(command, byCommand, command);
+  for (const command of ['grep -n Reserve src/screens/today.html', 'node /kit/scripts/state.mjs stamp design/label frame --words \\"It should read \\\\\\"Book room\\\\\\".\\"', 'cat src/screens/today.html | head']) assert.doesNotMatch(command, byCommand, command);
 });
 
 // ---- the seats' fixtures

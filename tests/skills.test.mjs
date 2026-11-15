@@ -1146,6 +1146,11 @@ test('routes.md: a correction costs one nod, and the same session may apply it',
   assert.match(text, /before-and-after picture/);
   assert.match(text, /No (?:pool|seat)/);
   assert.match(text, /touch(?:es)? more[^.]*stop/);
+  // It is no procedure of its own: the skills run in their order, Frame first, and the one nod is on the picture.
+  inOrder(text, [/A correction costs one nod\. It still goes through the skills, in their order, Frame first: `ux:frame` states its line and asks nothing, then `ux:detail` runs in its correction form, and Handoff and Acceptance in theirs\./,
+    /This section says what is different about a correction: it is not a procedure to run by itself\./, /\*\*Frame in one line:\*\* the request, the three values, the route\. It is stated, and not put to him\./,
+    /\*\*A before-and-after picture\*\* of the change, made at Detail\./,
+    /\*\*The founder's nod\*\* is on that picture, with Frame's line beside it: the one question a correction asks\. If he disagrees with the line itself, that is not a nod: the design is framed again, at the size he names\./], 'a correction, in routes.md');
 });
 
 test('blind.md: the map and the pick sit beside the board; a judge is handed the board folder, an audience the pictures only', () => {
@@ -1888,7 +1893,11 @@ test('frame: the package is made on his yes, with the three values he agreed, an
   assert.match(steps, /It is, unless the conductor sent you to a package that exists: a folder with a `state\.json`, whose next stage is `frame`\. That design was left half framed\. Its three values are in the state already: do not run `init` again\. Where `00-frame\.md` does not hold the request, ask him for it again, as he would write it: it is written from his answer, never from the chat\. Then go through steps 3 to 6, put the frame to him with the three values as they stand, and go on from "Write `00-frame\.md`", under "Gate"/);
   assert.match(gate, /- \*\*Write `00-frame\.md`\.\*\*/);
   // A correction: one line, and the rest is the conductor's.
-  assert.match(steps, /\*\*Sized `correction`, Frame is one line:\*\* the request, the three values and the route\. Steps 4 to 6 are not run: a correction casts no seat\. He confirms the line, and it is written where the template's first instruction stands/);
+  assert.match(steps, /\*\*Sized `correction`, Frame is one line:\*\* the request, the three values and the route\. Steps 4 to 6 are not run: a correction casts no seat\. \*\*You state the line and ask nothing:\*\* a correction costs one nod, and it is asked at Detail, on the picture of before and after, beside this line\. So the package is made at once, by the commands of "Gate"\. The line is written where the template's first instruction stands/);
+  assert.match(steps, /and `## Reviewed by the founder` holds his request, as he wrote it, and that the line waits for his nod at Detail\. It is stamped in the words of that request\./);
+  // The gate and the Never each say the exception, once.
+  assert.match(gate, /- \*\*Sized `correction`, this gate asks nothing:\*\* the line is stated, the package is made at once and the frame is stamped in the words of his request, since the one nod of a correction is asked at Detail\. - \*\*If he corrects a value,\*\*/);
+  assert.match(flat(section(text, 'Never')), /\*\*Never make the package before he has agreed the three values\.\*\* `init` runs once\. A correction is the one exception: its line is stated and not asked, and his nod at Detail is on it too\./);
   assert.match(steps, /What follows a correction's frame is in `skills\/design\/references\/routes\.md`, under "A correction"/);
   assert.match(gate, /If it refuses because a package of that name exists, that one is another design's: agree another name with him/);
   assert.match(read('scripts/lib/state.mjs'), /a package is initialised once/);
@@ -4066,7 +4075,7 @@ test('detail and look: the other forms — an adjustment keeps what changes and 
   const correction = stageRef('detail', 'correction.md');
   assert.deepEqual(headings(correction), ['What does not happen', 'Steps', 'The gate']);
   const top = flat(correction.slice(0, correction.indexOf('\n## ')));
-  assert.match(top, /A design sized `correction` is one wrong thing put right: a label, a token or a spacing value\. Its route runs four stages, each in its short form, and this page is Detail's\. It costs one nod/);
+  assert.match(top, /A design sized `correction` is one wrong thing put right: a label, a token or a spacing value\. Its route runs four stages, each in its short form, and this page is Detail's\. It costs one nod, and the nod is asked here: Frame stated its line and asked nothing\./);
   assert.match(top, /is the conductor's: `skills\/design\/references\/routes\.md`, under "A correction"/);
   assert.deepEqual(STAGES.filter(stage => routeFor('correction')[stage] === 'short'), ['frame', 'detail', 'handoff', 'acceptance']);
   const not = flat(section(correction, 'What does not happen'));
@@ -4087,7 +4096,8 @@ test('detail and look: the other forms — an adjustment keeps what changes and 
   // The page's data keeps its list of seats, empty: without the key the page is refused.
   assert.match(read('scripts/page.mjs'), /'a list of seats, empty when no seat read'/);
   const gate = flat(section(correction, 'The gate'));
-  inOrder(gate, [/^ \*\*One nod\.\*\* Put the page in front of him, and record the question with the `await` of the skill's gate\. One question, about one thing: may this be changed so\? \*\*Stop: nothing is changed in the product before his nod\.\*\*/,
+  inOrder(gate, [/^ \*\*One nod\.\*\* Put the page in front of him, and record the question with the `await` of the skill's gate\. One question, about one thing: may this be changed so\? \*\*Stop: nothing is changed in the product before his nod\.\*\* Frame's line goes beside the page, as `<package>\/00-frame\.md` has it: the request, the three values and the route\. His nod is on both\./,
+    /\*\*If he disagrees with the line itself,\*\* that answer is not a nod: it is not a correction, or not of this kind\. Write what he said under `## Reviewed by the founder`, resize the design to the size he names, as the conductor's "Resuming" says, and go back to Frame\. Nothing is changed in the product\./,
     /\*\*Write the one-paragraph record\*\* under `## Reviewed by the founder`: what was wrong, what it is now, where, and his words, as he said them/,
     /\*\*Write the carry list:\*\* the lines of the frame's own carry list, as they are, and a `- source:<path>` line, from the project's root, for each of the two pictures/,
     /\*\*Stamp it,\*\* with the `stamp` of the skill's gate, in the words of his nod/, /\*\*After his nod, the session that conducts may make the change itself\.\*\* That is the build: Handoff and Acceptance, each in its short form, say how it is handed over and checked/], 'the gate of a correction');
@@ -4720,7 +4730,7 @@ test('handoff: the cold implementer is handed the folder only, every item is clo
   assert.doesNotMatch(correction, /write the one check/);
   // A check needs a page of the prototype: the script refuses one without.
   assert.ok(validateAcceptance({ design: 'label', checks: [{ id: 'label', criterion: 'The action reads Book room.', state: 'default', width: 1280, type: 'text', target: 'book-action', equals: 'Book room' }] }).some(fault => /\.page: must be a non-empty string/.test(fault)));
-  assert.match(flat(reference('routes.md')), /A correction costs one nod\. It is the one size where the session that conducts may also do the work/);
+  assert.match(flat(reference('routes.md')), /A correction costs one nod\. It still goes through the skills, in their order, Frame first: .* It is the one size where the session that conducts may also do the work/);
   assert.match(flat(stageRef('detail', 'correction.md')), /That is the build: Handoff and Acceptance, each in its short form, say how it is handed over and checked/);
   assert.ok(!cards['judge.cold-implementer'].presets.includes('correction'));
 });

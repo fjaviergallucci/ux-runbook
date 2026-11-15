@@ -1,7 +1,7 @@
 ---
 type: regex
 target: last_message
-match: 'count:1'
+match: not_contains
 ---
 
-\?
+\?[\s\S]*\?
