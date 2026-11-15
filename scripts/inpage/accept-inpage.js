@@ -40,13 +40,17 @@
 //                its box lies inside every element it is written in that might cut it (an overflow other
 //                than visible, contain: paint, content-visibility other than visible, a clip-path, an
 //                <svg>; up to the body), none of them has a clip-path, and it lies inside the curve of
-//                each rounded corner of one (a pixel of play given), nothing can. Else the browser is
+//                each rounded corner of one (a pixel of play given), nothing can. A corner is as round
+//                as CSS draws it: radii that do not fit the side they share are made smaller, all four
+//                by one factor, so a pill's ends are half its height. Else the browser is
 //                asked, as scrolled now: it is pointed at five points of the box (the centres of its line
 //                boxes when it wraps), and a point where it finds the element not is cut away. Where
 //                pointing cannot tell (pointer-events: none, inert, outside an open modal dialog, out of
 //                the window on a scrolled page), it fails "cannot be told: …", never a guess.
 //                An edge that passes a box by no more than one pixel is inside it.
 //                Measure at the top of the page: an element that sticks may be misjudged after a scroll.
+//                The element that answers "without scrolling" is never a shape inside an <svg>: a
+//                drawing that is scaled is measured as if it were not.
 //   min-size     the one element's box is at least `minWidth` by `minHeight` CSS pixels
 //   contrast     the one element's text colour against the nearest background behind it that is not
 //                transparent, translucent colours laid over what is behind them, down to the page's canvas
@@ -56,6 +60,17 @@
 //                a filter, a backdrop-filter or a blend mode.
 //   count        the number of rendered elements (their box aside) whose data-ux starts with `target` is
 //                `equals`
+//   style        the value the browser computes for the one CSS property `property` of the one element,
+//                as it gives it ("16px", "600", "rgb(26, 26, 26)"), is the string `equals`, the white
+//                space round either aside
+//                It does not ask whether the element is rendered (pair it with visible), nor how the
+//                value came about: a token and a raw number that compute alike read alike.
+//   gap          the two elements named in `targets` are rendered, and the distance from the first to
+//                the second along `axis` is `equals` CSS pixels, half a pixel of play given: "x", from
+//                the first's right edge to the second's left; "y", from its bottom edge to the
+//                second's top. Below zero, the two overlap, or the second comes first.
+//                It does not ask about the other axis, nor what lies between the two.
+// No type measures the length of a line of text: that is measured by a person.
 // `actual` is what was measured (null when nothing could be), sizes and ratios to two decimals, never
 // rounded up past what was measured; `message` says why a check failed, and is empty when it passed.
 // It never throws, and it changes nothing on the page: a check that cannot be made (an element missing or
@@ -132,6 +147,10 @@
 
   // How far, in CSS pixels, an edge may pass a clipping box: client sizes are whole numbers, boxes are not.
   var TOLERANCE = 1;
+  // How far, in CSS pixels, a gap may be from the number a check gives: boxes are laid out on fractions.
+  var GAP_PLAY = 0.5;
+  // A CSS property as a check names it: as written in a stylesheet, a custom property included.
+  var PROPERTY = /^(?:--[\w-]+|-?[a-z][a-z0-9-]*)$/;
 
   var sizeOf = function (box) {
     return { width: two(box.width), height: two(box.height) };
@@ -303,18 +322,37 @@
     return edge.left - box.left <= TOLERANCE && box.right - edge.right <= TOLERANCE && edge.top - box.top <= TOLERANCE && box.bottom - edge.bottom <= TOLERANCE;
   }
 
-  // A corner's radii as drawn, across and down, from its computed value: one or two lengths in px or %
-  // (across, then down; one is both), a percentage being of the box's width across and of its height down,
-  // and neither more than the box. A value that cannot be read counts as the whole box: too much only asks
-  // the browser more often, too little is a wrong pass.
+  // A corner's radii as written, across and down, from its computed value: one or two lengths in px or %
+  // (across, then down; one is both), a percentage being of the box's width across and of its height
+  // down. Null for a value that cannot be read.
   var RADIUS = /^([\d.]+)(px|%)(?: ([\d.]+)(px|%))?$/;
   function radiiOf(value, edge) {
     var read = RADIUS.exec(value);
-    if (!read) return [edge.width, edge.height];
+    if (!read) return null;
     var pair = read[3] !== undefined;
     var across = Number(read[1]) * (read[2] === '%' ? edge.width / 100 : edge.sx);
     var down = Number(pair ? read[3] : read[1]) * ((pair ? read[4] : read[2]) === '%' ? edge.height / 100 : edge.sy);
-    return [across <= edge.width ? across : edge.width, down <= edge.height ? down : edge.height];
+    return [across, down];
+  }
+
+  // The radii of the four corners as drawn, top left first and round as the clock goes, each across and
+  // down. CSS makes radii that do not fit smaller: where those of two corners that share a side add up to
+  // more than the side, all four are scaled by one factor, the smallest any side asks for, so that a
+  // pill's ends come out half its height. A value that cannot be read counts as the whole box, and
+  // takes no part in the scaling: too much only asks the browser more often, too little is a wrong pass.
+  function cornersOf(style, edge) {
+    var read = [style.borderTopLeftRadius, style.borderTopRightRadius, style.borderBottomRightRadius, style.borderBottomLeftRadius].map(function (value) {
+      return radiiOf(value, edge);
+    });
+    // How much of a side the radii of its two corners leave it, as a factor: 1 when they fit.
+    var fit = function (side, a, b, way) {
+      var both = (read[a] ? read[a][way] : 0) + (read[b] ? read[b][way] : 0);
+      return both > side ? side / both : 1;
+    };
+    var factor = Math.min(fit(edge.width, 0, 1, 0), fit(edge.width, 3, 2, 0), fit(edge.height, 0, 3, 1), fit(edge.height, 1, 2, 1));
+    return read.map(function (radii) {
+      return radii ? [radii[0] * factor, radii[1] * factor] : [edge.width, edge.height];
+    });
   }
 
   // Whether a rounded corner of an element may cut a box. Rounding cuts only what lies outside the corner's
@@ -323,20 +361,19 @@
   // reached that centre either way, or lies on or inside the curve, the corner cuts nothing of the box, for
   // no point of it lies nearer to the corner.
   function atCorner(box, at) {
-    var style = getComputedStyle(at);
     var edge = edgesOf(at);
-    // Each corner's radii, and how far in from it the box begins, across and down.
+    var corners = cornersOf(getComputedStyle(at), edge);
+    // How far in from each corner the box begins, across and down: top left first, round as the clock goes.
     return [
-      [style.borderTopLeftRadius, box.left - edge.left, box.top - edge.top],
-      [style.borderTopRightRadius, edge.right - box.right, box.top - edge.top],
-      [style.borderBottomRightRadius, edge.right - box.right, edge.bottom - box.bottom],
-      [style.borderBottomLeftRadius, box.left - edge.left, edge.bottom - box.bottom],
-    ].some(function (corner) {
-      var radii = radiiOf(corner[0], edge);
-      var rx = radii[0];
-      var ry = radii[1];
-      var x = Math.max(corner[1], 0) + TOLERANCE;
-      var y = Math.max(corner[2], 0) + TOLERANCE;
+      [box.left - edge.left, box.top - edge.top],
+      [edge.right - box.right, box.top - edge.top],
+      [edge.right - box.right, edge.bottom - box.bottom],
+      [box.left - edge.left, edge.bottom - box.bottom],
+    ].some(function (from, i) {
+      var rx = corners[i][0];
+      var ry = corners[i][1];
+      var x = Math.max(from[0], 0) + TOLERANCE;
+      var y = Math.max(from[1], 0) + TOLERANCE;
       if (x >= rx || y >= ry) return false;
       return (rx - x) * (rx - x) * ry * ry + (ry - y) * (ry - y) * rx * rx > rx * rx * ry * ry;
     });
@@ -645,6 +682,36 @@
       var unseen = all.length - n;
       var more = unseen === 0 ? '' : '; ' + unseen + (unseen === 1 ? ' more is there and not rendered' : ' more are there and not rendered');
       return failed(n, n + (n === 1 ? ' rendered element has' : ' rendered elements have') + ' a data-ux starting with ' + quoted(prefix) + '; the check wants ' + check.equals + more);
+    },
+
+    style: function (check, scope) {
+      var id = targetOf(check);
+      if (typeof check.property !== 'string' || !PROPERTY.test(check.property)) throw new Miss('property must be a CSS property name, as font-size');
+      if (!isText(check.equals)) throw new Miss('equals must be a non-empty string');
+      var value = getComputedStyle(one(scope, id)).getPropertyValue(check.property).trim();
+      if (value === '') throw new Miss('the browser gives no value for the property ' + quoted(check.property));
+      var wanted = check.equals.trim();
+      return value === wanted ? passed(value) : failed(value, 'its ' + check.property + ' is ' + value + ', not ' + wanted);
+    },
+
+    gap: function (check, scope) {
+      var targets = check.targets;
+      if (!Array.isArray(targets) || targets.length !== 2 || !targets.every(isText)) throw new Miss('targets must be a list of exactly two ids');
+      if (targets[0] === targets[1]) throw new Miss('targets names ' + quoted(targets[0]) + ' twice');
+      if (check.axis !== 'x' && check.axis !== 'y') throw new Miss('axis must be "x" or "y"');
+      if (typeof check.equals !== 'number' || !isFinite(check.equals)) throw new Miss('equals must be a number of CSS pixels');
+      var boxes = targets.map(function (id) {
+        var element = one(scope, id);
+        if (boxless(element)) throw new Miss(noBox(element));
+        var why = unrendered(element);
+        if (why !== null) throw new Miss('data-ux=' + quoted(id) + ' is not rendered: ' + why);
+        return element.getBoundingClientRect();
+      });
+      var gap = check.axis === 'x' ? boxes[1].left - boxes[0].right : boxes[1].top - boxes[0].bottom;
+      var actual = two(gap);
+      if (Math.abs(gap - check.equals) <= GAP_PLAY) return passed(actual);
+      var said = 'the gap from data-ux=' + quoted(targets[0]) + (check.axis === 'x' ? ' across' : ' down') + ' to data-ux=' + quoted(targets[1]) + ' is ' + actual + ', not ' + check.equals;
+      return failed(actual, said + (gap < 0 ? ': below zero, the two overlap or the second comes first' : ''));
     },
   };
 

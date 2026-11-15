@@ -24,7 +24,7 @@ import { JsonFileError, readJsonFile, reason } from './lib/json-file.mjs';
 export const INPAGE = fileURLToPath(new URL('./inpage/accept-inpage.js', import.meta.url));
 
 // The check types the in-page file knows, and the keys each takes beside the ones every check takes.
-// order names its ids in `targets`; every other type names its one id in `target`.
+// order and gap name their ids in `targets`; every other type names its one id in `target`.
 export const TYPES = Object.freeze({
   visible: ['target'],
   absent: ['target'],
@@ -34,7 +34,11 @@ export const TYPES = Object.freeze({
   'min-size': ['target', 'minWidth', 'minHeight'],
   contrast: ['target', 'min'],
   count: ['target', 'equals'],
+  style: ['target', 'property', 'equals'],
+  gap: ['targets', 'axis', 'equals'],
 });
+// A CSS property as a style check names it: as written in a stylesheet, a custom property included.
+const PROPERTY = /^(?:--[\w-]+|-?[a-z][a-z0-9-]*)$/;
 // The keys every check takes; theme, language and screen may be left out.
 const COMMON = Object.freeze(['id', 'criterion', 'state', 'page', 'width', 'theme', 'language', 'screen', 'type']);
 const THEMES = Object.freeze(['light', 'dark']);
@@ -91,9 +95,10 @@ export function validateAcceptance(data) {
     if (!Object.hasOwn(TYPES, check.type)) return;
     const takes = TYPES[check.type];
     if (takes.includes('target') && !isText(check.target)) fault('target', 'must be a non-empty string');
-    if (check.type === 'order') {
-      if (!Array.isArray(check.targets) || check.targets.length < 2) {
-        fault('targets', 'must be a list of at least two ids');
+    if (takes.includes('targets')) {
+      const two = check.type === 'gap';
+      if (!Array.isArray(check.targets) || (two ? check.targets.length !== 2 : check.targets.length < 2)) {
+        fault('targets', `must be a list of ${two ? 'exactly' : 'at least'} two ids`);
       } else {
         check.targets.forEach((id, k) => {
           if (!isText(id)) fault(`targets[${k}]`, 'must be a non-empty string');
@@ -122,6 +127,14 @@ export function validateAcceptance(data) {
     }
     if (check.type === 'contrast' && !(typeof check.min === 'number' && check.min >= 1 && check.min <= 21)) fault('min', 'must be a number from 1 to 21');
     if (check.type === 'count' && !(Number.isSafeInteger(check.equals) && check.equals >= 0)) fault('equals', 'must be a whole number from 0');
+    if (check.type === 'style') {
+      if (typeof check.property !== 'string' || !PROPERTY.test(check.property)) fault('property', 'must be a CSS property name, as font-size');
+      if (!isText(check.equals)) fault('equals', 'must be a non-empty string');
+    }
+    if (check.type === 'gap') {
+      if (check.axis !== 'x' && check.axis !== 'y') fault('axis', 'must be x or y');
+      if (typeof check.equals !== 'number' || !Number.isFinite(check.equals)) fault('equals', 'must be a number of CSS pixels');
+    }
     for (const key of Object.keys(check)) {
       if (!COMMON.includes(key) && !takes.includes(key)) errors.push(`${keyPath(at, key)}: unknown key for type ${check.type}`);
     }
@@ -407,11 +420,21 @@ The types, and the keys each takes:
   text          target, and equals (a string) or matches (a regular expression): the element's text, its
                 white space made single spaces and trimmed
   order         targets (two or more ids): they come in that order in the document
-  in-viewport   target: rendered, and its whole box inside the first viewport, without scrolling
+  in-viewport   target: rendered, and its whole box inside the first viewport, without scrolling. The
+                element that answers "without scrolling" is never a shape inside an <svg>: a drawing
+                that is scaled is measured as if it were not.
   min-size      target, minWidth, minHeight: its box is at least minWidth by minHeight CSS pixels
   contrast      target, min (1 to 21): its text colour against the nearest background behind it that is
                 not transparent, as a WCAG ratio
   count         target, equals: the number of elements whose data-ux starts with target
+  style         target, property (a CSS property, as font-size), equals: the value the browser
+                computes for that one property of the element, as it gives it (16px, 600,
+                rgb(26, 26, 26)), is the string given; it does not ask whether the element is rendered
+  gap           targets (two ids), axis (x or y), equals: both are rendered, and the distance from the
+                first to the second along that axis (x: from its right edge to the other's left; y:
+                from its bottom edge to the other's top) is that number of CSS pixels, half a pixel
+                of play given; below zero, the two overlap or the second comes first
+No type measures the length of a line of text: that is measured by a person.
 
 A flag may also be written --flag=value.
 

@@ -7,7 +7,7 @@ import { dirname, join } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
-import { AcceptError, INPAGE, acceptPrototype, joinResults, reportOf, validateAcceptance, validateResults } from '../scripts/accept.mjs';
+import { AcceptError, INPAGE, TYPES, acceptPrototype, joinResults, reportOf, validateAcceptance, validateResults } from '../scripts/accept.mjs';
 import { contextOptions } from '../scripts/lib/browser.mjs';
 import { findChrome } from '../scripts/lib/chrome.mjs';
 
@@ -257,6 +257,12 @@ test('the fixture is a valid acceptance file; so is every type with exactly the 
     check({ id: 'i', type: 'contrast', target: 'x', min: 21 }),
     check({ id: 'j', type: 'count', target: 'x', equals: 0 }),
     check({ id: 'k', type: 'a type of tomorrow', target: 'x', anything: ['it', 'likes'] }),
+    check({ id: 'm', type: 'style', target: 'x', property: 'font-size', equals: '16px' }),
+    check({ id: 'n', type: 'style', target: 'x', property: '--gap-Wide', equals: '1rem' }),
+    check({ id: 'o', type: 'style', target: 'x', property: '-webkit-line-clamp', equals: '2' }),
+    check({ id: 'p', type: 'gap', targets: ['x', 'y'], axis: 'y', equals: 16 }),
+    check({ id: 'q', type: 'gap', targets: ['x', 'y'], axis: 'x', equals: 0 }),
+    check({ id: 'r', type: 'gap', targets: ['x', 'y'], axis: 'x', equals: -4.5 }),
     check({ id: 'l', type: 'visible', target: 'x', page: 'states/two words/día.html' }),
   ];
   assert.deepEqual(validateAcceptance({ design: 'today', checks }), []);
@@ -359,6 +365,28 @@ test('a malformed acceptance file is refused, every fault named by its path', ()
     [one({ type: 'count', equals: -1 }), ['$.checks[0].equals: must be a whole number from 0']],
     [one({ type: 'count', equals: 1.5 }), ['$.checks[0].equals: must be a whole number from 0']],
     [one({ type: 'count', equals: '2' }), ['$.checks[0].equals: must be a whole number from 0']],
+    // style takes one property, by its CSS name, and the value as the browser gives it.
+    [one({ type: 'style' }), ['$.checks[0].property: must be a CSS property name, as font-size', '$.checks[0].equals: must be a non-empty string']],
+    [one({ type: 'style', property: 'fontSize', equals: '16px' }), ['$.checks[0].property: must be a CSS property name, as font-size']],
+    [one({ type: 'style', property: 'font size', equals: '16px' }), ['$.checks[0].property: must be a CSS property name, as font-size']],
+    [one({ type: 'style', property: ['font-size'], equals: '16px' }), ['$.checks[0].property: must be a CSS property name, as font-size']],
+    [one({ type: 'style', property: 'font-size', equals: 16 }), ['$.checks[0].equals: must be a non-empty string']],
+    [one({ type: 'style', property: 'font-size', equals: ' ' }), ['$.checks[0].equals: must be a non-empty string']],
+    [one({ type: 'style', property: 'font-size', equals: '16px', min: 16 }), ['$.checks[0].min: unknown key for type style']],
+    [one({ type: 'style', property: 'font-size', equals: '16px' }, ['target']), ['$.checks[0].target: must be a non-empty string']],
+    // gap names its two ids in targets, an axis, and a number of CSS pixels.
+    [one({ type: 'gap', targets: ['a', 'b'], axis: 'y', equals: 16 }), ['$.checks[0].target: unknown key for type gap']],
+    [one({ type: 'gap', axis: 'y', equals: 16 }, ['target']), ['$.checks[0].targets: must be a list of exactly two ids']],
+    [one({ type: 'gap', targets: ['a'], axis: 'y', equals: 16 }, ['target']), ['$.checks[0].targets: must be a list of exactly two ids']],
+    [one({ type: 'gap', targets: ['a', 'b', 'c'], axis: 'y', equals: 16 }, ['target']), ['$.checks[0].targets: must be a list of exactly two ids']],
+    [one({ type: 'gap', targets: ['a', 'a'], axis: 'y', equals: 16 }, ['target']), ['$.checks[0].targets[1]: "a" is named twice']],
+    [one({ type: 'gap', targets: ['a', ''], axis: 'y', equals: 16 }, ['target']), ['$.checks[0].targets[1]: must be a non-empty string']],
+    [one({ type: 'gap', targets: ['a', 'b'], equals: 16 }, ['target']), ['$.checks[0].axis: must be x or y']],
+    [one({ type: 'gap', targets: ['a', 'b'], axis: 'down', equals: 16 }, ['target']), ['$.checks[0].axis: must be x or y']],
+    [one({ type: 'gap', targets: ['a', 'b'], axis: 'y' }, ['target']), ['$.checks[0].equals: must be a number of CSS pixels']],
+    [one({ type: 'gap', targets: ['a', 'b'], axis: 'y', equals: '16px' }, ['target']), ['$.checks[0].equals: must be a number of CSS pixels']],
+    [one({ type: 'gap', targets: ['a', 'b'], axis: 'y', equals: Infinity }, ['target']), ['$.checks[0].equals: must be a number of CSS pixels']],
+    [one({ type: 'gap', targets: ['a', 'b'], axis: 'y', equals: 16, min: 12 }, ['target']), ['$.checks[0].min: unknown key for type gap']],
     // A type it does not know still needs what every check needs.
     [one({ type: 'colour' }, ['state', 'width']), ['$.checks[0].state: must be a non-empty string', '$.checks[0].width: must be a whole number of CSS pixels from 1']],
   ];
@@ -785,7 +813,14 @@ test('the CLI prints its usage for --help and exits 0', () => {
     const r = run(...args);
     assert.equal(r.status, 0);
     assert.ok(r.stdout.startsWith('Usage: node scripts/accept.mjs prototype <acceptance.json> --root <folder> --out <results.json>'), r.stdout);
-    for (const type of ['visible', 'absent', 'text', 'order', 'in-viewport', 'min-size', 'contrast', 'count']) assert.match(r.stdout, new RegExp(`\\n  ${type} `), type);
+    for (const type of ['visible', 'absent', 'text', 'order', 'in-viewport', 'min-size', 'contrast', 'count', 'style', 'gap']) assert.match(r.stdout, new RegExp(`\\n  ${type} `), type);
+    const said = r.stdout.replace(/\s+/g, ' ');
+    // R108: what an in-viewport check may name.
+    assert.ok(said.includes('in-viewport target: rendered, and its whole box inside the first viewport, without scrolling. The element that answers "without scrolling" is never a shape inside an <svg>: a drawing that is scaled is measured as if it were not.'), 'in-viewport');
+    // R185: the two types that measure, and what stays a person\'s.
+    assert.ok(said.includes('style target, property (a CSS property, as font-size), equals: the value the browser computes for that one property of the element, as it gives it (16px, 600, rgb(26, 26, 26)), is the string given'), 'style');
+    assert.ok(said.includes('gap targets (two ids), axis (x or y), equals: both are rendered, and the distance from the first to the second along that axis (x: from its right edge to the other\'s left; y: from its bottom edge to the other\'s top) is that number of CSS pixels, half a pixel of play given'), 'gap');
+    assert.ok(said.includes('No type measures the length of a line of text: that is measured by a person.'), 'the length of a line');
     assert.equal(r.stderr, '');
   }
 });
@@ -1012,7 +1047,9 @@ describe('the in-page file, evaluated through a driver of its own', () => {
       const html = await page.evaluate(() => document.documentElement.outerHTML);
       await page.evaluate(source);
       const types = ['visible', 'absent', 'in-viewport', 'contrast'].map(type => ({ id: type, type, target: 'free-count', screen: 'today', min: 3 }));
-      types.push({ id: 'text', type: 'text', target: 'free-count', matches: 'rooms' }, { id: 'order', type: 'order', targets: ['free-count', 'book-action'] }, { id: 'min-size', type: 'min-size', target: 'book-action', minWidth: 1, minHeight: 1 }, { id: 'count', type: 'count', target: 'room-', equals: 1 });
+      types.push({ id: 'text', type: 'text', target: 'free-count', matches: 'rooms' }, { id: 'order', type: 'order', targets: ['free-count', 'book-action'] }, { id: 'min-size', type: 'min-size', target: 'book-action', minWidth: 1, minHeight: 1 }, { id: 'count', type: 'count', target: 'room-', equals: 1 },
+        { id: 'style', type: 'style', target: 'book-action', property: 'height', equals: '30px' }, { id: 'gap', type: 'gap', targets: ['free-count', 'room-1'], axis: 'y', equals: 16 });
+      assert.deepEqual(types.map(check => check.type).sort(), Object.keys(TYPES).sort(), 'every type the script knows');
       const results = await page.evaluate(checks => window.__uxAccept(checks), types);
       assert.deepEqual(shown(results), [
         ['visible', true, { width: 390, height: 18 }, ''],
@@ -1024,6 +1061,9 @@ describe('the in-page file, evaluated through a driver of its own', () => {
         ['order', true, ['free-count', 'book-action'], ''],
         ['min-size', true, { width: 60, height: 30 }, ''],
         ['count', true, 1, ''],
+        ['style', true, '30px', ''],
+        // The list's own margin: 16 px between the line and its first item.
+        ['gap', true, 16, ''],
       ]);
       await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 50)));
       assert.equal(await page.evaluate(() => window.mutations), 0);
@@ -2031,9 +2071,148 @@ describe('the in-page file, evaluated through a driver of its own', () => {
     // The nearest point is taken on the box's own edge: a line half a pixel over the corner of a box
     // rounded 3 px starts, a pixel in, inside the curve.
     assert.deepEqual(await one('<div style="margin: 10px; width: 100px; height: 100px; border-radius: 3px; overflow: hidden"><p data-ux="over" style="margin: -0.5px 0 0 -0.5px; width: 50px; height: 20px; pointer-events: none">x</p></div>', 'over'), [['over', true, '']]);
-    // A radius larger than the box is capped at it: in a box 200 by 100 rounded 999 px each corner's curve
-    // is taken as a quarter of an ellipse as large as the box, and what lies in the middle is inside all four.
+    // Radii larger than the box are made smaller as CSS makes them, all four by one factor, until those
+    // that share a side fit it: a box 200 by 100 rounded 999 px has corners of 50 px, and what lies in the
+    // middle is inside all four.
     assert.deepEqual(await one('<div style="position: relative; width: 200px; height: 100px; border-radius: 999px; overflow: hidden"><span data-ux="mid" style="position: absolute; top: 40px; left: 80px; width: 40px; height: 20px; pointer-events: none"></span></div>', 'mid'), [['mid', true, '']]);
+  });
+
+  test('in-viewport: a pill is rounded as CSS rounds it: radii that do not fit their side are made smaller, all four by one factor, so a label inside it is never asked about', async () => {
+    const said = results => results.map(({ id, pass, message }) => [id, pass, message]);
+    const untold = id => [id, false, 'cannot be told: it has pointer-events: none, and the browser is asked by pointing at it'];
+    const one = async (body, id) => said(await evaluate(body, [c(id, 'in-viewport')]));
+    // No label here can be pointed at: one that passes was never asked about.
+    const label = (id, place) => `<span data-ux="${id}" style="position: absolute; ${place}; pointer-events: none">Free</span>`;
+    const pill = (rounding, inside, size = 'width: 200px; height: 40px') => `<div class="pill" style="position: relative; ${size}; ${rounding}; overflow: hidden; background: #eeeeee">${inside}</div>`;
+    // 200 by 40, rounded 999 px: each corner is 20 by 20 as drawn. A label 20 px in from the left stands
+    // clear of both left corners, whatever its height.
+    assert.deepEqual(await one(pill('border-radius: 999px', label('status', 'left: 20px; top: 10px; width: 60px; height: 20px')), 'status'), [['status', true, '']]);
+    assert.deepEqual(await one(pill('border-radius: 999px', label('status', 'left: 20px; top: 0; width: 160px; height: 40px')), 'status'), [['status', true, '']]);
+    // 120 by 40, rounded 100 px: the same corners, by the same factor.
+    assert.deepEqual(await one(pill('border-radius: 100px', label('status', 'left: 20px; top: 0; width: 80px; height: 40px'), 'width: 120px; height: 40px'), 'status'), [['status', true, '']]);
+    // A chip as a design system draws one: its padding holds the label clear of the round ends.
+    const chip = '<span class="chip" style="display: inline-block; padding: 4px 14px; border-radius: 9999px; overflow: hidden; font: 14px/18px sans-serif; background: #eeeeee"><span data-ux="chip-label" style="pointer-events: none">Free until 10:30</span></span>';
+    assert.deepEqual(await one(chip, 'chip-label'), [['chip-label', true, '']]);
+    // Across and down apart: 300 px / 30 px on 200 by 40 is made a third, 100 px across and 10 px down.
+    // From 70 px along and 2 px down a label lies inside that curve; an ellipse capped at the box would hold it out.
+    assert.deepEqual(await one(pill('border-radius: 300px / 30px', label('status', 'left: 70px; top: 2px; width: 60px; height: 20px')), 'status'), [['status', true, '']]);
+    // Rounded at one end only: the two left corners are 20 by 20, the right ones square.
+    assert.deepEqual(await one(pill('border-radius: 999px 0 0 999px', label('status', 'left: 20px; top: 0; right: 0; height: 40px')), 'status'), [['status', true, '']]);
+    // One factor for all four: 999 px at the top left and 40 px at the others, on 200 by 40. The left side
+    // holds 1039 px of radii, so each is made 40/1039: the small corners come out under 2 px, and a label
+    // 2 px in from the right stands clear of them.
+    assert.deepEqual(await one(pill('border-radius: 999px 40px 40px 40px', label('status', 'right: 2px; top: 2px; width: 60px; height: 36px')), 'status'), [['status', true, '']]);
+    // What a round end does cut is still asked about: in its corner, and at its very edge.
+    assert.deepEqual(await one(pill('border-radius: 999px', label('status', 'left: 2px; top: 2px; width: 10px; height: 10px')), 'status'), [untold('status')]);
+    assert.deepEqual(await one(pill('border-radius: 999px', label('status', 'left: 0; top: 0; width: 200px; height: 40px')), 'status'), [untold('status')]);
+    // And where it can be asked, the answer is the browser's: a dot in the corner of a pill is cut away.
+    const dot = '<span data-ux="dot" style="position: absolute; left: 0; top: 0; width: 5px; height: 5px; background: #cc0000"></span>';
+    const { results, painted } = await evaluateAndPoint(pill('border-radius: 999px', dot), [c('dot', 'in-viewport')]);
+    assert.deepEqual([said(results), painted], [[['dot', false, 'it is clipped by <div class="pill">']], [false]]);
+    // A pill drawn at twice its size has corners twice as large: 40 by 40.
+    const twice = inside => `<div style="transform: scale(2); transform-origin: 0 0">${pill('border-radius: 999px', inside)}</div>`;
+    assert.deepEqual(await one(twice(label('status', 'left: 20px; top: 0; width: 60px; height: 40px')), 'status'), [['status', true, '']]);
+    assert.deepEqual(await one(twice(label('status', 'left: 12px; top: 0; width: 60px; height: 40px')), 'status'), [untold('status')]);
+  });
+
+  test('style: the value the browser computes for one property of the one element is the string given; it asks neither whether the element is rendered nor how the value came about', async () => {
+    const body = '<main data-screen="today"><h1 data-ux="title" style="margin: 0; font: 600 1.5rem/2 sans-serif; color: #1a1a1a; padding: 8px 16px; --gap-wide: 12px">Rooms</h1>'
+      + '<p data-ux="count" style="font-size: 87.5%">2 rooms free</p><p data-ux="unseen" style="display: none; font-size: 20px">x</p>'
+      + '<p data-ux="twice">a</p><p data-ux="twice">b</p></main>';
+    const style = (id, target, property, equals, more = {}) => ({ id, type: 'style', target, property, equals, ...more });
+    const results = await evaluate(body, [
+      style('size', 'title', 'font-size', '24px'),
+      style('weight', 'title', 'font-weight', '600'),
+      style('leading', 'title', 'line-height', '48px'),
+      style('colour', 'title', 'color', 'rgb(26, 26, 26)'),
+      style('padding', 'title', 'padding-left', '16px'),
+      style('short', 'title', 'padding', '8px 16px'),
+      style('custom', 'title', '--gap-wide', '12px'),
+      style('trimmed', 'title', 'font-size', ' 24px '),
+      style('in-screen', 'count', 'font-size', '14px', { screen: 'today' }),
+      style('unseen', 'unseen', 'font-size', '20px'),
+      // What the build must hit and does not.
+      style('wrong', 'title', 'font-size', '16px'),
+      style('wrong-unit', 'title', 'font-size', '1.5rem'),
+      // A check that cannot be made.
+      style('no-such', 'title', 'font-sizes', '24px'),
+      style('camel', 'title', 'fontSize', '24px'),
+      { id: 'no-property', type: 'style', target: 'title', equals: '24px' },
+      style('no-value', 'title', 'font-size', 24),
+      style('missing', 'heading', 'font-size', '24px'),
+      style('twice', 'twice', 'font-size', '16px'),
+    ]);
+    assert.deepEqual(shown(results), [
+      ['size', true, '24px', ''],
+      ['weight', true, '600', ''],
+      ['leading', true, '48px', ''],
+      ['colour', true, 'rgb(26, 26, 26)', ''],
+      ['padding', true, '16px', ''],
+      ['short', true, '8px 16px', ''],
+      ['custom', true, '12px', ''],
+      ['trimmed', true, '24px', ''],
+      ['in-screen', true, '14px', ''],
+      ['unseen', true, '20px', ''],
+      ['wrong', false, '24px', 'its font-size is 24px, not 16px'],
+      ['wrong-unit', false, '24px', 'its font-size is 24px, not 1.5rem'],
+      ['no-such', false, null, 'the browser gives no value for the property "font-sizes"'],
+      ['camel', false, null, 'property must be a CSS property name, as font-size'],
+      ['no-property', false, null, 'property must be a CSS property name, as font-size'],
+      ['no-value', false, null, 'equals must be a non-empty string'],
+      ['missing', false, null, 'data-ux="heading" not found'],
+      ['twice', false, null, 'data-ux="twice" found 2 times; it must be on exactly one element'],
+    ]);
+  });
+
+  test('gap: the distance from the first element to the second along one axis, in CSS pixels, half a pixel of play given; below zero they overlap or the second comes first', async () => {
+    const body = '<div style="display: flex; flex-direction: column; gap: 16px; width: 200px"><p data-ux="first" style="margin: 0; height: 20px">A</p><p data-ux="second" style="margin: 0; height: 20px">B</p></div>'
+      + '<div style="display: flex; gap: 12.5px; margin-top: 8px"><span data-ux="left" style="width: 40px">C</span><span data-ux="right" style="width: 40px">D</span>'
+      + '<span data-ux="unseen" style="display: none">E</span><span data-ux="boxless" style="display: contents"><b>F</b></span></div>';
+    const gap = (id, targets, axis, equals, more = {}) => ({ id, type: 'gap', targets, axis, equals, ...more });
+    const results = await evaluate(body, [
+      gap('down', ['first', 'second'], 'y', 16),
+      gap('across', ['left', 'right'], 'x', 12.5),
+      // Half a pixel of play either way, and no more.
+      gap('play', ['left', 'right'], 'x', 12),
+      gap('play-up', ['left', 'right'], 'x', 13),
+      gap('too-far', ['left', 'right'], 'x', 11.9),
+      gap('too-far-up', ['left', 'right'], 'x', 13.1),
+      gap('wrong', ['first', 'second'], 'y', 24),
+      // The second before the first: from the bottom of the second up to the top of the first.
+      gap('back', ['second', 'first'], 'y', 16),
+      // The other axis is another distance: the two stand in one column, so across they overlap by their width.
+      gap('other-axis', ['first', 'second'], 'x', 16),
+      gap('to-the-next-row', ['second', 'left'], 'y', 8),
+      // A check that cannot be made.
+      gap('unseen', ['left', 'unseen'], 'x', 12),
+      gap('boxless', ['left', 'boxless'], 'x', 12),
+      gap('missing', ['left', 'nowhere'], 'x', 12),
+      gap('one', ['left'], 'x', 12),
+      gap('three', ['left', 'right', 'first'], 'x', 12),
+      gap('same', ['left', 'left'], 'x', 0),
+      gap('no-axis', ['left', 'right'], 'z', 12),
+      gap('no-number', ['left', 'right'], 'x', '12px'),
+    ]);
+    assert.deepEqual(shown(results), [
+      ['down', true, 16, ''],
+      ['across', true, 12.5, ''],
+      ['play', true, 12.5, ''],
+      ['play-up', true, 12.5, ''],
+      ['too-far', false, 12.5, 'the gap from data-ux="left" across to data-ux="right" is 12.5, not 11.9'],
+      ['too-far-up', false, 12.5, 'the gap from data-ux="left" across to data-ux="right" is 12.5, not 13.1'],
+      ['wrong', false, 16, 'the gap from data-ux="first" down to data-ux="second" is 16, not 24'],
+      ['back', false, -56, 'the gap from data-ux="second" down to data-ux="first" is -56, not 16: below zero, the two overlap or the second comes first'],
+      ['other-axis', false, -200, 'the gap from data-ux="first" across to data-ux="second" is -200, not 16: below zero, the two overlap or the second comes first'],
+      ['to-the-next-row', true, 8, ''],
+      ['unseen', false, null, 'data-ux="unseen" is not rendered: display: none on data-ux="unseen"'],
+      ['boxless', false, null, 'data-ux="boxless" has no box of its own (display: contents): name an element inside it'],
+      ['missing', false, null, 'data-ux="nowhere" not found'],
+      ['one', false, null, 'targets must be a list of exactly two ids'],
+      ['three', false, null, 'targets must be a list of exactly two ids'],
+      ['same', false, null, 'targets names "left" twice'],
+      ['no-axis', false, null, 'axis must be "x" or "y"'],
+      ['no-number', false, null, 'equals must be a number of CSS pixels'],
+    ]);
   });
 
   test('content-visibility on an inline box does nothing: a span hidden until found, or with content-visibility: hidden, is shown', async () => {

@@ -685,13 +685,14 @@ test('SPEC.md\'s States table holds every column of the states table, and the pa
 // The check types as the in-page file's header gives them: a line of its opening comment for each.
 const inpageTypes = () => [...read('scripts/inpage/accept-inpage.js').matchAll(/^\/\/ {3}([a-z-]+) {2,}\S/gm)].map(([, type]) => type);
 
-test('ACCEPTANCE.md names the eight check types and their parameters as the scripts define them, and what each does not ask', () => {
+test('ACCEPTANCE.md names the ten check types and their parameters as the scripts define them, and what each does not ask', () => {
   assert.deepEqual(inpageTypes(), Object.keys(TYPES), 'the in-page file and accept.mjs know the same types');
   const text = template('package/07-handoff/ACCEPTANCE.md');
   const { head, rows } = tableOf(section(text, 'The check types'), 'Type');
   assert.deepEqual(head, ['Type', 'Parameters', 'Passes when', 'Does not ask']);
   assert.deepEqual(rows.map(([type]) => unspan(type)), Object.keys(TYPES));
-  assert.equal(rows.length, 8);
+  assert.equal(rows.length, 10);
+  assert.deepEqual(rows.slice(-2).map(([type]) => unspan(type)), ['style', 'gap'], 'the two that measure a size and a distance');
   for (const [type, parameters, passes, not] of rows) {
     assert.deepEqual(spans(parameters), TYPES[unspan(type)], `${type}: its parameters`);
     assert.ok(passes.length > 20 && not.length > 20, `${type}: what it passes on, and what it does not ask`);
