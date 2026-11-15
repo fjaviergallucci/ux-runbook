@@ -1056,9 +1056,9 @@ disagrees with this one, this one holds.
    to him open, and Acceptance stops. No step has a session write code that fetches a credential. The
    handoff folder carries the in-page check file, so a builder can run the checks without the kit.
    *(R159, corrected by R189.)*
-6. **What a reader is shown** (§ 11, § 12). The board is drawn twice: with the makers' notes, for him
-   and for the judges; and without the bet, the cost, what it is deliberately bad at and the notes, for
-   the audience, who must never be told what a design means to do. At Structure each page is pictured
+6. **What a reader is shown** (§ 11, § 12). The board is drawn twice: with each proposal's own account
+   (its name, its bet, its cost, what it leaves out, its hardest state, its notes), for him and for the
+   judges; and without that account, for the audience, who must never be told what a design means to do. At Structure each page is pictured
    whole and as its first screen alone, so that "without scrolling" can be read off a picture; from
    Detail on that question is answered by a measured check, not by a picture. *(R154, R171, R190.)*
 7. **One more name for what a seat may read** (§ 7, "What a card states"): `example-data`, the made-up
