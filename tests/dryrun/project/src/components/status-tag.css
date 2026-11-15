@@ -1,0 +1,41 @@
+/* Linden · Status tag
+
+   Markup:
+     <span class="ln-tag ln-tag--free">Free</span>
+     <span class="ln-tag ln-tag--busy">Busy</span>
+     <span class="ln-tag ln-tag--cleaning">Cleaning</span>
+
+   A tag always carries its word. The colour supports the word and never stands in for it: there is no
+   tag that is a dot alone (Linden 1.2, docs/decisions.md D-4). Linden has a tag for each room state
+   the product knows: free, busy, cleaning.
+
+   Takes: --font-sans, --text-s, --weight-strong, --leading-tight, --space-1, --space-2,
+   --radius-pill, --color-free-ink, --color-free-fill, --color-busy-ink, --color-busy-fill,
+   --color-cleaning-ink, --color-cleaning-fill. */
+
+.ln-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-sans);
+  font-size: var(--text-s);
+  font-weight: var(--weight-strong);
+  line-height: var(--leading-tight);
+  white-space: nowrap;
+}
+
+.ln-tag--free {
+  background: var(--color-free-fill);
+  color: var(--color-free-ink);
+}
+
+.ln-tag--busy {
+  background: var(--color-busy-fill);
+  color: var(--color-busy-ink);
+}
+
+.ln-tag--cleaning {
+  background: var(--color-cleaning-fill);
+  color: var(--color-cleaning-ink);
+}

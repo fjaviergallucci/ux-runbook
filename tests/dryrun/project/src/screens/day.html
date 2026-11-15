@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Today · Roomtally</title>
+  <!-- Today: the day's bookings as a plain list, in order of start. Drawn here on the seeded day of
+       src/data/sample-day.json at 10:20. Every string is named by its key in src/strings/<language>.json;
+       the product shows the language of the browser, English or Spanish. -->
+  <link rel="stylesheet" href="../styles/tokens.css">
+  <link rel="stylesheet" href="../components/button.css">
+  <link rel="stylesheet" href="../components/list-row.css">
+  <link rel="stylesheet" href="../components/status-tag.css">
+  <style>
+    body {
+      margin: 0;
+      padding: var(--space-5) var(--space-4);
+      background: var(--color-page);
+      color: var(--color-ink);
+      font-family: var(--font-sans);
+      font-size: var(--text-m);
+      line-height: var(--leading);
+    }
+    main {
+      max-width: 48rem;
+      margin: 0 auto;
+      display: grid;
+      gap: var(--space-5);
+    }
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-3);
+    }
+    h1 {
+      margin: 0;
+      font-size: var(--text-xl);
+      line-height: var(--leading-tight);
+    }
+    h2 {
+      margin: 0 0 var(--space-2);
+      font-size: var(--text-l);
+      line-height: var(--leading-tight);
+    }
+    .day-note {
+      margin: var(--space-1) 0 0;
+      color: var(--color-ink-muted);
+      font-size: var(--text-s);
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1 data-string="day.title">Today</h1>
+        <p class="day-note"><span data-string="day.subtitle">Bookings for Monday 16 November</span> · <span data-string="day.updated">Updated 10:20</span></p>
+      </div>
+      <button class="ln-button ln-button--primary" type="button" data-string="booking.new">Book a room</button>
+    </header>
+
+    <section aria-labelledby="bookings">
+      <h2 id="bookings">Bookings</h2>
+      <ul class="ln-list">
+        <li class="ln-row">
+          <span class="ln-row__lead">08:00</span>
+          <span class="ln-row__main">Room 1 · Mara</span>
+          <span class="ln-row__meta" data-string="booking.length">45 min</span>
+          <span class="ln-row__end"></span>
+        </li>
+        <li class="ln-row">
+          <span class="ln-row__lead">08:15</span>
+          <span class="ln-row__main">Room 2 · Bruno</span>
+          <span class="ln-row__meta" data-string="booking.length">60 min</span>
+          <span class="ln-row__end"></span>
+        </li>
+        <li class="ln-row">
+          <span class="ln-row__lead">09:00</span>
+          <span class="ln-row__main">Room 1 · Ana</span>
+          <span class="ln-row__meta" data-string="booking.length">60 min</span>
+          <span class="ln-row__end"></span>
+        </li>
+        <li class="ln-row">
+          <span class="ln-row__lead">09:30</span>
+          <span class="ln-row__main">Room 3 · Mara</span>
+          <span class="ln-row__meta"><span data-string="booking.length">45 min</span> <span class="ln-tag ln-tag--cleaning" data-string="state.cleaning">Cleaning</span></span>
+          <span class="ln-row__end"></span>
+        </li>
+        <li class="ln-row">
+          <span class="ln-row__lead">10:00</span>
+          <span class="ln-row__main">Room 2 · Bruno</span>
+          <span class="ln-row__meta"><span data-string="booking.length">45 min</span> <span class="ln-tag ln-tag--busy" data-string="state.busy">Busy</span></span>
+          <span class="ln-row__end"><button class="ln-button" type="button" data-string="booking.endEarly">End now</button></span>
+        </li>
+        <li class="ln-row">
+          <span class="ln-row__lead">10:15</span>
+          <span class="ln-row__main">Room 4 · Inés</span>
+          <span class="ln-row__meta"><span data-string="booking.length">60 min</span> <span class="ln-tag ln-tag--busy" data-string="state.busy">Busy</span></span>
+          <span class="ln-row__end"><button class="ln-button" type="button" data-string="booking.endEarly">End now</button></span>
+        </li>
+        <li class="ln-row">
+          <span class="ln-row__lead">10:30</span>
+          <span class="ln-row__main">Room 1 · Ana</span>
+          <span class="ln-row__meta" data-string="booking.length">30 min</span>
+          <span class="ln-row__end"><button class="ln-button" type="button" data-string="booking.cancel">Cancel booking</button></span>
+        </li>
+        <li class="ln-row">
+          <span class="ln-row__lead">11:00</span>
+          <span class="ln-row__main">Room 3 · Mara</span>
+          <span class="ln-row__meta" data-string="booking.length">30 min</span>
+          <span class="ln-row__end"><button class="ln-button" type="button" data-string="booking.cancel">Cancel booking</button></span>
+        </li>
+        <li class="ln-row">
+          <span class="ln-row__lead">12:00</span>
+          <span class="ln-row__main">Room 5 · Inés</span>
+          <span class="ln-row__meta" data-string="booking.length">30 min</span>
+          <span class="ln-row__end"><button class="ln-button" type="button" data-string="booking.cancel">Cancel booking</button></span>
+        </li>
+        <li class="ln-row">
+          <span class="ln-row__lead">12:15</span>
+          <span class="ln-row__main">Room 2 · Kofi</span>
+          <span class="ln-row__meta" data-string="booking.length">45 min</span>
+          <span class="ln-row__end"><button class="ln-button" type="button" data-string="booking.cancel">Cancel booking</button></span>
+        </li>
+        <li class="ln-row">
+          <span class="ln-row__lead">13:00</span>
+          <span class="ln-row__main">Room 5 · Kofi</span>
+          <span class="ln-row__meta" data-string="booking.length">60 min</span>
+          <span class="ln-row__end"><button class="ln-button" type="button" data-string="booking.cancel">Cancel booking</button></span>
+        </li>
+        <li class="ln-row">
+          <span class="ln-row__lead">15:00</span>
+          <span class="ln-row__main">Room 4 · Bruno</span>
+          <span class="ln-row__meta" data-string="booking.length">15 min</span>
+          <span class="ln-row__end"><button class="ln-button" type="button" data-string="booking.cancel">Cancel booking</button></span>
+        </li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="shift">
+      <h2 id="shift" data-string="shift.title">On shift</h2>
+      <ul class="ln-list">
+        <li class="ln-row"><span class="ln-row__lead">Mara</span><span class="ln-row__main">07:30</span><span class="ln-row__meta" data-string="shift.until">until 13:30</span><span class="ln-row__end"></span></li>
+        <li class="ln-row"><span class="ln-row__lead">Ana</span><span class="ln-row__main">08:00</span><span class="ln-row__meta" data-string="shift.until">until 14:00</span><span class="ln-row__end"></span></li>
+        <li class="ln-row"><span class="ln-row__lead">Bruno</span><span class="ln-row__main">08:00</span><span class="ln-row__meta" data-string="shift.until">until 16:00</span><span class="ln-row__end"></span></li>
+        <li class="ln-row"><span class="ln-row__lead">Inés</span><span class="ln-row__main">10:00</span><span class="ln-row__meta" data-string="shift.until">until 18:00</span><span class="ln-row__end"></span></li>
+        <li class="ln-row"><span class="ln-row__lead">Kofi</span><span class="ln-row__main">12:00</span><span class="ln-row__meta" data-string="shift.until">until 19:00</span><span class="ln-row__end"></span></li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>
