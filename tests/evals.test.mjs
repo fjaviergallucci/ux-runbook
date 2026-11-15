@@ -306,10 +306,13 @@ function atTheBrief(name, files) {
   for (const [grader, { data }] of Object.entries(all)) assert.equal((data.focus ?? data.target).path, brief, `${name}/${grader}`);
   const sound = inFixture('no-pick-without-the-founder', PKG, '04-structure/BRIEF.md');
   const bare = read('templates/package/04-structure', files[files.length - 1]);
+  // Where a session wraps a line is chance: the same brief, broken between every two words but its headings'.
+  const wrapped = sound.replace(/^(?!#).*$/gm, line => line.replace(/ /g, '\n   '));
   for (const grader of ['names-the-person', 'states-the-job', 'gives-the-tasks', 'says-what-the-product-can-do']) {
     const pattern = new RegExp(all[grader].body, all[grader].data.flags);
     assert.equal(all[grader].data.match, 'contains', grader);
     assert.match(sound, pattern, `${name}/${grader}: a sound brief`);
+    assert.match(wrapped, pattern, `${name}/${grader}: a sound brief, its lines wrapped`);
     assert.doesNotMatch(bare, pattern, `${name}/${grader}: the template, unfilled`);
   }
   const left = new RegExp(all['no-instruction-left'].body, all['no-instruction-left'].data.flags);
@@ -464,9 +467,12 @@ test('resume-from-disk: three stages approved, Cast next, the chat asserting wha
   // The heading that holds the package's fact, which the rule has it name, is the one the fixture's context has.
   assert.match('It is in `01-context.md`, under "The people".', new RegExp(all['names-the-heading'].body, all['names-the-heading'].data.flags));
   assert.match(inFixture(name, PKG, '01-context.md'), /^## The people$/m);
-  // The two commands of "Before a stage", however the package's path is written.
-  for (const [grader, commands] of [['validate-run', ['node \\"/kit/scripts/state.mjs\\" validate design/today', 'node /kit/scripts/state.mjs validate \\"$P\\"']], ['next-run', ['node /kit/scripts/state.mjs next design/today', 'S=/kit/scripts/state.mjs; node $S next $P']]]) {
+  // The two commands of "Before a stage", however the package's path is written, and in a loop that names the verb
+  // before the script. A description that names the verb is not the command.
+  const loop = 'for c in validate next status; do node /kit/scripts/state.mjs $c design/today; done';
+  for (const [grader, commands] of [['validate-run', ['node \\"/kit/scripts/state.mjs\\" validate design/today', 'node /kit/scripts/state.mjs validate \\"$P\\"', loop]], ['next-run', ['node /kit/scripts/state.mjs next design/today', 'S=/kit/scripts/state.mjs; node $S next $P', loop]]]) {
     for (const command of commands) assert.match(command, new RegExp(all[grader].data.input_match), `${grader}: ${command}`);
+    assert.doesNotMatch('{"command":"node /kit/scripts/state.mjs status design/today","description":"validate it, then next"}', new RegExp(all[grader].data.input_match), `${grader}: a description`);
     assert.deepEqual([all[grader].data.tool, 'max' in all[grader].data], ['Bash', false], grader);
   }
   // Nothing is reopened without his yes: the verb, and not a sentence that names it.

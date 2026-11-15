@@ -5,4 +5,4 @@ match: contains
 flags: im
 ---
 
-^## The person\n[^#]*?\b(front desk|clinic)\b
+^## The person\n[^#]*?\b(front\s+desk|clinic)\b

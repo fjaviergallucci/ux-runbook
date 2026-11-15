@@ -5,4 +5,4 @@ match: contains
 flags: im
 ---
 
-^## What the product can show and do\n[^#]*?being cleaned
+^## What the product can show and do\n[^#]*?being\s+cleaned

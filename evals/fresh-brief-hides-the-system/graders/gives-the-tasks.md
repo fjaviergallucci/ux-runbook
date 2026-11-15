@@ -5,4 +5,4 @@ match: contains
 flags: im
 ---
 
-^## The tasks\n[^#]*?walked in[^#]*?Sala Jard[ií]n
+^## The tasks\n[^#]*?walked\s+in[^#]*?Sala\s+Jard[ií]n
