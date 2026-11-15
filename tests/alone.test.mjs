@@ -7,7 +7,7 @@ import { spawnSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { AloneError, alone, references } from '../scripts/alone.mjs';
+import { AloneError, alone, pointers, references } from '../scripts/alone.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const cli = join(here, '..', 'scripts', 'alone.mjs');
@@ -75,7 +75,7 @@ test('--help prints the usage and exits 0: the form, every kind of reference tha
   for (const flag of ['--help', '-h']) {
     const r = run(root, flag);
     assert.deepEqual([r.status, r.stderr], [0, '']);
-    assert.match(r.stdout, /^Usage: node scripts\/alone\.mjs <folder>\n/);
+    assert.match(r.stdout, /^Usage: node scripts\/alone\.mjs <folder> \[--package <package>\]\n/);
     for (const kind of ['href', 'xlink:href', 'src', 'srcset', 'imagesrcset', 'poster', 'the data of an object', 'url()', '@import', 'image-set()']) assert.ok(r.stdout.includes(kind), kind);
     assert.match(r.stdout, /every \.html and \.css file under the folder/);
     assert.match(r.stdout, /it leaves the folder/);
@@ -94,7 +94,7 @@ test('bad usage exits 2 with the usage: no folder, two folders, a flag it does n
     const r = run(root, ...args);
     assert.deepEqual([r.status, r.stdout], [2, ''], r.stderr);
     assert.match(r.stderr, message);
-    assert.match(r.stderr, /^Usage: node scripts\/alone\.mjs <folder>$/m);
+    assert.match(r.stderr, /^Usage: node scripts\/alone\.mjs <folder> \[--package <package>\]$/m);
     assert.deepEqual(tree(dir), before);
   }
 });
@@ -326,4 +326,246 @@ test('references(text, kind) lists what a page or a stylesheet loads, in the ord
 test('alone(folder) throws an AloneError for a folder it cannot read, and a TypeError for anything that is not a path', () => {
   assert.throws(() => alone(join(root, 'nowhere')), e => e instanceof AloneError && /^cannot read .*nowhere: not found$/.test(e.message));
   for (const bad of [undefined, '', 7, null]) assert.throws(() => alone(bad), TypeError);
+});
+
+// ---- nothing points back: --package (R180 of the dry run)
+
+// The run's cold reader twice found what no address check sees: a stylesheet's comment naming `measures.md`, a
+// coverage row naming a maker's `descriptions/data.json`, the writers' notes naming `DETAIL.md`. With --package,
+// every text file of the folder is read for the name of a file or folder of the package that the folder does not hold.
+
+// A package in small: its stages' outputs and folders, the handoff folder among them, and the builder's place.
+const PACKAGE = Object.freeze({
+  'state.json': '{}\n',
+  'STATE.md': '# State\n',
+  'DECISIONS.md': '# Decisions\n',
+  '00-frame.md': '# Frame\n',
+  '04-structure/CHOSEN.md': '# Chosen\n',
+  '04-structure/descriptions/data.json': '{}\n',
+  '05-detail/DETAIL.md': '# Detail\n',
+  '05-detail/states.md': '# States\n',
+  '05-detail/strings.json': '{}\n',
+  '05-detail/prototype/today-default-en.html': 'a page',
+  '06-look/LOOK.md': '# Look\n',
+  '06-look/measures.md': '# Measures\n',
+  '06-look/screens/today-default-en.html': 'a page',
+  '06-look/screens/look.css': 'a { color: red }\n',
+  '06-look/shots/today-default-en-390-light.png': 'a picture',
+  // What a file browser leaves behind is no file of the package.
+  '06-look/.DS_Store': 'left behind',
+  '07-handoff-gate/judge.cold-implementer.md': '# A ledger\n',
+  'work/handoff-judge.cold-implementer-brief.md': '# A brief\n',
+  'work/notes': 'a maker\'s notes\n',
+  'build/BUILD.md': '# Build\n',
+  'build/STATES.md': '# States\n',
+  'build/DEVIATIONS.md': '# Deviations\n',
+});
+// What the handoff folder holds beside its pages: its own files, some named as files of the package are.
+const HANDED = Object.freeze({
+  'HANDOFF.md': '# Handoff\n\nStart at `SPEC.md`. The pages are in `prototype/`, their pictures in `prototype/shots/`.\nWrite `../build/STATES.md`, `../build/BUILD.md` and `../build/DEVIATIONS.md` as you build: `build/` is yours.\n',
+  'SPEC.md': '# Spec\n\n| State | Its page |\n|---|---|\n| default | `today-default-en.html` |\n',
+  'DECISIONS.md': '# Decisions\n\n6. The cleaning time is ten minutes.\n',
+  'COVERAGE.md': '# Coverage\n\n| Seat | What it read |\n|---|---|\n| judge.truth | the pages |\n',
+  'strings.json': '{ "book": { "en": "Book" } }\n',
+  'prototype/look.css': '/* The look of today. */\na { color: inherit; }\n',
+});
+// The package on disk, the handoff folder inside it holding FOLDER, HANDED and what the test adds or changes.
+const packaged = (changes = {}, name = `package ${++made}`) => {
+  const files = { ...FOLDER, ...HANDED, ...changes };
+  const dir = fresh({ ...PACKAGE, ...Object.fromEntries(Object.entries(files).map(([file, text]) => [`07-handoff/${file}`, text])) }, name);
+  return { pkg: dir, folder: join(dir, '07-handoff') };
+};
+// The verdict with --package, run from the package's folder with both named from it.
+const judged = ({ pkg }, ...more) => run(pkg, '07-handoff', '--package', '.', ...more);
+const points = (dir, ...lines) => {
+  const r = judged(dir);
+  assert.deepEqual([r.status, r.stdout], [1, ''], r.stderr);
+  const said = r.stderr.trimEnd().split('\n');
+  assert.deepEqual(said.slice(0, -1), lines);
+  assert.equal(said.at(-1), `${lines.length} place${lines.length === 1 ? '' : 's'} of 07-handoff name${lines.length === 1 ? 's' : ''} a file or folder of . that it does not hold`);
+};
+const TEXT_FILES = Object.keys({ ...FOLDER, ...HANDED }).length;
+
+test('--package: a folder that names nothing of its package but what it holds stands alone, and says what was read', () => {
+  const dir = packaged();
+  const before = tree(dir.pkg);
+  const r = judged(dir);
+  assert.deepEqual([r.status, r.stderr], [0, ''], r.stdout);
+  assert.equal(r.stdout, `07-handoff stands alone: 8 references in 5 files, each to a file inside it; and none of its ${TEXT_FILES} text files names a file or folder of . that it does not hold\n`);
+  assert.deepEqual(tree(dir.pkg), before, 'nothing is written');
+  // --package=value is the same, and so is the flag before the folder.
+  assert.equal(run(dir.pkg, '--package=.', '07-handoff').stdout, r.stdout);
+  // Without the flag the line is the one it always was, and no text is read for names.
+  assert.equal(run(dir.pkg, '07-handoff').stdout, '07-handoff stands alone: 8 references in 5 files, each to a file inside it\n');
+});
+
+test('--package: what the run\'s cold reader found is found: a stylesheet\'s comment, a coverage row, the writers\' notes, a page\'s comment', () => {
+  points(packaged({ 'prototype/look.css': '/* The look of today.\n   Its six changes are listed in measures.md under "Named extensions". */\na { color: inherit; }\n' }),
+    'prototype/look.css:2: measures.md: it names 06-look/measures.md of the package, which the folder does not hold');
+  points(packaged({ 'COVERAGE.md': `${HANDED['COVERAGE.md']}| describer | wrote descriptions/data.json, by the kit's contract |\n` }),
+    'COVERAGE.md:6: data.json: it names 04-structure/descriptions/data.json of the package, which the folder does not hold',
+    'COVERAGE.md:6: descriptions/: it names 04-structure/descriptions/ of the package, which the folder does not hold');
+  points(packaged({ 'strings.json': '{\n  "_meta": { "notes": ["DETAIL.md still says 32 strings (deviation 28)", "states.md still reads \\"no item\\""] },\n  "book": { "en": "Book" }\n}\n' }),
+    'strings.json:2: DETAIL.md: it names 05-detail/DETAIL.md of the package, which the folder does not hold',
+    'strings.json:2: states.md: it names 05-detail/states.md of the package, which the folder does not hold');
+  points(packaged({ 'prototype/today-default-en.html': `${FOLDER['prototype/today-default-en.html']}<!-- copied from 06-look/screens/ -->\n` }),
+    'prototype/today-default-en.html:13: 06-look/: it names 06-look/ of the package, which the folder does not hold',
+    'prototype/today-default-en.html:13: screens/: it names 06-look/screens/ of the package, which the folder does not hold');
+  // Without the flag, none of them is seen: the address check reads no comment and no Markdown.
+  const unseen = packaged({ 'prototype/look.css': '/* listed in measures.md */\n', 'COVERAGE.md': 'See descriptions/data.json.\n' });
+  assert.deepEqual([run(unseen.pkg, '07-handoff').status, judged(unseen).status], [0, 1]);
+});
+
+test('--package: a stage\'s output, a ledger, a brief and a stage\'s folder are names of the package; each place is printed once, file by file and line by line', () => {
+  points(packaged({
+    'SPEC.md': `${HANDED['SPEC.md']}\nAs decided at Detail (05-detail/DETAIL.md), and in LOOK.md. LOOK.md says so twice.\nThe state is in ../state.json and STATE.md; the frame in \`00-frame.md\`.\n`,
+    'PARTS.md': 'The ledger is 07-handoff-gate/judge.cold-implementer.md.\nThe brief: work/handoff-judge.cold-implementer-brief.md\n\nAnd again: LOOK.md.\n',
+  }),
+    'PARTS.md:1: 07-handoff-gate/: it names 07-handoff-gate/ of the package, which the folder does not hold',
+    'PARTS.md:1: judge.cold-implementer.md: it names 07-handoff-gate/judge.cold-implementer.md of the package, which the folder does not hold',
+    'PARTS.md:2: handoff-judge.cold-implementer-brief.md: it names work/handoff-judge.cold-implementer-brief.md of the package, which the folder does not hold',
+    'PARTS.md:2: work/: it names work/ of the package, which the folder does not hold',
+    'PARTS.md:4: LOOK.md: it names 06-look/LOOK.md of the package, which the folder does not hold',
+    'SPEC.md:7: 05-detail/: it names 05-detail/ of the package, which the folder does not hold',
+    'SPEC.md:7: DETAIL.md: it names 05-detail/DETAIL.md of the package, which the folder does not hold',
+    'SPEC.md:7: LOOK.md: it names 06-look/LOOK.md of the package, which the folder does not hold',
+    'SPEC.md:8: 00-frame.md: it names 00-frame.md of the package, which the folder does not hold',
+    'SPEC.md:8: STATE.md: it names STATE.md of the package, which the folder does not hold',
+    'SPEC.md:8: state.json: it names state.json of the package, which the folder does not hold');
+});
+
+test('--package: what is no name of the package is let be: a pointer in words, a name the folder holds, the builder\'s place, a longer name, an ordinary word', () => {
+  const stands = text => {
+    const dir = packaged({ 'PARTS.md': `# Parts\n\n${text}\n` });
+    const r = judged(dir);
+    assert.deepEqual([r.status, r.stderr], [0, ''], text);
+  };
+  // A pointer that names no file is out of this check's reach: the cold implementer still reads for it.
+  stands('The cleaning time (answer 28), as listed. (Dependency 4) As decided at Detail. Option B.');
+  // What the folder holds itself, wherever in it, though the package holds a file of that name elsewhere.
+  stands('See `strings.json`, `DECISIONS.md`, `today-default-en.html`, `look.css` and the picture `today-default-en-390-light.png` in `prototype/shots/`.');
+  // The builder's place, beside the folder.
+  stands('Write `../build/STATES.md`, `build/BUILD.md` and `DEVIATIONS.md`, in `../build/`.');
+  // A longer name is another name; so is one written in another case.
+  stands('OUTLOOK.md, measures.md.bak, my-measures.md, x_measures.md, metadata.json, measures.mdx, a.measures.md, Measures.md, look.md, detail.MD');
+  // A folder's name is a word like any other until it is written as a path.
+  stands('The work is done once she reads the screens: the descriptions are short. 06-look is a stage, and so is 05-detail.');
+  stands('homework/ and network/x are no folders of it; nor is upwork/.');
+  // The folder's own name is no pointer back, and what a file browser left in the package is no file of it.
+  stands('This folder is `07-handoff/`: start at 07-handoff/HANDOFF.md. A stray .DS_Store means nothing.');
+  // A name of the project's, which the package does not hold.
+  stands('The tokens come from `src/styles/tokens.css`, last changed in `a1b2c3d`. See README.md.');
+});
+
+test('--package: a name is found wherever it is written whole: in a path, in quotes, at the end of a sentence, behind a backslash', () => {
+  points(packaged({ 'PARTS.md': 'In measures.md.\n"measures.md"\n(see ../06-look/measures.md)\n06-look\\measures.md\n`work/`\ntoday/work\n<measures.md>, measures.md; measures.md: measures.md!\n' }),
+    'PARTS.md:1: measures.md: it names 06-look/measures.md of the package, which the folder does not hold',
+    'PARTS.md:2: measures.md: it names 06-look/measures.md of the package, which the folder does not hold',
+    'PARTS.md:3: 06-look/: it names 06-look/ of the package, which the folder does not hold',
+    'PARTS.md:3: measures.md: it names 06-look/measures.md of the package, which the folder does not hold',
+    'PARTS.md:4: 06-look/: it names 06-look/ of the package, which the folder does not hold',
+    'PARTS.md:4: measures.md: it names 06-look/measures.md of the package, which the folder does not hold',
+    'PARTS.md:5: work/: it names work/ of the package, which the folder does not hold',
+    'PARTS.md:6: work/: it names work/ of the package, which the folder does not hold',
+    'PARTS.md:7: measures.md: it names 06-look/measures.md of the package, which the folder does not hold');
+  // A file with no ending is found as a folder is, in a path; and a name the package holds twice is said to be one of them.
+  points(packaged({ 'PARTS.md': 'The notes are in work/notes. These notes are short.\nThe page was 05-detail/prototype/today-loading-en.html.\n' }, 'twice'),
+    'PARTS.md:1: notes: it names work/notes of the package, which the folder does not hold',
+    'PARTS.md:1: work/: it names work/ of the package, which the folder does not hold',
+    'PARTS.md:2: 05-detail/: it names 05-detail/ of the package, which the folder does not hold');
+});
+
+test('--package: a name the package holds in two places is printed with the first and their number', () => {
+  // The first in the order of the paths, as they are compared character by character: "06-look-old/" comes before "06-look/".
+  const dir = fresh({ ...PACKAGE, '06-look-old/measures.md': '# Earlier\n', '08-acceptance/measures.md': '# Later\n', ...Object.fromEntries(Object.entries({ ...FOLDER, ...HANDED, 'PARTS.md': 'See measures.md.\n' }).map(([file, text]) => [`07-handoff/${file}`, text])) });
+  const r = run(dir, '07-handoff', '--package', '.');
+  assert.deepEqual([r.status, r.stdout], [1, '']);
+  assert.equal(r.stderr.split('\n')[0], 'PARTS.md:1: measures.md: it names 06-look-old/measures.md of the package (one of 3 of that name), which the folder does not hold');
+});
+
+test('--package: every text file is read, whatever its ending and its depth; a file that is no text is passed over', () => {
+  const dir = packaged({
+    'accept-inpage.js': '// see measures.md\n',
+    'strings/es.po': 'msgid "measures.md"\n',
+    // Printed in the order of the paths, character by character: "strings-notes.txt" comes before "strings/".
+    'strings-notes.txt': 'measures.md\n',
+    'prototype/shots/notes.txt': 'measures.md\n',
+    // A picture: its bytes are no text, whatever they spell.
+    'prototype/shots/today-default-en-1280-light.png': '\u0000PNG measures.md\u0000',
+    'EMPTY.md': '',
+  });
+  points(dir,
+    'accept-inpage.js:1: measures.md: it names 06-look/measures.md of the package, which the folder does not hold',
+    'prototype/shots/notes.txt:1: measures.md: it names 06-look/measures.md of the package, which the folder does not hold',
+    'strings-notes.txt:1: measures.md: it names 06-look/measures.md of the package, which the folder does not hold',
+    'strings/es.po:1: measures.md: it names 06-look/measures.md of the package, which the folder does not hold');
+  // CRLF line endings count lines the same way.
+  points(packaged({ 'PARTS.md': 'One.\r\nTwo.\r\nSee measures.md.\r\n' }), 'PARTS.md:3: measures.md: it names 06-look/measures.md of the package, which the folder does not hold');
+});
+
+test('--package: an address that leaves the folder and a name that points back are both printed, the addresses first, each with its count', () => {
+  const dir = packaged({ 'prototype/today-default-en.html': page('<link rel="stylesheet" href="../../06-look/screens/look.css">'), 'PARTS.md': 'See measures.md.\n' });
+  const r = judged(dir);
+  assert.deepEqual([r.status, r.stdout], [1, '']);
+  assert.deepEqual(r.stderr.trimEnd().split('\n'), [
+    'prototype/today-default-en.html: ../../06-look/screens/look.css: it leaves the folder: ".." climbs above it',
+    '1 reference of 07-handoff does not lead to a file inside it',
+    'PARTS.md:1: measures.md: it names 06-look/measures.md of the package, which the folder does not hold',
+    'prototype/today-default-en.html:8: 06-look/: it names 06-look/ of the package, which the folder does not hold',
+    'prototype/today-default-en.html:8: screens/: it names 06-look/screens/ of the package, which the folder does not hold',
+    '3 places of 07-handoff name a file or folder of . that it does not hold',
+  ]);
+});
+
+test('--package: the package is a folder that can be read and is not the folder itself; the folder may be anywhere', () => {
+  const dir = packaged();
+  for (const [args, status, message] of [
+    [['07-handoff', '--package'], 2, /^--package needs a value\n\nUsage: /],
+    [['07-handoff', '--package', '07-handoff'], 2, /^--package is the folder itself: name the package it is in\n\nUsage: /],
+    [['07-handoff', '--package', './07-handoff/'], 2, /^--package is the folder itself: name the package it is in\n\nUsage: /],
+    [['07-handoff', '--package', 'nowhere'], 1, /^cannot read nowhere: not found\n$/],
+    [['07-handoff', '--package', 'STATE.md'], 1, /^cannot read STATE\.md: it is a file, not a folder\n$/],
+  ]) {
+    const r = run(dir.pkg, ...args);
+    assert.deepEqual([r.status, r.stdout], [status, ''], args.join(' '));
+    assert.match(r.stderr, message, args.join(' '));
+  }
+  // A folder that is not in the package holds nothing of it: every name of the package is one it does not hold.
+  const outside = fresh({ ...FOLDER, 'PARTS.md': 'See strings.json and build/BUILD.md.\n' });
+  const r = run(root, outside.slice(root.length + 1), '--package', dir.pkg.slice(root.length + 1));
+  assert.deepEqual([r.status, r.stdout], [1, '']);
+  assert.match(r.stderr, /^PARTS\.md:1: strings\.json: it names 05-detail\/strings\.json of the package \(one of 2 of that name\), which the folder does not hold\n1 place of /);
+});
+
+test('pointers(folder, package) lists each place, and throws as alone does', () => {
+  const dir = packaged({ 'PARTS.md': 'See measures.md.\n\nAnd work/notes.\n' });
+  assert.deepEqual(pointers(dir.folder, dir.pkg), {
+    files: TEXT_FILES + 1,
+    faults: [
+      { file: 'PARTS.md', line: 1, name: 'measures.md', where: '06-look/measures.md', of: 1 },
+      { file: 'PARTS.md', line: 3, name: 'notes', where: 'work/notes', of: 1 },
+      { file: 'PARTS.md', line: 3, name: 'work/', where: 'work/', of: 1 },
+    ],
+  });
+  assert.throws(() => pointers(dir.folder, join(root, 'nowhere')), e => e instanceof AloneError && /^cannot read .*nowhere: not found$/.test(e.message));
+  assert.throws(() => pointers(join(root, 'nowhere'), dir.pkg), e => e instanceof AloneError && /^cannot read .*nowhere: not found$/.test(e.message));
+  for (const bad of [undefined, '', 7, null]) {
+    assert.throws(() => pointers(bad, dir.pkg), TypeError);
+    assert.throws(() => pointers(dir.folder, bad), TypeError);
+  }
+});
+
+test('--help says what --package reads, what a name is, and what is let be', () => {
+  const help = run(root, '--help').stdout.replace(/\s+/g, ' ');
+  for (const said of [
+    'With --package it also proves that nothing in the folder points back into its package',
+    'every file of the folder that is text (one that holds no NUL byte: Markdown, JSON, a stylesheet and a page with their comments, a script) is read, line by line',
+    'for the name of any file or folder of the package that the folder does not hold',
+    'A name of the package is the name of a file or a folder anywhere under it, but in the folder itself and in the package\'s build/ folder, which is the builder\'s place',
+    'A name the folder holds too, anywhere in it, is no name of the package',
+    'A name with a dot in it, as measures.md, is found wherever it is written whole, as it is written, capitals and all',
+    'A name with no dot, as work or 06-look, could be a word: it is found only where it is written as a path, a slash before it or after it',
+    'A pointer that names no file, as "answer 28" or "as decided at Detail", is not seen',
+    '"<file>:<line>: <name>: it names <its path in the package> of the package, which the folder does not hold"',
+  ]) assert.ok(help.includes(said), said);
 });

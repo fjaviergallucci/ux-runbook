@@ -9,11 +9,20 @@
 // it opens no browser and writes nothing. What it prints of an address is its path: never its query, its
 // fragment or a sign-in written into it, since a key may ride there.
 //
+// An address is not the only way out. With --package it also proves that nothing in the folder points back
+// into the package it is in: every text file of the folder, its Markdown, its JSON, its scripts and the
+// comments of its pages and stylesheets among them, is read for the name of a file or a folder of the package
+// that the folder does not hold itself. The package's build/ folder is the builder's place, beside the
+// folder, and may be named. A pointer that names no file ("answer 28") is not seen.
+//
 // As a module: references(text, kind) → the addresses a page ('html') or a stylesheet ('css') loads, in the
 // order written, each once, as written; alone(folder) → { files, references, faults: [{ file, reference,
 // why }] }, each reference as it is printed, which throws an AloneError for a folder that cannot be read or
-// holds nothing to read.
-// Exit codes: 0 every reference leads to a file inside the folder · 1 one does not, or a refusal · 2 bad usage.
+// holds nothing to read; pointers(folder, package) → { files, faults: [{ file, line, name, where, of }] },
+// the text files read and each place that names something of the package, which throws an AloneError for
+// a folder or a package that cannot be read.
+// Exit codes: 0 every reference leads to a file inside the folder · 1 one does not, or a refusal · 2 bad
+// usage. With --package, 1 also when a place points back.
 import { readdirSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import { join, posix, sep } from 'node:path';
 import { UsageError, isMain, parseArgs } from './lib/cli.mjs';
@@ -239,9 +248,94 @@ export function alone(folder) {
   return { files: files.length, references: judged, faults };
 }
 
+// ---- what points back into the package
+
+// The package's folder that is the builder's place, beside the handoff folder: it may be named.
+const BUILDERS = 'build';
+const isSlash = char => char === '/' || char === '\\';
+const IN_A_NAME = /[A-Za-z0-9_-]/;
+
+// A folder that can be read, or an AloneError.
+function mustBeFolder(folder, what) {
+  if (typeof folder !== 'string' || folder === '') throw new TypeError(`${what} must be the path of a folder; it is ${JSON.stringify(folder)}`);
+  let stat;
+  try {
+    stat = statSync(folder);
+  } catch (e) {
+    throw new AloneError(`cannot read ${folder}: ${reason(e)}`);
+  }
+  if (!stat.isDirectory()) throw new AloneError(`cannot read ${folder}: it is a file, not a folder`);
+  return realpathSync(folder);
+}
+
+// Everything under a folder, files and folders, each by its path from it, with `/`; a folder whose own
+// path, every link followed, is one of `passed` is not entered and not listed.
+function entries(folder, passed = [], inside = '') {
+  return readdirSync(join(folder, ...inside.split('/')), { withFileTypes: true })
+    .filter(entry => !HIDDEN.test(entry.name))
+    .flatMap(entry => {
+      const path = `${inside}${entry.name}`;
+      if (!entry.isDirectory()) return [{ path, name: entry.name, isFolder: false }];
+      if (passed.includes(realpathSync(join(folder, ...path.split('/'))))) return [];
+      return [{ path: `${path}/`, name: entry.name, isFolder: true }, ...entries(folder, passed, `${path}/`)];
+    });
+}
+
+// Whether a line writes a name whole: not inside a longer name, and, for a name with no dot in it, which
+// could be a word, as part of a path: a slash before it or after it.
+function writes(line, name) {
+  const dotted = name.includes('.');
+  for (let at = line.indexOf(name); at !== -1; at = line.indexOf(name, at + 1)) {
+    const before = line[at - 1] ?? '';
+    const after = line[at + name.length] ?? '';
+    if (IN_A_NAME.test(before) || before === '.') continue;
+    if (IN_A_NAME.test(after) || (after === '.' && /[A-Za-z0-9]/.test(line[at + name.length + 1] ?? ''))) continue;
+    if (dotted || isSlash(before) || isSlash(after)) return true;
+  }
+  return false;
+}
+
+const byCode = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
+
+// pointers(folder, package) → { files, faults }: how many files of the folder were read as text (one that
+// holds a NUL byte is none), and each place in them that names a file or a folder of the package which the
+// folder does not hold, as { file, line, name, where, of }: the file by its path from the folder, the line
+// from 1, the name as it is printed (a folder's with its slash), its path in the package (the first, in the
+// order of the paths, when the package holds `of` of that name). A name of the package is the name of
+// anything under it but the folder itself and its build/ folder; a name the folder holds too, anywhere in
+// it, is none. Throws a TypeError for what is not a path, an AloneError for a folder that cannot be read.
+export function pointers(folder, pkg) {
+  const real = mustBeFolder(folder, 'folder');
+  const realPackage = mustBeFolder(pkg, 'package');
+  let builders = null;
+  try {
+    builders = realpathSync(join(realPackage, BUILDERS));
+  } catch {}
+  const mine = entries(folder);
+  const held = new Set(mine.map(entry => entry.name));
+  const names = new Map();
+  for (const entry of entries(pkg, [real, builders]).sort((a, b) => byCode(a.path, b.path))) {
+    if (held.has(entry.name)) continue;
+    if (!names.has(entry.name)) names.set(entry.name, { shown: entry.isFolder ? `${entry.name}/` : entry.name, where: entry.path, of: 0 });
+    names.get(entry.name).of += 1;
+  }
+  const sought = [...names].sort(([, a], [, b]) => byCode(a.shown, b.shown));
+  const faults = [];
+  let files = 0;
+  for (const { path: file } of mine.filter(entry => !entry.isFolder).sort((a, b) => byCode(a.path, b.path))) {
+    const bytes = readFileSync(join(folder, ...file.split('/')));
+    if (bytes.includes(0)) continue;
+    files++;
+    bytes.toString('utf8').split('\n').forEach((line, i) => {
+      for (const [name, { shown: said, where, of }] of sought) if (writes(line, name)) faults.push({ file, line: i + 1, name: said, where, of });
+    });
+  }
+  return { files, faults };
+}
+
 // ---- the command line
 
-const USAGE = `Usage: node scripts/alone.mjs <folder>
+const USAGE = `Usage: node scripts/alone.mjs <folder> [--package <package>]
 
 Proves that a folder stands alone: that its pages and stylesheets load nothing from outside it. It reads
 every .html and .css file under the folder, at any depth, and judges every address they load:
@@ -273,29 +367,75 @@ script builds as the page runs is not seen.
 An address is printed without its query and its fragment, and without a sign-in written into it: a key
 may ride in any of them. What was taken off is said in words, as "(with a query)".
 
+With --package it also proves that nothing in the folder points back into its package: every file of
+the folder that is text (one that holds no NUL byte: Markdown, JSON, a stylesheet and a page with their
+comments, a script) is read, line by line, for the name of any file or folder of the package that the
+folder does not hold. A name of the package is the name of a file or a folder anywhere under it, but in
+the folder itself and in the package's build/ folder, which is the builder's place: ../build/ and the
+files in it may be named. A name the folder holds too, anywhere in it, is no name of the package: it
+may name its own strings.json though the package keeps another.
+
+A name with a dot in it, as measures.md, is found wherever it is written whole, as it is written,
+capitals and all: not inside a longer name (my-measures.md, measures.md.bak). A name with no dot, as
+work or 06-look, could be a word: it is found only where it is written as a path, a slash before it or
+after it (work/, 04-structure/board). A pointer that names no file, as "answer 28" or "as decided at
+Detail", is not seen: a person still reads for those. One line is printed for each place, on standard
+error, "<file>:<line>: <name>: it names <its path in the package> of the package, which the folder does
+not hold"; of a name the package holds more than once, the first path is given, with their number. A
+place that points back makes the exit code 1, as an address that leaves the folder does.
+
 When every address leads to a file inside the folder it prints one line, "<folder> stands alone: <n>
-references in <m> files, each to a file inside it". Nothing is written, and no browser is started.
+references in <m> files, each to a file inside it"; with --package, and no place that points back, the
+line goes on: "; and none of its <k> text files names a file or folder of <package> that it does not
+hold". Nothing is written, and no browser is started.
+
+  --package <package>   the package the folder is in, as design/today for design/today/07-handoff; not
+                        the folder itself
+
+A flag may also be written --flag=value.
 
 Exit codes: 0 every reference leads to a file inside the folder · 1 one does not, or a refusal (a folder
 that cannot be read, or one that holds no .html and no .css file) · 2 bad usage.
 `;
 
+// One folder under two paths, whichever way each is written; false when either cannot be reached.
+function sameFolder(a, b) {
+  try {
+    return realpathSync(a) === realpathSync(b);
+  } catch {
+    return false;
+  }
+}
+
 function main(argv) {
   try {
-    const args = parseArgs(argv);
+    const args = parseArgs(argv, { flags: ['package'] });
     if (args.help) {
       process.stdout.write(USAGE);
       return;
     }
     if (args.positional.length !== 1) throw new UsageError('alone takes one <folder>');
     const [folder] = args.positional;
+    const pkg = args.flags.package;
+    if (pkg !== undefined && sameFolder(folder, pkg)) throw new UsageError('--package is the folder itself: name the package it is in');
+    // Both are judged before anything is printed: a refusal of either is said alone.
     const { files, references: judged, faults } = alone(folder);
-    if (faults.length === 0) {
-      process.stdout.write(`${folder} stands alone: ${judged} reference${judged === 1 ? '' : 's'} in ${files} file${files === 1 ? '' : 's'}, each to a file inside it\n`);
+    const back = pkg === undefined ? null : pointers(folder, pkg);
+    const places = back?.faults ?? [];
+    if (faults.length === 0 && places.length === 0) {
+      const named = back ? `; and none of its ${back.files} text file${back.files === 1 ? '' : 's'} names a file or folder of ${pkg} that it does not hold` : '';
+      process.stdout.write(`${folder} stands alone: ${judged} reference${judged === 1 ? '' : 's'} in ${files} file${files === 1 ? '' : 's'}, each to a file inside it${named}\n`);
       return;
     }
-    const one = faults.length === 1;
-    process.stderr.write(`${faults.map(({ file, reference, why }) => `${file}: ${reference}: ${why}\n`).join('')}${faults.length} reference${one ? '' : 's'} of ${folder} ${one ? 'does' : 'do'} not lead to a file inside it\n`);
+    if (faults.length > 0) {
+      const one = faults.length === 1;
+      process.stderr.write(`${faults.map(({ file, reference, why }) => `${file}: ${reference}: ${why}\n`).join('')}${faults.length} reference${one ? '' : 's'} of ${folder} ${one ? 'does' : 'do'} not lead to a file inside it\n`);
+    }
+    if (places.length > 0) {
+      const one = places.length === 1;
+      const lines = places.map(({ file, line, name, where, of }) => `${file}:${line}: ${name}: it names ${where} of the package${of > 1 ? ` (one of ${of} of that name)` : ''}, which the folder does not hold\n`);
+      process.stderr.write(`${lines.join('')}${places.length} place${one ? '' : 's'} of ${folder} name${one ? 's' : ''} a file or folder of ${pkg} that it does not hold\n`);
+    }
     process.exitCode = 1;
   } catch (e) {
     if (e instanceof UsageError) {

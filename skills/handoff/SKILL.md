@@ -86,7 +86,7 @@ Each path is from `<package>/`. `<version>` is the version a stage stands at, as
    - the guide, whole, and the in-page file of the checks, as `accept-inpage.js`; and the three
      pages of `templates/package/build/` into `<package>/build/`.
    ```
-   node <kit root>/scripts/alone.mjs <package>/07-handoff
+   node <kit root>/scripts/alone.mjs <package>/07-handoff --package <package>
    ```
    It must exit 0, with its one line: the folder stands alone. What the token file loads from
    outside is copied in beside it, or taken out of the copy and listed in `HANDOFF.md` for the

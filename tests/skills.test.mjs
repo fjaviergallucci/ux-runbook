@@ -4656,10 +4656,10 @@ test('handoff: the folder holds the eight files, the prototype, the token file a
   inOrder(copy, [/every page of `<package>\/06-look\/screens\/` into `<package>\/07-handoff\/prototype\/`, and the pictures of those pages into `<package>\/07-handoff\/prototype\/shots\/`/,
     /`<tokens>` to `<package>\/07-handoff\/tokens\.css`, noting the path of the project's own token file, which it was copied from, and the commit that last changed it/, /in each copied page the one link to `<tokens>` then names that copy, as `\.\.\/tokens\.css`: a page changes there, and where an asset is copied in for it, and nowhere else/,
     /`<package>\/07-handoff\/prototype\/index\.html`: every page as a link, by screen, state, language/, /the guide, whole, and the in-page file of the checks, as `accept-inpage\.js`; and the three pages of `templates\/package\/build\/` into `<package>\/build\/`/,
-    /``` node <kit root>\/scripts\/alone\.mjs <package>\/07-handoff ```/, /It must exit 0, with its one line: the folder stands alone\. What the token file loads from outside is copied in beside it, or taken out of the copy and listed in `HANDOFF\.md` for the builder to supply/,
+    /``` node <kit root>\/scripts\/alone\.mjs <package>\/07-handoff --package <package> ```/, /It must exit 0, with its one line: the folder stands alone\. What the token file loads from outside is copied in beside it, or taken out of the copy and listed in `HANDOFF\.md` for the builder to supply/,
     /What a page loads that cannot be copied in goes to the founder, open: no page is edited to pass/], 'what is copied in');
   // Ruling R148: the kit's own script proves the folder stands alone, after the copy and before the checks.
-  const proving = 'node <kit root>/scripts/alone.mjs <package>/07-handoff';
+  const proving = 'node <kit root>/scripts/alone.mjs <package>/07-handoff --package <package>';
   assert.ok(fencedLines(text).includes(proving) && fencedLines(stageRef('handoff', 'folder.md')).includes(proving), proving);
   assert.ok(takenBy('alone', words(proving).slice(2).join(' ')), proving);
   assert.ok(fencedLines(text).indexOf(proving) < fencedLines(text).findIndex(line => line.includes('accept.mjs prototype')), 'it is run before the checks');
@@ -5414,7 +5414,21 @@ test('Handoff and Acceptance run as written: the folder assembled from a package
   }
   mkdirSync(join(handoff, 'fonts'));
   copyFileSync(join(project, 'design', 'kit', 'fonts', 'desk.woff2'), join(handoff, 'fonts', 'desk.woff2'));
-  assert.equal(run(commandOf('handoff', 'alone.mjs')), `design/today/07-handoff stands alone: ${PAGES.length * 2 + 1} references in ${PAGES.length + 2} files, each to a file inside it`);
+  // R180: by its --package, the same run reads every text file of the folder for a name of the package it does not hold.
+  const standsAlone = `design/today/07-handoff stands alone: ${PAGES.length * 2 + 1} references in ${PAGES.length + 2} files, each to a file inside it`;
+  const under = folder => readdirSync(folder, { withFileTypes: true }).flatMap(entry => (entry.isDirectory() ? under(join(folder, entry.name)) : [join(folder, entry.name)]));
+  const textFiles = under(handoff).filter(file => !readFileSync(file).includes(0)).length;
+  assert.ok(textFiles >= PAGES.length + 2, 'the pages, the index and the token file are text');
+  assert.equal(run(commandOf('handoff', 'alone.mjs')), `${standsAlone}; and none of its ${textFiles} text files names a file or folder of design/today that it does not hold`);
+  // A pointer back, in a comment of a copied stylesheet or in a note, is found before any seat is: the name of a file of Look's.
+  assert.ok(existsSync(join(look, 'LOOK.md')) && !existsSync(join(handoff, 'LOOK.md')), 'the package holds LOOK.md, and the folder does not');
+  writeFileSync(join(handoff, 'prototype', 'notes.css'), '/* Its changes are listed in LOOK.md. */\n');
+  const pointing = exec(commandOf('handoff', 'alone.mjs'));
+  assert.deepEqual([pointing.status, pointing.stdout], [1, '']);
+  assert.deepEqual(pointing.stderr.trimEnd().split('\n'), ['prototype/notes.css:1: LOOK.md: it names 06-look/LOOK.md of the package, which the folder does not hold',
+    '1 place of design/today/07-handoff names a file or folder of design/today that it does not hold']);
+  rmSync(join(handoff, 'prototype', 'notes.css'));
+  assert.equal(run(commandOf('handoff', 'alone.mjs')), `${standsAlone}; and none of its ${textFiles} text files names a file or folder of design/today that it does not hold`);
   copyFileSync(at('reference/IMPLEMENTER-GUIDE.md'), join(handoff, 'IMPLEMENTER-GUIDE.md'));
   mkdirSync(join(pkg, 'build'));
   for (const file of filesUnder('templates/package/build/')) copyFileSync(at(`templates/package/build/${file}`), join(pkg, 'build', file));
@@ -5790,6 +5804,12 @@ test('the dry run, Look, Handoff and Acceptance: the table is held to the run, n
   const handoff = stageSkill('handoff');
   says(stepOf(section(handoff, 'Steps'), 'Copy in what was approved'), '**Nothing may point back either,** in a comment or a note: no text file of the folder names a file of the package that the folder does not hold.');
   const folder = stageRef('handoff', 'folder.md');
+  assert.ok(commandsOf(stepOf(section(handoff, 'Steps'), 'Copy in what was approved')).includes('node <kit root>/scripts/alone.mjs <package>/07-handoff --package <package>'));
+  says(folder, 'An address is not the only way out, so the same command, by its `--package`, also reads every text file of the folder', 'It prints each place, by file and line, and exits 1.',
+    'A folder\'s name is found where it is written as a path, with its slash; `../build/`, the builder\'s place, may be named.',
+    'A pointer that names no file, as "answer 28" or "as decided at Detail", it does not see: the first rule of this page still holds for what you write, and the cold implementer reads for the rest.');
+  const aloneUsage = KIT.usage('scripts/alone.mjs').replace(/\s+/g, ' ');
+  for (const said of ['for the name of any file or folder of the package that the folder does not hold', 'the package\'s build/ folder, which is the builder\'s place', 'it is found only where it is written as a path, a slash before it or after it', 'A pointer that names no file, as "answer 28" or "as decided at Detail", is not seen']) assert.ok(aloneUsage.includes(said), said);
   says(folder, '**Nothing points back, proved too.**', '**In a file that was approved,**', 'the file is not rewritten: what was approved does not change here. `PARTS.md` says where the pointer is and what it stood for',
     '`scripts/inpage/accept-inpage.js` of the kit is copied whole, as it is, to `<package>/07-handoff/accept-inpage.js`', 'The builder still has no kit',
     'A stylesheet, a picture or a script a page loads from the project is an asset', 'On success it prints one line, that the folder stands alone, with its counts: that line is not a fault.',

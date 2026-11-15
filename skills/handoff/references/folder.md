@@ -70,7 +70,7 @@ the shared kit, and a builder would take its grey for the look.
 Once the pages, the token file and the index are in, and again after any of them changes:
 
 ```
-node <kit root>/scripts/alone.mjs <package>/07-handoff
+node <kit root>/scripts/alone.mjs <package>/07-handoff --package <package>
 ```
 
 It reads every page and stylesheet of the folder and prints one line for each address that does not
@@ -100,11 +100,15 @@ On success it prints one line, that the folder stands alone, with its counts: th
   token file, taken out and listed; or, in a page, put to the founder. None is left to load from
   outside, none is dropped in silence, and no page is edited to make the command pass.
 
-**Nothing points back, proved too.** An address is not the only way out. Every text file of the
-folder is read, its Markdown, its JSON, its stylesheets and the comments of its pages among them,
-for the name of any file or folder of the package that the folder does not itself hold: a stage's
-folder, a ledger, `measures.md`, a maker's notes. Each place found is put right before the cold
-implementer starts:
+**Nothing points back, proved too.** An address is not the only way out, so the same command, by its
+`--package`, also reads every text file of the folder, its Markdown, its JSON, its stylesheets and
+the comments of its pages among them, for the name of any file or folder of the package that the
+folder does not itself hold: a stage's folder, a ledger, `measures.md`, a maker's notes. It prints
+each place, by file and line, and exits 1. A folder's name is found where it is written as a path,
+with its slash; `../build/`, the builder's place, may be named. A pointer that names no file, as
+"answer 28" or "as decided at Detail", it does not see: the first rule of this page still holds for
+what you write, and the cold implementer reads for the rest. Each place found is put right before
+the cold implementer starts:
 
 - **In a file you wrote,** write out what the pointer stood for, and take the pointer out.
 - **In a file that was approved,** as a comment of a stylesheet or a row of the states that reads
