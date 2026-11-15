@@ -978,7 +978,7 @@ test('the outside describer runs the script for a proposal at Structure, and wit
 
 // Every path under one of `folders` that a text names, anywhere in it, a command in a code fence included.
 const pathsUnder = (folders, text) => [...text.matchAll(new RegExp(`(?<![\\w-])(?:${folders.join('|')})/[\\w./-]*\\.[a-z]+\\b`, 'g'))].map(([path]) => path);
-// The folders of the kit that exist today, and those later tasks write.
+// The folders of the kit the pool was written beside, and those later tasks wrote: all of them are there now.
 const LIVE = ['scripts', 'kit', 'pool', 'tests'];
 const LATER = ['templates', 'skills', 'reference'];
 // The pool's own texts: its three documents, every card whatever its shelf, and every person.
@@ -1006,9 +1006,11 @@ test('a script, a kit file, a pool file or a test file named in the pool exists'
   }
 });
 
-// Live for all three folders. The pool names no skill and no reference file yet: one that Tasks 13 to 18 add
-// a name for must be written by then, or this fails.
+// Live for all three folders, and each of the three is written: `reference/` was the last, with Task 18. A card that
+// names a skill's file or a reference document names one that exists, or this fails.
 test('a template, a skill or a reference file named in the pool exists', () => {
+  for (const folder of LATER) assert.ok(existsSync(at(`${folder}/`)), `${folder}/ is in the kit`);
+  for (const path of ['skills/handoff/SKILL.md', 'skills/acceptance/SKILL.md', 'reference/IMPLEMENTER-GUIDE.md', 'reference/ANTI-PATTERNS.md']) assert.ok(existsSync(at(path)), path);
   const seen = new Set();
   for (const [file, text] of poolTexts()) {
     for (const path of pathsUnder(LATER, text)) {
