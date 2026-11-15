@@ -18,8 +18,8 @@ a maker, not a judge, not you. So the work is kept cheap, and blind.
 5. **Letters by shuffle.** The merge gives each proposal a letter. The map of who made which stays
    sealed until he has picked.
 6. **Judges and audiences read by letter.** Of `04-structure/`, a judge is handed the board folder and
-   nothing else; an audience is handed the pictures only. What else a seat's brief template lists comes
-   from the approved stages, as `references/loop.md` says.
+   nothing else; an audience is handed the pictures only, those drawn without the makers' notes. What
+   else a seat's brief template lists comes from the approved stages, as `references/loop.md` says.
 7. **Nothing is shortlisted before he picks, and nothing is detailed.** Every valid proposal reaches the
    board. You drop none, mend none and rank none ahead of him.
 
@@ -82,24 +82,19 @@ package; `<proposals dir>` is the folder the makers write into, `04-structure/pr
    nothing left in it that says who made it. It writes the map to `04-structure/MAP.sealed.json`:
    beside the board folder, never inside it, and never printed. If one proposal is not valid, it
    writes nothing.
-5. **The render.** Each letter is drawn in the same kit, under its own letter:
-
-   ```
-   node <kit root>/scripts/render.mjs <board dir>/A.json --kit <kit dir> --out <board dir>/A.html --letter A
-   ```
-
-   `<kit dir>` is always the project's kit folder, the one the project profile names.
-6. **The shots.** Every drawn page is photographed, at the primary width and at the phone width:
-
-   ```
-   node <kit root>/scripts/shots.mjs <board dir> --out <board dir> --widths <w,w...>
-   ```
+5. **The render.** Each letter is drawn in the same kit, under its own letter, twice: with the makers'
+   notes, for the judges, and without them, for the audiences. `<kit dir>` is always the project's kit
+   folder, the one the project profile names.
+6. **The shots.** Every drawn page is photographed, at the primary width and at the phone width, twice:
+   the whole page, and its first screen alone, as she meets it before any scrolling. The commands of
+   both are step 7 of the Structure skill (`skills/structure/SKILL.md`), and are given nowhere else.
 7. **The readers.** The judges and the audiences the cast names, each a fresh sub-agent. They read by
    letter. Of `04-structure/`, a judge is handed the board folder and nothing else: its letters, pages
-   and pictures. An audience is handed the pictures only, each by its path. What else a seat's brief
-   template lists comes from the approved stages. Their briefs list four things under "Do not open":
-   the package's `work/` folder, where the makers' briefs are, the map, the pick and the proposals
-   folder.
+   and pictures. An audience is handed the pictures only, each by its path: those of the pages drawn
+   without the makers' notes, whole and first screen, and no other. A picture of a page that carries
+   the notes is never an audience's. What else a seat's brief template lists comes from the approved
+   stages. Their briefs list four things under "Do not open": the package's `work/` folder, where the
+   makers' briefs are, the map, the pick and the proposals folder.
 8. **The decision page.** The options by letter, one line for each seat that read them, one
    recommendation, one question:
 

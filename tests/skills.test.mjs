@@ -1038,7 +1038,12 @@ test('every command the conductor gives is one the kit takes, with each verb of 
   for (const command of commands) assert.match(command, /^node <kit root>\/scripts\/[a-z]+\.mjs(?: |$)/, command);
   const run = script => commands.filter(command => command.startsWith(`node <kit root>/scripts/${script}.mjs`)).map(command => words(command).slice(2));
   assert.deepEqual([...new Set(run('state').map(([verb]) => verb))].sort(), ['await', 'begin', 'init', 'next', 'reopen', 'resize', 'route', 'slug', 'stamp', 'status', 'validate']);
-  for (const script of ['merge', 'render', 'shots', 'page', 'describe']) assert.ok(run(script).length >= 1, `scripts/${script}.mjs is given`);
+  for (const script of ['merge', 'page', 'describe']) assert.ok(run(script).length >= 1, `scripts/${script}.mjs is given`);
+  // S7 of the fix review: the conductor keeps no copy of the commands that draw and picture a board. They are Structure's.
+  for (const script of ['render', 'shots']) {
+    assert.deepEqual(run(script), [], `scripts/${script}.mjs is given by the Structure skill alone`);
+    assert.ok(stageCommands('structure').some(command => command.startsWith(`node <kit root>/scripts/${script}.mjs <package>/04-structure/board`)), script);
+  }
   assert.ok(run('merge').some(([verb]) => verb === 'open'), 'the command that opens the map');
   // An outside model is run with the project profile, and nothing on the line says where a key is.
   for (const given of run('describe')) assert.ok(given.includes('--profile'), given.join(' '));
@@ -1186,17 +1191,26 @@ test('blind.md: the order, from the brief to the map', () => {
   assert.deepEqual(steps.map(([n]) => n), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
   assert.deepEqual(steps.map(([, name]) => name), ['The brief', 'The founder reads it', 'The makers', 'The merge', 'The render', 'The shots', 'The readers', 'The decision page', 'The pick', '`PICK.md`', 'The map may be opened']);
   const commands = commandsOf(order);
-  inOrder(commands.join('\n'), [/scripts\/describe\.mjs --provider/, /scripts\/merge\.mjs <proposals dir> --out <board dir>$/m, /scripts\/render\.mjs /, /scripts\/shots\.mjs /, /scripts\/page\.mjs /, /scripts\/merge\.mjs open <board dir>$/m], 'the commands of the order');
+  inOrder(commands.join('\n'), [/scripts\/describe\.mjs --provider/, /scripts\/merge\.mjs <proposals dir> --out <board dir>$/m, /scripts\/page\.mjs /, /scripts\/merge\.mjs open <board dir>$/m], 'the commands of the order');
+  // S7 of the fix review: the render and the shots keep no second copy of their commands here, which had fallen behind
+  // Structure's own (one render, no first screen). The steps say what is drawn and pictured, twice each, and point to step 7.
+  assert.ok(!commands.some(command => /scripts\/(?:render|shots)\.mjs/.test(command)), 'the render and the shots are given once, in the Structure skill');
+  const drawn = flat(order.slice(order.indexOf('5. **The render.**'), order.indexOf('7. **The readers.**')));
+  inOrder(drawn, [/5\. \*\*The render\.\*\* Each letter is drawn in the same kit, under its own letter, twice: with the makers' notes, for the judges, and without them, for the audiences/,
+    /6\. \*\*The shots\.\*\* Every drawn page is photographed, at the primary width and at the phone width, twice: the whole page, and its first screen alone, as she meets it before any scrolling/,
+    /The commands of both are step 7 of the Structure skill \(`skills\/structure\/SKILL\.md`\), and are given nowhere else/], 'blind.md: the render and the shots');
+  assert.equal(boldSteps(section(stageSkill('structure'), 'Steps')).find(([, name]) => name.startsWith('Merge, draw, photograph'))[0], 7);
+  for (const flag of ['--without-notes', '--first-screen']) assert.ok(commandsOf(stageSkill('structure')).some(command => command.includes('/04-structure/board') && command.endsWith(flag)), `step 7 of Structure gives ${flag}`);
   // The readers of step 7 are handed the board, and told what beside it they do not open.
   const readers = flat(order.slice(order.indexOf('7. **The readers.**'), order.indexOf('8. **The decision page.**')));
-  assert.match(readers, /Of `04-structure\/`, a judge is handed the board folder and nothing else: its letters, pages and pictures\. An audience is handed the pictures only, each by its path/);
+  assert.match(readers, /Of `04-structure\/`, a judge is handed the board folder and nothing else: its letters, pages and pictures\. An audience is handed the pictures only, each by its path: those of the pages drawn without the makers' notes, whole and first screen, and no other\. A picture of a page that carries the notes is never an audience's/);
   assert.match(readers, /What else a seat's brief template lists comes from the approved stages/);
   assert.match(readers, /list four things under "Do not open": the package's `work\/` folder, where the makers' briefs are, the map, the pick and the proposals folder/);
   // The kit every letter is drawn in is the project's kit folder, in the rule and in the step.
   assert.match(flat(order), /`<kit dir>` is always the project's kit folder, the one the project profile names/);
   // The rules of the table, as rules.
   const rules = flat(section(reference('blind.md'), 'The rules'));
-  for (const rule of [/one shared kit/, /grey kit/, /the founder reads it first/, /(?:do not|never) see each other/, /continuity maker/, /by letter/, /Nothing is (?:shortlisted|detailed)/, /sealed/, /Of `04-structure\/`, a judge is handed the board folder and nothing else; an audience is handed the pictures only/]) assert.match(rules, rule);
+  for (const rule of [/one shared kit/, /grey kit/, /the founder reads it first/, /(?:do not|never) see each other/, /continuity maker/, /by letter/, /Nothing is (?:shortlisted|detailed)/, /sealed/, /Of `04-structure\/`, a judge is handed the board folder and nothing else; an audience is handed the pictures only, those drawn without the makers' notes/]) assert.match(rules, rule);
   // What a judge is handed from outside the board is its brief template's to say, and the loop's.
   assert.match(rules, /What else a seat's brief template lists comes from the approved stages, as `references\/loop\.md` says/);
   assert.match(flat(reference('loop.md')), /A seat is handed what its brief template gives it, and no more/);
@@ -2718,7 +2732,7 @@ test('structure: the map and the pick sit beside the board and never in it, and 
   const commands = stageCommands('structure');
   assert.ok(commands.includes('node <kit root>/scripts/shots.mjs <package>/04-structure/board --out <package>/04-structure/board --widths <primary>,<phone> --first-screen'));
   assert.ok(commands.includes('node <kit root>/scripts/page.mjs <package>/04-structure/decision.json --out <package>/04-structure/decision.html'));
-  assert.match(flat(reference('blind.md')), /scripts\/shots\.mjs <board dir> --out <board dir> --widths/);
+  assert.match(flat(reference('blind.md')), /\*\*The board holds four things:\*\* the letters' files, the drawn pages, the kit's stylesheets that the render copies beside them, and the pictures/);
   // The pick: from its template, beside the board, one line and his words under it.
   const gate = flat(section(text, 'Gate'));
   assert.match(gate, /\*\*Write `<package>\/04-structure\/PICK\.md`,\*\* from `templates\/outputs\/PICK\.md`: the line `Pick: <letter \| none>`, on a line of its own, and the founder's words under it, as he said them/);
@@ -2996,9 +3010,15 @@ test('rounds.md: a graft is redrawn once and read again once, a rejected round m
   const graft = section(rounds, 'A pick with a graft');
   assert.deepEqual(boldSteps(graft).map(([, name]) => name), ['It is redrawn once, by a maker, never by you', 'Draw it and photograph it,', 'It is read again once', 'Once means once', 'Then the map is opened,']);
   assert.match(flat(graft), /Start one fresh `maker\.structure-describer`, as step 5 of the skill says\. The blind between makers ended with the pick, so this one is handed the picked letter's file and the file of each letter he named, from the board, by letter, and his words, exactly\. It is not told who made them/);
+  // S2 and W2 of the fix review: the redrawn pick is drawn a second time without the makers' notes and pictured with its
+  // first screen, as the board is, so that the audience re-reading it is handed no maker's note (R171, R154).
   assert.deepEqual(commandsOf(graft), ['node <kit root>/scripts/render.mjs <package>/04-structure/chosen/chosen.json --kit <kit dir> --out <package>/04-structure/chosen/chosen.html --letter <letter>',
-    'node <kit root>/scripts/shots.mjs <package>/04-structure/chosen --out <package>/04-structure/chosen --widths <primary>,<phone>']);
-  assert.match(flat(graft), /A judge is handed `<package>\/04-structure\/chosen\/` in place of the board folder, and its seat's earlier ledger to open only after it has read cold, as step 6 of the loop says\. An audience is handed the new pictures only/);
+    'node <kit root>/scripts/render.mjs <package>/04-structure/chosen/chosen.json --kit <kit dir> --out <package>/04-structure/chosen/chosen-screens.html --letter <letter> --without-notes',
+    'node <kit root>/scripts/shots.mjs <package>/04-structure/chosen --out <package>/04-structure/chosen --widths <primary>,<phone> --first-screen']);
+  for (const command of commandsOf(graft)) assert.ok(takenBy(/scripts\/(\w+)\.mjs/.exec(command)[1], words(command).slice(2).join(' ')), command);
+  assert.match(flat(graft), /2\. \*\*Draw it and photograph it,\*\* one command after the other, under the picked letter, as step 7 of the skill does for the board: drawn twice, the second time without the makers' notes, for the audiences, and each page pictured whole and as its first screen alone/);
+  assert.match(flat(graft), /A judge is handed `<package>\/04-structure\/chosen\/` in place of the board folder, and its seat's earlier ledger to open only after it has read cold, as step 6 of the loop says\. An audience is handed the new pictures drawn without the makers' notes, whole and first screen, and no other: those of `chosen-screens\.html`, as `chosen-screens-390-light\.png` and `chosen-screens-390-light-first\.png`\. A picture of `chosen\.html`, which carries the bet, the cost and the notes, is never an audience's/);
+  assert.doesNotMatch(flat(graft), /An audience is handed the new pictures only/);
   // The re-read has a file of its own, never its seat's first read, and does not open the page that sums up the other seats.
   assert.match(flat(graft), /Each writes a file of its own, beside its seat's first read and never over it: that file's name with `-reread` before `\.md`, as `<package>\/04-structure\/reads\/<seat>-reread\.md`/);
   assert.match(flat(graft), /What they do not open is what the board's readers did not \(`references\/seats\.md`\), and with it `<package>\/04-structure\/decision\.html` and `<package>\/04-structure\/decision\.json`, which by now sum up what the other seats said\. The map is still sealed while they read/);
@@ -3249,8 +3269,17 @@ test('Structure runs as written: its own commands on the fixture proposals, the 
   pick('B', 'La B, con el estado de la A.');
   mkdirSync(join(round, 'chosen'));
   writeFileSync(join(round, 'chosen', 'chosen.json'), JSON.stringify(letterFile('B')));
-  run(commandOf('render.mjs <package>/04-structure/chosen/'), { '<letter>': 'B' });
+  const [graftWithNotes, graftWithout] = stageCommands('structure').filter(command => command.includes('render.mjs <package>/04-structure/chosen/'));
+  assert.ok(!graftWithNotes.includes('--without-notes') && graftWithout.endsWith('--out <package>/04-structure/chosen/chosen-screens.html --letter <letter> --without-notes'), 'the redrawn pick is drawn with the notes, then without');
+  run(graftWithNotes, { '<letter>': 'B' });
   assert.ok(readFileSync(join(round, 'chosen', 'chosen.html'), 'utf8').includes('<h1>Option B: '));
+  // S2: the page its audience is pictured from carries the letter and the screens, and nothing a maker said of the design.
+  assert.match(run(graftWithout, { '<letter>': 'B' }), /^drew option B to \S.*chosen-screens\.html, without the makers' notes, with /);
+  const redrawn = readFileSync(join(round, 'chosen', 'chosen-screens.html'), 'utf8');
+  assert.ok(redrawn.includes('<h1>Option B</h1>') && readFileSync(join(round, 'chosen', 'chosen.html'), 'utf8').includes('<dt>Its bet</dt>'));
+  assert.doesNotMatch(redrawn, /ux-note|<dl>|Its bet|Deliberately bad at/);
+  for (const said of [letterFile('B').name, letterFile('B').bet, letterFile('B').cost]) assert.ok(!redrawn.includes(said), said);
+  assert.ok(stageCommands('structure').includes('node <kit root>/scripts/shots.mjs <package>/04-structure/chosen --out <package>/04-structure/chosen --widths <primary>,<phone> --first-screen'));
   assert.equal(inBoard().length, LETTERS.length * 11 + 1);
   const opened = run(commandOf('merge.mjs open')).split('\n');
   assert.deepEqual(opened.map(line => line.split('  ')[0]), LETTERS);

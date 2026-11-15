@@ -17,11 +17,14 @@ He picked one letter and named what to take from another, as "B, with A's status
    grafted in, and nothing else of its own, in the form the letters' files have, to
    `<package>/04-structure/chosen/chosen.json`. Never to the board: a graft or a redrawn pick saved
    there as a one-letter `.json` would no longer match the map, and the map would not open.
-2. **Draw it and photograph it,** one command after the other, under the picked letter:
+2. **Draw it and photograph it,** one command after the other, under the picked letter, as step 7
+   of the skill does for the board: drawn twice, the second time without the makers' notes, for the
+   audiences, and each page pictured whole and as its first screen alone.
 
    ```
    node <kit root>/scripts/render.mjs <package>/04-structure/chosen/chosen.json --kit <kit dir> --out <package>/04-structure/chosen/chosen.html --letter <letter>
-   node <kit root>/scripts/shots.mjs <package>/04-structure/chosen --out <package>/04-structure/chosen --widths <primary>,<phone>
+   node <kit root>/scripts/render.mjs <package>/04-structure/chosen/chosen.json --kit <kit dir> --out <package>/04-structure/chosen/chosen-screens.html --letter <letter> --without-notes
+   node <kit root>/scripts/shots.mjs <package>/04-structure/chosen --out <package>/04-structure/chosen --widths <primary>,<phone> --first-screen
    ```
 
    The render refuses a file that is not a valid proposal, and prints the fault: the file goes back
@@ -29,7 +32,10 @@ He picked one letter and named what to take from another, as "B, with A's status
 3. **It is read again once.** Each seat that read the board reads the redrawn pick, as a fresh
    sub-agent. A judge is handed `<package>/04-structure/chosen/` in place of the board folder, and
    its seat's earlier ledger to open only after it has read cold, as step 6 of the loop says. An
-   audience is handed the new pictures only. Each writes a file of its own, beside its seat's first
+   audience is handed the new pictures drawn without the makers' notes, whole and first screen, and
+   no other: those of `chosen-screens.html`, as `chosen-screens-390-light.png` and
+   `chosen-screens-390-light-first.png`. A picture of `chosen.html`, which carries the bet, the cost
+   and the notes, is never an audience's. Each writes a file of its own, beside its seat's first
    read and never over it: that file's name with `-reread` before `.md`, as
    `<package>/04-structure/reads/<seat>-reread.md`. What they do not open is what the board's
    readers did not (`references/seats.md`), and with it `<package>/04-structure/decision.html` and
