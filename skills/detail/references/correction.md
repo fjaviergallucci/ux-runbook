@@ -39,9 +39,10 @@ root.
 5. **Build the page.** Write `<package>/05-detail/decision.json` in the shape of
    `templates/outputs/decision-approve.json`: one option, its two pictures named from the page, the
    one before first, as `correction/before-1280-light.png`, and its line the "is → becomes" of step
-   3; no seat, since none read it; one recommendation, with its one sentence of reason; one question.
-   Its identity is as `status` prints it, at the stage its route has it at: 2 of 4. Build it with the
-   `page.mjs` command of step 9 of the skill.
+   3; `"seats": []`, since no seat read it; one recommendation, with its one sentence of reason; one
+   question.
+   Its identity is as `status` prints it, at the stage its route has it at: 2 of 4. Build it with
+   the `page.mjs` command of step 9 of the skill.
 
 ## The gate
 

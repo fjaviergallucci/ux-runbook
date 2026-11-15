@@ -121,8 +121,8 @@ skill. Every reader's brief lists these under "Do not open":
   `<package>/04-structure/reads/`. Its seat's read of the beside comparison, `<seat>-beside.md`,
   and the borrow list are not its own: a main read opens neither;
 - `<package>/06-look/LOOK.md`, `<package>/06-look/decision.json`, `<package>/06-look/decision.html`,
-  `<package>/06-look/beside.json` and `<package>/06-look/beside.html`, which sum up what the other
-  seats said;
+  `<package>/06-look/beside.json`, `<package>/06-look/beside.html`, `<package>/06-look/borrow.json`
+  and `<package>/06-look/borrow.html`, which sum up what the other seats said;
 - `<package>/06-look/BRIEF-fresh.md`, and the prompt kept beside a fresh screen;
 - `<package>/04-structure/earlier/`, and the board and the proposals folder beside it, but
   `<chosen>` where a seat is handed it.
@@ -210,7 +210,7 @@ beside comparison, and nothing else of the stage.
 - **Handed:** her card. Her profession's traits: a copy of her profession's profile with every
   `So the interface must:` field removed, written beside the brief as the loop says, and the one
   file of `<package>/work/` she opens. And the pictures in `<package>/06-look/beside/`, each by its
-  path, as `<package>/06-look/beside/A-1280-light.png`. The pictures, and pictures only.
+  path, as `<package>/06-look/beside/A.png`. The pictures, and pictures only.
 - **Do not open:** the list above, and with it: `<package>/02-intent.md`, and every other file of
   the package; her profession's profile itself; `<package>/06-look/screens/`,
   `<package>/06-look/shots/` and `<package>/06-look/fresh/`, which say which version is which;

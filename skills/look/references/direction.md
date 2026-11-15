@@ -110,10 +110,14 @@ changes with his yes.
    `<packages>/PROFILE.md`, and his words under `## Reviewed by the founder` of `LOOK.md`. Then name
    the token file and the change under "Mode". A surface that leaves the system changes one line
    only, under `## Design system`: the surface, and its token file.
-4. **Only after his yes is the project kit rebuilt on the new tokens:** steps 3 to 6 of
-   `skills/setup/references/project-kit.md`, the kit's stylesheet importing the new file. He looks
-   at the redrawn `parts.html` as he did at setup's gate, and what he corrects is changed and
-   pictured again. A surface that leaves the system keeps the kit as it is.
+4. **Only after his yes is the project kit rebuilt on the new tokens,** by a maker and then by the
+   kit's scripts. A fresh `maker.visual-designer`, handed the token file, `<kit dir>` and
+   `kit/KIT-CONTRACT.md`, restyles the kit's classes from the picked direction's tokens:
+   `<kit dir>/kit.css` imports the token file, each class of the contract takes its values from it,
+   and none is added. Then you draw with the kit and take the pictures of `parts.html`, by the two
+   commands of steps 5 and 6 of `skills/setup/references/project-kit.md`. He looks at the redrawn
+   `parts.html` as he did at setup's gate: what he corrects goes back to the maker, and is pictured
+   again. A surface that leaves the system keeps the kit as it is.
 5. **Log it.** The direction is a decision of the product, not only of this design: append it to
    the package's `DECISIONS.md` with the directions he rejected and the cost he accepted, and where
    `decisions-log` of the project profile says.

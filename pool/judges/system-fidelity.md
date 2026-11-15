@@ -47,7 +47,7 @@ Each runs only when you see its trigger in what you were handed. One not run goe
 |---|---|---|
 | new-parts | The list of named extensions is not empty, or something in the artefact is marked as new. | For each: does it have its definition (its name, what it is, its values beside the system's, where it is used, what it costs)? Could a token or a part the system has do the job? Is it built from tokens, in the system's own conventions? A finding: an extension with no definition, one that repeats a part, or one that brings raw values. |
 | second-theme | The token file defines a second theme. | Every token the artefact uses has a value in that theme. No colour is set outside the tokens, where it would stay put when the theme changes. A finding: a value fixed to one theme. How the second theme looks is the visual craft judge's. |
-| borrow-list | A fresh pass ran, in which screens were made free of the design system: your brief hands you what the founder marked in it. | For each thing he marked, write what the system would need to make it: a token, a part, a pattern, or nothing new. Then check that what was rebuilt uses only tokens and named extensions, with no value and no code taken from the fresh screen. A finding: a value lifted from it, or a lack met by a quiet workaround. |
+| borrow-list | A fresh pass ran, in which screens were made free of the design system: your brief hands you what the founder marked in it. | Two reads. Between his two answers, your brief asks for the list alone, in a ledger of its own: for each thing he marked, what the system has for it and what it would need, a token, a part, a pattern, or nothing new. In your main read, check that what was rebuilt uses only tokens and named extensions, with no value and no code taken from the fresh screen. A finding: a value lifted from it, or a lack met by a quiet workaround. |
 
 ## Method
 
@@ -101,8 +101,8 @@ its path, your verdict and the first fix. The ledger holds:
 - the checks not run, each with its reason; what was not looked at; and on a re-read, each earlier
   finding's mark before any new finding.
 
-With the `borrow-list` check, the ledger also carries that list: each thing the founder marked, what the
-system has for it, and what it lacks.
+With the `borrow-list` check the list has a ledger of its own, between the founder's two answers: each
+thing he marked, what the system has for it, what it lacks. The main read's ledger says what was lifted.
 
 ## Never
 

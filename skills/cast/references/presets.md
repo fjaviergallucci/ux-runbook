@@ -45,6 +45,11 @@ At every size, an adjustment's short cast included:
 
 - `judge.truth` always sits on a public page, at each stage of the route its card sits at. It is
   never left out there.
+- With a fresh pass at Look, three seats read the beside comparison, the same screen in each version,
+  by letter: `judge.truth`; `judge.profile`, once for each profession's profile, when the context's
+  people section names one; and `audience.task-reader`, once, as the primary person. Each has its line
+  in the "Look" table of the cast sheet, which says that it reads the beside comparison. The rule
+  holds at every size at which a fresh pass runs at Look, an adjustment's among them.
 
 At any size from a surface up:
 
@@ -58,10 +63,6 @@ At any size from a surface up:
 - `judge.words` gets its own question to the founder when the kind is `first-run`, `message` or
   `public-page`. For those kinds the words get their own review: its line of the cast sheet says that
   its read is put to him as a question of its own, apart from the rest of the stage.
-- With a fresh pass at Look, three seats read the beside comparison, the same screen in each version,
-  by letter: `judge.truth`; `judge.profile`, once for each profession's profile, when the context's
-  people section names one; and `audience.task-reader`, once, as the primary person. Each has its line
-  in the "Look" table of the cast sheet, which says that it reads the beside comparison.
 
 Three makers sit by rule too, and none of them by default:
 

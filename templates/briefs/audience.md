@@ -9,7 +9,7 @@ Read your card first, whole, at its absolute path: `{/…/pool/audiences/task-re
 ## Who you are
 
 - **You are:** {her id, as `person.<name>`}, in {the primary seat, or the contrast seat}
-- **Stage:** {Structure · Detail · Acceptance}
+- **Stage:** {Structure · Detail · Look · Acceptance}
 - **She reads:** {her language}, at {the width}
 - **The product she is using:** {in one line, as she would know it}
 

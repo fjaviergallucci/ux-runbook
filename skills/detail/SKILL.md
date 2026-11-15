@@ -161,14 +161,14 @@ and you go no further without his words.**
   approved the prototype with, as he said them. A correction goes to the maker whose artefact it is
   on, a fresh sub-agent handed his words. The pages are generated and photographed again, and he
   sees them before the stamp. You change no rule, no string and no page yourself.
-- **Write the carry list,** `## Carry`: the lines of `CHOSEN.md`'s own carry list, as they are,
-  the cast sheet's table for every stage among them; a `- structure@<version>#<slug>` line for "The
-  structure", for "What it is deliberately bad at" and for "What the readers found"; and a
-  `- source:<path>` line, from the project's root, for `<package>/04-structure/reads`, for
-  `states.md`, for `strings.json`, for the prototype's folder, for the pictures' folder, for the
-  reads' folder, and for the package's `DECISIONS.md`: what he marked in a fresh gallery at
-  Structure reaches Look through that file. A heading's slug is printed by
-  `node <kit root>/scripts/state.mjs slug "<heading text>"`.
+- **Write the carry list,** `## Carry`: the lines of `CHOSEN.md`'s own carry list, as they are; a
+  `- cast@<version>#structure` line, so that the cast sheet's table for every stage travels on; a
+  `- structure@<version>#<slug>` line for "The structure", for "What it is deliberately bad at" and
+  for "What the readers found"; and a `- source:<path>` line, from the project's root, for
+  `<package>/04-structure/reads`, for `states.md`, for `strings.json`, for the prototype's folder,
+  for the pictures' folder, for the reads' folder, and for the package's `DECISIONS.md`: what he
+  marked in a fresh gallery at Structure reaches Look through that file. A heading's slug is printed
+  by `node <kit root>/scripts/state.mjs slug "<heading text>"`.
 - **Stamp it,** in the words he approved it with:
 
   ```

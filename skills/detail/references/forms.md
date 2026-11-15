@@ -12,9 +12,9 @@ Detail is what changes, and no more.
   strings the change touches. A maker rewrites those rows and those keys alone, and a reader reads
   those pages.
 - **Every other heading of `DETAIL.md` says "Unchanged by this adjustment".**
-- **A stage the route skips is left out of `built-from` and of the carry list.** Where it skips
-  Structure, the stage before this one is Cast: you read `<package>/03-cast.md`, and what its carry
-  list names.
+- **A stage the route skips is left out of `built-from` and of the carry list,** and so is the cast
+  sheet's table for it: the sheet has none. Where it skips Structure, the stage before this one is
+  Cast: you read `<package>/03-cast.md`, and what its carry list names.
 - **With Structure skipped there is no chosen proposal, and no hand-over names `<chosen>`.** A seat
   takes the structure from what it is handed besides: the states and the rules, and the context's
   "What exists today" where its card reads the context. The "Do not open" lists stand as they are.

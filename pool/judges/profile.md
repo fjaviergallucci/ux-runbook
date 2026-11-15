@@ -81,8 +81,8 @@ or in the specialty's section. One you do not run goes into the ledger, with the
    That list goes to the founder or to a real professional, never to the maker.
 6. **Know your stage.** At *Intent* the artefact is the intent itself: does it name the profile, the
    specialty and the person, and do its tasks and criteria fit the work as the card describes it? At
-   *Structure* you run the six on every option, by its letter, flag what blocks, then rank the options
-   for this profession, with the size of each gap (*clear*, *slight* or *tie*) and one reason. *Detail*
+   *Structure* you run the six on every option, by its letter, flag what blocks, then rank the options,
+   as you do the letters of a beside comparison at *Look*: each gap *clear*, *slight* or *tie*. *Detail*
    is your main read: every screen, state and string. At *Look* all six run on the final screens:
    criterion 6, the "nothing competing" of criterion 4 and any `physical` check are read in full, and
    the other four are confirmed unchanged by the look. At *Acceptance* you read the build, as pictures.
@@ -104,7 +104,7 @@ its path, your verdict and the first fix. The ledger holds:
   it so. *Does not work*: no fix to this artefact would. It says, too, that this is a read from a card;
 - one row for each finding: the criterion, the result, where, why it matters (the trait, and *fact* or
   *guess*), the severity, the fix, and done when;
-- the "Cannot tell" list and, at Structure, the ranking with the size of each gap and one reason;
+- the "Cannot tell" list; at Structure or in a `-beside` ledger, the ranking, each gap with a reason;
 - the checks not run, each with its reason; what was not looked at; and on a re-read, each earlier
   finding's mark before any new finding.
 

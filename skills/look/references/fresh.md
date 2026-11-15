@@ -90,19 +90,20 @@ draws: neither sees the other's work. What each is handed is in `references/seat
 Once step 5 of the skill has photographed the system version. The versions of the one screen are
 compared blind: the system's picture, from `<package>/06-look/shots/`, and each fresh screen's, from
 `<package>/06-look/fresh/`, at the primary width. Their names say which is which, and which engine
-made it, so nobody reads them there. This command copies each into `<package>/06-look/beside/` under
-a letter dealt at random, writes which letter is which into `<package>/06-look/BESIDE.sealed.json`,
-beside that folder, and prints the letters and nothing else:
+made it, so nobody reads them there. The kit deals them letters:
 
 ```
-node -e "const fs=require('fs'),[dir,...pics]=process.argv.slice(1),ls=pics.map((p,i)=>String.fromCharCode(65+i));for(let i=ls.length;i>1;){const j=require('crypto').randomInt(i--);[ls[i],ls[j]]=[ls[j],ls[i]]}fs.mkdirSync(dir+'/beside');fs.writeFileSync(dir+'/BESIDE.sealed.json',JSON.stringify(Object.fromEntries(pics.map((p,i)=>(fs.copyFileSync(dir+'/'+p,dir+'/beside/'+ls[i]+p.slice(p.lastIndexOf('-',p.lastIndexOf('-')-1))),[ls[i],p])))));console.log('dealt '+ls.slice().sort().join(', '))" <package>/06-look shots/<page>-<primary>-light.png fresh/<name>-<primary>-light.png
+node <kit root>/scripts/deal.mjs <package>/06-look/shots/<page>-<primary>-light.png <package>/06-look/fresh/<name>-<primary>-light.png --out <package>/06-look/beside
 ```
 
-Name the system's picture and every fresh one after the folder, each by its path from it. The
-pictures land as `<package>/06-look/beside/A-1280-light.png`, and the letters do not follow the
-order you named them in. The command refuses a `beside/` that is already there: letters are dealt
-once. **Until his first answer is written, the sealed file is not opened, printed, searched or
-copied,** and you do not work out a letter by setting two pictures side by side.
+Name every version's picture, in any order. The script shuffles them itself and copies each into
+`<package>/06-look/beside/` under its letter, as `<package>/06-look/beside/A.png`, all with one
+time on them, so that neither a name, a time nor the order of the files says which is which. It
+writes that into `<package>/06-look/BESIDE.sealed.json`, beside the folder, and prints how many it
+dealt and the letters, nothing else. It checks everything before it writes, and refuses a `beside/`
+that is already there: letters are dealt once. **Until his first answer is written, the sealed file
+is not opened, printed, searched or copied,** with any tool, and you do not work out a letter by
+setting two pictures side by side.
 
 ## 6. The readers of the two
 
@@ -112,7 +113,9 @@ names, started in one message, from a brief of its shelf's template.
 
 - **Of `<package>/06-look/`, each is handed `<package>/06-look/beside/` and nothing else:** the
   pictures, by letter. Its brief says the letters are versions of one screen, and never which is
-  the system's. What else each is handed is its section of `references/seats.md`.
+  the system's. What its section of `references/seats.md` hands it from outside
+  `<package>/06-look/` still holds. What that section hands it of `<package>/06-look/` does not:
+  that is its main read's.
 - **Do not open, for this read:** `<package>/06-look/BESIDE.sealed.json`, `<package>/06-look/fresh/`,
   `<package>/06-look/shots/` and `<package>/06-look/screens/`, with the list `references/seats.md`
   gives every reader.
@@ -132,17 +135,22 @@ node <kit root>/scripts/page.mjs <package>/06-look/beside.json --out <package>/0
 ```
 
 - **The options are the letters,** in their order, each with its picture named from the page, as
-  `beside/A-1280-light.png`. No title and no line says which is the system's: he is as blind as the
-  readers were.
+  `beside/A.png`. No title and no line says which is the system's: he is as blind as the readers
+  were.
 - **One line for each seat,** by letter; **one recommendation,** resting on the reads; and **one
   question:** what would you keep from each of these?
 
 Put the page in front of him, and record the question with the `await` of the skill's gate. **Stop.**
 Write what he marks, letter by letter, as he said it, under "Fresh pass" of `LOOK.md`, and put the
-stage back in work with the `begin` of step 1 of the skill. **Only now is the sealed file opened:**
-read `<package>/06-look/BESIDE.sealed.json`, and write beside each mark which version it is on. If
-nothing he marked is on a fresh screen, the outcome is the first of step 9, and no second question
-is asked.
+stage back in work with the `begin` of step 1 of the skill. **Only now is the sealed file opened,**
+and only this way:
+
+```
+node <kit root>/scripts/deal.mjs open <package>/06-look/beside
+```
+
+It prints each letter with its source. Write beside each mark which version it is on. If nothing he
+marked is on a fresh screen, the outcome is the first of step 9, and no second question is asked.
 
 ## 8. The second question: what is borrowed
 
@@ -154,9 +162,15 @@ He chooses with the cost in front of him.
   for each thing he marked, what the system has for it, and what it lacks, a token, a part, a
   pattern or nothing. It writes `<package>/06-look/reads/judge.system-fidelity-borrow.md`.
 - **Then the page,** `<package>/06-look/borrow.json`, in the shape of
-  `templates/outputs/decision.json`, now by what each version is: the system version first, then
-  each fresh screen as it came, its title saying that it is fresh. The pictures are named from the
-  page, as `shots/today-default-en-1280-light.png` and `fresh/outside-openai-1280-light.png`.
+  `templates/outputs/decision.json`, built once the sealed file is opened and by what each version
+  is: "The system version" first, then each fresh screen as it came, titled "Fresh" with its maker's
+  line on the cast sheet, as "Fresh: outside-openai". The pictures are named from the page, as
+  `shots/today-default-en-1280-light.png` and `fresh/outside-openai-1280-light.png`.
+- **This page's letters are not the beside letters.** The page letters its options in its own
+  order, so the system version may be A here and have been B there. Every line carried onto it that
+  was written by letter, his marks, the readers' lines and the truth judge's flags, is rewritten
+  through the sealed file to name the version, with its beside letter after it, as "the system
+  version (was B)". No line of this page names a beside letter alone.
 
   ```
   node <kit root>/scripts/page.mjs <package>/06-look/borrow.json --out <package>/06-look/borrow.html
