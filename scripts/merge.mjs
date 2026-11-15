@@ -18,9 +18,11 @@ proposal must be valid, or nothing is written. The board folder holds the letter
 it is written whole or not at all. The map, naming the board it belongs to and each letter's source, is
 written to ${MAP} beside the board folder, in its parent, and is never printed.
 <board dir> must be empty or absent, and its parent must hold no ${MAP} and no ${PICK}:
-one folder holds one board. A sealed board is never merged again: delete it and its map on purpose to
-rebuild it. A board is never made inside another (a folder above it holding letter files), nor in, inside
-or around <proposals dir>.
+one folder holds one board. What a mount or a file browser leaves in a folder (.fuse_hidden*, .DS_Store,
+Thumbs.db, desktop.ini) is passed over: a board folder that holds nothing else is empty. A sealed board
+is never merged again, and never deleted: move it and its map into earlier/<n>/ to rebuild it, and a pick
+left from another board with them. A board is never made inside another (a folder above it that holds
+letter files, its own map beside it), nor in, inside or around <proposals dir>.
 
   --out <board dir>   the board to write; the folders above it are made when they do not exist
   --seed <n>          a whole number from 0 to ${MAX_SEED}: the same seed and proposals give the

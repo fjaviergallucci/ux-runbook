@@ -1,7 +1,7 @@
 import { after, describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
-import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync as everythingIn, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
@@ -19,6 +19,11 @@ mkdirSync(join(here, '.tmp'), { recursive: true });
 const root = mkdtempSync(join(here, '.tmp', 'shots-'));
 after(() => rmSync(root, { recursive: true, force: true }));
 const UNIX = process.platform !== 'win32';
+// What a folder holds, by name, as every check here lists it. What a mount or a file browser leaves in a
+// folder that nobody wrote is passed over: on a FUSE mount a picture removed while it was still open
+// lingers a moment as .fuse_hidden…, and a listing made right after is not failed by it.
+const LEFTOVER = /^(?:\.fuse_hidden.*|\.DS_Store|Thumbs\.db|desktop\.ini)$/;
+const readdirSync = dir => everythingIn(dir).filter(name => !LEFTOVER.test(name));
 
 // ---- the pages, made here and nowhere else
 

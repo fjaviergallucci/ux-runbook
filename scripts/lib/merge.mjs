@@ -7,6 +7,10 @@
 // and each letter's source) and the founder's pick (PICK.md) sit beside it, in its parent: one folder holds
 // one board. The map opens only on a pick line, "Pick: <letter>" or "Pick: none", and only for the board it
 // names, holding exactly its letters. A board is never made inside another board, nor among the proposals.
+// A folder is a board when it holds letter files and its map lies beside it: a file of the project's own
+// that is named like a letter, somewhere above, makes no board. What a mount or a file browser leaves in a
+// folder (lib/leftovers.mjs) is no part of what the folder holds: a board folder that holds nothing else is
+// empty, and what was left there stays where it was.
 //
 // The blind holds only if a board is made once, whole, at one place. Each path is read the way the system
 // reads it, once, and every check and every write uses that one path, so no second way of writing it
@@ -17,6 +21,7 @@ import { randomInt, randomUUID } from 'node:crypto';
 import { lstatSync, mkdirSync, readdirSync, readFileSync, realpathSync, renameSync, rmdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { basename, dirname, isAbsolute, join, parse, relative, sep } from 'node:path';
 import { readProposalFile, reason } from './json-file.mjs';
+import { isLeftover } from './leftovers.mjs';
 import { ORDER, validate } from './walkthrough.mjs';
 
 // The author map and the founder's pick: file names in the board folder's parent, beside the board. The map
@@ -138,16 +143,16 @@ const beside = board => ({ map: join(dirname(board), MAP), pick: join(dirname(bo
 // writeBoard's rename refuses it otherwise.
 function checkBoard(board, src, mapFile, pickFile) {
   if (exists(mapFile)) throw sealedBoard(board, mapFile);
-  if (exists(pickFile)) throw new MergeError(`cannot merge into ${board}: ${pickFile} already exists, a pick made on another board; delete it on purpose first.`);
+  if (exists(pickFile)) throw new MergeError(`cannot merge into ${board}: ${pickFile} already exists, a pick made on another board; move it into earlier/<n>/ first.`);
   // Compared part by part, never by the text alone: /x/proposals-2 is not inside /x/proposals.
   const apart = 'A board is made apart from the proposals, never among them.';
   if (relative(src, board) === '') throw new MergeError(`cannot merge into ${board}: it is the proposals folder. ${apart}`);
   if (within(board, src)) throw new MergeError(`cannot merge into ${board}: it lies inside the proposals folder ${src}. ${apart}`);
   if (within(src, board)) throw new MergeError(`cannot merge into ${board}: it holds the proposals folder ${src}. ${apart}`);
-  // A folder above that holds letter files is a board: its map would sit inside it, or its letters beside
-  // another board's.
+  // A folder above that holds letter files, its own map beside it, is a board: the new map would sit inside
+  // it, or the new letters beside its own. Letter files with no map beside them are some other files.
   for (let folder = dirname(board); ; folder = dirname(folder)) {
-    if (entries(folder).some(name => LETTER_FILE.test(name))) {
+    if (exists(join(dirname(folder), MAP)) && entries(folder).some(name => LETTER_FILE.test(name))) {
       throw new MergeError(`cannot merge into ${board}: ${folder} above it holds letter files, so it is a board; a board is never made inside another.`);
     }
     if (dirname(folder) === folder) return;
@@ -163,7 +168,7 @@ function within(inner, outer) {
 const sealedBoard = (board, mapFile) =>
   new SealedError(
     `cannot merge into ${board}: the board beside ${mapFile} is sealed, and its letters may already have been read. ` +
-      'One folder holds one board; merging again would shuffle the letters anew. To rebuild it, delete the map and the board on purpose first.',
+      'One folder holds one board; merging again would shuffle the letters anew. To rebuild it, move the map and the board into earlier/<n>/ first.',
   );
 // Names one thing the folder holds, so a folder that only looks empty is no mystery.
 const notEmpty = (board, names) =>
@@ -175,6 +180,9 @@ const notEmpty = (board, names) =>
 // The board is written whole or not at all: its letters go into a new folder beside it, which is renamed
 // into place. A rename fails onto a folder that holds anything, so no board is ever written over; when it
 // fails, nothing is left behind: no letter, no new folder, none of the folders made above the board.
+// A board folder that holds only what a mount or a file browser left there is empty: each such file is
+// moved into the new folder first, under its own name, so that the same rename puts the board in place and
+// the file is where it was; when the rename fails, it is put back.
 // → the first folder made above the board, if any.
 function writeBoard(board, letters, texts) {
   const parent = dirname(board);
@@ -183,6 +191,7 @@ function writeBoard(board, letters, texts) {
   const made = firstMissing(parent);
   let staging;
   let emptied = false;
+  const moved = [];
   try {
     mkdirSync(parent, { recursive: true });
     // A plain folder, so the board has the mode any folder has under the umask (a temporary folder's is
@@ -195,16 +204,41 @@ function writeBoard(board, letters, texts) {
     // An empty board folder is taken away first: some systems (Windows) rename onto no folder at all. One
     // that holds anything stays, and the rename refuses it.
     emptied = removeIfEmpty(board);
+    const left = entries(board);
+    if (!emptied && left.length > 0 && left.every(isLeftover)) {
+      for (const name of left) {
+        renameSync(join(board, name), join(staging, name));
+        moved.push(name);
+      }
+      emptied = removeIfEmpty(board);
+    }
     renameSync(staging, board);
     return made;
   } catch (e) {
-    if (staging) rmSync(staging, { recursive: true, force: true });
     if (emptied) remake(board);
-    const found = entries(board);
+    for (const name of moved) putBack(join(staging, name), join(board, name));
+    if (staging) discard(staging);
+    const found = entries(board).filter(name => !isLeftover(name));
     unmake(made, parent);
     if (found.length) throw notEmpty(board, found);
     throw new MergeError(`cannot write ${board}: ${reason(e)}`);
   }
+}
+
+// A file a mount left in the board folder goes back where it was; when it cannot, it goes with the folder
+// it is in: nobody wrote it.
+function putBack(from, to) {
+  try {
+    renameSync(from, to);
+  } catch {}
+}
+
+// The new folder is taken away with what it holds. A mount may keep a file in it a moment longer: then the
+// folder stays, under a name no board, map or pick has, and the refusal that is on its way is still made.
+function discard(folder) {
+  try {
+    rmSync(folder, { recursive: true, force: true });
+  } catch {}
 }
 
 // The map is created, never written over. When it cannot be, the board is taken back with whatever was

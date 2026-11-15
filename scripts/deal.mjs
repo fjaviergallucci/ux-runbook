@@ -18,12 +18,11 @@ import { copyFileSync, existsSync, lstatSync, mkdirSync, readdirSync, readFileSy
 import { basename, dirname, extname, join, resolve } from 'node:path';
 import { HELP, UsageError, isMain, parseArgs } from './lib/cli.mjs';
 import { reason } from './lib/json-file.mjs';
+// No part of what a folder holds: what a mount or a file browser leaves behind in it.
+import { isLeftover } from './lib/leftovers.mjs';
 
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 const SEALED = '.sealed.json';
-// No part of what a folder holds: a name a mount keeps for a file that is still open, and what a file
-// browser leaves behind where it has looked.
-const HIDDEN = /^(?:\.fuse_hidden.*|\.DS_Store|Thumbs\.db|desktop\.ini)$/;
 
 const USAGE = `Usage: node scripts/deal.mjs <picture>... --out <folder> [--group <name>=<picture>,<picture>]
        node scripts/deal.mjs open <folder>
@@ -142,7 +141,7 @@ export function openSealed(folder) {
   }).sort();
   let held;
   try {
-    held = readdirSync(folder).filter(name => !HIDDEN.test(name)).sort();
+    held = readdirSync(folder).filter(name => !isLeftover(name)).sort();
   } catch (e) {
     throw refuse(`the folder cannot be read: ${reason(e)}`);
   }
