@@ -37,6 +37,8 @@ const STATE_FILE = 'state.json';
 const STATE_PAGE = 'STATE.md';
 const STATUSES = ['not-started', 'in-work', 'awaiting', 'approved', 'skipped', 'stale'];
 const HEADER_STATUSES = ['draft', 'awaiting', 'approved'];
+// The status the header of a stage's output has in each status the state gives a stage that has one.
+const HEADER_STATUS = { 'in-work': 'draft', awaiting: 'awaiting', approved: 'approved' };
 const HEADER_ORDER = ['stage', 'version', 'status', 'approved', 'words', 'built-from'];
 const KEBAB = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
 const INPUT = /^([a-z]+)@(\d+)$/;
@@ -302,7 +304,8 @@ export function validate(pkgDir) {
     const { data, body } = art;
     const approved = entry.status === 'approved';
     for (const message of headerProblems(stage, data, entry.version)) add('bad-header', message);
-    if (HEADER_STATUSES.includes(data.status) && approved !== (data.status === 'approved')) add('bad-header', mismatch(data));
+    // The header says of a stage what the state says of it: draft while it is in work, else the same word.
+    if (HEADER_STATUSES.includes(data.status) && data.status !== HEADER_STATUS[entry.status]) add('bad-header', mismatch(data));
     for (const message of staleInputs(state, stage, data)) add('stale-input', message);
     if (!approved) continue;
     const before = predecessor(state, stage);

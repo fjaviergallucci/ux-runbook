@@ -1091,6 +1091,36 @@ test('validate: a header that does not match its stage and state is bad-header, 
   assert.deepEqual([problem.code, problem.message], ['bad-header', 'the header says approved while the state says in-work']);
 });
 
+// F62 of the dry run: a header rewritten whole after `await` said draft, and validate said ok.
+test('validate: a header whose status disagrees with the state is bad-header, whichever status the state has', () => {
+  const awaiting = () => {
+    const p = pkg();
+    p.approve('frame');
+    p.write('context');
+    awaitFounder(p.dir, 'context', { question: 'Is this the context?', date: DAY });
+    return p;
+  };
+  let p = awaiting();
+  assert.deepEqual(validate(p.dir), { ok: true, problems: [] }, 'awaiting, as await wrote it');
+  p.setHeader('context', { status: 'draft' });
+  assert.deepEqual(p.problems(), [{ stage: 'context', code: 'bad-header', message: 'the header says draft while the state says awaiting' }]);
+  p = awaiting();
+  p.setHeader('context', { status: 'approved' });
+  assert.deepEqual(p.problems().filter(q => q.code === 'bad-header').map(q => q.message), ['the header says approved while the state says awaiting']);
+  p = awaiting();
+  begin(p.dir, 'context', { date: DAY });
+  assert.deepEqual(validate(p.dir), { ok: true, problems: [] }, 'in work, with the draft header begin wrote');
+  p.setHeader('context', { status: 'awaiting' });
+  assert.deepEqual(p.problems(), [{ stage: 'context', code: 'bad-header', message: 'the header says awaiting while the state says in-work' }]);
+  // A status the header cannot have is reported once, as that, and not as a disagreement too.
+  p.setHeader('context', { status: 'done' });
+  assert.deepEqual(p.problems().map(q => q.message), ['the header status must be one of draft, awaiting, approved']);
+  p = pkg();
+  p.approve('frame', 'context');
+  p.setHeader('context', { status: 'awaiting' });
+  assert.deepEqual(p.problems().filter(q => q.code === 'bad-header').map(q => q.message), ['the header says awaiting while the state says approved']);
+});
+
 test('validate: a stage in work whose built-from names itself is bad-header and nothing else', () => {
   const p = pkg();
   p.approve('frame', 'context');
