@@ -1285,6 +1285,8 @@ test('pool/INDEX.md lists the people too: exactly one row for each person, with 
 // ---- a profession's profile: every rule of it is proven here, on a profession that exists nowhere else (R162)
 
 const PROFILE_FILE = 'profiles/front-desk.md';
+// What is said of a block of a characteristic that opens with no label, the block named by the line it opens at (S4).
+const noLabel = line => `line ${line} opens a block with none of the four labels ("What is true:", "Who it does not hold for:", "Evidence:", "So the interface must:"): a field is one block, from its label to the next blank line, and what stands apart from it would stay in an audience's copy`;
 // The four fields of one characteristic, each a block of its own.
 const TRAITS = 'What is true: She stands at a counter, the phone at her ear.\n\nWho it does not hold for: The coordinator in a back office.\n\nEvidence: guess\n';
 const fieldsOf = (must = 'Be read at arm\'s length, standing.\nNever show a full name.') => `${TRAITS}\nSo the interface must: ${must}\n`;
@@ -1301,6 +1303,23 @@ const profileText = ({ id = 'profile.front-desk', opening = [DESCRIBED, ...EXPLA
   `---\nid: ${id}\n---\n\n# Front desk\n\n${opening.join('\n')}\n${sections.map(([name, text]) => `## ${name}\n\n${text}`).join('\n')}`;
 const profile = (change = {}) => validateProfile(profileText(change), { file: PROFILE_FILE });
 const withSection = (name, text) => profileSections().map(([n, t]) => [n, n === name ? text : t]);
+// The number of the one line of a text that holds these words, counted from 1 as an editor counts.
+const lineOf = (text, words) => {
+  const at = text.split('\n').flatMap((line, i) => (line.includes(words) ? [i + 1] : []));
+  assert.equal(at.length, 1, `one line holds ${JSON.stringify(words)}`);
+  return at[0];
+};
+// The faults of a profile text, checked as the file it is.
+const faultsIn = text => validateProfile(text, { file: PROFILE_FILE });
+// No fault quotes the profile: none holds a run of words of any line under a heading of it (S13).
+const quotesNothing = (faults, text) => {
+  const body = text.slice(text.indexOf('\n## '));
+  for (const line of body.split('\n').map(line => line.trim()).filter(line => line !== '' && !line.startsWith('#'))) {
+    const said = line.replace(/^[^:]*: ?/, '').replace(/^[-*] /, '');
+    if (said.length < 12) continue;
+    for (const fault of faults) assert.ok(!fault.includes(said) && !fault.includes(said.slice(0, 24)), `${fault}\nquotes: ${line}`);
+  }
+};
 
 test('the lists a profession\'s profile is checked against', () => {
   assert.equal(PROFILE_FOLDER, 'profiles');
@@ -1374,9 +1393,11 @@ test('each characteristic has its four fields once each, the label of each at th
     only(profile({ sections: withSection('The work', `${fieldsOf()}\n${label}: again.\n`) }), new RegExp(`^body: "## The work" has the field "${label}:" 2 times; a characteristic has each field once$`));
   }
   // The label is the words and the colon, as written: another spelling is no label.
-  only(profile({ sections: withSection('Scope', fieldsOf().replace('Evidence:', 'evidence:')) }), /^body: "## Scope" lacks its field "Evidence:"/);
-  only(profile({ sections: withSection('Scope', fieldsOf().replace('Evidence:', 'Evidence -')) }), /^body: "## Scope" lacks its field "Evidence:"/);
-  only(profile({ sections: withSection('Scope', fieldsOf().replace('Evidence:', '  Evidence:')) }), /^body: "## Scope" lacks its field "Evidence:"/);
+  // Its block then opens with no label, which is said too, by its line (S4).
+  for (const spelt of ['evidence:', 'Evidence -', '  Evidence:']) {
+    const text = profileText({ sections: withSection('Scope', fieldsOf().replace('Evidence:', spelt)) });
+    assert.deepEqual(faultsIn(text), ['body: "## Scope" lacks its field "Evidence:", the label at the start of a line', `body: "## Scope": ${noLabel(lineOf(text, `${spelt} guess`))}`], spelt);
+  }
   // A field is a block of its own: its label follows a blank line, or the heading.
   for (const label of FIELDS.slice(1)) {
     only(profile({ sections: withSection('Scope', fieldsOf().replace(`\n\n${label}:`, `\n${label}:`)) }), new RegExp(`^body: "## Scope": the field "${label}:" is not a block of its own: a field begins after a blank line and ends at the next$`));
@@ -1388,17 +1409,25 @@ test('each characteristic has its four fields once each, the label of each at th
 });
 
 test('"So the interface must:" is written nowhere but at the start of a line: the field is taken out by that rule', () => {
-  const inside = text => profile({ sections: withSection('Scope', text) });
-  only(inside(fieldsOf().replace('Evidence: guess', 'Evidence: guess. So the interface must: say so.')), /^body: "So the interface must:" is not at the start of its line in "Evidence: guess\. So the interface must: say so\.": the field would stay in an audience's copy$/);
-  only(inside(fieldsOf('Say it. So the interface must: say it twice.')), /^body: "So the interface must:" is not at the start of its line in /);
-  // Indented, it is not at the start of its line either, and the characteristic lacks its field.
+  const inside = text => profileText({ sections: withSection('Scope', text) });
+  // S13: the line is named by its number, and never quoted: what it says is not printed.
+  const notAtStart = line => `body: line ${line}: "So the interface must:" is not at the start of its line: the field would stay in an audience's copy`;
+  const within = inside(fieldsOf().replace('Evidence: guess', 'Evidence: guess. So the interface must: say so.'));
+  assert.deepEqual(faultsIn(within), [notAtStart(lineOf(within, 'Evidence: guess. So the interface must: say so.'))]);
+  const twice = inside(fieldsOf('Say it. So the interface must: say it twice.'));
+  assert.deepEqual(faultsIn(twice), [notAtStart(lineOf(twice, 'say it twice'))]);
+  // Indented, it is not at the start of its line either: the characteristic lacks its field, and its block opens with no label.
   const indented = inside(fieldsOf().replace('So the interface must:', '  So the interface must:'));
-  assert.equal(indented.length, 2, indented.join('\n'));
-  assert.match(indented[0], /^body: "## Scope" lacks its field "So the interface must:", the label at the start of a line$/);
-  assert.match(indented[1], /^body: "So the interface must:" is not at the start of its line in "So the interface must: Be read/);
+  const at = lineOf(indented, '  So the interface must:');
+  assert.deepEqual(faultsIn(indented), ['body: "## Scope" lacks its field "So the interface must:", the label at the start of a line', `body: "## Scope": ${noLabel(at)}`, notAtStart(at)]);
   // In the opening, or under a closing section, the same.
-  only(profile({ opening: [DESCRIBED, 'Each ends with So the interface must: and what follows.\n'] }), /^body: "So the interface must:" is not at the start of its line in /);
-  only(profile({ sections: withSection('Optional characteristics', `${OPTIONAL}\nSee So the interface must: above.\n`) }), /^body: "So the interface must:" is not at the start of its line in /);
+  const opening = profileText({ opening: [DESCRIBED, 'Each ends with So the interface must: and what follows.\n'] });
+  assert.deepEqual(faultsIn(opening), [notAtStart(lineOf(opening, 'Each ends with'))]);
+  const closing = profileText({ sections: withSection('Optional characteristics', `${OPTIONAL}\nSee So the interface must: above.\n`) });
+  assert.deepEqual(faultsIn(closing), [notAtStart(lineOf(closing, 'See So the interface must'))]);
+  for (const text of [within, twice, indented, closing]) quotesNothing(faultsIn(text), text);
+  // With CRLF the line is the same one.
+  assert.deepEqual(validateProfile(within.replace(/\n/g, '\r\n'), { file: PROFILE_FILE }), faultsIn(within));
 });
 
 test('a specialty\'s characteristics, each under a "####" heading, are held to the four fields too', () => {
@@ -1413,8 +1442,48 @@ test('a specialty\'s characteristics, each under a "####" heading, are held to t
   only(profile({ sections: withSection('Specialties', two) }), /^body: "#### Usage context" of "### Dentistry" lacks its field "So the interface must:"/);
 });
 
+// S4 of the fix review: a criterion written over two blocks (its label, a blank line, then a list) passed the check, and
+// the list reached the audience's copy. A field is one block, so a characteristic holds no block that opens with no label.
+test('a characteristic holds no block that opens with none of the four labels: a field written over two blocks is refused, by its line and never in its words', () => {
+  const LIST = '- Say what is free now, in words.\n- Call a room by the name on its door.\n';
+  const over = `${TRAITS}\nSo the interface must:\n\n${LIST}`;
+  const text = profileText({ sections: withSection('Usage context', over) });
+  assert.deepEqual(faultsIn(text), [`body: "## Usage context": ${noLabel(lineOf(text, '- Say what is free now'))}`]);
+  // The copy is refused with it: nothing of the list reaches her.
+  assert.deepEqual(traitsOf(text, { file: PROFILE_FILE }), { faults: faultsIn(text), copy: null, fields: 0, paragraphs: 0 });
+  // A paragraph, a second paragraph of a trait, a table and a comment are blocks too; each is said once, by its own line.
+  for (const stray of ['It must also be read at arm\'s length, standing.\n', '| Room | Free |\n|---|---|\n| Room 2 | yes |\n', '<!-- to check with the clinic -->\n']) {
+    const after = profileText({ sections: withSection('Scope', `${fieldsOf()}\n${stray}`) });
+    assert.deepEqual(faultsIn(after), [`body: "## Scope": ${noLabel(lineOf(after, stray.split('\n')[0]))}`], stray);
+    const before = profileText({ sections: withSection('Scope', `${stray}\n${fieldsOf()}`) });
+    assert.deepEqual(faultsIn(before), [`body: "## Scope": ${noLabel(lineOf(before, stray.split('\n')[0]))}`], stray);
+  }
+  // Straight under the heading, with no blank line between, it is a block all the same.
+  const under = text.replace('## The work\n\nWhat is true:', '## The work\nTo check with the clinic.\n\nWhat is true:');
+  assert.deepEqual(faultsIn(under), [`body: "## The work": ${noLabel(lineOf(under, 'To check with the clinic.'))}`, `body: "## Usage context": ${noLabel(lineOf(under, '- Say what is free now'))}`]);
+  const twice = profileText({ sections: withSection('Scope', `${TRAITS}\nA note.\n\nSo the interface must:\n\n${LIST}\nAnd one more thing.\n`) });
+  assert.deepEqual(faultsIn(twice), ['A note.', '- Say what is free now', 'And one more thing.'].map(words => `body: "## Scope": ${noLabel(lineOf(twice, words))}`));
+  // A field may run over several lines, a list among them, as long as no blank line parts it: that is one block.
+  assert.deepEqual(profile({ sections: withSection('Usage context', `${TRAITS}\nSo the interface must:\n${LIST}`) }), []);
+  assert.deepEqual(profile({ sections: withSection('Usage context', fieldsOf('Be read standing.\nNever show a full name.\n- And say what is free.')) }), []);
+  // In a specialty, a "####" characteristic is held the same way; what stands between "###" and the first "####" is the specialty's own.
+  const specialty = body => `### Physiotherapy\n\nWhat differs at a physiotherapy clinic.\n\n- One list of the specialty's own.\n\n#### Usage context\n\n${body}`;
+  assert.deepEqual(profile({ sections: withSection('Specialties', specialty(fieldsOf())) }), []);
+  const special = profileText({ sections: withSection('Specialties', specialty(over)) });
+  assert.deepEqual(faultsIn(special), [`body: "#### Usage context" of "### Physiotherapy": ${noLabel(lineOf(special, '- Say what is free now'))}`]);
+  // The closing sections and the opening are held to no label: their lists and paragraphs stand.
+  assert.deepEqual(profile({ sections: withSection('Optional characteristics', `${OPTIONAL}\nA last paragraph.\n`) }), []);
+  // With CRLF, and with a header of more lines than one, the line is still the file's own.
+  assert.deepEqual(validateProfile(text.replace(/\n/g, '\r\n'), { file: PROFILE_FILE }), faultsIn(text));
+  const longer = text.replace('---\nid: profile.front-desk\n---\n', '---\n\nid: profile.front-desk\n\n---\n');
+  assert.deepEqual(faultsIn(longer), [`body: "## Usage context": ${noLabel(lineOf(text, '- Say what is free now') + 2)}`]);
+  for (const faulty of [text, twice, special]) quotesNothing(faultsIn(faulty), faulty);
+});
+
 // ---- the audience's copy of a profile: its traits (R162)
 
+// What is said of a line of a profile that would carry a criterion into the copy: its number, and where it stands (S13).
+const stillWritten = (line, where) => `line ${line} of the profile, ${where}, still says "so the interface must": an audience is never handed what the interface must do`;
 // What the copy of the sample is: no fourth field, and no paragraph of the opening that speaks of the fields.
 const TRAITS_COPY = profileText({ opening: [DESCRIBED], sections: profileSections(TRAITS) });
 
@@ -1465,12 +1534,28 @@ test('traitsOf refuses a profile that fails its check, and a copy in which the w
   // The label written another way, inside a trait, passes the check and would reach her: the copy is refused, naming each line.
   const leaking = profileText({ sections: withSection('Usage context', fieldsOf().replace('the phone at her ear.', 'the phone at her ear, so the interface must be read standing.')) });
   assert.deepEqual(validateProfile(leaking, { file: PROFILE_FILE }), []);
+  // S13: by the line's number in the profile and the label of its field, never in the line's own words.
   assert.deepEqual(traitsOf(leaking, { file: PROFILE_FILE }), {
-    faults: ['copy: "so the interface must" is still written in "What is true: She stands at a counter, the phone at her ear, so the interface must be read standing.": an audience is never handed what the interface must do'],
+    faults: [`copy: ${stillWritten(lineOf(leaking, 'be read standing.'), 'in the field "What is true:"')}`],
     copy: null, fields: 0, paragraphs: 0,
   });
+  quotesNothing(traitsOf(leaking, { file: PROFILE_FILE }).faults, leaking);
+  // On a later line of its field the label is still the field's; outside every field, that is said.
+  const later = profileText({ sections: withSection('Time and attention', fieldsOf().replace('The coordinator in a back office.', 'The coordinator in a back office,\nwhere SO THE INTERFACE MUST stay plain.')) });
+  assert.deepEqual(traitsOf(later, { file: PROFILE_FILE }).faults, [`copy: ${stillWritten(lineOf(later, 'SO THE INTERFACE MUST stay plain'), 'in the field "Who it does not hold for:"')}`]);
   const shouting = profileText({ opening: [DESCRIBED, 'SO THE INTERFACE MUST stay plain.\n'] });
-  assert.match(traitsOf(shouting, { file: PROFILE_FILE }).faults[0], /^copy: "so the interface must" is still written in "SO THE INTERFACE MUST stay plain\."/);
+  assert.deepEqual(traitsOf(shouting, { file: PROFILE_FILE }).faults, [`copy: ${stillWritten(lineOf(shouting, 'SO THE INTERFACE MUST stay plain'), 'in no field')}`]);
+  const closing = profileText({ sections: withSection('Optional characteristics', `${OPTIONAL}\nEach says what, so the interface must follow.\n`) });
+  assert.deepEqual(traitsOf(closing, { file: PROFILE_FILE }).faults, [`copy: ${stillWritten(lineOf(closing, 'Each says what'), 'in no field')}`]);
+  // A field that follows its heading with no blank line is still that field; and a heading is in no field, whatever stands above it.
+  const tight = leaking.replace('## Usage context\n\nWhat is true:', '## Usage context\nWhat is true:');
+  assert.deepEqual(traitsOf(tight, { file: PROFILE_FILE }).faults, [`copy: ${stillWritten(lineOf(tight, 'be read standing.'), 'in the field "What is true:"')}`]);
+  const heading = profileText({ sections: withSection('Specialties', `### Physiotherapy\n\n#### Usage context\n\n${fieldsOf()}### Clinics where SO THE INTERFACE MUST differ\n\nNone yet.\n`) });
+  assert.deepEqual(validateProfile(heading, { file: PROFILE_FILE }), []);
+  assert.deepEqual(traitsOf(heading, { file: PROFILE_FILE }).faults, [`copy: ${stillWritten(lineOf(heading, '### Clinics where'), 'in no field')}`]);
+  // Two lines are two faults, in the order of the profile.
+  const two = profileText({ opening: [DESCRIBED, 'SO THE INTERFACE MUST stay plain.\n'], sections: withSection('Scope', fieldsOf().replace('Evidence: guess', 'Evidence: guess, so the interface must wait')) });
+  assert.deepEqual(traitsOf(two, { file: PROFILE_FILE }).faults, [`copy: ${stillWritten(lineOf(two, 'SO THE INTERFACE MUST stay plain'), 'in no field')}`, `copy: ${stillWritten(lineOf(two, 'so the interface must wait'), 'in the field "Evidence:"')}`]);
 });
 
 // ---- card.mjs check: a project's own cards, people and professions, checked before they are cast
@@ -1528,9 +1613,11 @@ test('card.mjs prints its usage for --help and -h, and the usage gives the two f
   assert.ok(existsSync(at('templates/people/PROFILE-CARD.md')));
   for (const said of [`its id is profile.<name>, the name its file's`, ...CHARACTERISTICS, ...PROFILE_CLOSING, ...FIELDS.map(field => `"${field}:"`),
     'and "So the interface must:" is written nowhere but at the start of a line',
+    'when no block of a characteristic opens without one of the four labels: a field written over two blocks, as its label, a blank line and a list, is refused',
+    'A fault names a line of a profile by its number, and a field by its label: nothing a profile says is printed',
     'traits writes the audience\'s copy of a profession\'s profile to --out', 'without each "So the interface must:" field, from its label to the next blank line',
     'and without each paragraph before the first section that speaks of the fields themselves (one that says "fourth field" or "four fields")',
-    'It refuses a profile that fails check', 'and a copy in which the words "so the interface must" are still written, in any case',
+    'It refuses a profile that fails check', 'and a copy in which the words "so the interface must" are still written, in any case, naming each line by its number and the label of its field',
     '--out is not the profile itself; its folder is made when it is not there']) assert.ok(usage.includes(said), said);
   assert.match(USAGE, /A file named README\.md is never a card: it is\npassed over, and its line says so\. A path that cannot be reached, whatever its name, is a file that\ncannot be read/);
   assert.match(USAGE, /A folder is not checked: files are named one by one/);
@@ -1827,9 +1914,19 @@ test('card.mjs traits refuses a copy in which the words are still written, namin
   const leaking = put(pool, PROFILE_FILE, profileText({ sections: withSection('Usage context', fieldsOf().replace('the phone at her ear.', 'the phone at her ear, so the interface must be read standing.')) }));
   const out = join(pool, 'traits.md');
   assert.deepEqual(check(['check', leaking]), [0, ok(leaking), ''], 'the profile is sound');
-  assert.deepEqual(check(['traits', leaking, '--out', out]), [1, '', notWritten(leaking, [
-    'copy: "so the interface must" is still written in "What is true: She stands at a counter, the phone at her ear, so the interface must be read standing.": an audience is never handed what the interface must do',
-  ])]);
+  const text = readFileSync(leaking, 'utf8');
+  const refusedCopy = check(['traits', leaking, '--out', out]);
+  assert.deepEqual(refusedCopy, [1, '', notWritten(leaking, [`copy: ${stillWritten(lineOf(text, 'be read standing.'), 'in the field "What is true:"')}`])]);
+  assert.ok(!existsSync(out));
+  // S13: a refusal names a line by its number and its label. None of the profile's own words is printed: the session that
+  // makes the copy does not open the profile, and must not be shown it.
+  assert.ok(!refusedCopy[2].includes('counter') && !refusedCopy[2].includes('read standing'));
+  // S4: a criterion written over two blocks is refused by check, so by traits, and its lines are not printed either.
+  const over = put(pool, 'profiles/night-desk.md', profileText({ id: 'profile.night-desk', sections: withSection('Usage context', `${TRAITS}\nSo the interface must:\n\n- Say what is free now, in words.\n- Call a room by the name on its door.\n`) }));
+  const overText = readFileSync(over, 'utf8');
+  const fault = `body: "## Usage context": ${noLabel(lineOf(overText, '- Say what is free now'))}`;
+  assert.deepEqual(check(['check', over]), [1, `${over}: ${fault}\n`, '']);
+  assert.deepEqual(check(['traits', over, '--out', out]), [1, '', notWritten(over, [fault])]);
   assert.ok(!existsSync(out));
 });
 

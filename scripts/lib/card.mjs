@@ -15,6 +15,8 @@
 // reports the same way; `file` is profiles/<name>.md. traitsOf(text, { file }) → { faults, copy, fields,
 // paragraphs }: the audience's copy of a profile, its traits without what a judge holds a design to; the
 // copy is null, with the faults, for a profile that fails its check or a copy that still says a criterion.
+// A fault of a profile names a line by its number in the file and a field by its label, and never quotes
+// what the profile says: the session that makes an audience's copy does not open the profile.
 import { FrontmatterError, parse } from './frontmatter.mjs';
 import { SIZES, STAGES } from './state.mjs';
 
@@ -128,9 +130,14 @@ export function validateProfile(text, { file } = {}) {
   const card = open(text, 'a profession\'s profile', errors);
   if (!card) return errors;
   checkProfileHeader(card.data, name, errors);
-  checkProfileBody(card.body, errors);
+  // The body's first line by its number in the file: the header's lines stand above it.
+  const first = linesOf(text).length - card.body.split('\n').length + 1;
+  checkProfileBody(card.body, first, errors);
   return errors;
 }
+
+// A text as the lines an editor numbers: without a byte-order mark, each line break one line's end.
+const linesOf = text => text.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').split('\n');
 
 // The audience's copy of a profile: the profile as it is, without each field of the criterion, from its
 // label to the next blank line (or the next heading, or the end), and without each paragraph of its opening,
@@ -140,7 +147,7 @@ export function traitsOf(text, { file } = {}) {
   const refused = faults => ({ faults, copy: null, fields: 0, paragraphs: 0 });
   const faults = validateProfile(text, { file });
   if (faults.length > 0) return refused(faults);
-  const lines = text.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').split('\n');
+  const lines = linesOf(text);
   const blank = i => lines[i].trim() === '';
   const out = new Set();
   // Takes out the lines from `from` up to `to`, and the blank lines above them.
@@ -175,12 +182,19 @@ export function traitsOf(text, { file } = {}) {
       i = to - 1;
     }
   }
-  const kept = lines.filter((_, i) => !out.has(i));
-  const left = kept.filter(line => CRITERION_WORDS.test(line));
+  const kept = lines.flatMap((_, i) => (out.has(i) ? [] : [i]));
+  const left = kept.filter(i => CRITERION_WORDS.test(lines[i]));
   if (left.length > 0) {
-    return refused(left.map(line => `copy: "${CRITERION.toLowerCase()}" is still written in ${show(line.trim())}: an audience is never handed what the interface must do`));
+    // Where a line stands: in the field whose label opens its block, or in none. The line itself is not printed.
+    const fieldOf = i => {
+      let from = i;
+      while (from > 0 && !blank(from - 1) && !ANY_HEADING.test(lines[from - 1]) && !ANY_HEADING.test(lines[from])) from--;
+      const field = FIELDS.find(name => lines[from].startsWith(labelOf(name)));
+      return field === undefined ? 'in no field' : `in the field "${labelOf(field)}"`;
+    };
+    return refused(left.map(i => `copy: line ${i + 1} of the profile, ${fieldOf(i)}, still says "${CRITERION.toLowerCase()}": an audience is never handed what the interface must do`));
   }
-  return { faults: [], copy: kept.join('\n'), fields, paragraphs };
+  return { faults: [], copy: kept.map(i => lines[i]).join('\n'), fields, paragraphs };
 }
 
 // The header and the body of a text; `what` is the kind of card it should be. Without a header that can
@@ -355,9 +369,10 @@ function checkProfileHeader(data, name, errors) {
 }
 
 // A profile's body: the seven characteristics, then any the project added, then the two closing sections;
-// each characteristic, and each one of a specialty, with its four fields; and the criterion's label nowhere
-// but at the start of a line, since that is the rule an audience's copy is made by.
-function checkProfileBody(body, errors) {
+// each characteristic, and each one of a specialty, with its four fields and no block besides them; and the
+// criterion's label nowhere but at the start of a line, since that is the rule an audience's copy is made
+// by. `first` is the number, in the file, of the body's first line.
+function checkProfileBody(body, first, errors) {
   const fail = message => {
     errors.push(`body: ${message}`);
   };
@@ -365,50 +380,60 @@ function checkProfileBody(body, errors) {
   const added = [...new Set(sectionsOf(body).map(section => section.name).filter(name => !fixed.includes(name)))];
   checkSections(body, [...CHARACTERISTICS, ...added, ...PROFILE_CLOSING], {
     what: 'a profession\'s profile',
-    inside: (name, lines) => {
-      if (name === 'Specialties') checkSpecialties(lines, fail);
-      else if (!PROFILE_CLOSING.includes(name)) checkFields(lines, `"## ${name}"`, fail);
+    inside: (name, lines, at) => {
+      const numbers = at.map(i => first + i);
+      if (name === 'Specialties') checkSpecialties(lines, numbers, fail);
+      else if (!PROFILE_CLOSING.includes(name)) checkFields(lines, numbers, `"## ${name}"`, fail);
     },
   }, fail);
   const label = labelOf(CRITERION);
-  for (const line of body.split('\n')) {
-    if (line.lastIndexOf(label) > 0) fail(`"${label}" is not at the start of its line in ${show(line.trim())}: the field would stay in an audience's copy`);
-  }
+  body.split('\n').forEach((line, i) => {
+    if (line.lastIndexOf(label) > 0) fail(`line ${first + i}: "${label}" is not at the start of its line: the field would stay in an audience's copy`);
+  });
 }
 
 // The four fields of one characteristic, `where` naming it: each there once, its label at the start of a
-// line, and a block of its own, so that one field can be taken out and the others left.
-function checkFields(lines, where, fail) {
-  for (const field of FIELDS) {
-    const label = labelOf(field);
+// line, and a block of its own, so that one field can be taken out and the others left. And no block
+// besides them: a field is one block, so what stands apart from it, as a list after a blank line under the
+// criterion's label, would stay when the field is taken out. `numbers` holds each line's number in the file.
+function checkFields(lines, numbers, where, fail) {
+  const labels = FIELDS.map(labelOf);
+  for (const label of labels) {
     const at = lines.flatMap((line, i) => (line.startsWith(label) ? [i] : []));
     if (at.length === 0) fail(`${where} lacks its field "${label}", the label at the start of a line`);
     else if (at.length > 1) fail(`${where} has the field "${label}" ${at.length} times; a characteristic has each field once`);
     else if (at[0] > 0 && lines[at[0] - 1].trim() !== '') fail(`${where}: the field "${label}" is not a block of its own: a field begins after a blank line and ends at the next`);
   }
+  lines.forEach((line, i) => {
+    const opens = line.trim() !== '' && (i === 0 || lines[i - 1].trim() === '');
+    if (opens && !labels.some(label => line.startsWith(label))) {
+      fail(`${where}: line ${numbers[i]} opens a block with none of the four labels (${labels.map(label => `"${label}"`).join(', ')}): a field is one block, from its label to the next blank line, and what stands apart from it would stay in an audience's copy`);
+    }
+  });
 }
 
 // Under "Specialties": each "####" heading is a characteristic of the "###" specialty above it.
-function checkSpecialties(lines, fail) {
+function checkSpecialties(lines, numbers, fail) {
   let specialty = null;
   let characteristic = null;
   const close = () => {
-    if (characteristic) checkFields(characteristic.lines, `"#### ${characteristic.name}" of ${specialty === null ? 'no specialty' : `"### ${specialty}"`}`, fail);
+    if (characteristic) checkFields(characteristic.lines, characteristic.numbers, `"#### ${characteristic.name}" of ${specialty === null ? 'no specialty' : `"### ${specialty}"`}`, fail);
     characteristic = null;
   };
-  for (const line of lines) {
+  lines.forEach((line, i) => {
     const [, named] = SPECIALTY_CHARACTERISTIC.exec(line) ?? [];
     const [, of] = SPECIALTY.exec(line) ?? [];
     if (named !== undefined) {
       close();
-      characteristic = { name: named, lines: [] };
+      characteristic = { name: named, lines: [], numbers: [] };
     } else if (of !== undefined) {
       close();
       specialty = of;
-    } else {
-      characteristic?.lines.push(line);
+    } else if (characteristic) {
+      characteristic.lines.push(line);
+      characteristic.numbers.push(numbers[i]);
     }
-  }
+  });
   close();
 }
 
@@ -466,10 +491,11 @@ function checkSections(body, order, { what, stray = () => undefined, inside = ()
   const wanted = order.filter(name => first.has(name));
   if (found.join('\n') !== wanted.join('\n')) fail(`the sections are out of order: ${found.join(', ')}; the order is ${order.join(', ')}`);
 
+  // What a section holds is checked with where each of its lines stands in the body.
   for (const name of wanted) {
-    const { lines } = first.get(name);
+    const { lines, at } = first.get(name);
     if (lines.every(line => line.trim() === '')) fail(`"## ${name}" has nothing under it`);
-    else inside(name, lines);
+    else inside(name, lines, at);
   }
 }
 
@@ -477,19 +503,22 @@ function checkSections(body, order, { what, stray = () => undefined, inside = ()
 // from its first line to a line of the same character, at least as many of it, and nothing after them. What
 // it holds is passed over: a fenced line is never a heading, and a fenced list, table or command is an
 // example, never a judge's check or row. The line that opens a fence is kept, so a section that holds only
-// a fence has text under it.
+// a fence has text under it. `at` holds, for each line kept, where it stands in the body, counted from 0.
 function sectionsOf(body) {
   const sections = [];
   let open = null;
-  for (const line of body.split('\n')) {
+  body.split('\n').forEach((line, i) => {
     const [, marks, rest] = FENCE.exec(line) ?? [];
     const inside = open !== null;
     const heading = inside ? null : HEADING.exec(line);
     if (!inside) open = marks ?? null;
     else if (marks?.startsWith(open) && rest.trim() === '') open = null;
-    if (heading) sections.push({ name: heading[1], lines: [] });
-    else if (!inside) sections.at(-1)?.lines.push(line);
-  }
+    if (heading) sections.push({ name: heading[1], lines: [], at: [] });
+    else if (!inside && sections.length > 0) {
+      sections.at(-1).lines.push(line);
+      sections.at(-1).at.push(i);
+    }
+  });
   return sections;
 }
 

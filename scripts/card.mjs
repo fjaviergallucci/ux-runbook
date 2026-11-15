@@ -41,8 +41,10 @@ then any characteristic the project added, then ${PROFILE_CLOSING.join(' and ')}
 characteristic, and each "####" characteristic of a "###" specialty, has its four fields once each,
 the label of each at the start of a line and after a blank line, so that a field is a block of its
 own: ${FIELDS.slice(0, -1).map(field => `"${field}:"`).join(', ')}
-and "${LABEL}"; and "${LABEL}" is written nowhere but at the start of a
-line.
+and "${LABEL}"; when no block of a characteristic opens without one of the four
+labels: a field written over two blocks, as its label, a blank line and a list, is refused; and
+"${LABEL}" is written nowhere but at the start of a line. A fault names a line of a
+profile by its number, and a field by its label: nothing a profile says is printed.
 
 It prints one line for each file, under the path as it was given: "<file>: ok" when the card is sound,
 or one line for each of its faults, "<file>: <fault>". A file named ${README} is never a card: it is
@@ -57,8 +59,8 @@ or "four fields"): the template's own account of the format, which is no trait. 
 changed. It prints one line, "wrote the traits of <profile> to <file>: …", with what it took out.
 It refuses a profile that fails check, printing its faults as check does; a file that is not in a
 folder named ${PROFILE_FOLDER}; and a copy in which the words "${CRITERION.toLowerCase()}" are still written, in
-any case, naming each line: an audience is never handed what the interface must do. A copy that is
-refused is not written, and what was at --out is left. --out is not the profile itself; its folder is
+any case, naming each line by its number and the label of its field: an audience is never handed what
+the interface must do. A copy that is refused is not written, and what was at --out is left. --out is not the profile itself; its folder is
 made when it is not there.
 
 A flag may also be written --flag=value.

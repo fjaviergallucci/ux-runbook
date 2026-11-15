@@ -898,15 +898,19 @@ test('people/PROFILE-CARD.md, with its id filled, is a profile the checker takes
   const file = 'profiles/front-desk-coordinator.md';
   const filled = template('people/PROFILE-CARD.md').replace(/^id: profile\.\{[^{}]+\}$/m, 'id: profile.front-desk-coordinator');
   assert.deepEqual(validateProfile(filled, { file }), []);
-  // The checker is asked, not passed by: as the template stands its id is no id, and without a label a characteristic is faulty.
+  // The checker is asked, not passed by: as the template stands its id is no id, and without a label a characteristic is faulty
+  // twice over (S4): it lacks the field, and the block that was the field opens with no label.
   assert.equal(validateProfile(template('people/PROFILE-CARD.md'), { file }).length, 1);
-  assert.equal(validateProfile(filled.replace('\nSo the interface must: {', '\nSo it must: {'), { file }).length, 1);
+  assert.equal(validateProfile(filled.replace('\nSo the interface must: {', '\nSo it must: {'), { file }).length, 2);
   // The copy: the seven fields and the example's gone, with the two paragraphs of the opening that explain the fields.
   const made = profileTraits(filled, { file });
   assert.deepEqual([made.faults, made.fields, made.paragraphs], [[], CHARACTERISTICS.length + 1, 2]);
   assert.equal(count(made.copy.toLowerCase(), 'the interface must'), 0);
   const opening = made.copy.slice(0, made.copy.indexOf('\n## '));
   assert.doesNotMatch(opening, /fourth field|four fields|profile judge|An audience/);
+  // S12: nowhere does the copy count four fields, of which she is shown three: the closing sections are worded without the count.
+  assert.doesNotMatch(made.copy, /fourth field|four\s+fields/);
+  for (const closing of PROFILE_CLOSING) assert.match(flat(section(body, closing)), /written as those above are/, closing);
   assert.match(flat(opening).trim(), /\{A line or two: the profession this card speaks for, and how much of it is known and how much guessed\.\}$/);
   assert.deepEqual(headings(made.copy), headings(filled), 'every heading stays');
   for (const label of FIELDS.slice(0, -1)) assert.equal(count(made.copy, `\n${label}`), count(filled, `\n${label}`), `${label} stays`);
