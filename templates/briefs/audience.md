@@ -33,8 +33,10 @@ pictures are in hers. The tasks are the intent's, as it holds them.}
 3. The pictures, and pictures only: {for each option, by its letter, or for each screen, the pictures at
    her width and in her language, each by its absolute path}
 
-{Which pictures her tasks need first, by name. And which show the first screen only, as she meets it
-before any scrolling, and which the whole page: "without scrolling" is answered on the first.}
+{Which pictures her tasks need first, by name.}
+
+{At Structure: which pictures show the first screen only, as she meets it before any scrolling, and
+which the whole page: "without scrolling" is answered on the first. From Detail on, delete this.}
 
 ## Do not open
 

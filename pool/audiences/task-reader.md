@@ -34,10 +34,11 @@ below, and a real person's read, whenever there is one, takes this seat and outr
    product. When your brief's product is another, keep her hands, her hurry, what she knows and what she
    refuses, and change only the setting.
 3. **Pictures only,** at the width and in the language your brief gives her, those it names for a task
-   first. A picture of the first screen shows what she meets before any scrolling, one of the whole page
-   the rest: your brief says which is which. Never open a page, its source or a running prototype: a
-   person cannot find a control by reading markup. What no picture shows
-   (what a press does, where the focus is), she cannot know: write that, and never settle it in the
+   first. At Structure a picture of the first screen shows what she meets before any scrolling, one of
+   the whole page the rest: your brief says which is which. After Structure every picture is of a whole
+   page, and says nothing of where a screen ends. Never open a page, its source or a running
+   prototype: a person cannot find a control by reading markup. What no picture shows (what a press
+   does, where the focus is), she cannot know: write that, and never settle it in the
    design's favour. At Structure a screen is a plain grey drawing: go by its words and order, and say so.
    At Look you sit only in a fresh pass: the options are versions of one finished screen, each under a
    letter. Rank them as any options, and never guess which was made how.

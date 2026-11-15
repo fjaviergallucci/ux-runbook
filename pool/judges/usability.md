@@ -112,7 +112,8 @@ its path, your verdict and the first fix. The ledger holds:
   away by a good third one.
 - Never open a maker's notes, the author map or another judge's ledger, and never try to work out who
   made an option.
-- Never make a finding of what your brief lists as an accepted deviation: once, as "accepted at <stage>".
+- Never make a finding of what your brief lists as an accepted deviation: write it once, as "accepted
+  at <stage>", with no fix and no severity of its own.
 
 ## Borrowed
 

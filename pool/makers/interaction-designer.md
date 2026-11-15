@@ -53,10 +53,11 @@ have to ask what happens next.
 6. **Name every element a rule or a state refers to** with a stable id: lower-case words joined by
    hyphens, unique on its screen, and the chosen structure's own id where it has one. Every item that
    shows text or takes an action carries one, a status tag included: a check reaches an element only
-   by its id. Only an item carries an id; a container never does. So a rule about a dialog names it by its screen's id ("when
-   `book-walk-in` opens, focus lands on `patient-name`"), and a rule about an expansion names the item
-   that heads it or the one that opens it ("when the slot under `free-until` opens, focus moves to
-   `patient-name`"). The prototype carries these ids, and the acceptance checks find elements by them.
+   by its id. Only an item carries an id; a container never does. So a rule about a dialog names it by
+   its screen's id ("when `book-walk-in` opens, focus lands on `patient-name`"), and a rule about an
+   expansion names the item that heads it or the one that opens it ("when the slot under `free-until`
+   opens, focus moves to `patient-name`"). The prototype carries these ids, and the acceptance checks
+   find elements by them.
 7. **Write the data map.** For every element that shows data or offers an action, record where its
    content comes from: the row of the context's inventory it traces to. Trace it; do not assume it.
    What the product cannot supply today is listed as a dependency, with the element that needs it and

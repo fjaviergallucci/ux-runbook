@@ -26,7 +26,7 @@ Does the chosen structure hold in every state and every language?
 - **The chosen structure,** `<package>/04-structure/CHOSEN.md`, approved, and exactly what its carry
   list names: the chosen proposal's file and its pictures, and the sections of the cast sheet, the
   intent and the context it carries on. Of the cast sheet: its "Detail" table, a line for each seat
-  with what it is loaded with, its checks and its suggested model and effort. Of the context: "What
+  with what it is loaded with, its checks and its model and effort. Of the context: "What
   the product can show and do", "Constraints", for the two widths, and "The founder's own words".
 - **The state:** `node <kit root>/scripts/state.mjs status <package>` prints the kind, the version
   each stage stands at, and whether Detail is routed full or short.
@@ -88,8 +88,9 @@ is the version a stage stands at, as `status` prints it: after a reopening it is
 
    Record the question with the `await` of the gate, write his answers under
    `## Reviewed by the founder`, numbered, as he said them, and put the stage back in work with the
-   `begin` of step 1. An entry he leaves unanswered stays open. A breach of a standing rule or of
-   the intent that he accepts as a cost goes under `## Accepted deviations`: `references/seats.md`.
+   `begin` of step 1. An entry he leaves unanswered stays open: it is listed under `findings` on the
+   decision page, and named in the gate's question. A breach of a standing rule or of the intent that
+   he accepts as a cost goes under `## Accepted deviations`: `references/seats.md`.
 5. **Photograph every page.** Light only: the themes are Look's. Once the prototype is generated, and
    again after every change to it:
    ```
@@ -149,12 +150,11 @@ node <kit root>/scripts/state.mjs await <package> detail --question "<the one qu
 One question, about one thing: do you approve this prototype for Look? **Stop: you do not approve,
 and you go no further without his words.**
 
-- **The words, asked first, for those three kinds.** Write `<package>/05-detail/words.json` in the
-  shape of `templates/outputs/decision-approve.json`: the strings in each language as its one
-  option, the words judge's line, its findings that stayed open, one question: do you approve these
-  words? Build it, put it in front of him with `strings.json`, and record it with the same `await`.
-  His answer is written apart under `## Reviewed by the founder`. Only then is the prototype's page
-  put to him.
+- **The words, asked first, for those three kinds.** Write `<package>/05-detail/words.json` in the shape
+  of `templates/outputs/decision-approve.json`: the strings in each language as its one option, the
+  words judge's line, its findings that stayed open, one question: do you approve these words? Build it,
+  put it in front of him with `strings.json`, and record it with the same `await`. His answer is written
+  apart under `## Reviewed by the founder`. Only then is the prototype's page put to him.
   ```
   node <kit root>/scripts/page.mjs <package>/05-detail/words.json --out <package>/05-detail/words.html
   ```

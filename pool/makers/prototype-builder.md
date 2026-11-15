@@ -49,7 +49,9 @@ on other pages.
    that page, in the same language. A link has its `href`. For a button, one shared script of a few
    lines that follows an attribute (say `data-go`, holding the page to open) is enough, and it is the
    only script a page loads. An action that leads nowhere yet does nothing. A row, a name or a time a
-   page shows as an example comes from the data your brief hands you: you make none up.
+   page shows as an example comes from the data your brief hands you: you make none up. Where your
+   brief hands you none and a page needs a row, leave it out and say so in your reply, with the pages
+   that wait for it: the conductor asks the founder for the data, and it comes to you in a brief.
 7. **Write the index,** `index.html`, generated like the rest: every page as a link, grouped by screen,
    then state, then language. Its words are the screens' titles and the names of the states and the
    languages: names, not interface words, and all of them already in what the script reads.

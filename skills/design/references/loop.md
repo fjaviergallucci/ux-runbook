@@ -122,8 +122,14 @@ What it reads is named by its letter or by what it is, never by who made it.
   what it printed goes to the founder. The copy is never made by hand. List her profession's profile
   itself under "Do not open", with the intent.
 - **A seat handed more pictures than one read opens is told which come first:** those its checks, or
-  her tasks, need, by name. What it did not open, it lists. An audience's brief also says which
-  pictures show the first screen only, as she meets it before any scrolling, and which the whole page.
+  her tasks, need, by name. What it did not open, it lists. At Structure, an audience's brief also says
+  which pictures show the first screen only, as she meets it before any scrolling, and which the whole
+  page.
+- **A first screen is pictured at Structure only.** From Detail on, "without scrolling" is answered by
+  a check, and never by reading a picture: the `in-viewport` type of the acceptance script,
+  `scripts/accept.mjs`. Look adds one to its checks for each success criterion that says it, and
+  Handoff takes it over. From Detail on a judge's brief points to that check, and an audience's brief
+  says nothing of first screens.
 - **Make the stage's `reads/` folder before you start its readers.** A seat writes its own file there,
   and never lists the folder: the names in it say who else read.
 
@@ -134,11 +140,10 @@ What it reads is named by its letter or by what it is, never by who made it.
 - **From a brief that names files.** Write the brief from its template, as a file in the package's
   `work/` folder unless the stage's skill names another place, and start the seat with it, whole. Its
   name is `<stage>-<seat>-brief.md`: `<seat>` is the seat's id, with what it is loaded with where two
-  instances share an id, as `detail-audience.task-reader-<name>-<language>-brief.md`, and `-reread` or `-fix` after it
-  for a seat started again. The
-  brief names the seat's card by its absolute path and says to read it first. It names each file the
-  seat may read, by its absolute path, and what the seat must not open. Never paste a card or an
-  artefact into a brief: name the file.
+  instances share an id, as `detail-audience.task-reader-<name>-<language>-brief.md`, and `-reread`
+  or `-fix` after it for a seat started again. The brief names the seat's card by its absolute path
+  and says to read it first. It names each file the seat may read, by its absolute path, and what the
+  seat must not open. Never paste a card or an artefact into a brief: name the file.
 - **Model and effort.** Start the seat on the model and the effort its line of the approved cast sheet
   names: `03-cast.md` in the package, the columns "Model" and "Effort". They hold the cards' suggestions
   until he changes one, the cast sheet is the founder's, and he may have changed any of them at Cast:
@@ -203,8 +208,9 @@ node <kit root>/scripts/page.mjs <decision.json> --out <decision.html>
 - Write the data in the shape of `templates/outputs/decision.json`, a pick among options, or of
   `templates/outputs/decision-approve.json`, an approval with the findings that stayed open.
 - The page opens with the identity line: *design · kind · size · stage n of m*. Then the options as
-  pictures, one line for each seat, the open findings when there are any, one recommendation with one
-  sentence of reason, and last the question.
+  pictures, one line for each seat, the open findings when there are any, the accepted deviations
+  under a heading of their own, "Accepted deviations", when there are any, one recommendation with
+  one sentence of reason, and last the question.
 - **The page's question is the only question on it.** The script refuses data that asks two: it
   counts the question marks of the question and of the recommendation's reason, and no others. A
   seat's line or a finding may quote a question she asks, as it was written.
@@ -218,7 +224,8 @@ One question about one thing at a time, on a page and in the chat. **A list is o
 maker or a reader returns (dependencies; states the intent does not name; what the structure cannot
 hold; facts a string waits for; items nobody decided; deviations) is put to him as one question: the
 entries numbered, each with what follows from each answer, answered by number in one message, with
-one `await`. An entry he leaves unanswered stays open, and is listed so. What step 8 catches, an
+one `await`. An entry he leaves unanswered stays open, and is listed so. It goes under `findings`
+on the stage's decision page, as open, and the gate's question names it. What step 8 catches, an
 answer that meets a standing rule, a fact of the product or an output he approved, is still asked on
 its own, at once.
 

@@ -107,12 +107,21 @@ test("LESSONS.md: appended and never rewritten, one dated entry for each lesson,
     /A number named to him is counted by a tool first/, /one idea in three palettes are not a choice/, /adjectives goes many rounds; one given in references and refused tells converges/,
     /A simulated reader agrees too easily: only the ranking carries information/, /Safe briefs and judges who reward reduction make work cleaner and emptier/, /One artefact for each review, and one question/,
     /A stage skipped is the founder's decision, and it is logged/, /Record whose proposals are picked, and let that decide which seats stay/];
-  assert.equal(entries.length, SEED.length);
+  // What the pipeline learned itself is appended after the seed. M3 of the fix review: the seeded entry on his sentences
+  // said he is asked "when the words will matter", the rule R164 replaced; it is answered by a later entry, never rewritten.
+  const LEARNED = [/His words are asked for once, at every design/];
+  const TITLES = [...SEED, ...LEARNED];
+  assert.equal(entries.length, TITLES.length);
   for (const [i, entry] of entries.entries()) {
     const [title, ...paragraphs] = entry.trim().split('\n\n');
     assert.match(title, /^## \d{4}-\d\d-\d\d · \S/, title);
-    assert.match(title, SEED[i], title);
+    assert.match(title, TITLES[i], title);
     assert.deepEqual(paragraphs.map(paragraph => /^\*\*[^*]+\*\*/.exec(paragraph)?.[0]), LABELS, title);
   }
+  assert.ok(head.replace(/\s+/g, ' ').includes(`The first eleven entries of 2026-11-15 are the seed`) && SEED.length === 11);
+  const seeded = entries[2].replace(/\s+/g, ' ');
+  assert.ok(seeded.includes('When the words will matter, he is asked for one or two sentences as he would say them'), 'the seeded entry stands as it was written');
+  const answer = entries.at(-1).replace(/\s+/g, ' ');
+  for (const said of ['The entry above on his own sentences', 'His words are asked for once, at every design', '"None" is an answer', 'that part of the earlier entry stands']) assert.ok(answer.includes(said), said);
   assert.doesNotMatch(lessons, /clinic|radiolog|surgeon|physician|doctor|nurse|lawyer|teacher/i, 'no profession is named');
 });

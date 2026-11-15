@@ -105,7 +105,9 @@ What is true before anyone has an idea?
      `guess`**: fill a field only from what the project's documents and the founder have said of that
      profession, and invent nothing. Write the draft at once to
      `<packages>/pool/profiles/<name>.md`, so that a session that resumes finds it. He corrects it at
-     the gate.
+     the gate. Hold each such file you drafted or changed to its format before the gate, and again
+     after his corrections: `node <kit root>/scripts/card.mjs check <packages>/pool/profiles/<name>.md`.
+     A fault it prints is in how the file is written: mend its form, never a trait.
    - "What exists today": the surface as it is, or what she does in its place.
    - "What the product can show and do": the inventory. Every piece of data, every action and every
      state that really exists, one row each, with an id of its own (`P1`), its kind and its source,
@@ -127,9 +129,11 @@ What is true before anyone has an idea?
      the recommendation says where his answer will be written and what the package already holds on it.
    - "Project sources": the files a later stage may open directly, as the token files, the component
      source and the product-facts document. One path to a line, from the project's root, with what it
-     is: a file of the surface being redesigned, as it is, is "today's screen", and one of another
-     surface of the product "a sibling surface". A file you leave out is closed to every later stage. The project kit is not one, and never a
-     source of facts about the product: the stages that draw reach it by `kit` of the project profile.
+     is: a file of the surface being redesigned, as it is, is "today's screen", one of another
+     surface of the product "a sibling surface", and the file the inventory's example rows come from
+     "the example data". A file you leave out is closed to every later stage. The project kit is not
+     one, and never a source of facts about the product: the stages that draw reach it by `kit` of
+     the project profile.
 6. **Put the questions to him before the gate, one at a time.** Each of the "Questions for the
    founder", with its recommendation. Write each answer into the context as it comes, in his words,
    where it belongs, and under its question say where: a session that stops midway loses none.
@@ -149,7 +153,6 @@ the context is the page. Record the one question, so that a session resuming tom
 ```
 node <kit root>/scripts/state.mjs await <package> context --question "<the one question>"
 ```
-
 One question, about one thing: what is wrong or missing in this context? The gate is that one message
 from him: the questions of step 6 were put before it.
 
@@ -172,7 +175,6 @@ from him: the questions of step 6 were put before it.
   ```
   node <kit root>/scripts/state.mjs stamp <package> context --words "<the founder's words>"
   ```
-
   Then append the decision to the package's `DECISIONS.md`, and ask the state what is next, as step 9
   of the loop says.
 
@@ -192,8 +194,7 @@ from him: the questions of step 6 were put before it.
 - **Never tell a judge of the surface as it is what to find.**
 - **Never invent a trait of a profession.** A draft is a guess, and stays one until someone of that
   profession has been heard.
-- **Never write the inventory as components,** and never list what the product cannot do as if it
-  could.
+- **Never write the inventory as components,** and never list what the product cannot do as if it could.
 - **Never settle for one angle.**
 - **Never change the project.** You read it. Nothing outside `<packages>` is written.
 - **Never ask two things at once.**

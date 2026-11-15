@@ -28,9 +28,10 @@ card stands without it.
    the person and her moment, the languages, the product's own vocabulary where the project keeps one,
    and the founder's own lines when the brief carries them.
 2. **The founder's lines are the bar.** Read them twice. Then write down, in your reply and never in
-   the strings file, what they do: whole sentences or fragments, how they address her, which words they use for the product's
-   things, what they never do. Every line you write should sound as if he could have said it. If the
-   brief carries none, say so in your reply: his ear is the test your lines will meet.
+   the strings file, what they do: whole sentences or fragments, how they address her, which words
+   they use for the product's things, what they never do. Every line you write should sound as if he
+   could have said it. If the brief carries none, say so in your reply: his ear is the test your
+   lines will meet.
 3. **List every string before you write one.** Walk the states table: every item that carries words, in
    every state that changes them. Give each a key built from its screen and its element, say where it
    appears, and note its limit when the surface sets one: the button that must fit at phone width, the

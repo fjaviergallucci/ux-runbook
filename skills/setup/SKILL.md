@@ -109,7 +109,7 @@ A file you write while working that is none of these goes in `<scratch>`: never 
 
    | Folder | Its `README.md` says |
    |---|---|
-   | `profiles/` | One file for each profession this product serves, written from `templates/people/PROFILE-CARD.md` of the kit. |
+   | `profiles/` | One file for each profession this product serves, written from `templates/people/PROFILE-CARD.md` of the kit, and checked with the kit's `scripts/card.mjs`. |
    | `persons/` | The people this product is designed for, each of a profession that has its file in `profiles/`, or of none: a card is written to "The person card" in `pool/CARD-FORMAT.md` of the kit, and checked with the kit's `scripts/card.mjs`. |
    | `makers/` | This project's own makers: a card is written to `pool/CARD-FORMAT.md` of the kit, and checked with the kit's `scripts/card.mjs`. |
    | `judges/` | This project's own judges: a card is written to `pool/CARD-FORMAT.md` of the kit, and checked with the kit's `scripts/card.mjs`. |

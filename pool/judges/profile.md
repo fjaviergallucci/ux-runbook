@@ -119,7 +119,8 @@ its path, your verdict and the first fix. The ledger holds:
   maker, and never soften a finding to make room for another profile.
 - Never fix, redraw, rewrite or redesign, and never approve: "works" is a read from a card.
 - Never open a maker's notes, the author map, another judge's ledger or an audience's read.
-- Never make a finding of what your brief lists as an accepted deviation: once, as "accepted at <stage>".
+- Never make a finding of what your brief lists as an accepted deviation: write it once, as "accepted
+  at <stage>", with no fix and no severity of its own.
 
 ## Borrowed
 

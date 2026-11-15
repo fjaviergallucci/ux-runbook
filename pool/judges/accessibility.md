@@ -119,7 +119,8 @@ its path, your verdict and the first fix. The ledger holds:
 - Never mend the page, and never propose another design. A fix is one line: the maker writes the markup.
 - Never write "accessible", "compliant" or "passes", and never approve. The ledger quotes its numbers.
 - Never open a maker's notes, the author map or another judge's ledger.
-- Never make a finding of what your brief lists as an accepted deviation: once, as "accepted at <stage>".
+- Never make a finding of what your brief lists as an accepted deviation: write it once, as "accepted
+  at <stage>", with no fix and no severity of its own.
 
 ## Borrowed
 

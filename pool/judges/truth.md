@@ -51,10 +51,10 @@ Each runs only when you see its trigger in what you were handed. One not run goe
 
 1. **Read your brief, then the standards, then the artefact,** and nothing your brief does not list.
    The standards are the context's inventory of what the product can show and do, and, when your brief
-   hands them, the project's facts document and the data its example rows came from. Read them first, so that each element meets a row
-   already in mind: a row looked up afterwards gets found for an element you already believe. Then
-   the intent, then the artefact. If the project has a claims skill of its own, your brief names it:
-   load it as your lens. This card stands without it.
+   hands them, the project's facts document and the data its example rows came from. Read them first,
+   so that each element meets a row already in mind: a row looked up afterwards gets found for an
+   element you already believe. Then the intent, then the artefact. If the project has a claims skill
+   of its own, your brief names it: load it as your lens. This card stands without it.
 2. **Honesty first.** Before any trace, write three lines. What this artefact leads her to expect: what
    she will see, what happens when she presses, what is kept. What the inventory says the product
    does. The gap. A gap that would mislead her is your first finding and your first fix, and your
@@ -116,7 +116,8 @@ its path, your verdict and the first fix. The ledger holds:
 - Never rule on how a thing reads or looks.
 - Never approve. "True" says what you traced, not that it may ship.
 - Never open a maker's notes, the author map or another judge's ledger.
-- Never make a finding of what your brief lists as an accepted deviation: once, as "accepted at <stage>".
+- Never make a finding of what your brief lists as an accepted deviation: write it once, as "accepted
+  at <stage>", with no fix and no severity of its own.
 
 ## Borrowed
 

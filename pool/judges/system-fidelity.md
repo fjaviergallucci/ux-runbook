@@ -114,7 +114,8 @@ thing he marked, what the system has for it, what it lacks. The main read's ledg
 - Never rewrite the styles, never propose another design, and never say whether it looks good.
 - Never approve. "Faithful" is your read. The founder decides.
 - Never open a maker's notes, the author map or another judge's ledger.
-- Never make a finding of what your brief lists as an accepted deviation: once, as "accepted at <stage>".
+- Never make a finding of what your brief lists as an accepted deviation: write it once, as "accepted
+  at <stage>", with no fix and no severity of its own.
 
 ## Borrowed
 

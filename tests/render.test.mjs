@@ -413,6 +413,12 @@ test('the kit contract states what the drawing relies on: the page header, the b
   assert.deepEqual([...elements].sort(), ['dd', 'dl', 'dt', 'h1', 'header', 'li', 'ul']);
   for (const tag of elements) assert.ok(document.includes(`\`<${tag}>\``), `the contract names <${tag}> of the page header`);
   assert.match(document, /no kit styles it/);
+  // S10 of the fix review: the contract describes the page drawn without the makers' notes too, as the script draws it.
+  const bare = renderProposal(load(EVERY), { letter: 'B', notes: false });
+  assert.equal(headerOf(bare), '<header>\n  <h1>Option B</h1>\n</header>\n');
+  assert.equal(count(bare, 'class="ux-note"'), 0);
+  assert.ok(count(page, 'class="ux-note"') > 0);
+  assert.match(document, /Drawn without the makers' notes, for a reader who must not see them, the page's header is that `<h1>` alone, `Option ` and the letter, with no name and no `<dl>`, and no `ux-note` is drawn in any frame: nothing else of the markup differs/);
   // The stylesheet set: kit.css is linked, may import the others, and all of them travel together.
   assert.match(document, /A kit may hold more than one stylesheet\. `kit\.css` is the one the document links, and it may import the others by relative name/);
   assert.match(document, /copies every stylesheet found directly in the kit's folder beside the document, so they all travel together/);

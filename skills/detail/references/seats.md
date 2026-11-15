@@ -57,8 +57,11 @@ under "Do not open":
   - *What the structure cannot hold.* Detail completes the structure, and does not mend it: tell
     him which screen breaks. He reopens Structure, or accepts it as a cost, in his words.
 - **His answers are written once.** His words go under "Reviewed by the founder" of `DETAIL.md`,
-  numbered, and under the list one line names the number, as "Answer 12: does not exist". That line
-  is the one thing you write under a heading of the designer's: you change no entry.
+  numbered, and under the list one line gives each outcome in full, the answer's number only beside
+  it, as "A waiting list when no room is free: it does not exist, and the element goes (answer 12)".
+  The heading is read without the section his words are in, by Look's judges and at Handoff, so the
+  line must stand alone: a number, by itself, is a pointer. That line is the one thing you write
+  under a heading of the designer's: you change no entry.
 - **A cost he accepts that breaks a standing rule or a line of the intent** is an accepted
   deviation. Write it under "Accepted deviations" of `DETAIL.md`: what it is, what it breaks, his
   words, the day. Where an answer of his would accept one without naming it, as a blanket yes to a
@@ -148,7 +151,11 @@ Make `<package>/05-detail/reads/` before you start the first reader: a seat writ
 there, and never lists the folder. Every judge's brief hands it "Accepted deviations" of
 `DETAIL.md`, by the file and the heading, as part of what was approved, when that section holds
 any: an audience's never does. A brief names first the pictures the seat's checks, or her tasks,
-need. Every reader's brief lists these under "Do not open":
+need. **No first screen is pictured here:** that is Structure's, and every picture of Detail is of
+a whole page. So where a success criterion of the intent says "without scrolling", a judge's brief
+says that a measured check answers it, the `in-viewport` check Look adds to its checks, and that
+no picture of this stage does; an audience's brief says nothing of first screens. Every reader's
+brief lists these under "Do not open":
 
 - `<package>/work/`, where the makers' briefs and replies are;
 - `<package>/04-structure/MAP.sealed.json`, the author map, and `<package>/04-structure/CHOSEN.md`,
@@ -185,9 +192,10 @@ read and never over it.
 - **Handed:** `<package>/01-context.md`, the context, for the inventory it traces every element to.
   `<package>/02-intent.md`, the intent. The project's facts document, where the project profile
   names one under `facts`. The data the example rows come from, where "Project sources" of the
-  context names such a file, by the path the carry list gives it. `<chosen>`. The states and the rules, with the data map and the
-  dependencies: a claim to test, never its trace. `<package>/05-detail/strings.json`, the strings.
-  `<package>/05-detail/prototype/`, the pages. `<package>/05-detail/shots/`, the pictures.
+  context names such a file, by the path the carry list gives it. `<chosen>`. The states and the
+  rules, with the data map and the dependencies: a claim to test, never its trace.
+  `<package>/05-detail/strings.json`, the strings. `<package>/05-detail/prototype/`, the pages.
+  `<package>/05-detail/shots/`, the pictures.
 - **Do not open:** the list above.
 - **Writes:** its ledger, `<package>/05-detail/reads/<seat>.md`, in the shape of
   `templates/outputs/LEDGER.md`.

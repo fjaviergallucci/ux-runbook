@@ -1530,7 +1530,10 @@ test('the project\'s pool is five folders, each with a one-line README; a stub i
     assert.match(says, /^[A-Z][^\n]*\.$/, `${folder}: one line`);
     if (folder === '`profiles/`') assert.match(says, /written from `templates\/people\/PROFILE-CARD\.md` of the kit/);
     else assert.match(says, /a card is written to (?:"The person card" in )?`pool\/CARD-FORMAT\.md` of the kit/, folder);
+    // S11 of the fix review: every folder's line names the check, the profiles' too, now that the card script takes a profile.
+    assert.match(says, /, and checked with the kit's `scripts\/card\.mjs`\.$/, folder);
   }
+  assert.match(KIT.usage('scripts/card.mjs'), /a file in profiles\/ is a profession's profile/);
   // The folders are the kit's own shelves, and the one for profiles.
   for (const folder of ['persons', 'makers', 'judges', 'audiences']) assert.ok(existsSync(at(`pool/${folder}/`)), `the kit has pool/${folder}/`);
   assert.ok(read('pool/CARD-FORMAT.md').includes('## The person card'));
@@ -2017,9 +2020,18 @@ test('context: the inventory, at least three angles, the founder\'s own words, t
   assert.match(steps, /The truth judge holds every design to this table\. Under it, what the product does not have that this design might reach for\./);
   assert.match(flat(section(outputOf('context'), 'What the product can show and do')), /\{What the product does not have, that this design might reach for: one line each, with its source\.\}/);
   assert.match(steps, /The project kit is not one, and never a source of facts about the product: the stages that draw reach it by `kit` of the project profile/);
-  assert.match(steps, /"Project sources": the files a later stage may open directly, as the token files, the component source and the product-facts document\. One path to a line, from the project's root, with what it is: a file of the surface being redesigned, as it is, is "today's screen", and one of another surface of the product "a sibling surface"\. A file you leave out is closed to every later stage/);
+  assert.match(steps, /"Project sources": the files a later stage may open directly, as the token files, the component source and the product-facts document\. One path to a line, from the project's root, with what it is: a file of the surface being redesigned, as it is, is "today's screen", one of another surface of the product "a sibling surface", and the file the inventory's example rows come from "the example data"\. A file you leave out is closed to every later stage/);
+  // M1 of the fix review: the example data is marked where it is named, so that no later stage has to work out which source it is.
+  assert.match(flat(section(outputOf('context'), 'Project sources')), /\{Beside the file the inventory's example rows come from: "the example data"\. With no such file, say so here\.\}/);
+  assert.match(read('pool/CARD-FORMAT.md'), /\| `example-data` \| The project source the context names for the rows its inventory gives as examples/);
+  assert.match(flat(read('pool/makers/prototype-builder.md')), /you make none up\. Where your brief hands you none and a page needs a row, leave it out and say so in your reply, with the pages that wait for it: the conductor asks the founder for the data, and it comes to you in a brief/);
   // A profession's profile that is missing is drafted, every trait a guess, corrected by him, then saved.
   assert.match(steps, /One that is missing is drafted from `templates\/people\/PROFILE-CARD\.md`, \*\*with the evidence of every trait marked `guess`\*\*: fill a field only from what the project's documents and the founder have said of that profession, and invent nothing\. Write the draft at once to `<packages>\/pool\/profiles\/<name>\.md`, so that a session that resumes finds it\. He corrects it at the gate/);
+  // S11 of the fix review: a profile Context drafted or changed is held to its format here, before its gate and again after
+  // his corrections, and not first at Cast, after Frame has named the profession and Intent's judge has read it.
+  const profileCheck = 'node <kit root>/scripts/card.mjs check <packages>/pool/profiles/<name>.md';
+  assert.ok(stageCommands('context').includes(profileCheck) && takenBy('card', words(profileCheck).slice(2).join(' ')), profileCheck);
+  assert.match(steps, /Hold each such file you drafted or changed to its format before the gate, and again after his corrections: `node <kit root>\/scripts\/card\.mjs check <packages>\/pool\/profiles\/<name>\.md`\. A fault it prints is in how the file is written: mend its form, never a trait/);
   // Who it is for is copied from the frame into the section Cast will read, with each profession's profile by its path.
   assert.match(steps, /"The people": first, whether the design is for one profession, for several or for everyone, as the frame says it: Cast reads it here\. Then the roles that reach it, and each profession's profile involved, by its id and its path/);
   assert.match(flat(outputOf('frame')), /One profile, several, or everyone/);
@@ -2174,7 +2186,7 @@ test('cast: a project\'s own cards are checked before one is read, a faulty one 
   // The format and the README of each folder of a project's pool name the check.
   assert.match(flat(read('pool/CARD-FORMAT.md')), /A project's own card is checked before it is cast, and a person's before she is seated, with `node <kit root>\/scripts\/card\.mjs check <file>`\./);
   const readmes = rowsOf(section(setup(), 'Steps')).filter(row => /^`[a-z]+\/`$/.test(row[0]));
-  assert.deepEqual(readmes.filter(([, says]) => says.endsWith(', and checked with the kit\'s `scripts/card.mjs`.')).map(([folder]) => unspan(folder)), ['persons/', 'makers/', 'judges/', 'audiences/']);
+  assert.deepEqual(readmes.filter(([, says]) => says.endsWith(', and checked with the kit\'s `scripts/card.mjs`.')).map(([folder]) => unspan(folder)), ['profiles/', 'persons/', 'makers/', 'judges/', 'audiences/']);
   // A README is read in the project, where nothing says what <kit root> is: the full command is the skill's.
   for (const [folder, says] of readmes) assert.doesNotMatch(says, /<kit root>/, folder);
   assert.match(flat(section(setup(), 'Steps')), /The check those lines name is `node <kit root>\/scripts\/card\.mjs check <file>`\./);
@@ -2685,7 +2697,9 @@ test('structure: it reads the cast sheet and what its carry list names, and writ
     assert.ok(reads.includes(`"${name}`), name);
     assert.ok(headings(outputOf('cast')).includes(name), name);
   }
-  assert.match(reads, /its suggested model and effort/);
+  // M2 of the fix review: the sheet's columns are "Model" and "Effort", and hold his choice once he has made one.
+  assert.match(reads, /its engine and its model and effort/);
+  assert.doesNotMatch(reads, /suggested model and effort/);
   // Each key of the project profile it reads is a key of the template, and none of them is about a key.
   const keys = spansOf(section(text, 'Reads').split('\n- ').find(bullet => bullet.startsWith('**The project profile,**'))).filter(span => !span.includes('/'));
   assert.deepEqual(keys, ['kit', 'facts', 'engines-on', 'openai-model', 'gemini-model']);
@@ -3377,7 +3391,7 @@ test('detail: it reads the chosen structure and what its carry list names, and w
   assert.match(reads, /\*\*The chosen structure,\*\* `<package>\/04-structure\/CHOSEN\.md`, approved, and exactly what its carry list names: the chosen proposal's file and its pictures, and the sections of the cast sheet, the intent and the context it carries on/);
   assert.equal(ARTEFACT.structure, '04-structure/CHOSEN.md');
   // Each section it names is one the stage before carried on to it.
-  assert.match(reads, /Of the cast sheet: its "Detail" table, a line for each seat with what it is loaded with, its checks and its suggested model and effort/);
+  assert.match(reads, /Of the cast sheet: its "Detail" table, a line for each seat with what it is loaded with, its checks and its model and effort/);
   assert.ok(headings(outputOf('cast')).includes('Detail'));
   assert.match(reads, /Of the context: "What the product can show and do", "Constraints", for the two widths, and "The founder's own words"/);
   for (const heading of ['What the product can show and do', 'Constraints', 'The founder\'s own words']) {
@@ -3461,7 +3475,7 @@ test('detail: three makers one after another, each started on what the cast shee
   inOrder(undecided, [/\*\*Put what a maker could not decide to the founder, one list at a time,\*\* as soon as its reply names it, and before the next maker starts: a list is one question, its entries answered by number, as step 7 of the loop says\. You supply none of it, and you drop nothing/, /\*\*A dependency:\*\* an element needs something the product cannot supply today, as a waiting list when no room is free\. It stays on its screen, and on its line under `## Dependencies`/,
     /Ask him: is it to be built with the design, or does the element go\? If it goes, the interaction designer takes it out, never you/,
     /\*\*A state the intent does not name, a fact a string waits for, a state the structure cannot hold:\*\* `references\/seats\.md` says what each asks of him, and which stage it may reopen/,
-    /Record the question with the `await` of the gate, write his answers under `## Reviewed by the founder`, numbered, as he said them, and put the stage back in work with the `begin` of step 1\. An entry he leaves unanswered stays open\. A breach of a standing rule or of the intent that he accepts as a cost goes under `## Accepted deviations`: `references\/seats\.md`/], 'what a maker could not decide');
+    /Record the question with the `await` of the gate, write his answers under `## Reviewed by the founder`, numbered, as he said them, and put the stage back in work with the `begin` of step 1\. An entry he leaves unanswered stays open: it is listed under `findings` on the decision page, and named in the gate's question\. A breach of a standing rule or of the intent that he accepts as a cost goes under `## Accepted deviations`: `references\/seats\.md`/], 'what a maker could not decide');
   const seats = stageRef('detail', 'seats.md');
   const lists = flat(subsection(seats, '`maker.interaction-designer`'));
   assert.match(lists, /A list that is not empty is the founder's, as one question, its entries numbered, before the interface writer starts/);
@@ -5796,7 +5810,9 @@ test('the dry run, the loop again: a list is one question, what he accepted is p
   // R174: one question about one thing stands, and a list is one thing.
   says(loop, 'One question about one thing at a time, on a page and in the chat. **A list is one thing.**',
     'is put to him as one question: the entries numbered, each with what follows from each answer, answered by number in one message, with one `await`. An entry he leaves unanswered stays open, and is listed so.',
-    'What step 8 catches, an answer that meets a standing rule, a fact of the product or an output he approved, is still asked on its own, at once.');
+    'What step 8 catches, an answer that meets a standing rule, a fact of the product or an output he approved, is still asked on its own, at once.',
+    // M9 of the fix review: where an unanswered entry is listed.
+    'An entry he leaves unanswered stays open, and is listed so. It goes under `findings` on the stage\'s decision page, as open, and the gate\'s question names it.');
   says(conductor(), '**Never ask more than one question on a page.** One question about one thing at a time, on a decision page and in the chat. A list a seat returns is one thing, asked as one question: `references/loop.md`.');
   says(stageRef('acceptance', 'deviations.md'), 'The deviations are put to him as one question, numbered, and he answers by number, as the gate of the skill says.');
   // R165: where the context and a source disagree, the context holds, in every brief of the truth judge.
@@ -5824,6 +5840,8 @@ test('the dry run, the loop again: a list is one question, what he accepted is p
   assert.doesNotMatch(read('templates/briefs/audience.md'), /deviation/);
   for (const [id, card] of Object.entries(kitCards()).filter(([, card]) => card.shelf === 'judge')) {
     assert.match(flat(section(read(`pool/judges/${id.split('.')[1]}.md`), 'Never')), /accepted deviation/, id);
+    // M6 of the fix review: the line says what is written in place of a finding, so that it does not read as "none, then one".
+    if (id !== 'judge.cold-implementer') says(section(read(`pool/judges/${id.split('.')[1]}.md`), 'Never'), 'Never make a finding of what your brief lists as an accepted deviation: write it once, as "accepted at <stage>", with no fix and no severity of its own.');
   }
   // F58, R172: at a pick nothing is mended, and a split between the seats is said in the one recommendation.
   says(loop, 'At a pick, a finding marked `blocks` stays in its seat\'s line beside its option: nothing is mended, and nothing read again.',
@@ -5839,6 +5857,27 @@ test('the dry run, the loop again: a list is one question, what he accepted is p
   // F53, F77, R177, R171: a brief has a name, the reads folder is made first, and a seat is told which pictures come first.
   says(loop, 'Its name is `<stage>-<seat>-brief.md`', '**Make the stage\'s `reads/` folder before you start its readers.** A seat writes its own file there, and never lists the folder',
     '**A seat handed more pictures than one read opens is told which come first:**', 'which pictures show the first screen only, as she meets it before any scrolling, and which the whole page.');
+  // R190: a first screen is pictured at Structure only. From Detail on "without scrolling" is a measured check's to answer.
+  says(loop, 'At Structure, an audience\'s brief also says which pictures show the first screen only',
+    '**A first screen is pictured at Structure only.** From Detail on, "without scrolling" is answered by a check, and never by reading a picture: the `in-viewport` type of the acceptance script, `scripts/accept.mjs`.',
+    'Look adds one to its checks for each success criterion that says it, and Handoff takes it over. From Detail on a judge\'s brief points to that check, and an audience\'s brief says nothing of first screens.');
+  assert.ok(Object.hasOwn(TYPES, 'in-viewport'));
+  for (const stage of STAGES) {
+    const takesFirst = stageCommands(stage).some(command => command.includes('--first-screen'));
+    assert.equal(takesFirst, stage === 'structure', `${stage}: ${takesFirst ? 'takes' : 'takes no'} first-screen picture`);
+  }
+  says(read('templates/briefs/audience.md'), '{Which pictures her tasks need first, by name.}', '{At Structure: which pictures show the first screen only, as she meets it before any scrolling, and which the whole page: "without scrolling" is answered on the first. From Detail on, delete this.}');
+  says(read('templates/briefs/judge.md'), '{From Detail on, for each success criterion that says "without scrolling": that a measured check answers it, the `in-viewport` check, with its id and its result where it has run; no picture does.}');
+  says(stageRef('detail', 'seats.md'), '**No first screen is pictured here:** that is Structure\'s, and every picture of Detail is of a whole page.',
+    'a judge\'s brief says that a measured check answers it, the `in-viewport` check Look adds to its checks, and that no picture of this stage does; an audience\'s brief says nothing of first screens.');
+  says(stageRef('look', 'seats.md'), '**No first screen is pictured here:** that is Structure\'s.',
+    'a judge\'s brief carries one line for it: the criterion, the id of the `in-viewport` check that step 5 of the skill added for it, and what the run returned for that check, as it came. That result answers the criterion, and no picture does.');
+  says(stepOf(section(stageSkill('look'), 'Steps'), 'Photograph and measure'), '**Before the first run, add to `checks.json` an `in-viewport` check for each success criterion that says "without scrolling":** the criterion in its words, its element by its `data-ux`, the width it names. From Detail on that check answers it, and no picture does.');
+  says(read('pool/audiences/task-reader.md'), 'At Structure a picture of the first screen shows what she meets before any scrolling', 'After Structure every picture is of a whole page, and says nothing of where a screen ends.');
+  // M4: a judge's reply is its card's own, and the cold implementer's is not the others'.
+  assert.ok(read('templates/briefs/judge.md').trimEnd().endsWith('\nWhat your card\'s Output says the reply is.'));
+  // S15: the page's parts, the new heading among them.
+  says(loop, 'the open findings when there are any, the accepted deviations under a heading of their own, "Accepted deviations", when there are any, one recommendation with one sentence of reason, and last the question.');
   // F48: a brief is filled from the stage\'s seats page, and the reply is the card\'s own.
   for (const shelf of ['maker', 'judge']) {
     says(read(`templates/briefs/${shelf}.md`), '`references/seats.md`', 'What your card\'s Output says the reply is');
@@ -5881,7 +5920,10 @@ test('the dry run, Structure and Detail: a rule selects what a maker is given, t
   says(outputOf('detail'), 'Then each finding Structure carried on the chosen structure: how Detail answered it, or open with why.');
   // F65, R175, F68, F69, R176: his answers are written once; the writer\'s round is run once.
   const at = stageRef('detail', 'seats.md');
-  says(at, '**His answers are written once.** His words go under "Reviewed by the founder" of `DETAIL.md`, numbered, and under the list one line names the number',
+  // M7 of the fix review: the line under the designer's list carries the outcome whole, since that heading is read without
+  // the section his words are in; a number by itself is the pointer no maker may write.
+  says(at, '**His answers are written once.** His words go under "Reviewed by the founder" of `DETAIL.md`, numbered, and under the list one line gives each outcome in full, the answer\'s number only beside it, as "A waiting list when no room is free: it does not exist, and the element goes (answer 12)".',
+    'so the line must stand alone: a number, by itself, is a pointer. That line is the one thing you write under a heading of the designer\'s: you change no entry.',
     'Where an answer of his would accept one without naming it, as a blanket yes to a whole list, say so first, with the rule and its source, as step 8 of the loop says: he decides each.',
     'The file holds the template\'s keys and nothing else', 'An entry it settles as "no line owed" is closed.',
     '**One fresh interface writer then writes the lines,** handed his facts and the settled entries together', 'An entry he has already answered is not sent round again, and this round is run once',

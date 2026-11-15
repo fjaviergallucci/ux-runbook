@@ -24,7 +24,7 @@ Which way of solving it?
 
 - **The cast sheet,** `<package>/03-cast.md`, approved, and exactly what its carry list names. Of the
   sheet itself: its "Structure" table, a line for each seat with what it is loaded with, its checks,
-  its engine and its suggested model and effort; "Blind rules", for a continuity maker; and "Fresh
+  its engine and its model and effort; "Blind rules", for a continuity maker; and "Fresh
   pass", for whether one runs at Structure, and with which makers.
 - **The project profile,** `<packages>/PROFILE.md`: `kit`, `facts`, `engines-on`, `openai-model` and
   `gemini-model`, and nothing about a key.
@@ -99,10 +99,10 @@ is built from the cast, the intent and the context. `<version>` is the version a
    as its maker wrote it touches nothing else: `track`, `system` or, for a fresh concept, `fresh`; and
    `engine`, as its seat's line of the cast sheet has it, unless the outside script has written it
    already. Each maker checks its file with the command its card gives, and the merge holds every file
-   to `validate` again: while one fails it writes nothing, and prints the file and the fault. That proposal goes back to its maker once, a fresh
-   sub-agent in the same seat. One that fails again is moved to
-   `<package>/04-structure/proposals/left-out/`, and the decision page says so. You repair none: that
-   would make you a maker.
+   to `validate` again: while one fails it writes nothing, and prints the file and the fault. That
+   proposal goes back to its maker once, a fresh sub-agent in the same seat. One that fails again is
+   moved to `<package>/04-structure/proposals/left-out/`, and the decision page says so. You repair
+   none: that would make you a maker.
 7. **Merge, draw, photograph, one command after another.** Once every proposal is in:
    ```
    node <kit root>/scripts/merge.mjs <package>/04-structure/proposals --out <package>/04-structure/board

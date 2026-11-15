@@ -116,7 +116,8 @@ its path, your verdict and the first fix. The ledger holds:
 - Never pass a screen you saw at one width, or in one theme.
 - Never let the craft outrank the job, and never approve. "Good" is your read. The founder decides.
 - Never open a maker's notes, the author map or another judge's ledger.
-- Never make a finding of what your brief lists as an accepted deviation: once, as "accepted at <stage>".
+- Never make a finding of what your brief lists as an accepted deviation: write it once, as "accepted
+  at <stage>", with no fix and no severity of its own.
 
 ## Borrowed
 

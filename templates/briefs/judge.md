@@ -17,6 +17,8 @@ Keep the lines that apply, filled:}
 - {A words judge: the founder's own lines, as he said them.}
 - {A skill the project keeps for this seat, by its name, to load as its lens.}
 - {A truth judge: "Where the context and a source you are handed disagree, the context holds."}
+- {From Detail on, for each success criterion that says "without scrolling": that a measured check
+  answers it, the `in-viewport` check, with its id and its result where it has run; no picture does.}
 
 ## Checks
 
@@ -62,4 +64,4 @@ path}. Write it at: {the absolute path of the ledger}.
 
 ## Reply
 
-What your card's Output says the reply is: the ledger's path, the verdict and the first fix.
+What your card's Output says the reply is.

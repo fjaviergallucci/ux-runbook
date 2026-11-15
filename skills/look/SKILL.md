@@ -36,9 +36,8 @@ What does it look like, finished?
   `<package>/04-structure/earlier/`.
 - **The state:** `node <kit root>/scripts/state.mjs status <package>` prints the kind, the foundation,
   the size, the version each stage stands at, and whether Look is routed full or short.
-- **The project profile,** `<packages>/PROFILE.md`: `kit`, `tokens`, `components`, `facts`,
-  `languages`, `engines-on`, `openai-model` and `gemini-model`, with its "Design system", and nothing
-  about a key.
+- **The project profile,** `<packages>/PROFILE.md`: `kit`, `tokens`, `components`, `facts`, `languages`,
+  `engines-on`, `openai-model` and `gemini-model`, with its "Design system", and nothing about a key.
 - **Of the kit:** the templates named under "Writes", the three of `templates/briefs/`, and one card,
   when the cast sheet names its seat: `pool/makers/outside-describer.md`, which speaks to you. Every
   other card is read by its seat: a brief is filled from `references/seats.md`.
@@ -100,16 +99,18 @@ the version a stage stands at, as `status` prints it: after a reopening it is no
    node <kit root>/scripts/shots.mjs <package>/06-look/screens --out <package>/06-look/shots --widths <primary>,<phone> --themes <themes>
    node <kit root>/scripts/accept.mjs prototype <package>/06-look/checks.json --root <package>/06-look/screens --out <package>/06-look/results.json
    ```
-   The widths are those of "Constraints"; `<themes>` is `light`, or `light,dark` when `<tokens>`
-   defines a dark theme. With variants, both are run on `variants/` too: `references/seats.md`.
-   **The table of `measures.md` is written from what these two scripts return, never by eye,** and
-   this run is what you hold it to. Each contrast and each size is the `actual` of a result in
-   `results.json`, at its width and theme; any other value was read in the browser by a script of
-   the visual designer's own, kept with its readings in `measure/`. A row with neither behind it, a
-   value that differs, a line `error:` or `overflow:`, or a check that failed goes back to a fresh
-   visual designer, once for each run of this step, before the readers start, as facts: each row by
-   its result id and its measured value. You write no value, and correct none. Both commands are
-   run again after every change to the screens.
+   The widths are those of "Constraints"; `<themes>` is `light`, or `light,dark` when `<tokens>` defines
+   a dark theme. With variants, both are run on `variants/` too: `references/seats.md`. **Before the
+   first run, add to `checks.json` an `in-viewport` check for each success criterion that says "without
+   scrolling":** the criterion in its words, its element by its `data-ux`, the width it names. From
+   Detail on that check answers it, and no picture does. **The table of `measures.md` is written from
+   what these two scripts return, never by eye,** and this run is what you hold it to. Each contrast and
+   each size is the `actual` of a result in `results.json`, at its width and theme; any other value was
+   read in the browser by a script of the visual designer's own, kept with its readings in `measure/`. A
+   row with neither behind it, a value that differs, a line `error:` or `overflow:`, or a check that
+   failed goes back to a fresh visual designer, once for each run of this step, before the readers
+   start, as facts: each row by its result id and its measured value. You write no value, and correct
+   none. Both commands are run again after every change to the screens.
 6. **With a fresh pass, show the versions side by side, blind, and stop twice.** The system's
    picture of the one screen and each fresh one are copied under letters dealt at random into
    `beside/`, read by letter, and put to him: what would he keep? Then, with what each thing would
@@ -141,7 +142,6 @@ the version a stage stands at, as `status` prints it: after a reopening it is no
    ```
    node <kit root>/scripts/page.mjs <package>/06-look/decision.json --out <package>/06-look/decision.html
    ```
-
 **Routed `short`** (an adjustment), Look is what changes, and no more. **Sized `flow`,** it goes
 surface by surface, steps 4, 5, 7 and 8 once for each, and is picked or approved and stamped once.
 `references/forms.md` has both.
@@ -168,14 +168,14 @@ without his words.**
 - **Write the carry list,** `## Carry`: the lines of the detail's own carry list, as they are, the
   cast sheet's tables among them, but any that names a file of a `fresh/` folder; a
   `- detail@<version>#<slug>` line for "Rules", "Edge cases", "Data map", "Dependencies", "Strings",
-  "What the readers found" and "Accepted deviations"; and a `- source:<path>` line for the screens' folder, the pictures'
-  folder, the reads' folder, `measures.md`, `checks.json`, `results.json` and `<tokens>`. **No line
-  names `<package>/06-look/fresh/`, or anything else a fresh maker made: none of it is handed off.**
+  "What the readers found" and "Accepted deviations"; and a `- source:<path>` line for the screens'
+  folder, the pictures' folder, the reads' folder, `measures.md`, `checks.json`, `results.json` and
+  `<tokens>`. **No line names `<package>/06-look/fresh/`, or anything else a fresh maker made: none
+  of it is handed off.**
 - **Stamp it,** in the words he picked or approved with:
   ```
   node <kit root>/scripts/state.mjs stamp <package> look --words "<the founder's words>"
   ```
-
   Then append the decision to the package's `DECISIONS.md`, each named extension and each accepted
   deviation with it, and ask the state what is next, as step 9 of the loop says.
 

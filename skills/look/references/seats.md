@@ -136,8 +136,11 @@ first, as `references/fresh.md` gives them. What this page gives is the main rea
 skill. Make `<package>/06-look/reads/` before you start the first reader: a seat writes its own
 file there, and never lists the folder. Every judge's brief hands it "Accepted deviations" of
 `DETAIL.md`, by the file and the heading, as part of what was approved, when that section holds
-any. A brief names first the pictures the seat's checks need. Every reader's brief lists these
-under "Do not open":
+any. A brief names first the pictures the seat's checks need. **No first screen is pictured here:**
+that is Structure's. Where a success criterion of the intent says "without scrolling", a judge's
+brief carries one line for it: the criterion, the id of the `in-viewport` check that step 5 of the
+skill added for it, and what the run returned for that check, as it came. That result answers the
+criterion, and no picture does. Every reader's brief lists these under "Do not open":
 
 - `<package>/work/`, where the makers' briefs and replies are, and `<package>/06-look/measure/`,
   the visual designer's own tools;

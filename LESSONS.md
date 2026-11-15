@@ -9,8 +9,9 @@ design: its heading is the day and the lesson, and under it what was tried, what
 next design does differently. The conductor proposes an entry; it lands here by an ordinary change to
 this repository.
 
-The entries of 2026-11-15 are the seed: what the two processes this pipeline was adapted from had
-already learned, each said so that it holds anywhere.
+The first eleven entries of 2026-11-15 are the seed: what the two processes this pipeline was adapted
+from had already learned, each said so that it holds anywhere. What follows them was learned by this
+pipeline itself.
 
 ## 2026-11-15 · A brief that prescribes the design returns the session's own idea, in several voices
 
@@ -139,3 +140,18 @@ picked, so none could be dropped and none could be defended.
 **What the next design does differently.** Each design's lessons record which seats' findings changed a
 decision, whose proposal was picked, and the model each ran on. A seat stays, goes, or changes model on
 that record, never on habit.
+
+## 2026-11-15 · His words are asked for once, at every design: "when the words will matter" was no test
+
+**What was tried.** The entry above on his own sentences, taken as a rule: he was asked for them "when
+the words will matter", and the session that conducts was left to say when that was.
+
+**What happened.** On a run of the whole pipeline the test could not be applied without judging the
+design: whether the words of a surface will matter is known only once it is designed. So the question
+was not asked, and the words he uses for the things on the screen, and the one he never wants her to
+read, reached no brief.
+
+**What the next design does differently.** His words are asked for once, at every design, where the
+facts are gathered and before anyone has an idea: what she calls these things, and any word she must
+never see. "None" is an answer, and is written as one. What he says still goes to the writer's brief
+word for word, as the bar its lines must meet: that part of the earlier entry stands.
