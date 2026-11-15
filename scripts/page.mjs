@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 // page: the decision page, the one screen put in front of the founder at a gate. It opens with the identity
 // line (design · kind · size · stage n of m), then shows the options as pictures, the gallery when there is
-// one, one line per seat, the findings that stayed open when there are any, one recommendation with one
-// sentence of reason, and, last, one question. One artefact per review, one question: data asking two
-// questions does not build.
+// one, one line per seat, the findings that stayed open when there are any, under a heading of their own
+// the deviations he has already accepted (a finding that carries `accepted`, the stage it was accepted at),
+// one recommendation with one sentence of reason, and, last, one question. One artefact per review, one
+// question: data asking two questions does not build. Question marks are counted where the page speaks to
+// him, in the question and in the reason of the recommendation; what a seat or a finding says may quote one.
 // The page is one self-contained file: its styles inline, a light and a dark set, no script, nothing
 // fetched but the pictures, which it references by the relative paths the data gives, as written. The
 // options sit in one row that scrolls sideways on its own, the page never: each shows its first picture
@@ -20,6 +22,7 @@ import { dirname, join } from 'node:path';
 import { UsageError, isMain, parseArgs } from './lib/cli.mjs';
 import { Markup, html } from './lib/html.mjs';
 import { JsonFileError, readJsonFile, reason } from './lib/json-file.mjs';
+import { STAGES } from './lib/state.mjs';
 
 // ---- the data
 
@@ -31,13 +34,14 @@ const KEYS = Object.freeze({
   gallery: ['title', 'items'],
   item: ['title', 'line', 'images'],
   seat: ['seat', 'line', 'option'],
-  finding: ['seat', 'line'],
+  finding: ['seat', 'line', 'accepted'],
   recommendation: ['option', 'reason'],
 });
 const LETTER = /^[A-Z]$/;
 // A question mark in any of its forms: ?, the full-width one and the Arabic one. The Spanish opening mark
 // is not one: "\u00bfCu\u00e1l?" is one question.
 const QUESTION_MARKS = /[?\uFF1F\u061F]/g;
+const marksIn = text => text.match(QUESTION_MARKS)?.length ?? 0;
 // A second sentence begins where a full stop, an exclamation or a question mark is followed by space and
 // then a capital letter or a digit.
 const SECOND_SENTENCE = /[.!?]\s+[\p{Lu}\p{Nd}]/u;
@@ -85,10 +89,11 @@ export function validateDecision(data) {
   if (Object.hasOwn(data, 'findings') && need(data, 'findings', Array.isArray, 'a list of findings, each a seat and a line', at, fail)) {
     data.findings.forEach((finding, i) => checkFinding(finding, `findings[${i}]`, fail));
   }
-  if (need(data, 'recommendation', isObject, 'an object', at, fail)) checkRecommendation(data.recommendation, letters, fail);
+  // The marks of the question itself: the reason of the recommendation is counted with them.
+  const asked = isText(data.question) ? marksIn(data.question) : 0;
+  if (need(data, 'recommendation', isObject, 'an object', at, fail)) checkRecommendation(data.recommendation, letters, asked, fail);
   if (need(data, 'question', isText, TEXT, at, fail)) {
-    const marks = data.question.match(QUESTION_MARKS)?.length ?? 0;
-    if (marks > 1) fail('question', `asks more than one question (${marks} question marks): a decision page asks one question`);
+    if (asked > 1) fail('question', `asks more than one question (${asked} question marks): a decision page asks one question`);
   }
   return errors;
 }
@@ -175,22 +180,30 @@ function checkSeat(seat, at, letters, said, fail) {
   }
 }
 
-// A finding that stayed open: the seat that raised it, and one line.
+// A finding: the seat that raised it, and one line. It stayed open, unless it carries `accepted`: then it
+// is a deviation the founder accepted at that stage, part of what was approved.
 function checkFinding(finding, at, fail) {
   if (!isObject(finding)) return fail(at, 'must be an object');
   unknownKeys(finding, KEYS.finding, at, fail);
   need(finding, 'seat', isText, TEXT, at, fail);
   need(finding, 'line', isText, TEXT, at, fail);
+  maybe(finding, 'accepted', v => STAGES.includes(v), `the stage the deviation was accepted at, one of ${STAGES.join(', ')}`, at, fail);
 }
+const isAccepted = finding => Object.hasOwn(finding, 'accepted');
 
-function checkRecommendation(recommendation, letters, fail) {
+// `asked` is how many question marks the page's question holds: the reason may add none to one, and one
+// to none. A question that asks two by itself is its own fault, said there.
+function checkRecommendation(recommendation, letters, asked, fail) {
   const at = 'recommendation';
   unknownKeys(recommendation, KEYS.recommendation, at, fail);
   if (!Object.hasOwn(recommendation, 'option')) fail(at, '"option" is missing');
   else names(recommendation, at, letters, fail);
   if (need(recommendation, 'reason', isText, TEXT, at, fail)) {
     const second = recommendation.reason.match(SECOND_SENTENCE);
+    const marks = asked + marksIn(recommendation.reason);
+    // A reason of two sentences is that fault alone, whatever marks it holds.
     if (second) fail(at, `"reason" must be one sentence; a second begins at ${show(recommendation.reason.slice(second.index + 1).trimStart())}`);
+    else if (asked <= 1 && marks > 1) fail(at, `"reason" and the question hold ${marks} question marks between them: a decision page asks one question`);
   }
 }
 
@@ -287,9 +300,9 @@ p { margin: 0 0 0.5rem; }
 }
 .more { margin: 0.5rem 0 0; padding: 0; list-style: none; font-size: 0.875rem; }
 .more li { margin: 0.25rem 0 0; }
-.seats ul, .findings ul { margin: 0; padding: 0; list-style: none; }
-.seats li, .findings li { padding: 0.6rem 0; border-top: 1px solid var(--line); }
-.seats li:last-child, .findings li:last-child { border-bottom: 1px solid var(--line); }
+.seats ul, .findings ul, .accepted ul { margin: 0; padding: 0; list-style: none; }
+.seats li, .findings li, .accepted li { padding: 0.6rem 0; border-top: 1px solid var(--line); }
+.seats li:last-child, .findings li:last-child, .accepted li:last-child { border-bottom: 1px solid var(--line); }
 .on { display: inline-block; margin: 0 0.35em; padding: 0 0.4em; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; font-size: 0.875rem; }
 .pick { font-weight: 600; }
 /* The question: the last thing on the page, pinned to the bottom of the screen on a solid ground. */
@@ -329,7 +342,7 @@ ${new Markup(STYLE)}</style>
 <div class="row">
 ${data.options.map(option => drawShown(html`<span class="letter">${option.letter}</span> ${option.title}`, option, `Option ${option.letter}`, 'option'))}</div>
 </section>
-${drawGallery(data.gallery)}${drawSeats(data.seats)}${drawFindings(data.findings ?? [])}<section class="recommendation">
+${drawGallery(data.gallery)}${drawSeats(data.seats)}${drawFindings(open(data))}${drawAccepted(accepted(data))}<section class="recommendation">
 <h2>The recommendation</h2>
 <p class="pick">Option ${recommended.letter}: ${recommended.title}</p>
 <p>${data.recommendation.reason}</p>
@@ -385,6 +398,11 @@ ${lines}</ul>
 `;
 }
 
+// A page's findings are of two kinds, each in the order the data gives: those that stayed open, and those
+// the founder has already accepted.
+const open = data => (data.findings ?? []).filter(finding => !isAccepted(finding));
+const accepted = data => (data.findings ?? []).filter(isAccepted);
+
 // The findings that stayed open after the fix round, each with the seat that raised it.
 function drawFindings(findings) {
   if (findings.length === 0) return '';
@@ -392,6 +410,18 @@ function drawFindings(findings) {
 <h2>Open findings</h2>
 <ul>
 ${findings.map(finding => html`<li><strong>${finding.seat}</strong> ${finding.line}</li>\n`)}</ul>
+</section>
+`;
+}
+
+// The deviations already accepted, apart from the open findings: each with the seat that found it again
+// and the stage it was accepted at.
+function drawAccepted(findings) {
+  if (findings.length === 0) return '';
+  return html`<section class="accepted">
+<h2>Accepted deviations</h2>
+<ul>
+${findings.map(finding => html`<li><strong>${finding.seat}</strong> <span class="on">accepted at ${finding.accepted}</span> ${finding.line}</li>\n`)}</ul>
 </section>
 `;
 }
@@ -408,14 +438,22 @@ recommendation with one sentence of reason, and last the one question. It is one
 inline, a light and a dark set, no script; the pictures are referenced by the paths the data gives,
 relative to the page, never copied, and each is shown whole and links to its file.
 
+A finding he has already accepted carries "accepted", the stage it was accepted at, as
+"accepted": "detail" (the last finding of templates/outputs/decision-approve.json). Such findings are
+drawn under a heading of their own, "Accepted deviations", after the open findings, and are not
+counted as open.
+
 The data is refused, and nothing is written, when it asks more than one question (more than one
-question mark in all: "?", "\uFF1F" or "\u061F"); when the reason is more than one sentence; when the
-recommendation or a seat names an option that is not on the page; when an option has no letter or
-shows neither a picture nor a line; when two options share a letter; when a seat says two lines on one
-option, or two on none; when an open finding lacks its seat or its line; when a picture path holds "#",
-"?", "%" or a backslash; when the identity lacks any of design, kind, size, stage and of; when a key is
-unknown; or, the page finding its pictures from its own folder,
+question mark in the question and the reason of the recommendation together, each of
+"?", "\uFF1F" or "\u061F"); when the reason is more than one sentence; when the recommendation or a seat
+names an option that is not on the page; when an option has no letter or shows neither a picture nor
+a line; when two options share a letter; when a seat says two lines on one option, or two on none;
+when a finding lacks its seat or its line; when "accepted" is not a stage
+(${STAGES.join(', ')});
+when a picture path holds "#", "?", "%" or a backslash; when the identity lacks any of design, kind,
+size, stage and of; when a key is unknown; or, the page finding its pictures from its own folder,
 when a picture it names is not a file in the folder of --out.
+What a seat or a finding says, a title or a line may quote a question: no mark is counted there.
 
   --out <decision.html>   the page to write, not the data itself; its folder is made when it is not
                           there
@@ -489,7 +527,8 @@ function build({ path, out }) {
     throw new Failure(`cannot write ${out}: ${reason(e)}`);
   }
   const gallery = data.gallery ? `, a gallery of ${data.gallery.items.length}` : '';
-  const findings = data.findings?.length ? `, ${plural(data.findings.length, 'open finding')}` : '';
+  const said = (n, word) => (n ? `, ${plural(n, word)}` : '');
+  const findings = said(open(data).length, 'open finding') + said(accepted(data).length, 'accepted deviation');
   process.stdout.write(`built ${out}: ${plural(data.options.length, 'option')}${gallery}, ${plural(data.seats.length, 'seat')}${findings}, one question\n`);
 }
 

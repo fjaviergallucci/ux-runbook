@@ -4344,7 +4344,7 @@ test('Detail and Look run as written: their own commands on a package Structure 
   assert.equal(run(commandOf('detail', 'state.mjs await'), { '<the one question>': wordsPage.question }), 'detail awaits the founder');
   assert.match(run(commandOf('detail', 'state.mjs status')), /^## Open question\n\ndetail: Do you approve these words\?$/m);
   writeFileSync(join(detail, 'decision.json'), JSON.stringify({ ...approve, identity, options: [{ ...approve.options[0], images: [exampleOf('detail'), 'shots/today-default-en-1280-light.png'] }] }, null, 2));
-  assert.match(run(commandOf('detail', 'page.mjs <package>/05-detail/decision.json')), /^built \S.*decision\.html: 1 option, 2 seats, 2 open findings, one question$/);
+  assert.match(run(commandOf('detail', 'page.mjs <package>/05-detail/decision.json')), /^built \S.*decision\.html: 1 option, 2 seats, 2 open findings, 1 accepted deviation, one question$/);
   assert.equal(run(commandOf('detail', 'state.mjs await')), 'detail awaits the founder');
   const asked = run(commandOf('detail', 'state.mjs status'));
   assert.match(asked, /^## Open question\n\ndetail: Do you approve this prototype for Look\?$/m);
@@ -4451,7 +4451,7 @@ test('Detail and Look run as written: their own commands on a package Structure 
   const final = { ...approve, identity: beside.identity, options: [{ letter: 'A', title: 'The final screens, after one fix round', line: 'Every state of today on the clinic\'s tokens, in both themes.', images: [exampleOf('look'), 'shots/today-default-en-1280-dark.png'] }],
     recommendation: { option: 'A', reason: 'Approve them for Handoff, since neither open finding changes a screen.' }, question: 'Do you approve these screens for Handoff?' };
   writeFileSync(join(look, 'decision.json'), JSON.stringify(final, null, 2));
-  assert.match(run(commandOf('look', 'page.mjs <package>/06-look/decision.json')), /^built \S.*decision\.html: 1 option, 2 seats, 2 open findings, one question$/);
+  assert.match(run(commandOf('look', 'page.mjs <package>/06-look/decision.json')), /^built \S.*decision\.html: 1 option, 2 seats, 2 open findings, 1 accepted deviation, one question$/);
   assert.equal(run(commandOf('look', 'state.mjs await'), { '<the one question>': final.question }), 'look awaits the founder');
   // The carry list the skill gives: the detail's own lines but the one that names a file of a fresh folder, five sections of the
   // detail, the stage's files and the token file. Built from the detail alone, the stamp refuses each line it cannot carry.
@@ -5679,6 +5679,15 @@ test('the dry run, the loop again: a list is one question, what he accepted is p
   says(loop, '**What he has accepted is part of what was approved.**', 'is written under "Accepted deviations" of the stage\'s output: what it is, what it breaks, his words, the day.',
     'handed to every judge from that stage on as part of what was approved, never to an audience.', 'it goes to no fix round and does not count as blocking',
     'Where only a part of a finding rests on an accepted deviation, split it into its parts, each quoted in the judge\'s words', 'At the stamp, the decision you append names each accepted deviation.');
+  // R186: on the decision page it is a finding that carries the stage, under a heading of its own; the field is one the page script takes.
+  says(loop, 'In the decision\'s data it goes under `findings` with that stage in `accepted`, as `"accepted": "detail"`, and the page lists it under a heading of its own, "Accepted deviations", apart from the open findings.');
+  assert.doesNotMatch(loop, /its `seat` reading/);
+  const acceptedSample = JSON.parse(read('templates/outputs/decision-approve.json')).findings.filter(finding => Object.hasOwn(finding, 'accepted'));
+  assert.deepEqual(acceptedSample.map(finding => finding.accepted), ['detail'], 'the sample of an approval shows the field once');
+  assert.match(KIT.usage('scripts/page.mjs').replace(/\s+/g, ' '), /carries "accepted", the stage it was accepted at, as "accepted": "detail" .* under a heading of their own, "Accepted deviations"/);
+  // R173: a seat's line or a finding may quote a question; the page counts the marks of its question and its reason.
+  says(loop, 'it counts the question marks of the question and of the recommendation\'s reason, and no others. A seat\'s line or a finding may quote a question she asks, as it was written.');
+  assert.match(KIT.usage('scripts/page.mjs').replace(/\s+/g, ' '), /more than one question mark in the question and the reason of the recommendation together/);
   for (const stage of ['detail', 'look']) {
     const names = headings(outputOf(stage));
     assert.ok(names.indexOf('What the readers found') < names.indexOf('Accepted deviations') && names.indexOf('Accepted deviations') < names.indexOf('Reviewed by the founder'), stage);

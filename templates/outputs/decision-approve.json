@@ -34,6 +34,11 @@
     {
       "seat": "judge.truth",
       "line": "Still present: the empty state offers a waiting list, which the product does not have."
+    },
+    {
+      "seat": "judge.accessibility",
+      "line": "The booking action is 40 by 40 on a phone, under the 44 by 44 of the standing rule: he accepted it as the cost of four rooms in view.",
+      "accepted": "detail"
     }
   ],
   "recommendation": {

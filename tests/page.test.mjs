@@ -9,6 +9,7 @@ import { chromium } from 'playwright-core';
 import { findChrome } from '../scripts/lib/chrome.mjs';
 import { JsonFileError, ProposalFileError, readJsonFile, readProposalFile } from '../scripts/lib/json-file.mjs';
 import { renderDecision, validateDecision } from '../scripts/page.mjs';
+import { STAGES } from '../scripts/lib/state.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const cli = join(here, '..', 'scripts', 'page.mjs');
@@ -62,10 +63,13 @@ test('the sample decision.json is valid: the room-booking surface "today", three
   assert.doesNotMatch(text, /\bVersa\b/);
 });
 
-test('the approve sample is valid: one option, two seat lines, two open findings, a recommendation to approve', () => {
+test('the approve sample is valid: one option, two seat lines, two open findings and a deviation accepted at Detail, a recommendation to approve', () => {
   const data = approveSample();
   valid(data);
-  assert.deepEqual([data.options.length, data.seats.length, data.findings.length], [1, 2, 2]);
+  assert.deepEqual([data.options.length, data.seats.length, data.findings.length], [1, 2, 3]);
+  // R186: the last finding shows the field, and the stage it names is the sample's own or an earlier one.
+  assert.deepEqual(data.findings.map(finding => finding.accepted), [undefined, undefined, 'detail']);
+  assert.ok(STAGES.indexOf('detail') + 1 <= data.identity.stage);
   assert.equal(data.recommendation.option, 'A');
   assert.match(data.recommendation.reason, /^Approve/);
   assert.match(data.options[0].images[0], /-390-light\.png$/, 'the phone picture first');
@@ -139,6 +143,64 @@ test('every question mark counts, ? and the full-width \\uFF1F and the Arabic \\
   }
   refuses(changed(d => (d.question = `A? B${FULL} C${ARABIC}`)), /^question: asks more than one question \(3 question marks\)/, 'one of each');
   valid(changed(d => (d.question = '\u00bfCu\u00e1l sigue a Detail: A, B o C?')), 'a Spanish question');
+});
+
+// R173: the page asks one question, and its marks are counted where the page speaks to him: in the question and
+// in the reason of the recommendation. What a seat said, a finding, a title or a line may quote a question.
+test('question marks are counted in the question and in the reason only: a seat, a finding, an option and the gallery may quote a question', () => {
+  const quoting = 'She asks "is Room 3 free?" and "until when?", and the page does not say.';
+  valid(changed(d => (d.seats[0].line = quoting)), 'a seat');
+  valid(changed(d => (d.findings = [{ seat: 'audience.task-reader', line: quoting }])), 'a finding');
+  valid(changed(d => (d.findings = [{ seat: 'audience.task-reader', line: quoting, accepted: 'detail' }])), 'an accepted finding');
+  valid(changed(d => (d.options[0].line = quoting)), 'an option');
+  valid(changed(d => (d.options[0].title = 'Is anything free?')), 'a title');
+  valid(changed(d => (d.gallery.title = 'What else could it be?')), 'the gallery');
+  valid(changed(d => (d.gallery.items[0].line = quoting)), 'an item');
+  valid(changed(d => (d.identity.design = 'free now?')), 'the identity');
+  valid(changed(d => {
+    d.seats.forEach(seat => (seat.line = quoting));
+    d.options.forEach(option => (option.line = quoting));
+  }), 'all of them at once');
+  // The reason is the page speaking to him: a mark there is a second question beside the page's own.
+  const asking = 'Take B, since "what is free now?" is what she asks first';
+  refuses(changed(d => (d.recommendation.reason = asking)), /^recommendation: "reason" and the question hold 2 question marks between them: a decision page asks one question$/);
+  refuses(changed(d => (d.recommendation.reason = asking.replace('?', '\uFF1F'))), /^recommendation: "reason" and the question hold 2 question marks between them/, 'the full-width mark');
+  refuses(changed(d => {
+    d.question = 'Pick the structure that goes on to Detail.';
+    d.recommendation.reason = 'Take B, since "what is free?" and "until when?" are what she asks';
+  }), /^recommendation: "reason" and the question hold 2 question marks between them/, 'both in the reason');
+  // One mark between the two is one question, wherever it stands.
+  valid(changed(d => {
+    d.question = 'Pick the structure that goes on to Detail.';
+    d.recommendation.reason = asking;
+  }), 'the one mark is in the reason');
+  // A question that asks two is said once, as the question's fault, whatever the reason holds.
+  refuses(changed(d => {
+    d.question = 'A or B? And who reads it next?';
+    d.recommendation.reason = asking;
+  }), /^question: asks more than one question \(2 question marks\): a decision page asks one question$/);
+  // A reason of two sentences is said as that, and not as a second question too.
+  refuses(changed(d => (d.recommendation.reason = 'Is B the one she reaches for? Take B.')), /^recommendation: "reason" must be one sentence/);
+  // In the order of the page: the recommendation's fault comes before the question's.
+  const two = validateDecision(changed(d => {
+    d.recommendation.reason = 'Take B, since "what is free?" and "until when?" are what she asks';
+    delete d.question;
+  }));
+  assert.deepEqual(two, ['recommendation: "reason" and the question hold 2 question marks between them: a decision page asks one question', 'decision: "question" is missing']);
+});
+
+// R186: a finding the founder already accepted at a stage carries that stage, and is not an open finding.
+test('a finding may carry "accepted", the stage it was accepted at; anything but a stage is refused', () => {
+  for (const stage of STAGES) valid(changed(d => (d.findings = [{ seat: 'judge.accessibility', line: 'The booking action is 40 by 40.', accepted: stage }])), stage);
+  for (const [value, shown] of [['', '""'], ['Detail', '"Detail"'], ['accepted at detail', '"accepted at detail"'], ['fix', '"fix"'], [true, 'true'], [6, '6'], [null, 'null'], [['detail'], '\\["detail"\\]']]) {
+    refuses(
+      changed(d => (d.findings = [{ seat: 'judge.truth', line: 'Open.' }, { seat: 'judge.accessibility', line: 'The booking action is 40 by 40.', accepted: value }])),
+      new RegExp(`^findings\\[1\\]: "accepted" must be the stage the deviation was accepted at, one of ${STAGES.join(', ')}; it is ${shown}$`),
+      JSON.stringify(value),
+    );
+  }
+  refuses(changed(d => (d.findings = [{ seat: 'judge.truth', line: 'Open.', acepted: 'detail' }])), /^findings\[0\]: unknown key "acepted"$/);
+  refuses(changed(d => (d.seats[0].accepted = 'detail')), /^seats\[0\]: unknown key "accepted"$/, 'a seat line is not a finding');
 });
 
 test('a missing, empty or blank question is refused', () => {
@@ -444,6 +506,49 @@ test('open findings are drawn after the seats\' lines, under "Open findings", ea
   assert.ok(marked.includes('<li><strong>judge.&lt;i&gt;truth&lt;/i&gt;</strong> Still &lt;b&gt;present&lt;/b&gt; &amp; &quot;open&quot;</li>'));
 });
 
+test('accepted deviations are drawn under a heading of their own, after the open findings, each with its seat and its stage; none, no section', () => {
+  const accepted = [
+    { seat: 'judge.accessibility', line: 'The booking action is 40 by 40 on a phone.', accepted: 'detail' },
+    { seat: 'judge.visual-craft', line: 'The list keeps twelve rooms to a page.', accepted: 'look' },
+  ];
+  // Mixed with open findings, in any order in the data: each kind under its own heading, in the data's order.
+  const data = withFindings();
+  const [first, second] = data.findings;
+  data.findings = [accepted[0], first, accepted[1], second];
+  const page = renderDecision(data);
+  const body = bodyOf(page);
+  const at = ['seats', 'findings', 'accepted', 'recommendation'].map(name => body.indexOf(`<section class="${name}">`));
+  assert.deepEqual([...at].sort((a, b) => a - b), at, `in order: ${at}`);
+  assert.ok(at.every(i => i >= 0));
+  assert.equal(sectionOf(page, 'findings'), `<section class="findings">
+<h2>Open findings</h2>
+<ul>
+<li><strong>judge.accessibility</strong> ${first.line}</li>
+<li><strong>judge.truth</strong> ${second.line}</li>
+</ul>
+</section>
+`);
+  assert.equal(sectionOf(page, 'accepted'), `<section class="accepted">
+<h2>Accepted deviations</h2>
+<ul>
+<li><strong>judge.accessibility</strong> <span class="on">accepted at detail</span> The booking action is 40 by 40 on a phone.</li>
+<li><strong>judge.visual-craft</strong> <span class="on">accepted at look</span> The list keeps twelve rooms to a page.</li>
+</ul>
+</section>
+`);
+  // Accepted deviations alone: no open findings are claimed; open findings alone: no second heading.
+  const alone = renderDecision(changed(d => (d.findings = accepted)));
+  assert.doesNotMatch(alone, /class="findings"|Open findings/);
+  assert.equal(count(alone, '<h2>Accepted deviations</h2>'), 1);
+  assert.ok(bodyOf(alone).includes('</section>\n<section class="accepted">'));
+  for (const without of [sample(), withFindings(), changed(d => (d.findings = []))]) assert.doesNotMatch(renderDecision(without), /class="accepted"|Accepted deviations|accepted at/);
+  // It is styled as the open findings are: one list, a line between its entries.
+  const style = page.match(/<style>\n([\s\S]*?)<\/style>/)[1];
+  for (const selector of ['.seats ul, .findings ul, .accepted ul', '.seats li, .findings li, .accepted li', '.seats li:last-child, .findings li:last-child, .accepted li:last-child']) assert.ok(style.includes(`${selector} {`), selector);
+  const marked = renderDecision(changed(d => (d.findings = [{ seat: 'judge.<i>truth</i>', line: 'Kept <b>as is</b> & "accepted"', accepted: 'look' }])));
+  assert.ok(marked.includes('<li><strong>judge.&lt;i&gt;truth&lt;/i&gt;</strong> <span class="on">accepted at look</span> Kept &lt;b&gt;as is&lt;/b&gt; &amp; &quot;accepted&quot;</li>'));
+});
+
 test('without a gallery, nothing of one is drawn; without a seat, no seats section', () => {
   const page = renderDecision(changed(d => { delete d.gallery; d.seats = []; }));
   assert.doesNotMatch(page, /class="gallery"|class="seats"|fresh\//);
@@ -685,15 +790,29 @@ test('in Chrome: the options in one row that scrolls on its own, one whole pictu
   }
 });
 
-test('the CLI builds the approve sample and counts its open findings', () => {
+test('the CLI builds the approve sample and counts its open findings, and apart from them the deviations already accepted', () => {
   const dir = fresh();
   const input = writeData(dir, approveSample());
   placePictures(dir, approveSample());
   const out = join(dir, 'decision.html');
   const r = run(input, '--out', out);
   assert.deepEqual([r.status, r.stderr], [0, '']);
-  assert.equal(r.stdout, `built ${out}: 1 option, 2 seats, 2 open findings, one question\n`);
-  assert.match(readFileSync(out, 'utf8'), /<h2>Open findings<\/h2>/);
+  assert.equal(r.stdout, `built ${out}: 1 option, 2 seats, 2 open findings, 1 accepted deviation, one question\n`);
+  assert.match(readFileSync(out, 'utf8'), /<h2>Open findings<\/h2>[\s\S]*<h2>Accepted deviations<\/h2>/);
+  // Counted apart: an accepted deviation is never an open finding, and none is not said.
+  const counts = findings => {
+    const folder = fresh();
+    const data = { ...approveSample(), findings };
+    placePictures(folder, data);
+    const built = run(writeData(folder, data), '--out', join(folder, 'decision.html'));
+    assert.deepEqual([built.status, built.stderr], [0, '']);
+    return built.stdout.replace(/^built .*: /, '');
+  };
+  const [open, , accepted] = approveSample().findings;
+  assert.equal(counts([accepted, { ...accepted, accepted: 'look' }]), '1 option, 2 seats, 2 accepted deviations, one question\n');
+  assert.equal(counts([accepted, open]), '1 option, 2 seats, 1 open finding, 1 accepted deviation, one question\n');
+  assert.equal(counts([open]), '1 option, 2 seats, 1 open finding, one question\n');
+  assert.equal(counts([]), '1 option, 2 seats, one question\n');
 });
 
 test('the CLI builds the page from decision.json, in folders named with two words, and says where', () => {
@@ -823,6 +942,15 @@ test('the CLI prints its usage for --help and exits 0', () => {
   assert.ok(r.stdout.startsWith('Usage: node scripts/page.mjs <decision.json> --out <decision.html>\n'));
   assert.match(r.stdout, /one question/);
   assert.ok(r.stdout.includes('"?", "\uFF1F" or "\u061F"'), 'every question mark is named');
+  // R173: where the marks are counted, and where they are not.
+  const help = r.stdout.replace(/\s+/g, ' ');
+  assert.ok(help.includes('more than one question mark in the question and the reason of the recommendation together, each of "?"'), 'where a mark counts');
+  assert.ok(help.includes('What a seat or a finding says, a title or a line may quote a question: no mark is counted there.'), 'where it does not');
+  assert.doesNotMatch(help, /question mark in all/);
+  // R186: the field, its heading and its sample.
+  assert.ok(help.includes('A finding he has already accepted carries "accepted", the stage it was accepted at, as "accepted": "detail"'), 'the field');
+  assert.ok(help.includes('under a heading of their own, "Accepted deviations", after the open findings, and are not counted as open'), 'the heading');
+  assert.ok(help.includes(`when "accepted" is not a stage (${STAGES.join(', ')})`), 'the refusal');
   assert.match(r.stdout, /when a picture it names is not a file in the folder of --out/);
   assert.equal(r.stderr, '');
 });

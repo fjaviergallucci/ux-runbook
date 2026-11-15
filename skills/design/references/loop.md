@@ -176,9 +176,10 @@ A gate is one of two kinds, and the stage's skill says which.
 that he accepts as a cost is written under "Accepted deviations" of the stage's output: what it is,
 what it breaks, his words, the day. That section is carried on, and handed to every judge from that
 stage on as part of what was approved, never to an audience. A judge that still finds it writes it
-once, as "accepted at" and the stage: it goes to no fix round and does not count as blocking, and on
-the decision page it is listed apart from the open findings, its `seat` reading "accepted at" and
-the stage. Where only a part of a finding rests on an accepted deviation, split it into its parts,
+once, as "accepted at" and the stage: it goes to no fix round and does not count as blocking. In the
+decision's data it goes under `findings` with that stage in `accepted`, as `"accepted": "detail"`,
+and the page lists it under a heading of its own, "Accepted deviations", apart from the open
+findings. Where only a part of a finding rests on an accepted deviation, split it into its parts,
 each quoted in the judge's words: the rest stands as it was marked. At the stamp, the decision you
 append names each accepted deviation.
 
@@ -197,7 +198,9 @@ node <kit root>/scripts/page.mjs <decision.json> --out <decision.html>
 - The page opens with the identity line: *design · kind · size · stage n of m*. Then the options as
   pictures, one line for each seat, the open findings when there are any, one recommendation with one
   sentence of reason, and last the question.
-- **The page's question is the only question on it.** The script refuses data that asks two.
+- **The page's question is the only question on it.** The script refuses data that asks two: it
+  counts the question marks of the question and of the recommendation's reason, and no others. A
+  seat's line or a finding may quote a question she asks, as it was written.
 - Each picture is named by its path from the page's folder, and must be there: the script refuses a
   picture it does not find.
 - You recommend, and never decide: one option, one sentence, resting on the reads. Where the seats
