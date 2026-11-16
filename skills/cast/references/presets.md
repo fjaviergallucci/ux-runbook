@@ -96,19 +96,20 @@ fresh pass at Structure. The line for Structure under "Fresh pass" of the cast s
 with the seats it would add, and the offer is put to the founder in the same message as the sheet,
 in four plain things:
 
-- **What it is:** the same brief, made a second time by makers who know nothing of the design system,
-  and shown as they came, beside the board. The structure of each concept joins the board too, as one
+- **What it is:** the same task, in a brief of its own that says nothing of the design system, made by
+  makers who know nothing of it, and shown as they came, beside the board. The structure of each concept joins the board too, as one
   more letter, so that he still compares structures like with like.
 - **What it adds:** something that looks like a product, this early.
 - **What it costs:** the seats it adds: the screen generator, a transcriber for each concept it
   returns, and the outside describer on the fresh brief where a provider is on; each reader then has
-  one more letter to read, and he has one more brief to read before anything goes out.
+  one more letter to read, and he reads that brief too before anything goes out.
 - **What comes of it:** nothing of it is handed off. What he marks in it is carried to Look, where
   anything borrowed is rebuilt on the project's own parts.
 
-It is one of the changes the gate's one question asks about, not a second question. It runs only on
-his yes, written under `## Reviewed by the founder`: an offer is not a yes, and with no yes it does not
-run. Where `engines-on` lists an outside model and no screen generator, nothing is offered: Cast may
+It is one of the changes the gate's one question asks about, not a second question, and it is answered
+in words of its own. It runs only on his yes, written under `## Reviewed by the founder`: an offer is
+not a yes, a general approval of the sheet ("looks fine, go") is not one either, and with no yes it does
+not run. On his yes its line says "runs", and its seats join the "Structure" table and "Cost". Where `engines-on` lists an outside model and no screen generator, nothing is offered: Cast may
 say in one sentence that a fresh pass would earn its cost, as a statement.
 
 ## The seats

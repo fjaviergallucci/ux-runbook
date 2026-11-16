@@ -75,9 +75,9 @@ At Structure, several ways of solving the problem are written down by makers who
 other, drawn by one script in one plain kit, and shown to you under letters, with nothing that says
 who made which. Each option is a page: an overview of its screens, then each screen in a window of a
 web app, with its navigation, its bar, its main part and what sits beside it where the maker placed
-them, and the maker's own account last. A proposal holds five screens at most: a request that spans
-several places of a product is a sequence of designs, the places first. You choose a structure before
-anything looks finished.
+them, and the maker's own account last. A proposal holds five screens at most: a new product, or any
+request that spans several places of a product, is a sequence of designs, the places first. You
+choose a structure before anything looks finished.
 
 ## What it does not do by itself
 

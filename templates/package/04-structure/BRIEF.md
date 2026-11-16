@@ -57,9 +57,8 @@ width.}
   its size or its side. Every proposal's areas are drawn the same way: the navigation at the side when
   the page is wide and as a bar when it is narrow, the bar across the top, the main part at a readable
   width, and what is beside it next to it when wide and under it when narrow.
-- A navigation is drawn with the place she is at marked: the place whose words open the screen's
-  title. An input is drawn with its label inside the field. Actions written one after another sit side
-  by side.
+- An input is drawn with its label inside the field. Actions written one after another sit side by
+  side, wherever they are.
 
 ## What to return
 

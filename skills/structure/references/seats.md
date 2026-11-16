@@ -126,10 +126,12 @@ Each letter is on the board twice, and each page is pictured twice:
   the width it is pictured at, with the areas its proposal placed: the navigation at the side when
   wide and as a bar when narrow, the bar across the top, the main part, and what is beside it. The
   page with the account, the founder's and the judges', opens with the option's title and the
-  overview: every screen at a glance, its areas and what each holds, a dialog under its screen. The
-  screens follow, and the account comes last, under its own heading. The page without it, the
-  audiences', is the title, the letter alone, and the screens: no overview, no account and no note,
-  so that its first window is in the picture of its first screen.
+  overview: at the primary width every screen at a glance, its areas and what each holds (a navigation
+  by its places), a dialog under its screen; at the phone width each screen's title alone, so that the
+  first window is still on his first screen. The screens follow, and the account comes last, under
+  its own heading. The page without it, the audiences', is the title, the letter alone, and the
+  screens: no overview, no account and no note, so that its first window is in the picture of its
+  first screen.
 - **The whole page, and its first screen alone.** A picture of the first screen is the window's
   height, with no scrolling, and its name ends `-first.png`. A brief says which is which, and that
   "without scrolling" is answered on the first.

@@ -43,8 +43,8 @@ delete this line.}
 
 ### What follows this design
 
-{"None", unless the request is a sequence of designs: then the designs before this one, by their
-packages' folders, and those still to come, each the place it designs, one line each, in his order.}
+{"None", or in a sequence: the first design's package by path, whose `DECISIONS.md` keeps the order in
+its `Sequence` entries; in the first design, the rest too, one line each, in the order he set.}
 
 ## Who it is for
 

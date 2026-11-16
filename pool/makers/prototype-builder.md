@@ -31,7 +31,9 @@ on other pages.
    words, and, for every state, what differs: which items show, which cannot be used, which key a
    status takes. Its form is yours, and JSON is the plain choice. There is exactly one for a screen.
    The title is the screen's name on the board, not a word of the interface, and it is the only text a
-   description holds.
+   description holds. The chosen structure's areas are kept: a region it placed as `navigation`, `bar`,
+   `main` or `beside` is that area of the page, with its class, at each width as the board drew it,
+   unless the interaction designer's rules say otherwise.
 3. **Generate every page. Copy none.** Write a small script, with no dependency, that reads the
    descriptions and the strings table (the file your brief names, `strings.json` when it names none)
    and writes one page for each screen, state and language, in the exact markup the contract gives. No

@@ -154,8 +154,8 @@ node <kit root>/scripts/state.mjs await <package> cast --question "<the one ques
 ```
 
 One question, about one thing: which seat, check, model or effort would you change? A fresh pass the
-sheet offers is put in that same message, as one of the changes the question asks about: on his yes
-its line says "runs" and its seats join the tables and "Cost"; with none it does not run.
+sheet offers is one of the changes it asks about, in that same message. It is answered in words of its
+own: a general approval, as "looks fine, go", is no yes to it, and with no yes it does not run.
 
 - **Write what he changes into the tables, and under `## Reviewed by the founder`:** the seats, the
   checks, the models and the efforts he changed, and the words he approved it with, as he said them.

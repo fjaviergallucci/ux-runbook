@@ -176,7 +176,7 @@ Write this proposal to `<scratch>/kit-check.json`:
 Then draw it in the project kit:
 
 ```
-node <kit root>/scripts/render.mjs <scratch>/kit-check.json --kit <packages>/kit --out <scratch>/drawn/kit-check.html
+node <kit root>/scripts/render.mjs <scratch>/kit-check.json --kit <packages>/kit --out <scratch>/drawn/kit-check.html --lang en
 ```
 
 `<scratch>/drawn/` must then hold the page and, beside it, every stylesheet of the kit: `kit.css`, and

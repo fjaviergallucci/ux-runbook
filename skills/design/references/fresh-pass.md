@@ -47,7 +47,9 @@ start the seat again, clean.
    in the shared kit, and joins the blind board as one more letter. Structures are compared like with
    like, and the founder does not know which came from where. **The pick is made on the board.**
 2. **In a gallery beneath the board.** The same concepts as they came, labelled as fresh, and never
-   mixed with the lettered options. In the gallery he marks what he likes, and his marks are carried to
+   mixed with the lettered options. On the decision page, its `gallery` sits beneath the options,
+   labelled as fresh and never mixed into them: the screens as they came, from `fresh/`, none saying
+   which letter holds its structure. In the gallery he marks what he likes, and his marks are carried to
    Look.
 
 ## At Look it is shown beside the system version

@@ -123,6 +123,9 @@ under "Do not open":
   `<screen>-<state>-<language>.html`, the index, the kit's stylesheets, and the descriptions and
   the script that made them. The pictures of its own check go in `<package>/work/prototype-check/`:
   the pictures of record are yours to take, in step 5 of the skill.
+- **The chosen structure's areas are kept:** a region it placed as navigation, bar, main or beside is
+  that area of the prototype's page, at each width as the board drew it, unless the interaction
+  designer's rules say otherwise. Its brief says so.
 - **It drives a browser,** and counts among the three.
 - **What it could not build as specified** is in its reply: it goes on the decision page under
   `findings`, by seat. A string missing in one language goes back to the interface writer.

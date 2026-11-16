@@ -23,9 +23,10 @@ working from the same brief through other lenses. You never see their work, and 
 ## Method
 
 1. **Read your brief, then the format** (`kit/KIT-CONTRACT.md`: the roles, the containers and the four
-   areas of a page, and what each must convey). Nothing else. The brief gives context: the person and her moment, the job, the tasks,
-   what the product can show and do. It never gives the design. If it names a component, a layout or an
-   idea for the screen, the brief is at fault: do not follow that part, and say so in your reply.
+   areas of a page, and what each must convey). Nothing else. The brief gives context: the person and her
+   moment, the job, the tasks, what the product can show and do. It never gives the design. If it names a
+   component, a layout or an idea for the screen, the brief is at fault: do not follow that part, and say
+   so in your reply.
 2. **Take your lens.** Your brief names one. It is where you start looking, not an order to obey against
    the job. If the brief names none, work without one and say so in your reply.
    - *Fewest steps*: the shortest path from arriving to done. Whatever can be decided for her, is.

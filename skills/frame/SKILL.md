@@ -33,8 +33,9 @@ What kind of interface, starting from what, how big: so which stages run?
   `pool/INDEX.md`, for each seat's job in a line; `templates/package/00-frame.md`, which you fill.
 - **The first line of the project kit's `tokens.css`,** and what the project's history says of the
   file it names, as step 6 says: nothing else of the kit or of the history.
-- **When the request is a later design of a sequence,** the "What follows this design" of the latest
-  frame of that sequence, the one that lists it: nothing else of the packages before it.
+- **Of every package in `<packages>`, to find a sequence that lists the request:** its `00-frame.md`'s
+  "What follows this design" alone and, where that heading says the package keeps a sequence, the
+  `Sequence` entries of its `DECISIONS.md`: nothing else of them.
 - **Not the project's code, its screens or its data.** Reading the world is Context's.
 
 ## Writes
@@ -44,7 +45,8 @@ What kind of interface, starting from what, how big: so which stages run?
   instruction in braces replaced, its first comment deleted. Frame is built from nothing, so
   `built-from` stays `[]`, and the rest of the header is the state script's.
 - The package's `DECISIONS.md`, started from `templates/package/DECISIONS.md` with the frame as its
-  first entry.
+  first entry. In a sequence of designs, a `Sequence` entry appended to the first design's
+  `DECISIONS.md`, on his yes.
 - In the project profile, a kind he adds at step 2, and nothing else of it but, where the tokens
   moved, the line of "Design system" that names the kit's copy, as step 6 says, with the copy itself.
 
@@ -72,8 +74,9 @@ where it is made at once. Only a kind he adds at step 2 is written before it, an
    - *Foundation:* what it starts from. It is `no-system` while the project profile says "None yet"
      under "Design system".
    - *Size:* why this size, and not the one below it. When two sizes fit, name both and what tips it.
-     When it spans several places of the product that she does not go through as one task, it is a
-     sequence of designs, not a `flow`: see "Several places", below.
+     A new product, or a request that spans several places of the product that she does not go
+     through as one task, is a sequence of designs, never one `system` or one `flow`: see "Several
+     places", below.
 
    Where the request and the project profile do not settle a value, say that it is your reading: he
    corrects it in his answer. As: "a screen that shows the front desk which rooms are free right now"
@@ -101,12 +104,14 @@ where it is made at once. Only a kind he adds at step 2 is written before it, an
 
 **Several places are a sequence of designs,** as `skills/design/references/routes.md` says under
 "Several places": what tips a request one way or the other is there, with an example of each. Then
-the frame you put to him is the first design's, the places first, at size `surface`, and it proposes
-the rest: one design for each place, in the order his request names them, which is his to set. It
-asks nothing more than any frame. On his yes the first package alone is made, and the rest go under
-"What follows this design", in the order he set. A later design of the sequence is a new request: it
-starts here when he asks for it, and its frame lists the designs before it, by their packages'
-folders, then those still to come.
+the frame you put to him is the first design's, the places first, at size `surface` (`system` for the
+first design of a product with no design system), and it proposes the rest: one design for each
+place, in the order his request names them, which is his to set. It asks nothing more than any frame.
+On his yes the first package alone is made, the rest go under "What follows this design", in the
+order he set, and the order into a `Sequence` entry of that package's `DECISIONS.md`. A later design
+of the sequence is a new request: it starts here when he asks for it. Whether a request is one is
+read from disk, every time, as "Where a sequence is kept" in `routes.md` says: its frame then names
+the sequence's first package by path, and on his yes a new `Sequence` entry names its package.
 
 **Sized `correction`, Frame is one line:** the request, the three values and the route. Steps 4 to 6
 are not run: a correction casts no seat. **You state the line and ask nothing:** a correction costs one
@@ -166,7 +171,7 @@ about one thing: is this the right frame for it?
   ```
 
   Then append the decision to the package's `DECISIONS.md`, and ask the state what is next, as step 9
-  of the loop says.
+  of the loop says. In a sequence, the `Sequence` entry goes to the first design's, on the same yes.
 
 ## Never
 
