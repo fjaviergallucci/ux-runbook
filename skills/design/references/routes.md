@@ -84,6 +84,37 @@ Nothing moves down mid-run. A resize never lowers the mode of a stage. A stage t
 the route is run. An approved stage whose mode changes, or that was built without a stage now added
 before it, turns stale: it is redone or re-confirmed at the larger size, then stamped again.
 
+## Several places: a sequence of designs
+
+`flow` stays what it is: several surfaces that form one task. A request that spans several places of
+a product, which she does not go through as one task, is not one design of any size: it is a
+**sequence of designs**, and each design of it is made, judged and approved on its own.
+
+- **What tips it is what she does there.** One job she starts and finishes by going through the
+  surfaces in order is a `flow`: "booking a walk-in, from finding a free room to the confirmation she
+  reads out to the patient" is one task over three surfaces. Places she goes to each for a job of its
+  own, in any order, and comes back from are several places: "the front desk's tool: today's rooms,
+  the week's bookings, the rooms' settings, and the navigation between them" is a navigation and the
+  pages it leads to. A request whose structure would need more than five screens is a sign of the
+  second: a proposal holds five at most, and a structure that needs more is more than one design.
+- **The places first.** The first design of the sequence is the places themselves: which places exist,
+  what each is called, what each holds, and how she moves between them. It is a design of size
+  `surface`, with its own kind and foundation, and it runs the whole route.
+- **Then one design for each place,** in the order the founder sets. Each starts at its own Frame,
+  when he asks for it, and is sized there like any request.
+- **Frame proposes the sequence, and he sets it.** The frame he is shown is the first design's. It
+  names the places as his request names them, in its order, and says that the order is his to set.
+  On his yes, only the first package is made. The rest are written under "What follows this design"
+  of its frame, one line each, in the order he set; where his request names no places, the line says
+  that they are the ones the first design settles, and that he sets their order once it is approved.
+- **A later design starts from what the earlier ones approved.** Its Frame reads that list in the
+  sequence's latest frame, and writes under its own "What follows this design" the designs before
+  it, by their packages' folders, then those still to come. Its Context carries the approved outputs
+  of the designs before it as sources: what the places settled is a fact for every place after them.
+
+Nobody but the founder sets the order or starts the next design. A sequence moves one design at a
+time, each on his yes at its own Frame, and no package is made for a design he has not asked for.
+
 ## A correction
 
 A correction costs one nod. It still goes through the skills, in their order, Frame first: `ux:frame`

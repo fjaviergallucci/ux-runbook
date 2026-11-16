@@ -64,23 +64,21 @@ a stage the route skips is deleted.
 
    It prints one line for each file. `ok`: the card is sound, and you may read it. A file named
    `README.md` is passed over: it is never a card. Any other line is a fault, and **a faulty card is
-   reported to the founder, with its lines, and left out**: it is not cast and not mended by you, and
-   it is never skipped in silence: it has its line under "Left out". Where it carries the id of a kit
-   card, the kit's card sits in its place, and the cast sheet says so: the line under "Left out" then
-   names the project's replacement, not the seat. A profession's profile, in the project's
-   `profiles/` folder, is checked in the same run: a faulty one is reported the same way, and no
-   seat is loaded with it.
+   reported to the founder, with its lines, and left out**: it is not cast and not mended by you, and it
+   is never skipped in silence: it has its line under "Left out". Where it carries the id of a kit card,
+   the kit's card sits in its place, and the cast sheet says so: the line under "Left out" then names the
+   project's replacement, not the seat. A profession's profile, in the project's `profiles/` folder, is
+   checked in the same run: a faulty one is reported the same way, and no seat is loaded with it.
 4. **Lay the two pools side by side.** The kit's seats and people are the rows of `pool/INDEX.md`. The
    project's are its sound cards: read each one's header. **A project card with the same id as a kit
    card replaces it for this project, and the cast sheet says so** on that seat's line. The same holds
    for a person.
-5. **Start from the preset** for this kind and size, in `references/presets.md`: each seat at the
-   stages its row gives, then what the page adds by rule. A stage the route runs that the row leaves
-   empty is cast from the surface row for that stage. Add each seat the project profile lists under
-   `pinned`. Take out each one under `banned`, and name it under "Left out": only the truth judge on
-   a public page is not the project's to ban, and you tell the founder when the two meet. A seat sits
-   only at a stage its card sits at (the page's table of the seats has the kit's), and only at a
-   stage the route runs.
+5. **Start from the preset** for this kind and size, in `references/presets.md`: each seat at the stages
+   its row gives, then what the page adds by rule. A stage the route runs that the row leaves empty is
+   cast from the surface row for that stage. Add each seat the project profile lists under `pinned`. Take
+   out each one under `banned`, and name it under "Left out": only the truth judge on a public page is
+   not the project's to ban, and you tell the founder when the two meet. A seat sits only at a stage its
+   card sits at (the page's table of the seats has the kit's), and only at a stage the route runs.
 6. **Load each seat that is loaded.** Whether the design is for one profession, for several or for
    everyone is in "The people" of the context, with each profession's profile by its path: the
    intent carries it on, as `- context@1#the-people`. `judge.profile` sits once for each profession's
@@ -126,10 +124,13 @@ a stage the route skips is deleted.
       to see the current layout, and why: only where the surface exists. Or "None".
     - "Fresh pass": for Structure and for Look, whether one runs, with which makers, on which
       engines, and why (`references/presets.md` says who can make one). It never runs at Detail.
-      **It is offered, never added:** write "does not run" unless he has asked for one, and where
-      you think one would earn its cost, say so in one sentence here, as a statement: the gate
-      keeps its one question. An engine the project has not turned on is never used: with none, the
-      screen generator's seat is taken by a Claude maker, as its row of the last table says.
+      **It is offered, never added:** write "does not run" unless he has asked for one. **Where
+      `engines-on` lists a screen generator, offer one at Structure:** write "offered" on its line,
+      with the seats it would add, and put the offer to him with the sheet, in the plain words of
+      "The fresh pass, offered" in `references/presets.md`. Elsewhere, where you think one would earn
+      its cost, say so in one sentence here, as a statement: the gate keeps its one question. An engine
+      the project has not turned on is never used: with none, the screen generator's seat is taken by
+      a Claude maker, as its row of the last table says.
     - "Cost": the number of agents each stage starts, with makers, judges and audiences counted
       apart, and the total. Count the rows, one for each instance. An outside describer is a call the
       session makes, not an agent, and a transcriber that stands by counts only when it runs: say so
@@ -152,7 +153,9 @@ tomorrow asks the same:
 node <kit root>/scripts/state.mjs await <package> cast --question "<the one question>"
 ```
 
-One question, about one thing: which seat, check, model or effort would you change?
+One question, about one thing: which seat, check, model or effort would you change? A fresh pass the
+sheet offers is put in that same message, as one of the changes the question asks about: on his yes
+its line says "runs" and its seats join the tables and "Cost"; with none it does not run.
 
 - **Write what he changes into the tables, and under `## Reviewed by the founder`:** the seats, the
   checks, the models and the efforts he changed, and the words he approved it with, as he said them.

@@ -49,6 +49,17 @@ width.}
 - Propose one way, whole: not two, and not a blend.
 - Use the real words she would read, and the worst rows she would meet, as this page gives them.
 - Play the hardest state through it. If it breaks, change it, not the sentence that describes it.
+- Walk five screens at most, dialogs counted: a structure that needs more is more than one design. If
+  yours does, keep the five that carry the bet, and put what did not fit in `absent`.
+- Where a screen is a page she works from, say in `place` which area each of its regions is, as the
+  format below gives them. A screen with nothing around what it is for, as a step she goes through
+  once, places none, and a dialog never does: it is drawn as one column. You choose the area, never
+  its size or its side. Every proposal's areas are drawn the same way: the navigation at the side when
+  the page is wide and as a bar when it is narrow, the bar across the top, the main part at a readable
+  width, and what is beside it next to it when wide and under it when narrow.
+- A navigation is drawn with the place she is at marked: the place whose words open the screen's
+  title. An input is drawn with its label inside the field. Actions written one after another sit side
+  by side.
 
 ## What to return
 

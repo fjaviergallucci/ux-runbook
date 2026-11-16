@@ -61,6 +61,10 @@ flow.
 - Propose one way, whole: not two, and not a blend.
 - Use the real words she would read, and the worst rows she would meet, as this page gives them.
 - Play the hardest state through it. If it breaks, change it, not the sentence that describes it.
+- If you answer in words, in the format below: where a screen is a page she works from, say in `place`
+  which area each of its regions is. A screen with nothing around what it is for places none, and a
+  dialog never does. You choose the area, never its size or its side: every proposal's areas are
+  drawn the same way at each width.
 
 ## What to return
 

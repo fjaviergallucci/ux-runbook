@@ -2309,7 +2309,8 @@ const PRESET_ROWS = Object.freeze([
 
 test('presets.md: the default cast by size, word for word, and every seat it names is a card that sits at that stage and is preset for that size', () => {
   const text = presets();
-  assert.deepEqual(headings(text), ['By size', 'Added by rule', 'The seats', 'A seat without its engine']);
+  // R200 of the board change: the fresh pass Cast offers when a screen generator is on has a section of its own.
+  assert.deepEqual(headings(text), ['By size', 'Added by rule', 'The fresh pass, offered', 'The seats', 'A seat without its engine']);
   const bySize = section(text, 'By size');
   const [head, , ...sized] = tableRows(bySize);
   assert.deepEqual(head, ['Size', 'Structure', 'Detail', 'Look', 'Handoff', 'Acceptance']);
@@ -6342,4 +6343,59 @@ test('the dry run, Look, Handoff and Acceptance: the table is held to the run, n
   // F79: the sample of an approval names its pictures as the picture script does, with the language.
   const sample = JSON.parse(read('templates/outputs/decision-approve.json'));
   assert.deepEqual([sample.options[0].title, sample.options[0].images], ['The prototype', ['shots/today-default-en-390-light.png', 'shots/today-default-en-1280-light.png']]);
+});
+
+// ---- after the first real run: the size of a design, and the fresh pass (board-change.md, R199 and R200)
+
+test('R199: several places of a product are a sequence of designs, the places first, each design begun at its own Frame on his yes', () => {
+  const routes = reference('routes.md');
+  const NAME = 'Several places: a sequence of designs';
+  assert.ok(headings(routes).includes(NAME));
+  const sequence = section(routes, NAME);
+  // A flow is unchanged: several surfaces that form one task.
+  assert.match(flat(section(routes, 'Size')), /`flow` \| several surfaces that form one task \|/);
+  says(sequence, '`flow` stays what it is: several surfaces that form one task.', 'is not one design of any size: it is a **sequence of designs**');
+  // What tips it, with an example of each.
+  says(sequence, '**What tips it is what she does there.** One job she starts and finishes by going through the surfaces in order is a `flow`',
+    'is one task over three surfaces', 'Places she goes to each for a job of its own, in any order, and comes back from are several places',
+    'is a navigation and the pages it leads to', 'a proposal holds five at most, and a structure that needs more is more than one design.');
+  // The places first, at size surface; then one design for each place, in his order.
+  says(sequence, '**The places first.** The first design of the sequence is the places themselves: which places exist, what each is called, what each holds, and how she moves between them. It is a design of size `surface`',
+    '**Then one design for each place,** in the order the founder sets. Each starts at its own Frame, when he asks for it');
+  // Frame proposes, he sets the order, one package only; the rest are written under a heading of the frame.
+  says(sequence, '**Frame proposes the sequence, and he sets it.**', 'says that the order is his to set', 'On his yes, only the first package is made. The rest are written under "What follows this design" of its frame',
+    'Its Context carries the approved outputs of the designs before it as sources',
+    'Nobody but the founder sets the order or starts the next design. A sequence moves one design at a time, each on his yes at its own Frame, and no package is made for a design he has not asked for.');
+  // Frame says it, writes it under the frame's own heading, and never sets the order or starts the next design itself.
+  const frame = stageSkill('frame');
+  says(section(frame, 'Steps'), '**Several places are a sequence of designs,** as `skills/design/references/routes.md` says under "Several places"',
+    'the places first, at size `surface`', 'in the order his request names them, which is his to set. It asks nothing more than any frame. On his yes the first package alone is made');
+  says(section(frame, 'Reads'), '**When the request is a later design of a sequence,** the "What follows this design" of the latest frame of that sequence, the one that lists it');
+  says(section(frame, 'Gate'), 'for a sequence, the designs that would follow it, in the order his request names them. Then one question, about one thing: is this the right frame for it?',
+    '"What follows this design", under "Route": "None", or the sequence.');
+  assert.ok(nevers(frame).includes('Never set the order of a sequence, or start its next design yourself'));
+  // A heading of its own under "Route", one level down, so that a frame stamped before it keeps the template's sections.
+  assert.match(section(outputOf('frame'), 'Route'), /\n### What follows this design\n\n\{"None", unless the request is a sequence of designs/);
+  assert.ok(!headings(outputOf('frame')).includes('What follows this design'));
+  // A later design's Context carries what the designs before it approved, as project sources.
+  says(section(stageSkill('context'), 'Steps'), 'In a later design of a sequence, so is each approved output of the designs before it, in the folders its frame lists: "an earlier design of this sequence".');
+});
+
+test('R200: Cast offers a fresh pass at Structure when a screen generator is on, in four plain things with the sheet, and never adds one', () => {
+  const cast = stageSkill('cast');
+  says(section(cast, 'Steps'), '**It is offered, never added:** write "does not run" unless he has asked for one. **Where `engines-on` lists a screen generator, offer one at Structure:** write "offered" on its line, with the seats it would add, and put the offer to him with the sheet');
+  says(section(cast, 'Gate'), 'A fresh pass the sheet offers is put in that same message, as one of the changes the question asks about: on his yes its line says "runs" and its seats join the tables and "Cost"; with none it does not run.');
+  for (const rule of ['Never add a fresh pass yourself', 'Never turn an engine on']) assert.ok(nevers(cast).includes(rule), rule);
+  // The four plain things, and the engine they key on is the screen generator's own.
+  const offered = section(presets(), 'The fresh pass, offered');
+  assert.equal(kitCards()['maker.screen-generator'].engine, 'tool:stitch');
+  says(offered, 'When the project profile\'s `engines-on` lists a screen generator, as `tool:stitch`, Cast offers a fresh pass at Structure.', 'in the same message as the sheet');
+  assert.deepEqual([...offered.matchAll(/^- \*\*([^*]+):\*\*/gm)].map(([, name]) => name), ['What it is', 'What it adds', 'What it costs', 'What comes of it']);
+  says(offered, 'the same brief, made a second time by makers who know nothing of the design system, and shown as they came, beside the board',
+    'something that looks like a product, this early', '**What it costs:** the seats it adds', 'nothing of it is handed off',
+    'It runs only on his yes, written under `## Reviewed by the founder`: an offer is not a yes, and with no yes it does not run.');
+  // The sheet has the word for it, and the conductor's page on the fresh pass says the same.
+  assert.match(section(read('templates/package/03-cast.md'), 'Fresh pass'), /^- \*\*Structure:\*\* \{runs · does not run · offered\}/m);
+  says(reference('fresh-pass.md'), 'When the project profile\'s `engines-on` lists a screen generator, Cast offers one at Structure, in the same message as the sheet, and it runs on his yes');
+  says(reference('fresh-pass.md'), 'You never add one yourself. It costs agents, and it is his to ask for.');
 });

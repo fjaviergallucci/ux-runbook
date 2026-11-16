@@ -32,11 +32,15 @@ better and no worse.
    is an `action` whatever its shape; a row of places to go is a `nav`.
 3. **Use a container only where the source groups things:** a region for an area set apart, a group for
    things held together, an expansion for what opens in place, a dialog for what sits in front of a
-   screen.
+   screen. Where a screen of the source plainly has a page's areas, give each of its regions the
+   `place` it shows: `navigation`, the places she moves between; `bar`, a strip across the top; `main`,
+   what the screen is for; `beside`, what sits next to the main part. Then every direct item of that
+   screen is such a region, one of them the `main`. Where the source shows no such areas, place none.
 4. **Copy the words exactly:** its language, its spelling, its capitals. Do not correct, shorten or
    translate. Copy a list's rows as they are shown.
-5. **Drop the paint.** Colour, type, size, spacing, decoration, and where a thing sits on the page do
-   not exist in the format. Position survives only as order and as grouping. A picture becomes a `media`
+5. **Drop the paint.** Colour, type, size, spacing, decoration, and exactly where a thing sits on the
+   page do not exist in the format. Position survives only as order, as grouping and as the area a
+   region is. A picture becomes a `media`
    item that says what it shows.
 6. **Mark what you could not read.** Write `[unreadable]` where the words would be, and a `note` on the
    item saying what was there: "three icons with no label", "text too small to read". For a thing that
@@ -68,7 +72,8 @@ checked with `validate` (`scripts/lib/walkthrough.mjs`).
 
 ### The walkthrough format, in short
 
-- The proposal: `name`, `bet`, `cost`, `absent` (a list), `hardest`, `firstIdea`, `screens` (a list).
+- The proposal: `name`, `bet`, `cost`, `absent` (a list), `hardest`, `firstIdea`, `screens` (a list,
+  five at most, dialogs counted).
 - A screen: `id`, `title`, `container` (`screen`, or `dialog` with `over` naming the screen it opens
   over), an optional `note`, and `items`.
 - An item is a role or a container. A role has `role` (`heading`, `text`, `choice`, `input`, `action`,

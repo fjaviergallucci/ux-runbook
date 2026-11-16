@@ -58,7 +58,6 @@ is built from the cast, the intent and the context. `<version>` is the version a
    ```
    node <kit root>/scripts/state.mjs begin <package> structure
    ```
-
    After a round he rejected (`references/rounds.md`), `<package>/04-structure/` holds only `earlier/`:
    Structure starts clean, from step 1, only once `next` prints `structure`. In work, it goes on from the
    first step with a file missing: step 4, until `CHOSEN.md` holds his yes to every brief in the folder.
@@ -92,7 +91,6 @@ is built from the cast, the intent and the context. `<version>` is the version a
    ```
    node <kit root>/scripts/describe.mjs --provider <openai|gemini> --model <id> --brief <package>/04-structure/<brief> --out <package>/04-structure/proposals/<name>.json --profile <packages>/PROFILE.md
    ```
-
    What comes back is a proposal like any other, an answer that is not in the format, or a refusal,
    which is reported to the founder as the script words it: `references/seats.md` says what follows.
 6. **Tag each proposal, and mend none.** Each file gets two keys, and a rewrite that keeps every value
@@ -113,9 +111,13 @@ is built from the cast, the intent and the context. `<version>` is the version a
    The merge prints the letters, and writes the map to `<package>/04-structure/MAP.sealed.json`: beside
    the board, never in it. Render twice for each letter, the second time without the proposal's own
    account, for the audiences; then the shots once, at the brief's two widths, every page pictured
-   twice, whole and as its first screen alone: `references/seats.md` says who is handed which. The board
-   holds the letters' files, the drawn pages with the kit's stylesheets, and the pictures: nothing else
-   is ever put in it. Never more than three browser-driving commands or seats at once.
+   twice, whole and as its first screen alone: `references/seats.md` says who is handed which. The page
+   with the account opens with the option's title and the overview of every screen, then the screens,
+   each in a window, and the account last: the founder's and the judges'. The page without it is the
+   title and the screens alone: the audiences'. A render that warns the kit styles none of the page's
+   areas stops the stage until the kit is made again, as `skills/setup/references/project-kit.md` says.
+   The board holds the letters' files, the drawn pages with the kit's stylesheets, and the pictures:
+   nothing else is ever put in it. Never more than three browser-driving commands or seats at once.
 8. **Start the readers, by letter.** The judges and the audiences of the cast sheet's "Structure" table,
    each a fresh sub-agent: the judges in one message, then the audiences, once every judge has written
    its ledger. Of `<package>/04-structure/`, a judge is handed the board folder and nothing else; an
@@ -160,7 +162,6 @@ no further without his words.**
   is made, and the board with it, before he is asked again. All three are in `references/rounds.md`.
 - **Only now may the map be opened,** after a graft's re-read, and only this way. The command prints
   each letter with its source file, its track and its engine, and refuses until `PICK.md` holds his pick:
-
   ```
   node <kit root>/scripts/merge.mjs open <package>/04-structure/board
   ```
@@ -177,7 +178,6 @@ no further without his words.**
   ```
   node <kit root>/scripts/state.mjs stamp <package> structure --words "<the founder's words>"
   ```
-
   Then append the decision to the package's `DECISIONS.md`, his gallery marks with it as he said
   them, and ask the state what is next, as step 9 of the loop says.
 

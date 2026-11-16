@@ -8,6 +8,9 @@ twice, once inside the system and once with no knowledge of it, and the two comp
 
 - Cast states whether a fresh pass runs at Structure, at Look, or at both, with which makers and why:
   the cast sheet has a section for it (`templates/package/03-cast.md`).
+- When the project profile's `engines-on` lists a screen generator, Cast offers one at Structure, in
+  the same message as the sheet, and it runs on his yes (`skills/cast/references/presets.md`, "The
+  fresh pass, offered").
 - The founder can ask for one at any decision page.
 - It does not run at Detail, where the work is to complete a chosen structure, not to explore.
 - You never add one yourself. It costs agents, and it is his to ask for.

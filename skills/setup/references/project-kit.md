@@ -91,8 +91,10 @@ is now: the project kit, and on whose tokens.
 
 ## 4. Restyle each class to look like the project's default part
 
-Go through the classes of the contract one by one. For each, read the source of the project's
-default part for the same job, to see which tokens it wears, and give the class those:
+Go through the classes of the contract one by one: every class it lists is styled, and the markup
+each sits on is the contract's, under "The markup", which you read there and never restate. For each,
+read the source of the project's default part for the same job, to see which tokens it wears, and give
+the class those:
 
 | Class | Looks like the project's default |
 |---|---|
@@ -104,9 +106,9 @@ default part for the same job, to see which tokens it wears, and give the class 
 | `ux-link`, `ux-nav` | link, and navigation |
 | `ux-heading`, `ux-text` | heading and body type |
 | `ux-screen`, `ux-dialog`, `ux-region`, `ux-group`, `ux-expansion` | page surface, dialog, section, card and disclosure |
-| `ux-navigation`, `ux-bar`, `ux-main`, `ux-beside` | the areas of a page: its navigation, its top bar, its content area and its side panel |
+| `ux-navigation`, `ux-bar`, `ux-main`, `ux-beside` | the areas of a page: its navigation, its top bar, its content area and its side panel; where each sits at each width is the contract's, and stays as the grey kit lays it out |
 | `ux-media` | nothing of the project: a placeholder that says what it shows |
-| `ux-frame`, `ux-window`, `ux-over`, `ux-note`, `ux-option`, `ux-overview`, `ux-account` | nothing of the project: they are the board's, and stay plain |
+| `ux-frame`, `ux-window`, `ux-over`, `ux-note`, `ux-option`, `ux-overview`, `ux-account` | nothing of the project: they are the board's, and stay as the grey kit draws them |
 
 The rules, which are the contract's:
 
@@ -133,8 +135,8 @@ its source.
 
 ## 5. Draw with it, once
 
-Prove that the kit draws a proposal and carries its tokens with it. Write this proposal to
-`<scratch>/kit-check.json`:
+Prove that the kit draws a proposal, with the four areas of a page, and carries its tokens with it.
+Write this proposal to `<scratch>/kit-check.json`:
 
 ```json
 {
@@ -146,14 +148,25 @@ Prove that the kit draws a proposal and carries its tokens with it. Write this p
   "screens": [
     {
       "id": "today",
-      "title": "Rooms right now",
+      "title": "Today",
       "container": "screen",
       "items": [
-        { "role": "heading", "text": "Rooms right now" },
-        { "role": "status", "text": "No room is free until 11:30." },
-        { "role": "list", "text": "Rooms", "options": ["Room 1, busy until 11:30", "Room 2, busy until 12:00"] },
-        { "role": "input", "text": "Patient name" },
-        { "role": "action", "text": "Book a walk-in", "primary": true }
+        { "container": "region", "place": "navigation", "items": [
+          { "role": "nav", "text": "Front desk", "options": ["Today", "Bookings", "Rooms"] }
+        ] },
+        { "container": "region", "place": "bar", "items": [
+          { "role": "input", "text": "Find a booking" }
+        ] },
+        { "container": "region", "place": "main", "items": [
+          { "role": "heading", "text": "Rooms right now" },
+          { "role": "status", "text": "No room is free until 11:30." },
+          { "role": "list", "text": "Rooms", "options": ["Room 1, busy until 11:30", "Room 2, busy until 12:00"] },
+          { "role": "input", "text": "Patient name" },
+          { "role": "action", "text": "Book a walk-in", "primary": true }
+        ] },
+        { "container": "region", "place": "beside", "items": [
+          { "role": "text", "text": "Room 3 is being cleaned until 10:45." }
+        ] }
       ]
     }
   ]
@@ -180,10 +193,32 @@ The script starts its own browser, headless, and stops it. It exits 1 and prints
 import does not reach a file of the kit's folder. Mend the kit, never the command.
 
 Open the pictures before he does. A part that came out with no style, or in a colour the tokens do
-not hold, is yours to mend first. Then the pictures go to the founder with the project profile, at the
+not hold, is yours to mend first, and so are areas that are not where the contract puts them: at 1280
+the navigation a column at the side and what is beside the main part next to it, at 390 the navigation
+a bar and what is beside under the main part. Then the pictures go to the founder with the project profile, at the
 gate: does a button here look like his product's button, a field like its field? Name each line marked
 "the conductor's proposal" with its picture: he decides each, and the mark comes off a line on his word
 alone. What he corrects, you change in `kit.css`, and picture again.
+
+## A kit made before the page's areas
+
+Eight classes of the contract came with the page's areas: `ux-option`, `ux-overview`, `ux-window`,
+`ux-navigation`, `ux-bar`, `ux-main`, `ux-beside` and `ux-account`. A kit whose stylesheets style none
+of them was made before them, and is made again. The drawing script still draws with it, but the board
+then has no areas: no window, no navigation at the side, every screen one column. So it says so on the
+error stream, in one line, and its exit code and its page do not change:
+
+```
+warning: no stylesheet of <kit dir> styles any of the page's areas (ux-option, ux-overview, ux-window, ux-navigation, ux-bar, ux-main, ux-beside, ux-account), so the board is drawn without them: this kit was made before them, run setup's kit steps again
+```
+
+Wherever that line is printed, at step 5 or at Structure's render, nothing drawn with that kit goes to
+a reader or to the founder. Tell him what it printed, and make the kit again: copy the grey kit as
+step 1 says, keep `tokens.css` where "When the tokens move" finds it still the project's (else copy it
+again, as step 2), and run steps 3 to 6. "Design system" of the project profile already says which
+default part each class was styled after: restyle each the same way, and the new ones as step 4's table
+says. He sees the pictures, as at setup, and what he corrects goes in. A project with no design system
+copies the grey kit again, and runs steps 5 and 6.
 
 ## When the tokens move
 

@@ -96,8 +96,7 @@ What is true before anyone has an idea?
      tool, no search that carries its content. The product's own analytics are read through a
      connection the project already has, and only read: the fact names that source and the day.
 5. **Fill the template, heading by heading.**
-   - "The problem, and why now": what is wrong or missing today, for whom, and why it is worth doing
-     now.
+   - "The problem, and why now": what is wrong or missing today, for whom, and why it is worth doing now.
    - "The people": first, whether the design is for one profession, for several or for everyone,
      as the frame says it: Cast reads it here. Then the roles that reach it, and each profession's
      profile involved, by its id and its path. Load each from the project's pool. One that is missing
@@ -133,7 +132,8 @@ What is true before anyone has an idea?
      surface of the product "a sibling surface", and the file the inventory's example rows come from
      "the example data". A file you leave out is closed to every later stage. The project kit is not
      one, and never a source of facts about the product: the stages that draw reach it by `kit` of
-     the project profile.
+     the project profile. In a later design of a sequence, so is each approved output of the designs
+     before it, in the folders its frame lists: "an earlier design of this sequence".
 6. **Put the questions to him before the gate, one at a time.** Each of the "Questions for the
    founder", with its recommendation. Write each answer into the context as it comes, in his words,
    where it belongs, and under its question say where: a session that stops midway loses none.

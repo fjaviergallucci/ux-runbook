@@ -62,9 +62,10 @@ screen; the judges, the author map; the audience, the intent.}
 
 ## Fresh pass
 
-{For each stage, whether one runs, with which makers, and why. It never runs at Detail.}
+{For each stage, whether one runs, with which makers, and why. It never runs at Detail. Where
+`engines-on` lists a screen generator, Structure's is offered until he answers, then runs or does not.}
 
-- **Structure:** {runs · does not run} — {the makers, and the reason}
+- **Structure:** {runs · does not run · offered} — {the makers, and the reason; offered: the seats it would add}
 - **Look:** {runs · does not run} — {the makers, and the reason}
 
 ## Cost

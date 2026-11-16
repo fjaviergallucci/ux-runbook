@@ -147,7 +147,7 @@ use. A card that needs another adds its row here.
 | Name | What it is |
 |---|---|
 | `brief` | The brief the seat was started from. Every seat has one. |
-| `walkthrough-format` | How a structure is written down: the roles and containers of `kit/KIT-CONTRACT.md`, and the rules `scripts/lib/walkthrough.mjs` checks. |
+| `walkthrough-format` | How a structure is written down: the roles, the containers and the areas of a page of `kit/KIT-CONTRACT.md`, and the rules `scripts/lib/walkthrough.mjs` checks. |
 | `source-screen` | What a transcriber is handed: the screens of one concept, one or two, or one answer in prose. |
 | `context` | The approved context: who she is, and its inventory of what the product can show and do. |
 | `intent` | The approved intent: the person in her moment, the job, the tasks, the states, the success criteria. |

@@ -41,6 +41,11 @@ delete this line.}
 | handoff | {…} | {…} |
 | acceptance | {…} | {…} |
 
+### What follows this design
+
+{"None", unless the request is a sequence of designs: then the designs before this one, by their
+packages' folders, and those still to come, each the place it designs, one line each, in his order.}
+
 ## Who it is for
 
 {One profile, several, or everyone. Name each profile by its id, as `profile.<name>`, and say which are
