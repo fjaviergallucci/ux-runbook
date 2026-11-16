@@ -30,10 +30,10 @@ const count = (text, part) => text.split(part).length - 1;
 // A frame runs from its opening tag to the first `</section>` at the start of a line: a region inside it
 // closes indented.
 const frameOf = (page, id) => page.match(new RegExp(`<section class="ux-frame" data-screen="${id}">\\n[\\s\\S]*?\\n</section>\\n`))?.[0];
-// The page's title, which opens the body; the map, which follows it; the proposal's own account, which
+// The page's title, which opens the body; the overview, which follows it; the proposal's own account, which
 // closes the body when it is drawn at all.
 const headerOf = page => page.match(/<body>\n\n(<header class="ux-option">\n[\s\S]*?\n<\/header>\n)/)?.[1];
-const mapOf = page => page.match(/\n(<section class="ux-map">\n[\s\S]*?\n<\/section>\n)/)?.[1];
+const overviewOf = page => page.match(/\n(<section class="ux-overview">\n[\s\S]*?\n<\/section>\n)/)?.[1];
 const accountOf = page => page.match(/\n(<section class="ux-account">\n[\s\S]*?\n<\/section>\n)\n<\/body>/)?.[1];
 // Where the script itself writes, apart from the maker's words in the parts: the head, the page's title, the
 // proposal's own account and every tag (element names and attributes). A maker's text may well say "track"
@@ -119,7 +119,7 @@ test("each screen's title is the caption of a ux-frame carrying data-screen, one
   }
 });
 
-// R196 of the board change: the page is drawn as a product. The option's title, then the map, then the screens,
+// R196 of the board change: the page is drawn as a product. The option's title, then the overview, then the screens,
 // and the proposal's own account last, under its own heading: never above the drawing.
 test('the page opens with the option\'s title alone: its letter and its name', () => {
   const p = load(EVERY);
@@ -132,17 +132,36 @@ test('the page opens with the option\'s title alone: its letter and its name', (
   assert.match(headerOf(renderProposal(load(PROPOSALS[1]), { letter: 'C' })), /<h1>Option C: Free rooms first<\/h1>/);
 });
 
-test('the page is drawn in order: the title, the map, the screens, and the proposal\'s own account last', () => {
+test('the page is drawn in order: the title, the overview, the screens, and the proposal\'s own account last', () => {
   for (const name of ALL) {
     const p = load(name);
     const page = renderProposal(p, { letter: 'A' });
-    const places = [headerOf(page), mapOf(page), ...p.screens.map(screen => frameOf(page, screen.id)), accountOf(page)];
+    const places = [headerOf(page), overviewOf(page), ...p.screens.map(screen => frameOf(page, screen.id)), accountOf(page)];
     assert.ok(places.every(Boolean), `${name}: each is drawn`);
     const at = places.map(part => page.indexOf(part));
     assert.deepEqual(at, [...at].sort((a, b) => a - b), `${name}: in that order`);
     // Nothing else is in the body: the parts, each after one empty line.
     assert.equal(page.slice(page.indexOf('<body>'), page.indexOf('</body>')), `<body>\n\n${places.join('\n')}\n`, name);
-    for (const part of ['class="ux-option"', 'class="ux-map"', 'class="ux-account"', '<h1>']) assert.equal(count(page, part), 1, `${name}: ${part}`);
+    for (const part of ['class="ux-option"', 'class="ux-overview"', 'class="ux-account"', '<h1>']) assert.equal(count(page, part), 1, `${name}: ${part}`);
+  }
+});
+
+// R202 of the board change: the page drawn without the proposal's own account is the audience's. She is handed
+// pictures of screens and nothing that says how a design is laid out as a whole, and "without scrolling" is answered
+// on its first-screen picture, which must begin with the first window.
+test('without the proposal\'s own account the page is its title and its screens, and nothing else: no overview, and the first screen follows the title', () => {
+  for (const name of ALL) {
+    const p = load(name);
+    const bare = renderProposal(p, { letter: 'A', notes: false });
+    const places = [headerOf(bare), ...p.screens.map(screen => frameOf(bare, screen.id))];
+    assert.ok(places.every(Boolean), `${name}: each is drawn`);
+    assert.equal(bare.slice(bare.indexOf('<body>'), bare.indexOf('</body>')), `<body>\n\n${places.join('\n')}\n`, `${name}: the title, then each screen, each after one empty line`);
+    assert.equal(overviewOf(bare), undefined, `${name}: no overview`);
+    assert.doesNotMatch(bare, /ux-overview|ux-account|<ol>|<dl>|<dt>|<dd>|<b>/, `${name}: nothing of the overview's or the account's markup`);
+    assert.ok(bare.includes(`</header>\n\n<section class="ux-frame" data-screen="${p.screens[0].id}">`), `${name}: the first screen follows the title`);
+    // And the page that carries the account keeps its overview, between the title and the first screen.
+    const full = renderProposal(p, { letter: 'A' });
+    assert.ok(full.includes('</header>\n\n<section class="ux-overview">') && full.includes(`</section>\n\n<section class="ux-frame" data-screen="${p.screens[0].id}">`), name);
   }
 });
 
@@ -174,12 +193,12 @@ test('the proposal\'s own account closes the page under its own heading: the bet
   assert.ok(accountOf(renderProposal(load(PROPOSALS[1]), { letter: 'C' })).includes('<li>A &quot;show free rooms&quot; filter: the screen does the filtering</li>'));
 });
 
-// The map: every screen of the proposal at a glance, drawn from the proposal alone.
-test('the map names every screen once, its areas in the format\'s order with what each holds in a line, and a dialog under the screen it opens over', () => {
+// The overview: every screen of the proposal at a glance, drawn from the proposal alone.
+test('the overview names every screen once, its areas in the format\'s order with what each holds in a line, and a dialog under the screen it opens over', () => {
   const p = load(PLACED);
   const page = renderProposal(p, { letter: 'A' });
-  const map = mapOf(page);
-  assert.ok(map.startsWith(`<section class="ux-map">
+  const overview = overviewOf(page);
+  assert.ok(overview.startsWith(`<section class="ux-overview">
   <ol>
     <li>
       <b>Today, at 9:40</b>
@@ -207,8 +226,8 @@ test('the map names every screen once, its areas in the format\'s order with wha
       <b>Rooms</b>
       <dl>
         <dt>navigation</dt>
-`), map);
-  assert.ok(map.endsWith(`    <li>
+`), overview);
+  assert.ok(overview.endsWith(`    <li>
       <b>Bookings</b>
       <dl>
         <dt>navigation</dt>
@@ -221,28 +240,28 @@ test('the map names every screen once, its areas in the format\'s order with wha
     </li>
   </ol>
 </section>
-`), map);
+`), overview);
   // Every screen and dialog once, by its title; a screen in the walkthrough's order, a dialog under its screen.
-  assert.deepEqual([...map.matchAll(/<b>([^<]*)<\/b>/g)].map(([, title]) => title), ['Today, at 9:40', 'Booking Room 2', 'Rooms', 'Bookings']);
+  assert.deepEqual([...overview.matchAll(/<b>([^<]*)<\/b>/g)].map(([, title]) => title), ['Today, at 9:40', 'Booking Room 2', 'Rooms', 'Bookings']);
   for (const name of ALL) {
     const q = load(name);
-    const drawn = mapOf(renderProposal(q, { letter: 'A' }));
+    const drawn = overviewOf(renderProposal(q, { letter: 'A' }));
     assert.equal(count(drawn, '<b>'), q.screens.length, name);
     assert.equal(count(drawn, '<dt>dialog</dt>'), q.screens.filter(s => s.container === 'dialog').length, name);
-    assert.equal(count(drawn, '\n    <li>\n'), q.screens.filter(s => s.container === 'screen').length, `${name}: a screen is an entry of the map itself`);
+    assert.equal(count(drawn, '\n    <li>\n'), q.screens.filter(s => s.container === 'screen').length, `${name}: a screen is an entry of the overview itself`);
     // The areas are named in the format's own words and in its order, whatever order the maker wrote them in.
     const words = [...drawn.matchAll(/<dt>([^<]*)<\/dt>/g)].map(([, word]) => word);
     assert.deepEqual(words.filter(word => ![...PLACES, 'screen', 'dialog'].includes(word)), [], name);
   }
 });
 
-test('the map says the areas in the format\'s order whatever order they are written in, and what an area holds from its own parts', () => {
+test('the overview says the areas in the format\'s order whatever order they are written in, and what an area holds from its own parts', () => {
   const p = load(PLACED);
   p.screens[0].items.reverse();
   assert.deepEqual(validate(p), []);
-  const map = mapOf(renderProposal(p, { letter: 'A' }));
-  assert.deepEqual([...map.slice(0, map.indexOf('<ol>', 30)).matchAll(/<dt>([^<]*)<\/dt>/g)].map(([, word]) => word), PLACES);
-  assert.equal(map, mapOf(renderProposal(load(PLACED), { letter: 'A' })), 'the same map');
+  const overview = overviewOf(renderProposal(p, { letter: 'A' }));
+  assert.deepEqual([...overview.slice(0, overview.indexOf('<ol>', overview.indexOf('<ol>') + 1)).matchAll(/<dt>([^<]*)<\/dt>/g)].map(([, word]) => word), PLACES);
+  assert.equal(overview, overviewOf(renderProposal(load(PLACED), { letter: 'A' })), 'the same overview');
   // A line is the area's label, then the words of each part directly in it: a nav by its places, a container by its
   // label, and one without a label by what it holds.
   const q = load(PLACED);
@@ -253,12 +272,12 @@ test('the map says the areas in the format\'s order whatever order they are writ
     { role: 'choice', text: 'How long?', options: ['15 min', '30 min'] },
   ] }];
   assert.deepEqual(validate(q), []);
-  assert.ok(mapOf(renderProposal(q, { letter: 'A' })).includes('        <dt>main</dt>\n        <dd>Rooms · Ground floor, Upstairs · Free until 10:30 · Later today · Not free · How long?</dd>\n'));
+  assert.ok(overviewOf(renderProposal(q, { letter: 'A' })).includes('        <dt>main</dt>\n        <dd>Rooms · Ground floor, Upstairs · Free until 10:30 · Later today · Not free · How long?</dd>\n'));
 });
 
-test('a screen that places no region is one entry of the map with one line, named by its container; a dialog written first still sits under its screen', () => {
+test('a screen that places no region is one entry of the overview with one line, named by its container; a dialog written first still sits under its screen', () => {
   const p = load(EVERY);
-  const expected = `<section class="ux-map">
+  const expected = `<section class="ux-overview">
   <ol>
     <li>
       <b>Today, at 9:40</b>
@@ -279,24 +298,24 @@ test('a screen that places no region is one entry of the map with one line, name
   </ol>
 </section>
 `;
-  assert.equal(mapOf(renderProposal(p, { letter: 'B' })), expected);
+  assert.equal(overviewOf(renderProposal(p, { letter: 'B' })), expected);
   p.screens.reverse();
-  assert.equal(mapOf(renderProposal(p, { letter: 'B' })), expected, 'the dialog written before its screen');
+  assert.equal(overviewOf(renderProposal(p, { letter: 'B' })), expected, 'the dialog written before its screen');
   // Two dialogs over one screen follow it in the order written; a screen with none has no list under it.
   const two = load(EVERY);
   two.screens.push({ id: 'cancel', title: 'Cancelling a booking', container: 'dialog', over: 'today', items: [{ role: 'text', text: 'Cancel it?' }] }, { id: 'rooms', title: 'Rooms', container: 'screen', items: [{ role: 'text', text: 'Every room' }] });
-  const map = mapOf(renderProposal(two, { letter: 'B' }));
-  assert.deepEqual([...map.matchAll(/<b>([^<]*)<\/b>/g)].map(([, title]) => title), ['Today, at 9:40', 'Booking Room 2', 'Cancelling a booking', 'Rooms']);
-  assert.equal(count(map, '<ol>'), 2, 'the map, and one list of dialogs');
-  assert.ok(map.endsWith('    <li>\n      <b>Rooms</b>\n      <dl>\n        <dt>screen</dt>\n        <dd>Every room</dd>\n      </dl>\n    </li>\n  </ol>\n</section>\n'));
+  const overview = overviewOf(renderProposal(two, { letter: 'B' }));
+  assert.deepEqual([...overview.matchAll(/<b>([^<]*)<\/b>/g)].map(([, title]) => title), ['Today, at 9:40', 'Booking Room 2', 'Cancelling a booking', 'Rooms']);
+  assert.equal(count(overview, '<ol>'), 2, 'the overview, and one list of dialogs');
+  assert.ok(overview.endsWith('    <li>\n      <b>Rooms</b>\n      <dl>\n        <dt>screen</dt>\n        <dd>Every room</dd>\n      </dl>\n    </li>\n  </ol>\n</section>\n'));
 });
 
-test('the map is drawn from the proposal alone: it carries no id of the frames, no note, and nothing of the proposal\'s own account', () => {
+test('the overview is drawn from the proposal alone: it carries no id of the frames, no note, and nothing of the proposal\'s own account', () => {
   for (const name of ALL) {
     const p = load(name);
     const page = renderProposal(p, { letter: 'A' });
-    const map = mapOf(page);
-    assert.doesNotMatch(map, /data-ux|data-screen|\sid=|href=|class="(?!ux-map")/, `${name}: one class, and no attribute a part is found by`);
+    const overview = overviewOf(page);
+    assert.doesNotMatch(overview, /data-ux|data-screen|\sid=|href=|class="(?!ux-overview")/, `${name}: one class, and no attribute a part is found by`);
     // So every data-screen is on one frame, and every data-ux on one part of its frame.
     const screens = [...page.matchAll(/ data-screen="([^"]*)"/g)].map(([, id]) => id);
     assert.deepEqual(screens, p.screens.map(screen => screen.id), `${name}: one data-screen per screen`);
@@ -304,9 +323,8 @@ test('the map is drawn from the proposal alone: it carries no id of the frames, 
       const ids = [...frameOf(page, screen.id).matchAll(/ data-ux="([^"]*)"/g)].map(([, id]) => id);
       assert.equal(new Set(ids).size, ids.length, `${name}: ${screen.id}`);
     }
-    for (const holder of [...p.screens, ...itemsOf(p)]) if (holder.note) assert.ok(!map.includes(holder.note), `${name}: ${holder.note}`);
-    for (const words of [p.name, p.bet, p.cost, p.hardest, ...p.absent]) assert.ok(!map.includes(words), `${name}: ${words}`);
-    assert.equal(mapOf(renderProposal(p, { letter: 'A', notes: false })), map, `${name}: the same map without the proposal's own account`);
+    for (const holder of [...p.screens, ...itemsOf(p)]) if (holder.note) assert.ok(!overview.includes(holder.note), `${name}: ${holder.note}`);
+    for (const words of [p.name, p.bet, p.cost, p.hardest, ...p.absent]) assert.ok(!overview.includes(words), `${name}: ${words}`);
   }
 });
 
@@ -314,6 +332,7 @@ test('the map is drawn from the proposal alone: it carries no id of the frames, 
 // What the page is without the proposal's own account: the page as it is drawn, less its name and what the founder judges it by, and less every note.
 const withoutNotes = page => page
   .replace(headerOf(page), `<header class="ux-option">\n  <h1>${headerOf(page).match(/<h1>(Option [A-Z]): /)[1]}</h1>\n</header>\n`)
+  .replace(`\n${overviewOf(page)}`, '')
   .replace(`\n${accountOf(page)}`, '')
   .replace(/^ *<p class="ux-note">.*<\/p>\n/gm, '');
 
@@ -326,8 +345,7 @@ test('without the proposal\'s own account the page keeps its letter and its scre
     assert.equal(headerOf(bare), `<header class="ux-option">\n  <h1>Option ${letter}</h1>\n</header>\n`, name);
     assert.equal(bare, withoutNotes(full), `${name}: the page with the notes, less the notes`);
     assert.equal(accountOf(bare), undefined, `${name}: no account at all`);
-    assert.doesNotMatch(bare, /ux-account|ux-note|Its own account|Its bet|Deliberately bad at|Absent on purpose|In the hardest state/, name);
-    assert.doesNotMatch(bare.replace(mapOf(bare), ''), /<dl>|<dt>|<dd>/, `${name}: the only list of terms left is the map's`);
+    assert.doesNotMatch(bare, /<dl>|<dt>|<dd>|ux-overview|ux-account|ux-note|Its own account|Its bet|Deliberately bad at|Absent on purpose|In the hardest state/, name);
     assert.ok(count(full, 'class="ux-note"') > 0 && accountOf(full).includes('<dl>'), `${name}: the page with the notes has some`);
     // Every frame is there, with its caption and what a dialog opens over, and every part with its id.
     for (const part of ['<section class="ux-frame"', '<header>\n    <h2>', 'class="ux-window"', 'class="ux-over"', 'data-ux="', '<button', '<nav', '<details']) assert.equal(count(bare, part), count(full, part), `${name}: ${part}`);
@@ -676,7 +694,7 @@ test('a dialog over a screen whose title holds markup names that title escaped',
   p.screens[0].title = 'Today <b>at 9:40</b> & "after"';
   const page = renderProposal(p, { letter: 'A' });
   assert.ok(frameOf(page, 'book').includes('<p class="ux-over">opens over Today &lt;b&gt;at 9:40&lt;/b&gt; &amp; &quot;after&quot;</p>'));
-  assert.ok(mapOf(page).includes('<b>Today &lt;b&gt;at 9:40&lt;/b&gt; &amp; &quot;after&quot;</b>'), 'and so does the map');
+  assert.ok(overviewOf(page).includes('<b>Today &lt;b&gt;at 9:40&lt;/b&gt; &amp; &quot;after&quot;</b>'), 'and so does the overview');
   assert.doesNotMatch(page, /<b>at/);
 });
 
@@ -700,23 +718,23 @@ test('every string of the proposal goes through one escape, in the header, the c
   assert.deepEqual(validate(p), []);
   const page = renderProposal(p, { letter: 'B' });
   const numberOf = text => Number(text.match(/"(\d+)"/)[1]);
-  // The first idea is never drawn; the title of the screen the dialog opens over is drawn twice. The map says some
+  // The first idea is never drawn; the title of the screen the dialog opens over is drawn twice. The overview says some
   // of the same strings again, each escaped the same way: it is counted apart.
   const firstIdea = numberOf(p.firstIdea);
   const over = numberOf(p.screens.find(s => s.id === p.screens[1].over).title);
-  const map = mapOf(page);
-  const rest = page.replace(map, '');
+  const overview = overviewOf(page);
+  const rest = page.replace(overview, '');
   const titles = p.screens.map(screen => numberOf(screen.title));
   for (let n = 1; n <= made; n++) {
     const escaped = `&lt;b title=&quot;x&quot;&gt;&#39;Tom &amp; Jerry&#39; &quot;${n}&quot;&lt;/b&gt;`;
     assert.equal(count(rest, escaped), n === firstIdea ? 0 : n === over ? 2 : 1, `string ${n}`);
-    if (titles.includes(n)) assert.equal(count(map, escaped), 1, `string ${n}, a title, in the map`);
+    if (titles.includes(n)) assert.equal(count(overview, escaped), 1, `string ${n}, a title, in the overview`);
   }
   assert.ok(made > 40, `${made} strings`);
-  assert.ok(count(map, '&lt;b title=&quot;x&quot;&gt;') > titles.length, 'the map says what the areas hold');
-  // The only <b> on the page is the map's own, around a title; no markup of the proposal's is.
+  assert.ok(count(overview, '&lt;b title=&quot;x&quot;&gt;') > titles.length, 'the overview says what the areas hold');
+  // The only <b> on the page is the overview's own, around a title; no markup of the proposal's is.
   assert.doesNotMatch(page.replace(/<b>(?=&lt;)/g, ''), /<b[\s>]|Tom & Jerry|'Tom|"\d+"/);
-  // The placed sample too: every string of it, wherever an area or the map says it.
+  // The placed sample too: every string of it, wherever an area or the overview says it.
   made = 0;
   const q = hostile(load(PLACED));
   assert.deepEqual(validate(q), []);
@@ -754,7 +772,7 @@ test('the sample fixture drawn as option A is, byte for byte, the committed page
   assert.equal(renderProposal(load(PLACED), { letter: 'A' }), readFileSync(fixturePath('render/front-desk.A.html'), 'utf8'));
 });
 
-test('the kit contract states what the drawing relies on: the page\'s order, the board\'s own words, the map, ids per frame, the stylesheet set', () => {
+test('the kit contract states what the drawing relies on: the page\'s order, the board\'s own words, the overview, ids per frame, the stylesheet set', () => {
   const contract = readFileSync(contractPath, 'utf8');
   // A section of the contract, its lines joined: the prose wraps anywhere.
   const flat = text => text.replace(/\s+/g, ' ');
@@ -763,23 +781,23 @@ test('the kit contract states what the drawing relies on: the page\'s order, the
   const document = section('The document');
   const markup = section('The markup');
   // The order of the page, as the script draws it: each part's class is named in that order.
-  const order = ['ux-option', 'ux-map', 'ux-frame', 'ux-account'];
+  const order = ['ux-option', 'ux-overview', 'ux-frame', 'ux-account'];
   assert.deepEqual([...page.matchAll(/^<(?:header|section) class="(ux-[a-z]+)"/gm)].map(([, name]) => name).filter((name, i, all) => name !== all[i - 1]), order);
   const steps = [...contract.matchAll(/^\d\. \*\*[^*]+\*\*, (?:one )?`(ux-[a-z]+)`/gm)].map(([, name]) => name);
   assert.deepEqual(steps, order, 'the contract lists the page\'s parts in the order drawn');
   assert.match(document, /Last, and never above the drawing/);
   // Every element the page's own parts are drawn on is named where the contract states their markup.
-  for (const [part, where] of [[headerOf(page), markup], [mapOf(page), section('The markup')], [accountOf(page), markup]]) {
+  for (const [part, where] of [[headerOf(page), markup], [overviewOf(page), section('The markup')], [accountOf(page), markup]]) {
     for (const tag of new Set([...part.matchAll(/<([a-z][a-z0-9]*)\b/g)].map(([, name]) => name))) assert.ok(where.includes(`\`<${tag}>\``) || where.includes(`\`<${tag} `), `the contract names <${tag}>`);
   }
   // S10 of the fix review: the contract describes the page drawn without the proposal's own account too, as the script draws it.
   // N3 of the last re-review: in the words Structure uses for it, never "the makers' notes".
   const bare = renderProposal(load(PLACED), { letter: 'B', notes: false });
   assert.equal(headerOf(bare), '<header class="ux-option">\n  <h1>Option B</h1>\n</header>\n');
-  assert.equal(count(bare, 'class="ux-note"') + count(bare, 'ux-account'), 0);
-  assert.ok(count(page, 'class="ux-note"') > 0 && count(page, 'class="ux-account"') === 1);
-  assert.equal(mapOf(bare), mapOf(page));
-  assert.match(document, /Drawn without the proposal's own account, for a reader who must not see it, the page's title is `Option ` and the letter alone, with no name; no `ux-account` is drawn at all, and no `ux-note` in any frame: nothing else of the markup differs\. The map and the screens are the same either way\./);
+  assert.equal(count(bare, 'class="ux-note"') + count(bare, 'ux-account') + count(bare, 'ux-overview'), 0);
+  assert.ok(count(page, 'class="ux-note"') > 0 && count(page, 'class="ux-account"') === 1 && count(page, 'class="ux-overview"') === 1);
+  for (const screen of load(PLACED).screens.filter(s => !s.note)) assert.equal(frameOf(bare, screen.id).replace(/^ *<p class="ux-note">.*<\/p>\n/gm, ''), frameOf(page, screen.id).replace(/^ *<p class="ux-note">.*<\/p>\n/gm, ''), screen.id);
+  assert.match(document, /Drawn without the proposal's own account, for a reader who must not see it, the page is its title and its screens and nothing else: the title is `Option ` and the letter alone, with no name; no `ux-overview` and no `ux-account` is drawn, and no `ux-note` in any frame\. Its first screen follows its title, so a picture of the page's first screen begins with the first window\. The screens are the same either way\./);
   assert.doesNotMatch(document, /the makers' notes/);
   // The stylesheet set: kit.css is linked, may import the others, and all of them travel together.
   assert.match(document, /A kit may hold more than one stylesheet\. `kit\.css` is the one the document links, and it may import the others by relative name/);
@@ -801,9 +819,10 @@ test('the kit contract states what the drawing relies on: the page\'s order, the
   for (const words of ['Option ', ': ', 'screen']) assert.ok(markup.includes(`\`${words}\``), `the contract quotes the board's "${words}"`);
   assert.match(markup, /Every string in it is the proposal's own words but these, which the board writes/);
   assert.doesNotMatch(markup, /Every string in it is the proposal's own words\./);
-  // The map, as the script draws it: what an area holds, and that it carries nothing a part is found by.
+  // The overview, as the script draws it: what an area holds, and that it carries nothing a part is found by.
   assert.match(markup, /What an area holds is said from the proposal alone: the region's label, when it has one, then the words of each item directly in it, joined by ` · `\. An item's words are its text; a nav's are its places, joined by `, `; a container's are its label, and those of what it holds when it has none\./);
-  assert.match(markup, /The map carries no class but its own, no `data-screen` and no `data-ux`, so it repeats no id of the frames, and no note\. It is the same with and without the proposal's own account\./);
+  assert.match(markup, /The overview carries no class but its own, no `data-screen` and no `data-ux`, so it repeats no id of the frames, and no note\. It is drawn only on the page that carries the proposal's own account\./);
+  assert.doesNotMatch(contract.replace(/a picture, a video or a map/, ''), /\bmap\b/i, 'the board\'s overview is never called the map, which is the sealed file\'s name');
   // The place she is at, as the script marks it.
   assert.ok(page.includes('<li aria-current="page">'));
   assert.match(markup, /the `<li>` of one place at most carries `aria-current="page"`: the place whose words open the screen's title, whatever the case and the spaces/);
@@ -811,7 +830,7 @@ test('the kit contract states what the drawing relies on: the page\'s order, the
   // A data-ux repeats across frames: a part is found by its frame and its id together.
   assert.match(markup, /unique within its screen only, so the same `data-ux` may appear in two frames/);
   assert.match(markup, /found by its frame's `data-screen` and its own `data-ux` together/);
-  assert.match(markup, /Each `data-screen` is on one element of the document, and nothing outside the frames carries either attribute: the map repeats none\./);
+  assert.match(markup, /Each `data-screen` is on one element of the document, and nothing outside the frames carries either attribute: the overview repeats none\./);
   // R198: the classes a kit made before the page's areas lacks are the ones the script looks for, and no other.
   const before = flat(contract.slice(contract.indexOf("### A kit made before the page's areas\n"), contract.indexOf('\n## The markup')));
   assert.deepEqual([...before.matchAll(/`(ux-[a-z]+)`/g)].map(([, name]) => name), AREA_CLASSES);
@@ -906,8 +925,8 @@ test('the CLI warns in one line when no stylesheet of the kit styles a class of 
     return kit;
   };
   const OLD = '.ux-frame { margin: 0; }\n.ux-screen, .ux-dialog { padding: 1rem; }\n.ux-region { padding: 1rem; }\n.ux-nav > ul { display: flex; }\n';
-  const warning = kit => `warning: no stylesheet of ${kit} styles any of the page's areas (ux-option, ux-map, ux-window, ux-navigation, ux-bar, ux-main, ux-beside, ux-account), so the board is drawn without them: this kit was made before them, run setup's kit steps again\n`;
-  assert.deepEqual(AREA_CLASSES, ['ux-option', 'ux-map', 'ux-window', 'ux-navigation', 'ux-bar', 'ux-main', 'ux-beside', 'ux-account']);
+  const warning = kit => `warning: no stylesheet of ${kit} styles any of the page's areas (ux-option, ux-overview, ux-window, ux-navigation, ux-bar, ux-main, ux-beside, ux-account), so the board is drawn without them: this kit was made before them, run setup's kit steps again\n`;
+  assert.deepEqual(AREA_CLASSES, ['ux-option', 'ux-overview', 'ux-window', 'ux-navigation', 'ux-bar', 'ux-main', 'ux-beside', 'ux-account']);
   const drawn = (kit, ...more) => {
     const out = join(dir, 'boards', basename(kit), 'A.html');
     const r = run(input, '--kit', kit, '--out', out, ...more);
@@ -923,7 +942,7 @@ test('the CLI warns in one line when no stylesheet of the kit styles a class of 
     assert.deepEqual(readFileSync(join(dirname(r.out), 'kit.css'), 'utf8'), OLD);
   }
   // A class named in a comment, or as the start of another name, styles nothing.
-  for (const [name, css] of [['commented', `/* .ux-map and .ux-window come later */\n${OLD}`], ['longer', `${OLD}.ux-mapping, .ux-barrier, .ux-main-old, .ux-window_ { margin: 0; }\n`]]) {
+  for (const [name, css] of [['commented', `/* .ux-overview and .ux-window come later */\n${OLD}`], ['longer', `${OLD}.ux-overviewed, .ux-barrier, .ux-main-old, .ux-window_ { margin: 0; }\n`]]) {
     const kit = kitOf(name, { 'kit.css': css });
     assert.equal(drawn(kit).stderr, warning(kit), name);
   }
@@ -938,7 +957,7 @@ test('the CLI warns in one line when no stylesheet of the kit styles a class of 
     assert.equal(drawn(kit).stderr, '', css);
   }
   for (const sheet of ['areas.css', 'zones.css']) {
-    const imported = kitOf(`imported ${sheet}`, { 'kit.css': `@import "${sheet}";\n${OLD}`, [sheet]: '.ux-map { margin: 0; }\n' });
+    const imported = kitOf(`imported ${sheet}`, { 'kit.css': `@import "${sheet}";\n${OLD}`, [sheet]: '.ux-overview { margin: 0; }\n' });
     assert.equal(drawn(imported).stderr, '', `${sheet}: whichever stylesheet of the folder styles it`);
   }
   // The grey kit is never one.
@@ -1177,7 +1196,9 @@ test('the CLI --help prints the usage, naming every flag and the exit codes, and
     assert.ok(help.includes('--without-notes draw the page without the proposal\'s own account (its name, its bet, its cost, what is absent, its hardest state, and the note on a screen or an item), for a reader who must not see it, as an audience: its heading is the option\'s letter alone; the screens, their captions and every part are drawn as they are with it'));
     assert.ok(!help.includes('the makers\' notes'), 'the old word is gone');
     // What the page is drawn as, and what is said of a kit made before its areas, as the script does it.
-    assert.ok(help.includes('It is drawn in this order: the option\'s title; the map (every screen at a glance: its title, its areas and what each holds, a dialog under the screen it opens over); the screens, each in a window the kit lays out as a page, with each region that says which area it is (navigation, bar, main, beside) in its place, and a screen that places none as one column; and last the proposal\'s own account.'));
+    assert.ok(help.includes('It is drawn in this order: the option\'s title; the overview (every screen at a glance: its title, its areas and what each holds, a dialog under the screen it opens over); the screens, each in a window the kit lays out as a page, with each region that says which area it is (navigation, bar, main, beside) in its place, and a screen that places none as one column; and last the proposal\'s own account.'));
+    assert.ok(help.includes('With --without-notes the page is its title and its screens and nothing else: no overview, so its first screen follows its title.'));
+    assert.doesNotMatch(help, /\bmap\b/i);
     assert.ok(help.includes(`A kit made before the page had areas styles none of their classes (${AREA_CLASSES.join(', ')}). The page is then drawn all the same, without its areas, and one warning line on the error stream says so and asks for setup's kit steps to be run again; the exit code is not changed by it.`));
     for (const word of ['--kit', '--out', '--letter', 'kit.css', 'every stylesheet', 'not named like one of the kit\'s stylesheets', 'not the proposal itself', 'A when not given', '--flag=value', '0 success', '1 an invalid proposal', '2 bad usage']) {
       assert.ok(r.stdout.includes(word), word);

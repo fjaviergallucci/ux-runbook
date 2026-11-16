@@ -22,7 +22,7 @@ and the exact markup each sits on.
 Each class, and what it must convey to someone looking at the drawing:
 
 - `ux-option`: the page's title: which option this is.
-- `ux-map`: every screen of the proposal at a glance, before any is drawn, and quieter than the screens.
+- `ux-overview`: every screen of the proposal at a glance, before any is drawn, and quieter than the screens.
 - `ux-frame`: one screen of the walkthrough on the board, captioned with its title and kept apart from the next.
 - `ux-window`: the window a screen is drawn in, which reads as a page of a web app at the width it is pictured at.
 - `ux-screen`: the screen itself, the whole surface she is looking at: laid out as a page when it has
@@ -74,19 +74,20 @@ together.
 The page is drawn as a product, in this order, each part a child of `body`:
 
 1. **The title**, `ux-option`: which option this is. `Option `, the letter, `: ` and the proposal's name.
-2. **The map**, `ux-map`: every screen of the proposal at a glance.
+2. **The overview**, `ux-overview`: every screen of the proposal at a glance.
 3. **The screens**, one `ux-frame` each, in the walkthrough's order.
 4. **The proposal's own account**, `ux-account`: its bet, what it is deliberately bad at, what is absent
    on purpose and how it meets its hardest state. Last, and never above the drawing.
 
-Drawn without the proposal's own account, for a reader who must not see it, the page's title is `Option `
-and the letter alone, with no name; no `ux-account` is drawn at all, and no `ux-note` in any frame:
-nothing else of the markup differs. The map and the screens are the same either way.
+Drawn without the proposal's own account, for a reader who must not see it, the page is its title and its
+screens and nothing else: the title is `Option ` and the letter alone, with no name; no `ux-overview`
+and no `ux-account` is drawn, and no `ux-note` in any frame. Its first screen follows its title, so a
+picture of the page's first screen begins with the first window. The screens are the same either way.
 
 ### A kit made before the page's areas
 
-Eight classes came with the page's areas: `ux-option`, `ux-map`, `ux-window`, `ux-navigation`, `ux-bar`,
-`ux-main`, `ux-beside` and `ux-account`. A kit whose stylesheets style none of them was made before them.
+Eight classes came with the page's areas: `ux-option`, `ux-overview`, `ux-window`, `ux-navigation`,
+`ux-bar`, `ux-main`, `ux-beside` and `ux-account`. A kit whose stylesheets style none of them was made before them.
 The drawing script still draws with it, the board then shows no areas, and the script says so in one
 warning line: the kit is made again, from this contract.
 
@@ -94,7 +95,7 @@ warning line: the kit is made again, from this contract.
 
 The drawing script writes exactly this markup, and a kit styles exactly this markup. Every string in it
 is the proposal's own words but these, which the board writes: `Option ` and `: ` in the title;
-`opens over ` before a title in a dialog's `ux-over`; in the map, the format's own word for each area
+`opens over ` before a title in a dialog's `ux-over`; in the overview, the format's own word for each area
 (`navigation`, `bar`, `main`, `beside`, or `screen` or `dialog` for one that places nothing), ` · `
 between the parts an area holds and `, ` between the places of a nav; and in the account its heading,
 `Its own account`, and its four terms: `Its bet`, `Deliberately bad at`, `Absent on purpose` and
@@ -108,7 +109,7 @@ areas of a screen are drawn in the order written too: where each sits on the pag
 | Class | Element | Where it sits, and what it holds |
 |---|---|---|
 | `ux-option` | `<header>` | The first child of `body`. Holds one `<h1>`: the page's title. |
-| `ux-map` | `<section>` | The second child of `body`, before the frames. Holds one `<ol>`: see "The map" below. |
+| `ux-overview` | `<section>` | The second child of `body`, before the frames, on the page that carries the proposal's own account only. Holds one `<ol>`: see "The overview" below. |
 | `ux-frame` | `<section data-screen="…">` | One per screen, normally a child of `body`. `data-screen` is the screen's `id`. It holds two children: its caption `<header>`, then its `ux-window`. |
 | `ux-window` | `<div>` | The frame's second and last child. Holds one child: the screen's `ux-screen` or `ux-dialog`. |
 | `ux-screen` | `<div>` | The window's only child, when the screen's container is `screen`. Holds the screen's items. |
@@ -147,9 +148,9 @@ width: the navigation as a column at the side when the page is wide and as a bar
 bar across the top; the main part at a readable width; and what is beside it next to it when wide and
 under it when narrow. A screen with no area is one column in the same window. A dialog has no areas.
 
-### The map
+### The overview
 
-`<section class="ux-map">` holds one `<ol>` with one `<li>` for each screen whose container is `screen`,
+`<section class="ux-overview">` holds one `<ol>` with one `<li>` for each screen whose container is `screen`,
 in the walkthrough's order. An entry holds, in this order:
 
 - `<b>`, the screen's title;
@@ -164,8 +165,9 @@ What an area holds is said from the proposal alone: the region's label, when it 
 of each item directly in it, joined by ` · `. An item's words are its text; a nav's are its places,
 joined by `, `; a container's are its label, and those of what it holds when it has none.
 
-The map carries no class but its own, no `data-screen` and no `data-ux`, so it repeats no id of the
-frames, and no note. It is the same with and without the proposal's own account.
+The overview carries no class but its own, no `data-screen` and no `data-ux`, so it repeats no id of
+the frames, and no note. It is drawn only on the page that carries the proposal's own account. It is
+never called by another name: the sealed file of who made which letter has its own.
 
 ### The account
 
@@ -213,7 +215,7 @@ dialog's frame: it has its own frame.
 - An item's id is unique within its screen only, so the same `data-ux` may appear in two frames of one
   document: a part is found by its frame's `data-screen` and its own `data-ux` together.
 - Each `data-screen` is on one element of the document, and nothing outside the frames carries either
-  attribute: the map repeats none.
+  attribute: the overview repeats none.
 - Both attributes are for the scripts and checks that find a part. No kit styles by them. The one
   attribute a kit styles by is `aria-current`, on a place of a nav.
 
@@ -223,7 +225,7 @@ Besides the classes, the stylesheet styles only these elements by name, each whe
 
 - `body`;
 - `h1`, in the page's title;
-- `ol`, `li`, `b`, `dl`, `dt` and `dd`, in the map;
+- `ol`, `li`, `b`, `dl`, `dt` and `dd`, in the overview;
 - `header` and `h2`, a frame's caption, and `header` again as a region's or a group's label;
 - `summary`, an expansion's label;
 - `ul` and `li`, the options of a choice, a list or a nav;

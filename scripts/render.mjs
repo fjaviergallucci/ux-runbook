@@ -5,15 +5,18 @@
 // says. Who made it (author, engine, track, model, source) and the maker's first idea are never drawn.
 // It draws either form of a proposal (lib/walkthrough.mjs): a source file, or a letter copy from the merge;
 // the two draw the same page under the same letter.
-// The page is drawn as a product, in this order: the option's title; the map, every screen of the proposal
-// at a glance (its title, its areas and what each holds in a line, a dialog under the screen it opens
-// over), drawn from the proposal alone; the screens, each in a frame whose window the kit lays out as a
-// page, a region that says which area it is (`place`) carrying that area's class; and last, under its own
-// heading, the proposal's own account. A screen that places no region is one column in the same window.
+// The page is drawn as a product, in this order: the option's title; the overview, every screen of the
+// proposal at a glance (its title, its areas and what each holds in a line, a dialog under the screen it
+// opens over), drawn from the proposal alone; the screens, each in a frame whose window the kit lays out
+// as a page, a region that says which area it is (`place`) carrying that area's class; and last, under
+// its own heading, the proposal's own account. A screen that places no region is one column in the same
+// window.
 // A page is drawn with the proposal's own account, for the founder and the judges, or without it, for a
-// reader who must not see it (an audience, who is not told what a design means to do): then its title is
-// the letter alone, and no name, bet, cost, absence, hardest state or note is drawn: no account at all.
-// The map and the screens are the same either way.
+// reader who must not see it (an audience, who is not told what a design means to do or how it is laid
+// out as a whole): then the page is its title and its screens and nothing else. Its title is the letter
+// alone; no overview is drawn, so its first screen follows its title and a picture of the page's first
+// screen begins with the first window; and no name, bet, cost, absence, hardest state or note is drawn:
+// no account at all. The screens are the same either way.
 // A kit folder whose stylesheets style none of the classes of the page's areas (AREA_CLASSES) was made
 // before them: the command says so in one warning line and draws all the same.
 //
@@ -50,10 +53,10 @@ const CONTAINER_ELEMENTS = { region: 'section', group: 'div', expansion: 'detail
 const INDENT = '  ';
 const LETTER = /^[A-Z]$/;
 // The classes of the page's areas, which the board is drawn with since a region may say where it is: the
-// option's title, the map, a screen's window, the four areas a region may be, and the proposal's own
+// option's title, the overview, a screen's window, the four areas a region may be, and the proposal's own
 // account. A kit that styles none of them was made before them (KIT-CONTRACT.md § A kit made before the
 // page's areas).
-export const AREA_CLASSES = Object.freeze(['ux-option', 'ux-map', 'ux-window', ...PLACES.map(place => `ux-${place}`), 'ux-account']);
+export const AREA_CLASSES = Object.freeze(['ux-option', 'ux-overview', 'ux-window', ...PLACES.map(place => `ux-${place}`), 'ux-account']);
 
 // A proposal is checked in the form it is written in: one carrying any of the six keys only a source has
 // (firstIdea, author, engine, track, model, source) is a source, and must carry its firstIdea; one carrying
@@ -83,8 +86,7 @@ export function renderProposal(proposal, { letter, notes = true } = {}) {
 </head>
 <body>
 
-${drawTitle(letter, notes ? proposal.name : null)}
-${drawMap(proposal.screens)}${proposal.screens.map(screen => drawFrame(notes ? screen : unnoted(screen), titles))}${notes ? drawAccount(proposal) : ''}
+${drawTitle(letter, notes ? proposal.name : null)}${notes ? drawOverview(proposal.screens) : ''}${proposal.screens.map(screen => drawFrame(notes ? screen : unnoted(screen), titles))}${notes ? drawAccount(proposal) : ''}
 </body>
 </html>
 `.text;
@@ -97,12 +99,14 @@ const drawTitle = (letter, name) => html`<header class="ux-option">
 </header>
 `;
 
-// ---- the map
+// ---- the overview
 
 // Every screen of the proposal at a glance, before any is drawn: each screen in the walkthrough's order,
 // and under it each dialog that opens over it. It is drawn from the screens alone, and says nothing a
-// frame is found by: no data-screen, no data-ux, and no note.
-function drawMap(screens) {
+// frame is found by: no data-screen, no data-ux, and no note. It is drawn only on the page that carries
+// the proposal's own account. (It is never called the map: that is the sealed file of who made which
+// letter.)
+function drawOverview(screens) {
   const dialogs = screen => screens.filter(other => other.container === 'dialog' && other.over === screen.id);
   const entry = (screen, pad) => {
     const inner = pad + INDENT;
@@ -111,14 +115,15 @@ function drawMap(screens) {
     const list = under.length ? html`${inner}<ol>\n${under.map(dialog => entry(dialog, inner + INDENT))}${inner}</ol>\n` : '';
     return html`${pad}<li>\n${inner}<b>${screen.title}</b>\n${inner}<dl>\n${areasOf(screen).map(([area, holds]) => html`${inner}${INDENT}<dt>${area}</dt>\n${inner}${INDENT}<dd>${holds}</dd>\n`)}${inner}</dl>\n${list}${pad}</li>\n`;
   };
-  return html`<section class="ux-map">
+  return html`
+<section class="ux-overview">
   <ol>
 ${screens.filter(screen => screen.container === 'screen').map(screen => entry(screen, INDENT + INDENT))}  </ol>
 </section>
 `;
 }
 
-// The areas of a screen as the map says them: each area it places, in the format's own order and by the
+// The areas of a screen as the overview says them: each area it places, in the format's own order and by the
 // format's own word, with what it holds; a screen that places none, and a dialog, as one area named by
 // its container.
 function areasOf(screen) {
@@ -246,10 +251,12 @@ const USAGE = `Usage: node scripts/render.mjs <proposal.json> --kit <kit dir> --
 Draws one Structure proposal, written in the walkthrough format, as one HTML document in the shared kit,
 and copies every stylesheet directly in <kit dir> (each .css file, kit.css among them) beside it, so a
 kit.css that imports its token file keeps it. The page shows the option's letter, never who made the
-proposal. It is drawn in this order: the option's title; the map (every screen at a glance: its title,
-its areas and what each holds, a dialog under the screen it opens over); the screens, each in a window
-the kit lays out as a page, with each region that says which area it is (navigation, bar, main, beside)
-in its place, and a screen that places none as one column; and last the proposal's own account.
+proposal. It is drawn in this order: the option's title; the overview (every screen at a glance: its
+title, its areas and what each holds, a dialog under the screen it opens over); the screens, each in a
+window the kit lays out as a page, with each region that says which area it is (navigation, bar, main,
+beside) in its place, and a screen that places none as one column; and last the proposal's own account.
+With --without-notes the page is its title and its screens and nothing else: no overview, so its first
+screen follows its title.
 
   --kit <kit dir>     the kit to draw in: a folder holding kit.css, and any stylesheet it imports
                       (the grey kit is kit/grey)
@@ -261,9 +268,9 @@ in its place, and a screen that places none as one column; and last the proposal
                       reader who must not see it, as an audience: its heading is the option's letter
                       alone; the screens, their captions and every part are drawn as they are with it
 
-A kit made before the page had areas styles none of their classes (ux-option, ux-map, ux-window,
-ux-navigation, ux-bar, ux-main, ux-beside, ux-account). The page is then drawn all the same, without
-its areas, and one warning line on the error stream says so and asks for setup's kit steps to be run
+A kit made before the page had areas styles none of their classes (ux-option, ux-overview,
+ux-window, ux-navigation, ux-bar, ux-main, ux-beside, ux-account). The page is then drawn all the same,
+without its areas, and one warning line on the error stream says so and asks for setup's kit steps to be run
 again; the exit code is not changed by it.
 
 A flag may also be written --flag=value.

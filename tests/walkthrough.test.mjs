@@ -497,7 +497,7 @@ test('every error is reported at once, in the order of the proposal', () => {
 
 // The classes of the page itself and of a screen's areas came with R194 to R197 of the board change.
 const AREAS = PLACES.map(place => `ux-${place}`);
-const CLASSES = ['ux-option', 'ux-map', 'ux-frame', 'ux-window', 'ux-screen', 'ux-dialog', 'ux-over', ...CONTAINERS.map(c => `ux-${c}`), ...AREAS, ...ROLES.map(r => `ux-${r}`), 'ux-note', 'ux-account'];
+const CLASSES = ['ux-option', 'ux-overview', 'ux-frame', 'ux-window', 'ux-screen', 'ux-dialog', 'ux-over', ...CONTAINERS.map(c => `ux-${c}`), ...AREAS, ...ROLES.map(r => `ux-${r}`), 'ux-note', 'ux-account'];
 const kit = () => ({
   css: read('kit/grey/kit.css').replace(/\/\*[\s\S]*?\*\//g, ''),
   parts: read('kit/grey/parts.html'),
@@ -590,13 +590,13 @@ test('every class the contract names is in kit.css and parts.html, and parts.htm
   assert.equal(parts.match(/<\/header>\n  <div class="ux-window">\n    <div class="ux-(?:screen|dialog)">\n[\s\S]*?\n    <\/div>\n  <\/div>\n<\/section>/g).length, frames.length, 'a frame closes with its window');
   assert.equal(carrying(parts, 'ux-window').length, frames.length);
   assert.equal(carrying(parts, 'ux-screen').length + carrying(parts, 'ux-dialog').length, frames.length);
-  // The page's own parts, where the drawing script puts them: the title first, the map before the frames.
+  // The page's own parts, where the drawing script puts them: the title first, the overview before the frames.
   assert.match(parts, /<body>\n\n<header class="ux-option">\n  <h1>[^<]+<\/h1>\n<\/header>\n/);
-  const map = parts.match(/\n<section class="ux-map">\n  <ol>\n[\s\S]*?\n  <\/ol>\n<\/section>\n/)?.[0];
-  assert.ok(map && parts.indexOf(map) < parts.indexOf('<section class="ux-frame"'), 'the map comes before the frames');
-  assert.doesNotMatch(map, /data-ux|data-screen|class="(?!ux-map")/, 'the map carries no class but its own, and no id');
-  assert.deepEqual([...map.matchAll(/<dt>([^<]*)<\/dt>/g)].map(([, word]) => word), [...PLACES, 'dialog', 'screen'], 'the map shows each area by the format\'s word, a dialog under its screen, and a screen that places none');
-  assert.equal(count(map, '<b>'), 3);
+  const overview = parts.match(/\n<section class="ux-overview">\n  <ol>\n[\s\S]*?\n  <\/ol>\n<\/section>\n/)?.[0];
+  assert.ok(overview && parts.indexOf(overview) < parts.indexOf('<section class="ux-frame"'), 'the overview comes before the frames');
+  assert.doesNotMatch(overview, /data-ux|data-screen|class="(?!ux-overview")/, 'the overview carries no class but its own, and no id');
+  assert.deepEqual([...overview.matchAll(/<dt>([^<]*)<\/dt>/g)].map(([, word]) => word), [...PLACES, 'dialog', 'screen'], 'the overview shows each area by the format\'s word, a dialog under its screen, and a screen that places none');
+  assert.equal(count(overview, '<b>'), 3);
   // The areas, on one screen: each a region that is a direct item of it.
   for (const area of AREAS) assert.match(parts, new RegExp(`\\n    <div class="ux-screen">\\n(?:      [^\\n]*\\n|        [^\\n]*\\n)*?      <section class="ux-region ${area}">\\n`), `${area} is a direct item of its screen`);
   assert.equal(parts.match(/<details class="ux-expansion"[^>]*>\s*<summary>[^<\s][^<]*<\/summary>/g).length, carrying(parts, 'ux-expansion').length, 'an expansion opens with its labelled summary');
@@ -606,13 +606,13 @@ test('every class the contract names is in kit.css and parts.html, and parts.htm
   assert.deepEqual([...byName].sort(), ['b', 'body', 'dd', 'dl', 'dt', 'h1', 'h2', 'header', 'li', 'ol', 'summary', 'ul'], 'kit.css styles by class, and by name only the elements the contract places');
   const styled = flat(contract.slice(contract.indexOf('### What the stylesheet styles by name')));
   for (const tag of byName) assert.ok(styled.includes(`\`${tag}\``), `the contract says ${tag} is styled by name`);
-  // A list is styled where the contract puts one: the options of a part, the map, the account.
-  const LISTED = [...Object.keys(OPTIONED), 'ux-map', 'ux-account', 'ux-navigation'];
+  // A list is styled where the contract puts one: the options of a part, the overview, the account.
+  const LISTED = [...Object.keys(OPTIONED), 'ux-overview', 'ux-account', 'ux-navigation'];
   for (const prelude of preludes.filter(prelude => /(?:^|[\s>+~,(])(?:ul|ol|li|dl|dt|dd|b|h1)(?![\w-])/.test(prelude))) {
     const named = [...prelude.matchAll(/\.(ux-[a-z]+)/g)].map(([, name]) => name);
-    assert.ok(named.length > 0 && named.every(name => LISTED.includes(name) || name === 'ux-option'), `${prelude}: a list is styled as options, in the map or in the account only`);
+    assert.ok(named.length > 0 && named.every(name => LISTED.includes(name) || name === 'ux-option'), `${prelude}: a list is styled as options, in the overview or in the account only`);
   }
-  for (const prelude of preludes.filter(prelude => /(?:^|[\s>+~,(])(?:ol|dt|dd|dl|b)(?![\w-])/.test(prelude))) assert.match(prelude, /\.ux-(?:map|account)\b/, prelude);
+  for (const prelude of preludes.filter(prelude => /(?:^|[\s>+~,(])(?:ol|dt|dd|dl|b)(?![\w-])/.test(prelude))) assert.match(prelude, /\.ux-(?:overview|account)\b/, prelude);
   for (const selector of preludes.flatMap(prelude => prelude.split(/,(?![^(]*\))/)).map(selector => selector.trim())) {
     if (selector.includes('.ux-frame')) assert.ok(selector.startsWith('.ux-frame'), `${selector}: no selector depends on a frame's parent`);
   }

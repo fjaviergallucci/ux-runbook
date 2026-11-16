@@ -61,7 +61,7 @@ body {
   overflow-wrap: anywhere;
 }
 
-/* ---- The page: which option this is, the map of its screens, and last its own account. */
+/* ---- The page: which option this is, the overview of its screens, and last its own account. */
 
 .ux-option {
   margin: 0 0 1rem;
@@ -75,39 +75,39 @@ body {
   letter-spacing: -0.015em;
 }
 
-/* The map: every screen at a glance, side by side in the walkthrough's order, quieter than the screens
+/* The overview: every screen at a glance, side by side in the walkthrough's order, quieter than the screens
    themselves. An area is a row: its name, then what it holds, in one line. A dialog hangs under the
    screen it opens over. */
-.ux-map {
+.ux-overview {
   margin: 0 0 1.75rem;
 }
 
-.ux-map ol {
+.ux-overview ol {
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.ux-map > ol {
+.ux-overview > ol {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(17rem, 100%), 1fr));
   align-items: start;
   gap: 0.625rem 1.5rem;
 }
 
-.ux-map > ol > li {
+.ux-overview > ol > li {
   padding-top: 0.4375rem;
   border-top: 2px solid var(--ux-line-strong);
 }
 
-.ux-map b {
+.ux-overview b {
   display: block;
   font-size: var(--ux-small);
   font-weight: 650;
   line-height: 1.3;
 }
 
-.ux-map dl {
+.ux-overview dl {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   gap: 0.0625rem 0.5rem;
@@ -117,7 +117,7 @@ body {
   line-height: 1.4;
 }
 
-.ux-map dt {
+.ux-overview dt {
   font-size: 0.625rem;
   font-weight: 650;
   letter-spacing: 0.05em;
@@ -125,7 +125,7 @@ body {
   text-transform: uppercase;
 }
 
-.ux-map dd {
+.ux-overview dd {
   margin: 0;
   overflow: hidden;
   color: var(--ux-ink);
@@ -133,13 +133,13 @@ body {
   white-space: nowrap;
 }
 
-.ux-map li > ol {
+.ux-overview li > ol {
   margin-top: 0.3125rem;
   padding-left: 0.5rem;
   border-left: 2px solid var(--ux-line-strong);
 }
 
-.ux-map li > ol > li + li {
+.ux-overview li > ol > li + li {
   margin-top: 0.25rem;
 }
 

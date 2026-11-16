@@ -106,7 +106,7 @@ default part for the same job, to see which tokens it wears, and give the class 
 | `ux-screen`, `ux-dialog`, `ux-region`, `ux-group`, `ux-expansion` | page surface, dialog, section, card and disclosure |
 | `ux-navigation`, `ux-bar`, `ux-main`, `ux-beside` | the areas of a page: its navigation, its top bar, its content area and its side panel |
 | `ux-media` | nothing of the project: a placeholder that says what it shows |
-| `ux-frame`, `ux-window`, `ux-over`, `ux-note`, `ux-option`, `ux-map`, `ux-account` | nothing of the project: they are the board's, and stay plain |
+| `ux-frame`, `ux-window`, `ux-over`, `ux-note`, `ux-option`, `ux-overview`, `ux-account` | nothing of the project: they are the board's, and stay plain |
 
 The rules, which are the contract's:
 
