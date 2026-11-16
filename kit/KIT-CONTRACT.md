@@ -30,21 +30,24 @@ Each class, and what it must convey to someone looking at the drawing:
 - `ux-dialog`: a dialog, plainly in front of the screen it opens over.
 - `ux-over`: on a dialog's frame, the screen the dialog opens over, named by that screen's title: the
   board says it, not the maker.
-- `ux-region`: a major area of a screen, set apart from the areas around it.
+- `ux-region`: a major area of a screen, set apart from the areas around it. Its parts are one under
+  another, as in every holder.
 - `ux-navigation`: the region that is the navigation: the places she moves between, present from screen
-  to screen. A column at the side when the page is wide, a bar when it is narrow.
+  to screen. A column at the side when the page is wide, one bar when it is narrow.
 - `ux-bar`: the region that is the bar: a strip across the top, with what is always at hand.
 - `ux-main`: the region that is the main part: what the screen is for, at a readable width.
 - `ux-beside`: the region that sits beside the main part and supports it: next to it when the page is
   wide, under it when it is narrow.
-- `ux-group`: parts that belong together, held as one cluster.
+- `ux-group`: parts that belong together, held as one cluster. Groups written one after another in a
+  region sit side by side where the region has room for two, and one under another where it has not.
 - `ux-expansion`: something that opens in place: its label, which it always has, always shows; what it
   holds shows only when it is open.
 - `ux-heading`: what a screen, region or group is about.
 - `ux-text`: words she reads, with nothing to do.
 - `ux-choice`: a choice she makes among options, all of them visible.
 - `ux-input`: a place she types, with its label.
-- `ux-action`: something she does.
+- `ux-action`: something she does. Actions written one after another sit side by side, a gap apart,
+  wherever they are: in a region as in a group, a dialog, a screen or the bar.
 - `ux-action.is-primary`: the one action the screen is for, and the only part that stands out.
 - `ux-list`: like things, one row each.
 - `ux-status`: the state of something, as the product reports it.
@@ -70,6 +73,9 @@ A kit may hold more than one stylesheet. `kit.css` is the one the document links
 others by relative name (`@import "tokens.css";`, say, for the project's token file); the drawing script
 copies every stylesheet found directly in the kit's folder beside the document, so they all travel
 together.
+
+When the drawing script is given the language of the proposal's words, it writes it on the page,
+`<html lang="`the tag`">`; a kit hyphenates by it. Given none, the page says none.
 
 The page is drawn as a product, in this order, each part a child of `body`:
 
@@ -148,6 +154,12 @@ width: the navigation as a column at the side when the page is wide and as a bar
 bar across the top; the main part at a readable width; and what is beside it next to it when wide and
 under it when narrow. A screen with no area is one column in the same window. A dialog has no areas.
 
+Narrow, the navigation is one bar: everything it holds is on one row that does not wrap, its places
+among them, the name above them and a nav's caption taking no row of their own; what does not fit is cut
+at the edge, in a way that shows the row goes on. The row stands where the place she is at is in sight:
+at its start whenever that place is in sight from there. Wide, the same parts are one under another down
+the column, a nav's places as rows.
+
 ### The overview
 
 `<section class="ux-overview">` holds one `<ol>` with one `<li>` for each screen whose container is `screen`,
@@ -163,7 +175,14 @@ in the walkthrough's order. An entry holds, in this order:
 
 What an area holds is said from the proposal alone: the region's label, when it has one, then the words
 of each item directly in it, joined by ` · `. An item's words are its text; a nav's are its places,
-joined by `, `; a container's are its label, and those of what it holds when it has none.
+joined by `, `; a container's are its label, and those of what it holds when it has none. In the area
+that is the navigation, the places of its navs are said first, then its label and its other words, so
+that a navigation is said by its places and never by a heading above them.
+
+A kit draws what an area holds in two lines at most, a longer line ending with an ellipsis, never cut in
+the middle of what it says. At a narrow width it draws each screen's title alone, on one line, a dialog
+under its screen, so that the first window is on the first screen: what the areas hold is not shown
+there.
 
 The overview carries no class but its own, no `data-screen` and no `data-ux`, so it repeats no id of
 the frames, and no note. It is drawn only on the page that carries the proposal's own account. It is
@@ -232,6 +251,12 @@ Besides the classes, the stylesheet styles only these elements by name, each whe
 - `h2`, `dl`, `dt`, `dd` and `ul`, in the account.
 
 Everything else is styled by class.
+
+### Words
+
+A kit never breaks a word in the middle without a sign: it hyphenates where the browser knows the page's
+language, lets a word it cannot break move to a line of its own, and cuts what is still wider than its
+part with an ellipsis.
 
 ## The rule
 

@@ -1080,6 +1080,12 @@ test('a card that sums up the walkthrough format names every key, role, containe
     assert.match(flat, /A region that is a direct item of a screen may say in `place` which area of the page it is: `navigation`, `bar`, `main` or `beside`\./, id);
     assert.deepEqual(spans(summary).filter(word => PLACES.includes(word)), PLACES, id);
   }
+  // M4 of the board change's review: the transcriber is told, in the sentence both briefs give with the format, which
+  // place of a nav the board marks; the describer's card says it in its method.
+  const sentence = 'In a `nav` on a `screen`, the place whose words open that screen\'s `title` is drawn as the place she is at, as "Today" opens "Today, at 9:40".';
+  for (const brief of ['templates/package/04-structure/BRIEF.md', 'templates/package/04-structure/BRIEF-fresh.md']) assert.ok(read(brief).replace(/\s+/g, ' ').includes(sentence), brief);
+  assert.ok(summaries.find(([id]) => id === 'maker.transcriber')[1].replace(/\s+/g, ' ').includes(`- ${sentence}`), 'the transcriber\'s summary of the format');
+  assert.match(cards.find(card => card.data.id === 'maker.structure-describer').text.replace(/\s+/g, ' '), /The place of a navigation whose words open the screen's title is marked as where she is/);
 });
 
 // The one command a card gives in a fence, by the words it starts with: the script between its double

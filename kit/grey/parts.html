@@ -20,7 +20,7 @@
       <b>ux-overview: a screen that places its regions</b>
       <dl>
         <dt>navigation</dt>
-        <dd>Heading · First place, Second place, Third place</dd>
+        <dd>First place, Second place, Third place · Heading · Link</dd>
         <dt>bar</dt>
         <dd>Field label · Status, as of 09:05 · Primary action</dd>
         <dt>main</dt>
@@ -114,13 +114,17 @@
         <header>Region label</header>
         <p class="ux-text">A line of text beside the main part, which supports it.</p>
         <button class="ux-action" type="button">Action</button>
+        <button class="ux-action" type="button">Other action</button>
       </section>
     </div>
   </div>
 </section>
 
 <section class="ux-frame" data-screen="region">
-  <header><h2>ux-region</h2></header>
+  <header>
+    <h2>ux-region</h2>
+    <p class="ux-note">Its parts are one under another; groups written one after another in it sit side by side where it is wide enough for two.</p>
+  </header>
   <div class="ux-window">
     <div class="ux-screen">
       <section class="ux-region">
@@ -130,7 +134,14 @@
       </section>
       <section class="ux-region">
         <header>Second region label</header>
-        <p class="ux-text">Row title — detail, 18:00</p>
+        <div class="ux-group">
+          <header>Group label</header>
+          <p class="ux-text">Row title — detail, 18:00</p>
+        </div>
+        <div class="ux-group">
+          <header>Second group label</header>
+          <p class="ux-text">Row title — detail, 21:45</p>
+        </div>
       </section>
     </div>
   </div>

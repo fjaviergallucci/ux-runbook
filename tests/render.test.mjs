@@ -22,6 +22,8 @@ const load = name => JSON.parse(readFileSync(fixturePath(name), 'utf8'));
 const EVERY = 'render/every-part.json';
 // The kit's sample: three screens and a dialog, each screen placing its regions in the page's areas.
 const PLACED = 'render/front-desk.json';
+// The same desk on its worst day: long words, a list of fifteen rows, a nearly empty screen, a screen with no area.
+const HARD = 'render/front-desk-hard.json';
 const PROPOSALS = ['unified-list', 'free-first', 'calendar'].map(name => `proposals/${name}.json`);
 const ALL = [EVERY, ...PROPOSALS, PLACED];
 const PROVENANCE = ['author', 'engine', 'track', 'model', 'source'];
@@ -89,6 +91,38 @@ test('the sample fixture is valid: three screens and a dialog, every screen plac
   const roles = new Set(itemsOf(p).filter(i => i.role).map(i => i.role));
   assert.deepEqual([...roles].sort(), [...ROLES].sort(), 'every role is in it');
   assert.ok(itemsOf(p).some(i => i.note) && p.screens.some(s => s.note), 'notes, on a screen and on an item');
+  // I1 of the review: two actions written one after another, directly in a main region.
+  assert.ok(p.screens.some(screen => screen.items.some(region => region.place === 'main' && actionsInARow(region))), 'two actions in a row in a main');
+});
+
+// Whether a holder's own items hold two actions one right after the other.
+const actionsInARow = holder => holder.items.some((item, i) => item.role === 'action' && holder.items[i + 1]?.role === 'action');
+
+// The hard sample, which the board's pictures for the founder are taken of: what a kind proposal never shows.
+test('the hard sample is valid and holds what breaks a drawing: long words, fifteen rows, a nearly empty screen, a screen that places nothing, actions in a row', () => {
+  const p = load(HARD);
+  assert.deepEqual(validate(p), []);
+  assert.equal(p.screens.length, 5, 'as many screens as a proposal may hold');
+  const strings = itemsOf(p).flatMap(item => [item.text, item.label, ...(item.options ?? [])]).filter(Boolean);
+  const longest = Math.max(...strings.flatMap(text => text.split(/[\s-]+/)).map(word => word.length));
+  assert.ok(longest >= 35, `a word of ${longest} letters with no space and no hyphen`);
+  assert.ok(strings.some(text => /\S+@\S+\.example\b/.test(text) && text.length > 60), 'a long address');
+  assert.ok(itemsOf(p).some(item => item.role === 'list' && item.options.length === 15), 'a list of fifteen rows');
+  const screens = p.screens.filter(screen => screen.container === 'screen');
+  assert.ok(screens.some(screen => screen.items.every(item => !item.place)), 'a screen that places no region');
+  assert.ok(screens.some(screen => screen.items.some(region => region.place === 'main' && region.items.length === 1 && region.items[0].role === 'text')), 'a main that holds one sentence');
+  assert.ok(screens.some(screen => !screen.items.some(region => region.place === 'bar') && screen.items.some(region => region.place === 'navigation')), 'a screen with no bar');
+  // Two actions in a row, in each kind of holder: a placed region, a group, a dialog, a screen that places nothing.
+  const main = screens.flatMap(screen => screen.items).filter(region => region.place === 'main');
+  assert.ok(main.some(actionsInARow), 'in a main');
+  assert.ok(itemsOf(p).some(item => item.container === 'group' && actionsInARow(item)), 'in a group');
+  assert.ok(p.screens.some(screen => screen.container === 'dialog' && actionsInARow(screen)), 'in a dialog');
+  assert.ok(screens.some(screen => screen.items.every(item => !item.place) && actionsInARow(screen)), 'on a screen that places nothing');
+  // A navigation whose places do not fit a narrow bar, under a name that does not fit either.
+  const nav = itemsOf(p).find(item => item.role === 'nav');
+  assert.ok(nav.options.length >= 5 && nav.options.join(' ').length > 60, 'five places, long ones');
+  assert.doesNotMatch(readFileSync(fixturePath(HARD), 'utf8'), /\bVerbato\b|\bVersa\b/i);
+  assert.equal(renderProposal(p, { letter: 'C' }), renderProposal(p, { letter: 'C' }));
 });
 
 test('the document is a whole page: the doctype, utf-8, the viewport, kit.css linked from beside it, titled by its letter', () => {
@@ -204,7 +238,7 @@ test('the overview names every screen once, its areas in the format\'s order wit
       <b>Today, at 9:40</b>
       <dl>
         <dt>navigation</dt>
-        <dd>Front desk · Today, Rooms, Bookings, Settings · Help</dd>
+        <dd>Today, Rooms, Bookings, Settings · Front desk · Help</dd>
         <dt>bar</dt>
         <dd>Find a patient or a room · Updated 9:40 · Book a walk-in</dd>
         <dt>main</dt>
@@ -231,11 +265,11 @@ test('the overview names every screen once, its areas in the format\'s order wit
       <b>Bookings</b>
       <dl>
         <dt>navigation</dt>
-        <dd>Front desk · Today, Rooms, Bookings, Settings · Help</dd>
+        <dd>Today, Rooms, Bookings, Settings · Front desk · Help</dd>
         <dt>bar</dt>
         <dd>Find a patient or a room · Updated 9:40 · Book a walk-in</dd>
         <dt>main</dt>
-        <dd>Today&#39;s bookings · 11 bookings, 3 still to arrive · Still to arrive · Already here or gone (8) · Move a booking</dd>
+        <dd>Today&#39;s bookings · 11 bookings, 3 still to arrive · Still to arrive · Already here or gone (8) · Move a booking · Cancel a booking</dd>
       </dl>
     </li>
   </ol>
@@ -273,6 +307,31 @@ test('the overview says the areas in the format\'s order whatever order they are
   ] }];
   assert.deepEqual(validate(q), []);
   assert.ok(overviewOf(renderProposal(q, { letter: 'A' })).includes('        <dt>main</dt>\n        <dd>Rooms · Ground floor, Upstairs · Free until 10:30 · Later today · Not free · How long?</dd>\n'));
+});
+
+// M1 of the board change's review: a navigation is described by its places, never by a heading that sits above them.
+test('the overview says a navigation by its places first, then by what else it holds; no other area is said that way', () => {
+  const lineOf = (place, region) => {
+    const p = load(PLACED);
+    p.screens.length = 1;
+    p.screens[0].items = [{ container: 'region', place: 'main', items: [{ role: 'text', text: 'Rooms right now' }] }];
+    p.screens[0].items[place === 'main' ? 0 : 1] = { container: 'region', place, ...region };
+    assert.deepEqual(validate(p), []);
+    return overviewOf(renderProposal(p, { letter: 'A' })).match(new RegExp(`<dt>${place}</dt>\\n +<dd>([^<]*)</dd>`))[1];
+  };
+  const heading = { role: 'heading', text: 'Front desk' };
+  const nav = { role: 'nav', text: 'Places', options: ['Today', 'Rooms'] };
+  const link = { role: 'link', text: 'Help' };
+  assert.equal(lineOf('navigation', { items: [heading, nav, link] }), 'Today, Rooms · Front desk · Help');
+  assert.equal(lineOf('navigation', { label: 'Menu', items: [heading, link, nav] }), 'Today, Rooms · Menu · Front desk · Help', 'before its own label too');
+  // Two navs, each by its places, in the order written; one inside a container with no label is found there.
+  const second = { role: 'nav', text: 'Days', options: ['Yesterday', 'Tomorrow'] };
+  assert.equal(lineOf('navigation', { items: [heading, { container: 'group', items: [nav, link] }, second] }), 'Today, Rooms · Yesterday, Tomorrow · Front desk · Help');
+  // A container with a label is said by its label, as anywhere: its nav is not looked for.
+  assert.equal(lineOf('navigation', { items: [heading, { container: 'group', label: 'More', items: [nav] }] }), 'Front desk · More');
+  assert.equal(lineOf('navigation', { items: [heading, link] }), 'Front desk · Help', 'a navigation with no nav, in the order written');
+  // In any other area a nav is said where it is written.
+  for (const place of ['bar', 'main', 'beside']) assert.equal(lineOf(place, { items: [heading, nav, link] }), 'Front desk · Today, Rooms · Help', place);
 });
 
 test('a screen that places no region is one entry of the overview with one line, named by its container; a dialog written first still sits under its screen', () => {
@@ -748,6 +807,41 @@ test('Reunión — sala 3 🙂 is drawn intact, and the page declares charset="u
   assert.doesNotMatch(page, /&#x?[0-9a-f]+;(?<!&#39;)/i, 'no character is written as a numeric reference but the apostrophe');
 });
 
+// M3 of the board change's review: a long word is hyphenated by the browser only when the page says its language.
+test('the page says its language when it is given one, as lang on <html>, and says none otherwise', () => {
+  const p = load(EVERY);
+  const page = renderProposal(p, { letter: 'B' });
+  assert.ok(page.startsWith('<!doctype html>\n<html>\n<head>\n'));
+  for (const lang of ['de', 'es', 'pt-BR', 'zh-Hant-TW', 'es-419']) {
+    const said = renderProposal(p, { letter: 'B', lang });
+    assert.ok(said.startsWith(`<!doctype html>\n<html lang="${lang}">\n<head>\n`), lang);
+    assert.equal(said.replace(`<html lang="${lang}">`, '<html>'), page, `${lang}: nothing else changes`);
+    assert.equal(renderProposal(p, { letter: 'B', lang, notes: false }).replace(`<html lang="${lang}">`, '<html>'), renderProposal(p, { letter: 'B', notes: false }));
+  }
+  assert.equal(renderProposal(p, { letter: 'B', lang: undefined }), page);
+  for (const lang of ['', 'german', 'd', 'de_DE', 'de-', '"><script>', 'de DE', 5, null, ['de']]) {
+    assert.throws(() => renderProposal(p, { letter: 'B', lang }), e => e instanceof TypeError && /^the language must be a language tag, as "de" or "pt-BR"; it is /.test(e.message), JSON.stringify(lang));
+  }
+});
+
+test('the CLI takes the page\'s language with --lang, refuses one that is no language tag (exit 2), and says none when it is not given', () => {
+  const dir = fresh();
+  const input = writeProposal(dir, load(EVERY));
+  const out = join(dir, 'board', 'B.html');
+  const r = run(input, '--kit', greyKit, '--out', out, '--letter', 'B', '--lang', 'de');
+  assert.deepEqual([r.status, r.stderr, r.stdout], [0, '', `drew option B to ${out}, with kit.css beside it\n`]);
+  assert.equal(readFileSync(out, 'utf8'), renderProposal(load(EVERY), { letter: 'B', lang: 'de' }));
+  const bare = run(input, '--kit', greyKit, `--out=${out}`, '--lang=pt-BR', '--without-notes');
+  assert.equal(bare.status, 0, bare.stderr);
+  assert.equal(readFileSync(out, 'utf8'), renderProposal(load(EVERY), { letter: 'A', lang: 'pt-BR', notes: false }));
+  for (const bad of ['german', 'de_DE', 'x']) {
+    const refused = run(input, '--kit', greyKit, '--out', join(dir, 'other', 'A.html'), '--lang', bad);
+    assert.equal(refused.status, 2, bad);
+    assert.ok(refused.stderr.startsWith(`--lang must be a language tag, as "de" or "pt-BR"; it is "${bad}"\n\nUsage: node scripts/render.mjs`), refused.stderr);
+  }
+  assert.ok(!existsSync(join(dir, 'other')), 'nothing is written');
+});
+
 test('renderProposal refuses an invalid proposal with every error, and a letter that is not one capital letter', () => {
   const bad = load(EVERY);
   bad.screens[1].items[0].role = 'card';
@@ -823,6 +917,9 @@ test('the kit contract states what the drawing relies on: the page\'s order, the
   assert.match(markup, /What an area holds is said from the proposal alone: the region's label, when it has one, then the words of each item directly in it, joined by ` · `\. An item's words are its text; a nav's are its places, joined by `, `; a container's are its label, and those of what it holds when it has none\./);
   assert.match(markup, /The overview carries no class but its own, no `data-screen` and no `data-ux`, so it repeats no id of the frames, and no note\. It is drawn only on the page that carries the proposal's own account\./);
   assert.doesNotMatch(contract.replace(/a picture, a video or a map/, ''), /\bmap\b/i, 'the board\'s overview is never called the map, which is the sealed file\'s name');
+  assert.match(markup, /In the area that is the navigation, the places of its navs are said first, then its label and its other words, so that a navigation is said by its places and never by a heading above them\./);
+  // The page's language, as the script writes it.
+  assert.match(document, /When the drawing script is given the language of the proposal's words, it writes it on the page, `<html lang="`the tag`">`; a kit hyphenates by it\./);
   // The place she is at, as the script marks it.
   assert.ok(page.includes('<li aria-current="page">'));
   assert.match(markup, /the `<li>` of one place at most carries `aria-current="page"`: the place whose words open the screen's title, whatever the case and the spaces/);
@@ -1190,7 +1287,7 @@ test('the CLI --help prints the usage, naming every flag and the exit codes, and
     const r = run(...args);
     assert.equal(r.status, 0, args.join(' '));
     assert.equal(r.stderr, '');
-    assert.match(r.stdout, /^Usage: node scripts\/render\.mjs <proposal\.json> --kit <kit dir> --out <file\.html> \[--letter A\] \[--without-notes\]\n/);
+    assert.match(r.stdout, /^Usage: node scripts\/render\.mjs <proposal\.json> --kit <kit dir> --out <file\.html> \[--letter A\] \[--lang <tag>\] \[--without-notes\]\n/);
     const help = r.stdout.replace(/\s+/g, ' ');
     // N3 of the last re-review: the help is read with no skill beside it, so it spells the proposal's own account out once.
     assert.ok(help.includes('--without-notes draw the page without the proposal\'s own account (its name, its bet, its cost, what is absent, its hardest state, and the note on a screen or an item), for a reader who must not see it, as an audience: its heading is the option\'s letter alone; the screens, their captions and every part are drawn as they are with it'));
@@ -1199,6 +1296,7 @@ test('the CLI --help prints the usage, naming every flag and the exit codes, and
     assert.ok(help.includes('It is drawn in this order: the option\'s title; the overview (every screen at a glance: its title, its areas and what each holds, a dialog under the screen it opens over); the screens, each in a window the kit lays out as a page, with each region that says which area it is (navigation, bar, main, beside) in its place, and a screen that places none as one column; and last the proposal\'s own account.'));
     assert.ok(help.includes('With --without-notes the page is its title and its screens and nothing else: no overview, so its first screen follows its title.'));
     assert.doesNotMatch(help, /\bmap\b/i);
+    assert.ok(help.includes('--lang <tag> the language the proposal\'s words are in, as a language tag ("de", "pt-BR"): written on the page as its language, so that a browser that can hyphenates a long word where it breaks it; when not given the page says none, and a long word moves to a line of its own or is cut with an ellipsis'));
     assert.ok(help.includes(`A kit made before the page had areas styles none of their classes (${AREA_CLASSES.join(', ')}). The page is then drawn all the same, without its areas, and one warning line on the error stream says so and asks for setup's kit steps to be run again; the exit code is not changed by it.`));
     for (const word of ['--kit', '--out', '--letter', 'kit.css', 'every stylesheet', 'not named like one of the kit\'s stylesheets', 'not the proposal itself', 'A when not given', '--flag=value', '0 success', '1 an invalid proposal', '2 bad usage']) {
       assert.ok(r.stdout.includes(word), word);

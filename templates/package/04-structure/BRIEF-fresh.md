@@ -100,6 +100,9 @@ A proposal says what she sees and what she can do, screen by screen, and nothing
 | `link` | A way to go somewhere else. | Its words. |
 | `nav` | The places she can move between. | A caption, and one place or more as its options. |
 
+In a `nav` on a `screen`, the place whose words open that screen's `title` is drawn as the place she is
+at, as "Today" opens "Today, at 9:40".
+
 - **A container** arranges items, and nothing else does. It has `container` and `items`, and may have a
   `label`. A `region` may also say in `place` which area of the page it is.
 

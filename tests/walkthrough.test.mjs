@@ -227,13 +227,15 @@ test('a dialog names the screen it opens over, and only a dialog does', () => {
 });
 
 test('primary belongs to an action, and is true or false', () => {
+  refuses(changed(p => { p.screens[1].items[0].primary = true; }), 'screens[1].items[0]', /"primary" belongs to an action, not to an "input"$/);
   refuses(changed(p => { p.screens[0].items[0].primary = false; }), 'screens[0].items[0]', /"primary" belongs to an action/);
   refuses(changed(p => { p.screens[0].items[1].primary = 'yes'; }), 'screens[0].items[1]', /"primary" must be true or false/);
   assert.deepEqual(validate(changed(p => { p.screens[0].items[1].primary = false; })), []);
 });
 
 test('open belongs to an expansion, and is true or false', () => {
-  refuses(changed(p => { p.screens[0].items.push(group([line], { open: true })); }), 'screens[0].items[2]', /"open" belongs to an expansion, not to a "group"/);
+  refuses(changed(p => { p.screens[0].items.push(group([line], { open: true })); }), 'screens[0].items[2]', /"open" belongs to an expansion, not to a "group"$/);
+  refuses(changed(p => { p.screens[1].items = [{ container: 'expansion', label: 'Later', place: 'main', items: [line] }]; }), 'screens[1].items[0]', /"place" belongs to a region, not to an "expansion"$/);
   refuses(changed(p => { p.screens[0].items.push({ container: 'expansion', label: 'Later today', open: 'yes', items: [line] }); }), 'screens[0].items[2]', /"open" must be true or false/);
   assert.deepEqual(validate(changed(p => { p.screens[0].items.push({ container: 'expansion', label: 'Later today', open: false, items: [line] }); })), []);
 });
@@ -267,7 +269,8 @@ test('an expansion carries a label; a region or a group may go without one', () 
 test('options belong to a choice, a list or a nav, and those three need them', () => {
   const withItem = item => changed(p => { p.screens[1].items.push(item); });
   for (const role of ['heading', 'text', 'input', 'action', 'status', 'media', 'link']) {
-    refuses(withItem({ role, text: 'Room 2', options: ['Free until 10:30'] }), 'screens[1].items[1]', new RegExp(`"options" belong to a choice, a list or a nav, not to a "${role}"`));
+    // M9 of the board change's review: the article is the word's own, "an input" and "an action".
+    refuses(withItem({ role, text: 'Room 2', options: ['Free until 10:30'] }), 'screens[1].items[1]', new RegExp(`"options" belong to a choice, a list or a nav, not to ${/^[aeiou]/.test(role) ? 'an' : 'a'} "${role}"$`));
   }
   for (const role of ['choice', 'list', 'nav']) {
     refuses(withItem({ role, text: 'Rooms' }), 'screens[1].items[1]', /"options" is missing/);
@@ -324,7 +327,7 @@ test('place is one of four words, and belongs to a region', () => {
     refuses(
       changed(p => { p.screens[0].items = [region('main'), { container, label: 'Room 2', place: 'beside', items: [line] }]; }),
       'screens[0].items[1]',
-      new RegExp(`"place" belongs to a region, not to a "${container}"$`),
+      new RegExp(`"place" belongs to a region, not to ${container === 'expansion' ? 'an' : 'a'} "${container}"$`),
     );
   }
   // A role has no such key, and neither has a screen or the proposal.
@@ -608,11 +611,13 @@ test('every class the contract names is in kit.css and parts.html, and parts.htm
   for (const tag of byName) assert.ok(styled.includes(`\`${tag}\``), `the contract says ${tag} is styled by name`);
   // A list is styled where the contract puts one: the options of a part, the overview, the account.
   const LISTED = [...Object.keys(OPTIONED), 'ux-overview', 'ux-account', 'ux-navigation'];
-  for (const prelude of preludes.filter(prelude => /(?:^|[\s>+~,(])(?:ul|ol|li|dl|dt|dd|b|h1)(?![\w-])/.test(prelude))) {
-    const named = [...prelude.matchAll(/\.(ux-[a-z]+)/g)].map(([, name]) => name);
-    assert.ok(named.length > 0 && named.every(name => LISTED.includes(name) || name === 'ux-option'), `${prelude}: a list is styled as options, in the overview or in the account only`);
+  // Read selector by selector: a rule may name several places at once.
+  const selectors = preludes.flatMap(prelude => prelude.split(/,(?![^(]*\))/)).map(selector => selector.trim());
+  for (const selector of selectors.filter(selector => /(?:^|[\s>+~,(])(?:ul|ol|li|dl|dt|dd|b|h1)(?![\w-])/.test(selector))) {
+    const named = [...selector.matchAll(/\.(ux-[a-z]+)/g)].map(([, name]) => name);
+    assert.ok(named.length > 0 && named.every(name => LISTED.includes(name) || name === 'ux-option'), `${selector}: a list is styled as options, in the overview or in the account only`);
   }
-  for (const prelude of preludes.filter(prelude => /(?:^|[\s>+~,(])(?:ol|dt|dd|dl|b)(?![\w-])/.test(prelude))) assert.match(prelude, /\.ux-(?:overview|account)\b/, prelude);
+  for (const selector of selectors.filter(selector => /(?:^|[\s>+~,(])(?:ol|dt|dd|dl|b)(?![\w-])/.test(selector))) assert.match(selector, /\.ux-(?:overview|account)\b/, selector);
   for (const selector of preludes.flatMap(prelude => prelude.split(/,(?![^(]*\))/)).map(selector => selector.trim())) {
     if (selector.includes('.ux-frame')) assert.ok(selector.startsWith('.ux-frame'), `${selector}: no selector depends on a frame's parent`);
   }
@@ -719,7 +724,51 @@ test('the grey kit lays a screen that has a main out as a page: narrow, one colu
   assert.doesNotMatch(narrow, /flex-direction: column/);
   // A screen with no area keeps one readable column, and the main part a readable width.
   assert.match(block(narrow, narrow.search(/\n\.ux-screen \{/)), /max-width: \d+rem;\s+margin: 0 auto;/);
-  assert.match(wide, /\.ux-main > \* \{\s+max-width: \d+rem;/);
+  assert.match(block(wide, wide.indexOf('.ux-main {')), /padding: [\d.]+rem max\([\d.]+rem, calc\(100% - [\d.]+rem\)\) [\d.]+rem [\d.]+rem;/, 'the main part keeps a readable width by its own far padding');
+  assert.doesNotMatch(css, /\.ux-main > \*/, 'and not by a width on each part, which would let what follows a part sit beside it');
+});
+
+// The first fix round of the board change (I1, M1 to M3 of its review). What a browser shows of these is measured in
+// tests/kit.test.mjs; here, what the stylesheet and the contract say.
+test('the grey kit after its review: one rule for an action wherever it is, a region in normal flow, a narrow navigation on one row, an overview of two lines, words never broken unsigned', () => {
+  const { css, contract } = kit();
+  const preludes = [...css.matchAll(/([^{}]+)\{/g)].map(([, prelude]) => prelude.trim()).filter(prelude => !prelude.startsWith('@'));
+  const said = flat(contract);
+  // I1: a region stacks its parts as every other holder does, and no rule draws an action by where it is.
+  const stack = preludes.filter(prelude => /> \* \+ \*$/.test(prelude) && prelude.includes('.ux-dialog'));
+  assert.deepEqual(stack, [':is(.ux-screen, .ux-dialog, .ux-region, .ux-group, .ux-expansion) > * + *'], 'one rule stacks the parts of every holder, a region among them');
+  assert.doesNotMatch(block(css, css.search(/\n\.ux-region \{/)), /display:\s*(?:inline-)?(?:grid|flex)/, 'a region is no grid: its parts are in normal flow');
+  const selectors = preludes.flatMap(prelude => prelude.split(/,(?![^(]*\))/)).map(selector => selector.trim());
+  const ofAnAction = selectors.filter(selector => selector.includes('.ux-action'));
+  assert.equal(ofAnAction.length, 3, ofAnAction.join(' | '));
+  for (const selector of ofAnAction) {
+    assert.match(selector, /^(?:\.ux-action(?:\.is-primary)?|:is\((?:\.ux-[a-z]+(?:, )?)+\))$/, `${selector}: an action is styled by its own class, never by where it is`);
+  }
+  assert.match(block(css, css.search(/\n\.ux-action \{/)), /display: inline-block;/);
+  assert.match(said, /- `ux-action`: something she does\. Actions written one after another sit side by side, a gap apart, wherever they are: in a region as in a group, a dialog, a screen or the bar\./);
+  assert.match(said, /Groups written one after another in a region sit side by side where the region has room for two, and one under another where it has not\./);
+  // M2: narrow, the navigation is one row that does not wrap, cut at its edge with a fade.
+  const wideAt = css.search(/@media\s*\(min-width:/);
+  const bar = block(css, css.search(/\n\.ux-navigation \{/));
+  assert.ok(css.search(/\n\.ux-navigation \{/) < wideAt, 'the narrow navigation is the rule, the wide one its exception');
+  for (const declaration of ['display: flex;', 'flex-wrap: nowrap;', 'overflow: auto hidden;', 'white-space: nowrap;', 'scroll-snap-type: x mandatory;', 'scrollbar-width: none;']) assert.ok(bar.includes(declaration), declaration);
+  assert.match(bar, /mask-image: linear-gradient\(to right, transparent, #000000 [\d.]+rem, #000000 calc\(100% - [\d.]+rem\), transparent/);
+  assert.match(css.slice(0, wideAt), /\.ux-navigation \.ux-nav > ul > li\[aria-current\] \{\s+scroll-snap-align: end;/, 'the row stands where the marked place is in sight');
+  assert.match(block(css, wideAt), /\.ux-navigation \{[^}]*scroll-snap-type: none;/);
+  assert.match(block(css, wideAt), /\.ux-navigation \{[^}]*mask-image: none;/);
+  assert.match(said, /Narrow, the navigation is one bar: everything it holds is on one row that does not wrap, its places among them, the name above them and a nav's caption taking no row of their own; what does not fit is cut at the edge, in a way that shows the row goes on\. The row stands where the place she is at is in sight: at its start whenever that place is in sight from there\./);
+  // M1: the overview's lines, and its narrow form.
+  assert.match(block(css, css.search(/\n\.ux-overview dd \{/)), /-webkit-line-clamp: 2;/);
+  assert.match(css.slice(0, wideAt), /\.ux-overview dl \{\s+display: none;/);
+  assert.match(block(css, wideAt), /\.ux-overview dl \{\s+display: grid;/);
+  assert.match(said, /A kit draws what an area holds in two lines at most, a longer line ending with an ellipsis, never cut in the middle of what it says\. At a narrow width it draws each screen's title alone, on one line, a dialog under its screen, so that the first window is on the first screen: what the areas hold is not shown there\./);
+  // M3: no rule lets a word break in the middle without a sign.
+  assert.doesNotMatch(css, /overflow-wrap|word-break|word-wrap/, 'no rule breaks a word anywhere');
+  assert.match(block(css, css.search(/\nbody \{/)), /hyphens: auto;/);
+  const words = preludes.find(prelude => prelude.includes('.ux-heading') && prelude.includes('.ux-text') && prelude.includes('.ux-action'));
+  assert.match(block(css, css.indexOf(words)), /overflow: hidden;\s+text-overflow: ellipsis;/);
+  for (const role of ROLES.filter(role => role !== 'nav')) assert.ok(words.includes(`.ux-${role}`), `ux-${role} is cut with an ellipsis where its words do not fit`);
+  assert.match(said, /A kit never breaks a word in the middle without a sign: it hyphenates where the browser knows the page's language, lets a word it cannot break move to a line of its own, and cuts what is still wider than its part with an ellipsis\./);
 });
 
 // R161 of the dry run: the specimen is copied unchanged into every project kit, shown to the founder and read by

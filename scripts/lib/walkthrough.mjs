@@ -52,6 +52,8 @@ const show = v => {
   const s = JSON.stringify(v) ?? String(v);
   return s.length > 40 ? `${s.slice(0, 37)}...` : s;
 };
+// A role or a container named in a refusal, with its own article: a "group", an "input".
+const a = word => `${/^[aeiou]/.test(word) ? 'an' : 'a'} ${show(word)}`;
 
 const TEXT = 'a line of text';
 const LINES = 'a list of at least one line of text';
@@ -191,14 +193,14 @@ function checkRole(item, at, context) {
   // An unknown role is one fault: the keys that depend on the role are not read again against it.
   if (!known) return;
   if (Object.hasOwn(item, 'primary')) {
-    if (item.role !== 'action') fail(at, `"primary" belongs to an action, not to a ${show(item.role)}`);
+    if (item.role !== 'action') fail(at, `"primary" belongs to an action, not to ${a(item.role)}`);
     else if (!isBoolean(item.primary)) fail(at, '"primary" must be true or false');
     else if (item.primary && context.primary) fail(at, `a second primary action on this screen; the first is ${context.primary}`);
     else if (item.primary) context.primary = at;
   }
   const options = OPTIONS.get(item.role);
   if (!options) {
-    if (Object.hasOwn(item, 'options')) fail(at, `"options" belong to a choice, a list or a nav, not to a ${show(item.role)}`);
+    if (Object.hasOwn(item, 'options')) fail(at, `"options" belong to a choice, a list or a nav, not to ${a(item.role)}`);
   } else if (need(item, 'options', v => Array.isArray(v) && v.length >= options.least, options.what, at, fail)) {
     item.options.forEach((option, i) => isText(option) || fail(`${at}.options[${i}]`, `must be ${TEXT}`));
   }
@@ -215,7 +217,7 @@ function checkContainer(item, at, context, direct) {
   (item.container === 'expansion' ? need : maybe)(item, 'label', isText, TEXT, at, fail);
   // As with a role, an unknown container is one fault: "open" is not read again against it.
   if (known && Object.hasOwn(item, 'open')) {
-    if (item.container !== 'expansion') fail(at, `"open" belongs to an expansion, not to a ${show(item.container)}`);
+    if (item.container !== 'expansion') fail(at, `"open" belongs to an expansion, not to ${a(item.container)}`);
     else if (!isBoolean(item.open)) fail(at, '"open" must be true or false');
   }
   checkItems(item, at, context);
@@ -225,7 +227,7 @@ function checkContainer(item, at, context, direct) {
 // each area once on a screen at most. One fault is said, the first that holds.
 function checkPlace(item, at, context, direct) {
   const { fail, places } = context;
-  if (item.container !== 'region') return fail(at, `"place" belongs to a region, not to a ${show(item.container)}`);
+  if (item.container !== 'region') return fail(at, `"place" belongs to a region, not to ${a(item.container)}`);
   if (context.dialog) return fail(at, '"place" belongs to a region of a screen; a dialog has no areas');
   if (!direct) return fail(at, '"place" belongs to a region that is a direct item of its screen; this one is inside another container');
   if (!PLACES.includes(item.place)) return fail(at, `"place" must be ${PLACES_TEXT}; it is ${show(item.place)}`);

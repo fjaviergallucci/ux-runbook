@@ -211,7 +211,8 @@
                 { "role": "list", "text": "Earlier today", "options": ["8:00 — Joe P., with Leila, Room 2", "8:30 — Maria K., with Dan, Room 1"] }
               ]
             },
-            { "role": "action", "id": "move", "text": "Move a booking", "primary": true }
+            { "role": "action", "id": "move", "text": "Move a booking", "primary": true },
+            { "role": "action", "id": "cancel", "text": "Cancel a booking" }
           ]
         }
       ]

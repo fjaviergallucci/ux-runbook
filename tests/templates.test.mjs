@@ -474,6 +474,9 @@ test('each Structure brief gives the rules a writer can break, and asks for one 
     // and the two briefs give the format in the same words, so "the kit's" is said as what it means to a maker.
     assert.match(rules, /These are all the keys\. There is no key for size, colour or exact position: `place` says only which of four areas a `region` is, and how an area is drawn at each width is the same for every proposal\. An unknown key is refused: proposals differ in order, in grouping, in what is present, in which container holds it and in which area that is\./, file);
     assert.doesNotMatch(rules, /no key for layout/, file);
+    // M4 of the board change's review: the board marks the place a screen's title names, and every maker is told so
+    // in the same sentence, which is part of the format: no key says it.
+    assert.match(flat(exampleIn(formatIn(file)).words), /\| `nav` \| The places she can move between\. \| A caption, and one place or more as its options\. \| In a `nav` on a `screen`, the place whose words open that screen's `title` is drawn as the place she is at, as "Today" opens "Today, at 9:40"\. - \*\*A container\*\*/, file);
     // R195: five screens at most, in the validator's own number.
     assert.equal(MAX_SCREENS, 5);
     assert.match(rules, /`screens` holds five entries at most, dialogs counted: a structure that needs more is more than one design\./, file);

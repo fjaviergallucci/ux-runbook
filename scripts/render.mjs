@@ -20,8 +20,12 @@
 // A kit folder whose stylesheets style none of the classes of the page's areas (AREA_CLASSES) was made
 // before them: the command says so in one warning line and draws all the same.
 //
-// As a module: renderProposal(proposal, { letter, notes }) → the page, as a string; `notes` is true when
-// not given. Pure; the same proposal, letter and notes give the same bytes.
+// The page says the language of the proposal's words when it is given it (`lang` on <html>), so that a
+// browser that can hyphenates a long word where it breaks it; the kit sees to the rest.
+//
+// As a module: renderProposal(proposal, { letter, notes, lang }) → the page, as a string; `notes` is true
+// when not given, and `lang` is none. Pure; the same proposal, letter, notes and language give the same
+// bytes.
 // As a command: see USAGE. Exit codes: 0 success · 1 an invalid proposal, an unreadable input or an
 // unwritable output · 2 bad usage.
 import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
@@ -52,6 +56,10 @@ const ROLE_ELEMENTS = {
 const CONTAINER_ELEMENTS = { region: 'section', group: 'div', expansion: 'details' };
 const INDENT = '  ';
 const LETTER = /^[A-Z]$/;
+// A language tag, as far as a page needs one checked: a language of two or three letters, then any
+// subtags ("de", "pt-BR", "es-419", "zh-Hant-TW").
+const LANGUAGE = /^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$/;
+const LANGUAGE_TEXT = 'a language tag, as "de" or "pt-BR"';
 // The classes of the page's areas, which the board is drawn with since a region may say where it is: the
 // option's title, the overview, a screen's window, the four areas a region may be, and the proposal's own
 // account. A kit that styles none of them was made before them (KIT-CONTRACT.md § A kit made before the
@@ -65,19 +73,23 @@ const check = proposal => validate(proposal, { sealed: !SOURCE_ONLY.some(key => 
 
 // ---- the drawing
 
-// renderProposal(proposal, { letter, notes }) → a whole HTML document that links kit.css from beside it;
-// with `notes` false, without the proposal's own account. Throws a TypeError when the letter is not one
-// capital letter, `notes` is not true or false, or the proposal is not valid.
-export function renderProposal(proposal, { letter, notes = true } = {}) {
+// renderProposal(proposal, { letter, notes, lang }) → a whole HTML document that links kit.css from beside
+// it; with `notes` false, without the proposal's own account; with `lang`, saying its language. Throws a
+// TypeError when the letter is not one capital letter, `notes` is not true or false, `lang` is given and is
+// no language tag, or the proposal is not valid.
+export function renderProposal(proposal, { letter, notes = true, lang } = {}) {
   if (typeof letter !== 'string' || !LETTER.test(letter)) {
     throw new TypeError(`the letter must be one capital letter, A to Z; it is ${JSON.stringify(letter)}`);
   }
   if (typeof notes !== 'boolean') throw new TypeError(`notes must be true or false; it is ${JSON.stringify(notes)}`);
+  if (lang !== undefined && (typeof lang !== 'string' || !LANGUAGE.test(lang))) {
+    throw new TypeError(`the language must be ${LANGUAGE_TEXT}; it is ${JSON.stringify(lang)}`);
+  }
   const errors = check(proposal);
   if (errors.length) throw new TypeError(`not a valid proposal:\n${errors.join('\n')}`);
   const titles = new Map(proposal.screens.map(screen => [screen.id, screen.title]));
   return html`<!doctype html>
-<html>
+<html${lang === undefined ? '' : html` lang="${lang}"`}>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -133,13 +145,19 @@ function areasOf(screen) {
 
 // What a screen or a region holds, in a line: its label, when it has one, then the words of each part
 // directly in it, in order. A nav is said by its places; a container by its label, and one without a
-// label by what it holds.
+// label by what it holds. In the area that is the navigation, the places of its navs are said first: a
+// navigation is said by its places, never by a heading that sits above them.
 const SEPARATOR = ' · ';
 const PLACE_SEPARATOR = ', ';
-const holdsOf = holder => [...(Object.hasOwn(holder, 'label') ? [holder.label] : []), ...wordsOf(holder.items)].join(SEPARATOR);
+function holdsOf(holder) {
+  const said = [...(Object.hasOwn(holder, 'label') ? [{ words: holder.label }] : []), ...wordsOf(holder.items)];
+  const inOrder = holder.place === 'navigation' ? [...said.filter(part => part.places), ...said.filter(part => !part.places)] : said;
+  return inOrder.map(part => part.words).join(SEPARATOR);
+}
+// The words of each item, in order, and whether they are a nav's places.
 const wordsOf = items => items.flatMap(item => {
-  if (Object.hasOwn(item, 'role')) return [item.role === 'nav' ? item.options.join(PLACE_SEPARATOR) : item.text];
-  return Object.hasOwn(item, 'label') ? [item.label] : wordsOf(item.items);
+  if (Object.hasOwn(item, 'role')) return [item.role === 'nav' ? { words: item.options.join(PLACE_SEPARATOR), places: true } : { words: item.text }];
+  return Object.hasOwn(item, 'label') ? [{ words: item.label }] : wordsOf(item.items);
 });
 
 // ---- the screens
@@ -246,7 +264,7 @@ ${proposal.absent.map(line => html`        <li>${line}</li>\n`)}      </ul>
 
 // ---- the command line
 
-const USAGE = `Usage: node scripts/render.mjs <proposal.json> --kit <kit dir> --out <file.html> [--letter A] [--without-notes]
+const USAGE = `Usage: node scripts/render.mjs <proposal.json> --kit <kit dir> --out <file.html> [--letter A] [--lang <tag>] [--without-notes]
 
 Draws one Structure proposal, written in the walkthrough format, as one HTML document in the shared kit,
 and copies every stylesheet directly in <kit dir> (each .css file, kit.css among them) beside it, so a
@@ -263,6 +281,10 @@ screen follows its title.
   --out <file.html>   the page to write: not named like one of the kit's stylesheets, and
                       not the proposal itself; its folder is made when it does not exist
   --letter <A to Z>   the option's letter on the board; A when not given
+  --lang <tag>        the language the proposal's words are in, as a language tag ("de", "pt-BR"):
+                      written on the page as its language, so that a browser that can hyphenates a
+                      long word where it breaks it; when not given the page says none, and a long
+                      word moves to a line of its own or is cut with an ellipsis
   --without-notes     draw the page without the proposal's own account (its name, its bet, its cost,
                       what is absent, its hardest state, and the note on a screen or an item), for a
                       reader who must not see it, as an audience: its heading is the option's letter
@@ -282,7 +304,7 @@ Exit codes: 0 success · 1 an invalid proposal, an unreadable input or an unwrit
 class Failure extends Error {}
 
 function readArgs(argv) {
-  const args = parseArgs(argv, { flags: ['kit', 'out', 'letter'], switches: ['without-notes'] });
+  const args = parseArgs(argv, { flags: ['kit', 'out', 'letter', 'lang'], switches: ['without-notes'] });
   if (args.help) return args;
   const { positional, flags } = args;
   if (positional.length !== 1) throw new UsageError(`render takes one <proposal.json>, got ${positional.length}`);
@@ -291,7 +313,8 @@ function readArgs(argv) {
   }
   const letter = flags.letter ?? 'A';
   if (!LETTER.test(letter)) throw new UsageError(`--letter must be one capital letter, A to Z; it is "${letter}"`);
-  return { path: positional[0], kit: flags.kit, out: flags.out, letter, notes: flags['without-notes'] !== true };
+  if (Object.hasOwn(flags, 'lang') && !LANGUAGE.test(flags.lang)) throw new UsageError(`--lang must be ${LANGUAGE_TEXT}; it is "${flags.lang}"`);
+  return { path: positional[0], kit: flags.kit, out: flags.out, letter, lang: flags.lang, notes: flags['without-notes'] !== true };
 }
 
 function readInput(file) {
@@ -334,7 +357,7 @@ function stylesheets(kit) {
 }
 
 // Everything is read and checked before anything is written.
-function draw({ path, kit, out, letter, notes }) {
+function draw({ path, kit, out, letter, lang, notes }) {
   if (sameFile(out, path)) throw new UsageError('--out is the proposal itself: drawing would overwrite it');
   const sheets = stylesheets(kit);
   // Each stylesheet lands beside the page under its own name, on a file system that may ignore case.
@@ -345,7 +368,7 @@ function draw({ path, kit, out, letter, notes }) {
   if (errors.length) throw new Failure(`cannot draw ${path}: it is not a valid proposal\n${errors.join('\n')}`);
   const css = sheets.map(name => [name, readInput(join(kit, name))]);
   const dated = !css.some(([, data]) => stylesAnArea(data.toString('utf8')));
-  const page = renderProposal(proposal, { letter, notes });
+  const page = renderProposal(proposal, { letter, notes, lang });
   const folder = dirname(out);
   try {
     mkdirSync(folder, { recursive: true });
