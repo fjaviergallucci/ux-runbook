@@ -8,8 +8,112 @@
 </head>
 <body>
 
-<header>
+<header class="ux-option">
   <h1>Option D: Floors, free first</h1>
+</header>
+
+<section class="ux-overview">
+  <ol>
+    <li>
+      <b>Today, at 9:40</b>
+      <dl>
+        <dt>screen</dt>
+        <dd>Today, Rooms, Settings · Rooms right now · 2 rooms free now · Ground floor · Upstairs · Plan of the first floor, free rooms marked · Later today · Closed rooms · &lt;script&gt;alert(1)&lt;/script&gt; · See the rest of the day</dd>
+      </dl>
+      <ol>
+        <li>
+          <b>Booking Room 2</b>
+          <dl>
+            <dt>dialog</dt>
+            <dd>Book Room 2 · Still free until 10:30 · Patient · Book · Cancel</dd>
+          </dl>
+        </li>
+      </ol>
+    </li>
+  </ol>
+</section>
+
+<section class="ux-frame" data-screen="today">
+  <header>
+    <h2>Today, at 9:40</h2>
+    <p class="ux-note">Open all day on the desk monitor.</p>
+  </header>
+  <div class="ux-window">
+    <div class="ux-screen">
+      <nav class="ux-nav" data-ux="places">Where she can go
+        <ul>
+          <li aria-current="page">Today</li>
+          <li>Rooms</li>
+          <li>Settings</li>
+        </ul>
+      </nav>
+      <h3 class="ux-heading">Rooms right now</h3>
+      <p class="ux-status" data-ux="free-count">2 rooms free now</p>
+      <section class="ux-region">
+        <header>Ground floor</header>
+        <div class="ux-group">
+          <header>Room 2</header>
+          <p class="ux-text">Free until 10:30</p>
+          <button class="ux-action is-primary" type="button" data-ux="book-room-2">Book Room 2</button>
+          <p class="ux-note">The only filled button on the screen.</p>
+        </div>
+        <div class="ux-group">
+          <p class="ux-text">Reunión — sala 3 🙂</p>
+          <button class="ux-action" type="button">Hold sala 3</button>
+        </div>
+      </section>
+      <section class="ux-region">
+        <div class="ux-list" data-ux="upstairs">Upstairs
+          <ul>
+            <li>Room 4 — free until 12:00</li>
+            <li>Gym — out of service today</li>
+          </ul>
+        </div>
+        <p class="ux-note">Soonest free first.</p>
+        <div class="ux-media">Plan of the first floor, free rooms marked</div>
+      </section>
+      <details class="ux-expansion">
+        <summary>Later today</summary>
+        <p class="ux-text">Room 1 — free from 10:00</p>
+      </details>
+      <details class="ux-expansion">
+        <summary>Closed rooms</summary>
+        <p class="ux-text">The gym reopens tomorrow.</p>
+      </details>
+      <p class="ux-text">&lt;script&gt;alert(1)&lt;/script&gt;</p>
+      <a class="ux-link" href="#">See the rest of the day</a>
+    </div>
+  </div>
+</section>
+
+<section class="ux-frame" data-screen="book">
+  <header>
+    <h2>Booking Room 2</h2>
+    <p class="ux-over">opens over Today, at 9:40</p>
+  </header>
+  <div class="ux-window">
+    <div class="ux-dialog">
+      <h3 class="ux-heading">Book Room 2</h3>
+      <p class="ux-status" data-ux="free-count">Still free until 10:30</p>
+      <details class="ux-expansion" open>
+        <summary>Patient</summary>
+        <p class="ux-input" data-ux="patient-name">Patient name</p>
+        <p class="ux-note">The cursor is already here.</p>
+        <div class="ux-choice">How long?
+          <ul>
+            <li>15 min</li>
+            <li>30 min</li>
+          </ul>
+        </div>
+      </details>
+      <button class="ux-action is-primary" type="button">Book</button>
+      <button class="ux-action" type="button">Cancel</button>
+    </div>
+  </div>
+</section>
+
+<section class="ux-account">
+  <h2>Its own account</h2>
   <dl>
     <dt>Its bet</dt>
     <dd>Rooms grouped by floor, with what is free on each floor first, follow the way she walks a patient to a room.</dd>
@@ -25,81 +129,6 @@
     <dt>In the hardest state</dt>
     <dd>With every room busy, each floor still names the room that frees up soonest, and when.</dd>
   </dl>
-</header>
-
-<section class="ux-frame" data-screen="today">
-  <header>
-    <h2>Today, at 9:40</h2>
-    <p class="ux-note">Open all day on the desk monitor.</p>
-  </header>
-  <div class="ux-screen">
-    <nav class="ux-nav" data-ux="places">Where she can go
-      <ul>
-        <li>Today</li>
-        <li>Rooms</li>
-        <li>Settings</li>
-      </ul>
-    </nav>
-    <h3 class="ux-heading">Rooms right now</h3>
-    <p class="ux-status" data-ux="free-count">2 rooms free now</p>
-    <section class="ux-region">
-      <header>Ground floor</header>
-      <div class="ux-group">
-        <header>Room 2</header>
-        <p class="ux-text">Free until 10:30</p>
-        <button class="ux-action is-primary" type="button" data-ux="book-room-2">Book Room 2</button>
-        <p class="ux-note">The only filled button on the screen.</p>
-      </div>
-      <div class="ux-group">
-        <p class="ux-text">Reunión — sala 3 🙂</p>
-        <button class="ux-action" type="button">Hold sala 3</button>
-      </div>
-    </section>
-    <section class="ux-region">
-      <div class="ux-list" data-ux="upstairs">Upstairs
-        <ul>
-          <li>Room 4 — free until 12:00</li>
-          <li>Gym — out of service today</li>
-        </ul>
-      </div>
-      <p class="ux-note">Soonest free first.</p>
-      <div class="ux-media">Plan of the first floor, free rooms marked</div>
-    </section>
-    <details class="ux-expansion">
-      <summary>Later today</summary>
-      <p class="ux-text">Room 1 — free from 10:00</p>
-    </details>
-    <details class="ux-expansion">
-      <summary>Closed rooms</summary>
-      <p class="ux-text">The gym reopens tomorrow.</p>
-    </details>
-    <p class="ux-text">&lt;script&gt;alert(1)&lt;/script&gt;</p>
-    <a class="ux-link" href="#">See the rest of the day</a>
-  </div>
-</section>
-
-<section class="ux-frame" data-screen="book">
-  <header>
-    <h2>Booking Room 2</h2>
-    <p class="ux-over">opens over Today, at 9:40</p>
-  </header>
-  <div class="ux-dialog">
-    <h3 class="ux-heading">Book Room 2</h3>
-    <p class="ux-status" data-ux="free-count">Still free until 10:30</p>
-    <details class="ux-expansion" open>
-      <summary>Patient</summary>
-      <p class="ux-input" data-ux="patient-name">Patient name</p>
-      <p class="ux-note">The cursor is already here.</p>
-      <div class="ux-choice">How long?
-        <ul>
-          <li>15 min</li>
-          <li>30 min</li>
-        </ul>
-      </div>
-    </details>
-    <button class="ux-action is-primary" type="button">Book</button>
-    <button class="ux-action" type="button">Cancel</button>
-  </div>
 </section>
 
 </body>

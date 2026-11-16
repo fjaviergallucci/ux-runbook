@@ -9,7 +9,7 @@ import { carryProblems } from '../scripts/lib/carry.mjs';
 import { parse } from '../scripts/lib/frontmatter.mjs';
 import { MAP, PICK, SealedError, mergeProposals, openMap } from '../scripts/lib/merge.mjs';
 import { ARTEFACT, STAGES } from '../scripts/lib/state.mjs';
-import { CONTAINERS, KEYS, ROLES, validate } from '../scripts/lib/walkthrough.mjs';
+import { CONTAINERS, KEYS, MAX_SCREENS, PLACES, ROLES, validate } from '../scripts/lib/walkthrough.mjs';
 import { validateDecision } from '../scripts/page.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -415,8 +415,8 @@ const exampleIn = format => {
   return { words: format.slice(0, fences[0].index), example: JSON.parse(fences[0][1]) };
 };
 
-test('each Structure brief carries the walkthrough format whole: every key, role and container, and no other', () => {
-  const format = new Set([...KEYS.proposal, ...KEYS.screen, ...KEYS.role, ...KEYS.container, ...ROLES, ...CONTAINERS, 'screen', 'dialog']);
+test('each Structure brief carries the walkthrough format whole: every key, role, container and area, and no other', () => {
+  const format = new Set([...KEYS.proposal, ...KEYS.screen, ...KEYS.role, ...KEYS.container, ...ROLES, ...CONTAINERS, ...PLACES, 'screen', 'dialog']);
   for (const file of BRIEFS) {
     const { words } = exampleIn(formatIn(file));
     const named = new Set(spans(words));
@@ -430,6 +430,13 @@ test('each Structure brief carries the walkthrough format whole: every key, role
     for (const { rows } of [tableOf(words, '`role`'), tableOf(words, '`container`')]) {
       for (const row of rows) assert.ok(row.length === 3 && row.every(cell => cell !== ''), `${file}: ${row[0]} says what it is and what it needs`);
     }
+    // R194 of the board change: the four areas a region may say it is, each with what it is, in the format's order;
+    // the key itself is named where a container's keys are, as a region's alone.
+    const areas = tableOf(words, '`place`').rows;
+    assert.deepEqual(areas.map(([place]) => unspan(place)), PLACES, `${file}: the areas`);
+    for (const row of areas) assert.ok(row.length === 2 && row.every(cell => cell !== ''), `${file}: ${row[0]} says which area it is`);
+    assert.deepEqual(spans(bullet(words, '- **A container**')).filter(word => KEYS.container.includes(word)).sort(), KEYS.container.filter(key => key !== 'open').sort(), `${file}: a container's keys`);
+    assert.match(flat(bullet(words, '- **A container**')), /A `region` may also say in `place` which area of the page it is\./, file);
   }
   assert.equal(formatIn(BRIEFS[0]), formatIn(BRIEFS[1]), 'the two briefs give the format in the same words');
 });
@@ -457,6 +464,22 @@ test('each Structure brief gives the rules a writer can break, and asks for one 
     assert.match(rules, /`over`/, file);
     assert.match(rules, /lower-case words joined by hyphens/, file);
     assert.match(rules, /no (?:other )?key for/i, `${file}: nothing but the format's keys`);
+    // R194: where a place may be written, and what a screen that places a region must hold. Each is a rule the
+    // validator refuses by.
+    assert.match(rules, /`place` is written only on a `region` that is a direct item of a `screen`: never inside another container, and never in a `dialog`\./, file);
+    assert.match(rules, /Each of the four areas is on a screen once at most\./, file);
+    assert.match(rules, /A screen that places any region has a `main`, and every direct item of that screen is then a placed `region`: nothing floats outside the areas\./, file);
+    assert.match(rules, /A screen with no placed `region` is drawn as one column\./, file);
+    // The format's sentence about layout, as ruled, but for its last words: a fresh maker is never told of the kit,
+    // and the two briefs give the format in the same words, so "the kit's" is said as what it means to a maker.
+    assert.match(rules, /These are all the keys\. There is no key for size, colour or exact position: `place` says only which of four areas a `region` is, and how an area is drawn at each width is the same for every proposal\. An unknown key is refused: proposals differ in order, in grouping, in what is present, in which container holds it and in which area that is\./, file);
+    assert.doesNotMatch(rules, /no key for layout/, file);
+    // M4 of the board change's review: the board marks the place a screen's title names, and every maker is told so
+    // in the same sentence, which is part of the format: no key says it.
+    assert.match(flat(exampleIn(formatIn(file)).words), /\| `nav` \| The places she can move between\. \| A caption, and one place or more as its options\. \| In a `nav` on a `screen`, the place whose words open that screen's `title` is drawn as the place she is at, as "Today" opens "Today, at 9:40"\. - \*\*A container\*\*/, file);
+    // R195: five screens at most, in the validator's own number.
+    assert.equal(MAX_SCREENS, 5);
+    assert.match(rules, /`screens` holds five entries at most, dialogs counted: a structure that needs more is more than one design\./, file);
   }
 });
 
@@ -476,6 +499,19 @@ test('each Structure brief shows a specimen of the syntax, never a design: every
     const unlabelled = structuredClone(specimen);
     delete itemsOf(unlabelled.screens.find(screen => itemsOf(screen).some(item => item.container === 'expansion'))).find(item => item.container === 'expansion').label;
     assert.equal(validate(unlabelled).length, 1, `${file}: an expansion without its label`);
+    // It shows the one key that says where a region is, on the one region of its screen, and breaks the rules of it
+    // like any proposal: an area that is not the main, something beside the areas, a sixth screen.
+    assert.deepEqual(specimen.screens[0].items.map(item => [item.container, item.place]), [['region', 'main']], `${file}: the screen's one item is its main region`);
+    const elsewhere = structuredClone(specimen);
+    elsewhere.screens[0].items[0].place = 'beside';
+    assert.deepEqual(validate(elsewhere), ['screens[0]: a screen that places a region has a "main"; this one has none'], file);
+    const floating = structuredClone(specimen);
+    floating.screens[0].items.push({ role: 'text', text: '(more words)' });
+    assert.equal(validate(floating).length, 1, `${file}: an item outside the areas`);
+    const many = structuredClone(specimen);
+    for (let n = 3; n <= MAX_SCREENS + 1; n++) many.screens.push({ id: `screen-${n}`, title: `(screen ${n})`, container: 'screen', items: [{ role: 'text', text: '(words)' }] });
+    assert.equal(validate(many).length, 1, `${file}: a sixth screen`);
+    assert.deepEqual(validate({ ...many, screens: many.screens.slice(0, MAX_SCREENS) }), [], `${file}: five screens`);
     // Every key of every level, in the format's own order; who made it is left out, as the brief asks.
     assert.deepEqual(Object.keys(specimen), KEYS.proposal.filter(key => !WRITTEN_LATER.includes(key)), `${file}: the proposal's keys`);
     const items = specimen.screens.flatMap(itemsOf);
@@ -493,7 +529,7 @@ test('each Structure brief shows a specimen of the syntax, never a design: every
     assert.deepEqual(specimen.screens.map(screen => screen.container), ['screen', 'dialog'], file);
     assert.equal(roles.filter(item => item.primary === true).length, 1, `${file}: one primary action`);
     // Its words name the part and fill nothing: each is a phrase in brackets, or an id that says what it is.
-    const texts = stringsOf(specimen).filter(text => ![...ROLES, ...CONTAINERS, 'screen', 'dialog'].includes(text));
+    const texts = stringsOf(specimen).filter(text => ![...ROLES, ...CONTAINERS, ...PLACES, 'screen', 'dialog'].includes(text));
     const ids = [...specimen.screens, ...roles].map(object => object.id).filter(Boolean);
     assert.ok(ids.length >= 3 && ids.every(id => /^an?-(?:screen|dialog|item)$/.test(id)), `${file}: ids that name the part`);
     for (const text of texts.filter(text => !ids.includes(text))) assert.match(text, /^\((?:an?|the|some|what|your|another) [^()]+\)$/, `${file}: "${text}" names a part`);

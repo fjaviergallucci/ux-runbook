@@ -1,0 +1,285 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Option A</title>
+<link rel="stylesheet" href="kit.css">
+</head>
+<body>
+
+<header class="ux-option">
+  <h1>Option A: The desk&#39;s three places</h1>
+</header>
+
+<section class="ux-overview">
+  <ol>
+    <li>
+      <b>Today, at 9:40</b>
+      <dl>
+        <dt>navigation</dt>
+        <dd>Today, Rooms, Bookings, Settings · Front desk · Help</dd>
+        <dt>bar</dt>
+        <dd>Find a patient or a room · Updated 9:40 · Book a walk-in</dd>
+        <dt>main</dt>
+        <dd>Rooms right now · 2 rooms free now · Free now · Busy, being cleaned or closed</dd>
+        <dt>beside</dt>
+        <dd>Next to arrive · Booked for the next hour · See all of today&#39;s bookings</dd>
+      </dl>
+      <ol>
+        <li>
+          <b>Booking Room 2</b>
+          <dl>
+            <dt>dialog</dt>
+            <dd>Room 2 — free until 10:30 · Patient name · How long? · Book · Cancel</dd>
+          </dl>
+        </li>
+      </ol>
+    </li>
+    <li>
+      <b>Rooms</b>
+      <dl>
+        <dt>navigation</dt>
+        <dd>Today, Rooms, Bookings, Settings · Front desk · Help</dd>
+        <dt>bar</dt>
+        <dd>Find a patient or a room · Updated 9:40 · Book a walk-in</dd>
+        <dt>main</dt>
+        <dd>Every room, by floor · Show · Ground floor · Upstairs · Why the gym is closed</dd>
+        <dt>beside</dt>
+        <dd>The room she has picked · Photo of Room 2: one couch, a window, a sink · Room 2 holds one patient and one practitioner. · Book Room 2</dd>
+      </dl>
+    </li>
+    <li>
+      <b>Bookings</b>
+      <dl>
+        <dt>navigation</dt>
+        <dd>Today, Rooms, Bookings, Settings · Front desk · Help</dd>
+        <dt>bar</dt>
+        <dd>Find a patient or a room · Updated 9:40 · Book a walk-in</dd>
+        <dt>main</dt>
+        <dd>Today&#39;s bookings · 11 bookings, 3 still to arrive · Still to arrive · Already here or gone (8) · Move a booking · Cancel a booking</dd>
+      </dl>
+    </li>
+  </ol>
+</section>
+
+<section class="ux-frame" data-screen="today">
+  <header>
+    <h2>Today, at 9:40</h2>
+    <p class="ux-note">Open all day on the desk monitor; it is where she lands.</p>
+  </header>
+  <div class="ux-window">
+    <div class="ux-screen">
+      <section class="ux-region ux-navigation">
+        <h3 class="ux-heading">Front desk</h3>
+        <nav class="ux-nav" data-ux="places">Places
+          <ul>
+            <li aria-current="page">Today</li>
+            <li>Rooms</li>
+            <li>Bookings</li>
+            <li>Settings</li>
+          </ul>
+        </nav>
+        <a class="ux-link" href="#">Help</a>
+      </section>
+      <section class="ux-region ux-bar">
+        <p class="ux-input" data-ux="find">Find a patient or a room</p>
+        <p class="ux-status" data-ux="updated">Updated 9:40</p>
+        <button class="ux-action is-primary" type="button" data-ux="book-walk-in">Book a walk-in</button>
+      </section>
+      <section class="ux-region ux-main">
+        <h3 class="ux-heading">Rooms right now</h3>
+        <p class="ux-status" data-ux="free-count">2 rooms free now</p>
+        <section class="ux-region">
+          <header>Free now</header>
+          <div class="ux-group">
+            <header>Room 2</header>
+            <p class="ux-text">Free until 10:30</p>
+            <button class="ux-action" type="button" data-ux="book-room-2">Book Room 2</button>
+            <p class="ux-note">Opens the booking over this screen.</p>
+          </div>
+          <div class="ux-group">
+            <header>Sala Jardín 🌿</header>
+            <p class="ux-text">Free until 11:15</p>
+            <button class="ux-action" type="button" data-ux="book-sala-jardin">Book Sala Jardín 🌿</button>
+          </div>
+        </section>
+        <div class="ux-list" data-ux="not-free">Busy, being cleaned or closed
+          <ul>
+            <li>Room 3 — being cleaned, ready at 9:50</li>
+            <li>Room 1 — Dan with Maria K., until 10:00</li>
+            <li>Gym — out of service today</li>
+          </ul>
+        </div>
+        <p class="ux-note">Soonest free first.</p>
+      </section>
+      <section class="ux-region ux-beside">
+        <header>Next to arrive</header>
+        <div class="ux-list" data-ux="arriving">Booked for the next hour
+          <ul>
+            <li>9:50 — Ana G., with Leila</li>
+            <li>10:00 — Luis M., with Tomás</li>
+            <li>10:30 — Ruth B., with Dan</li>
+          </ul>
+        </div>
+        <a class="ux-link" href="#">See all of today&#39;s bookings</a>
+      </section>
+    </div>
+  </div>
+</section>
+
+<section class="ux-frame" data-screen="book">
+  <header>
+    <h2>Booking Room 2</h2>
+    <p class="ux-over">opens over Today, at 9:40</p>
+  </header>
+  <div class="ux-window">
+    <div class="ux-dialog">
+      <h3 class="ux-heading">Room 2 — free until 10:30</h3>
+      <p class="ux-input" data-ux="patient-name">Patient name</p>
+      <p class="ux-note">The cursor is already here.</p>
+      <div class="ux-choice">How long?
+        <ul>
+          <li>15 min</li>
+          <li>30 min</li>
+          <li>45 min</li>
+        </ul>
+      </div>
+      <button class="ux-action is-primary" type="button" data-ux="confirm">Book</button>
+      <button class="ux-action" type="button">Cancel</button>
+    </div>
+  </div>
+</section>
+
+<section class="ux-frame" data-screen="rooms">
+  <header>
+    <h2>Rooms</h2>
+  </header>
+  <div class="ux-window">
+    <div class="ux-screen">
+      <section class="ux-region ux-navigation">
+        <h3 class="ux-heading">Front desk</h3>
+        <nav class="ux-nav" data-ux="places">Places
+          <ul>
+            <li>Today</li>
+            <li aria-current="page">Rooms</li>
+            <li>Bookings</li>
+            <li>Settings</li>
+          </ul>
+        </nav>
+        <a class="ux-link" href="#">Help</a>
+      </section>
+      <section class="ux-region ux-bar">
+        <p class="ux-input" data-ux="find">Find a patient or a room</p>
+        <p class="ux-status" data-ux="updated">Updated 9:40</p>
+        <button class="ux-action" type="button" data-ux="book-walk-in">Book a walk-in</button>
+      </section>
+      <section class="ux-region ux-main">
+        <h3 class="ux-heading">Every room, by floor</h3>
+        <div class="ux-choice" data-ux="show">Show
+          <ul>
+            <li>All rooms</li>
+            <li>Free now</li>
+            <li>Closed</li>
+          </ul>
+        </div>
+        <div class="ux-list" data-ux="ground-floor">Ground floor
+          <ul>
+            <li>Room 1 — busy until 10:00</li>
+            <li>Room 2 — free until 10:30</li>
+            <li>Room 3 — being cleaned, ready at 9:50</li>
+          </ul>
+        </div>
+        <div class="ux-list" data-ux="upstairs">Upstairs
+          <ul>
+            <li>Sala Jardín 🌿 — free until 11:15</li>
+            <li>Gym — out of service today</li>
+          </ul>
+        </div>
+        <details class="ux-expansion">
+          <summary>Why the gym is closed</summary>
+          <p class="ux-text">The floor is being relaid. It reopens tomorrow at 8:00.</p>
+        </details>
+      </section>
+      <section class="ux-region ux-beside">
+        <header>The room she has picked</header>
+        <div class="ux-media">Photo of Room 2: one couch, a window, a sink</div>
+        <p class="ux-text">Room 2 holds one patient and one practitioner.</p>
+        <button class="ux-action is-primary" type="button" data-ux="book-room-2">Book Room 2</button>
+      </section>
+    </div>
+  </div>
+</section>
+
+<section class="ux-frame" data-screen="bookings">
+  <header>
+    <h2>Bookings</h2>
+    <p class="ux-note">No area beside the main part here: the list needs the width.</p>
+  </header>
+  <div class="ux-window">
+    <div class="ux-screen">
+      <section class="ux-region ux-navigation">
+        <h3 class="ux-heading">Front desk</h3>
+        <nav class="ux-nav" data-ux="places">Places
+          <ul>
+            <li>Today</li>
+            <li>Rooms</li>
+            <li aria-current="page">Bookings</li>
+            <li>Settings</li>
+          </ul>
+        </nav>
+        <a class="ux-link" href="#">Help</a>
+      </section>
+      <section class="ux-region ux-bar">
+        <p class="ux-input" data-ux="find">Find a patient or a room</p>
+        <p class="ux-status" data-ux="updated">Updated 9:40</p>
+        <button class="ux-action" type="button" data-ux="book-walk-in">Book a walk-in</button>
+      </section>
+      <section class="ux-region ux-main">
+        <h3 class="ux-heading">Today&#39;s bookings</h3>
+        <p class="ux-status" data-ux="booking-count">11 bookings, 3 still to arrive</p>
+        <div class="ux-list" data-ux="to-arrive">Still to arrive
+          <ul>
+            <li>9:50 — Ana G., with Leila, Room 3</li>
+            <li>10:00 — Luis M., with Tomás, Room 1</li>
+            <li>10:30 — Ruth B., with Dan, Room 2</li>
+          </ul>
+        </div>
+        <details class="ux-expansion">
+          <summary>Already here or gone (8)</summary>
+          <div class="ux-list">Earlier today
+            <ul>
+              <li>8:00 — Joe P., with Leila, Room 2</li>
+              <li>8:30 — Maria K., with Dan, Room 1</li>
+            </ul>
+          </div>
+        </details>
+        <button class="ux-action is-primary" type="button" data-ux="move">Move a booking</button>
+        <button class="ux-action" type="button" data-ux="cancel">Cancel a booking</button>
+      </section>
+    </div>
+  </div>
+</section>
+
+<section class="ux-account">
+  <h2>Its own account</h2>
+  <dl>
+    <dt>Its bet</dt>
+    <dd>Three places that never move — today, the rooms, the bookings — with what is free now always in the middle, let her answer a walk-in without looking for where to go.</dd>
+    <dt>Deliberately bad at</dt>
+    <dd>A week ahead is out of reach: every place shows today, and a booking for another day is taken on paper.</dd>
+    <dt>Absent on purpose</dt>
+    <dd>
+      <ul>
+        <li>Any day but today</li>
+        <li>The practitioners&#39; own schedules</li>
+        <li>A floor plan she can click</li>
+      </ul>
+    </dd>
+    <dt>In the hardest state</dt>
+    <dd>With every room busy, the middle of Today names the room that frees up soonest and when, and Book a walk-in books that time.</dd>
+  </dl>
+</section>
+
+</body>
+</html>

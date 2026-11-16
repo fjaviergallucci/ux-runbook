@@ -61,6 +61,10 @@ flow.
 - Propose one way, whole: not two, and not a blend.
 - Use the real words she would read, and the worst rows she would meet, as this page gives them.
 - Play the hardest state through it. If it breaks, change it, not the sentence that describes it.
+- If you answer in words, in the format below: where a screen is a page she works from, say in `place`
+  which area each of its regions is. A screen with nothing around what it is for places none, and a
+  dialog never does. You choose the area, never its size or its side: every proposal's areas are
+  drawn the same way at each width.
 
 ## What to return
 
@@ -96,14 +100,24 @@ A proposal says what she sees and what she can do, screen by screen, and nothing
 | `link` | A way to go somewhere else. | Its words. |
 | `nav` | The places she can move between. | A caption, and one place or more as its options. |
 
+In a `nav` on a `screen`, the place whose words open that screen's `title` is drawn as the place she is
+at, as "Today" opens "Today, at 9:40".
+
 - **A container** arranges items, and nothing else does. It has `container` and `items`, and may have a
-  `label`.
+  `label`. A `region` may also say in `place` which area of the page it is.
 
 | `container` | What it is | What it needs |
 |---|---|---|
 | `region` | A major area of a screen. | One item or more. |
 | `group` | Things that belong together. | One item or more. |
 | `expansion` | Something that opens in place. | One item or more, and always a label. |
+
+| `place` | Which area of the page the region is |
+|---|---|
+| `navigation` | The places she moves between, present from screen to screen. |
+| `bar` | A strip across the top: what is always at hand. |
+| `main` | What the screen is for. |
+| `beside` | What sits next to the main part and supports it. |
 
 The rules a proposal is checked by. One that breaks any of them is refused:
 
@@ -116,10 +130,18 @@ The rules a proposal is checked by. One that breaks any of them is refused:
 - A `choice` has two `options` or more; a `list` and a `nav` have one or more; no other role has any.
 - An `expansion` always has a `label`, and may say with `open`, true or false, whether it starts open.
   A `region` or a `group` may have a `label`, and has no `open`.
+- `place` is written only on a `region` that is a direct item of a `screen`: never inside another
+  container, and never in a `dialog`. Each of the four areas is on a screen once at most. A screen that
+  places any region has a `main`, and every direct item of that screen is then a placed `region`:
+  nothing floats outside the areas. A screen with no placed `region` is drawn as one column.
 - Every `text`, `title` and `label` is a line of words, never empty, and every list (`absent`, `screens`,
   `items`, `options`) holds at least one entry.
-- These are all the keys. There is no key for layout, size, colour or position, and an unknown key is
-  refused: proposals differ in order, in grouping, in what is present and in which container holds it.
+- `screens` holds five entries at most, dialogs counted: a structure that needs more is more than one
+  design.
+- These are all the keys. There is no key for size, colour or exact position: `place` says only which of
+  four areas a `region` is, and how an area is drawn at each width is the same for every proposal. An
+  unknown key is refused: proposals differ in order, in grouping, in what is present, in which container
+  holds it and in which area that is.
 
 A specimen of the syntax, not a proposal: it shows every part once, in no meaningful arrangement, and
 a proposal that resembles it has copied it.
@@ -134,15 +156,15 @@ a proposal that resembles it has copied it.
   "firstIdea": "(your first idea, and why you set it aside)",
   "screens": [
     { "id": "a-screen", "title": "(a screen's title)", "container": "screen", "note": "(a note about this screen)", "items": [
-      { "role": "heading", "text": "(a heading)" },
-      { "role": "text", "text": "(some words she reads)" },
-      { "role": "choice", "text": "(a question)", "options": ["(an option)", "(another option)"] },
-      { "role": "input", "text": "(a field's label)" },
-      { "role": "action", "text": "(the main action)", "id": "an-item", "note": "(a note about this item)", "primary": true } ] },
+      { "container": "region", "place": "main", "label": "(a region's label)", "items": [
+        { "role": "heading", "text": "(a heading)" },
+        { "role": "text", "text": "(some words she reads)" },
+        { "role": "choice", "text": "(a question)", "options": ["(an option)", "(another option)"] },
+        { "role": "input", "text": "(a field's label)" },
+        { "role": "action", "text": "(the main action)", "id": "an-item", "note": "(a note about this item)", "primary": true } ] } ] },
     { "id": "a-dialog", "title": "(a dialog's title)", "container": "dialog", "over": "a-screen", "items": [
-      { "container": "region", "label": "(a region's label)", "items": [
-        { "role": "list", "text": "(a list's caption)", "options": ["(a row)"] },
-        { "role": "status", "text": "(a status)" } ] },
+      { "role": "list", "text": "(a list's caption)", "options": ["(a row)"] },
+      { "role": "status", "text": "(a status)" },
       { "container": "group", "label": "(a group's label)", "items": [
         { "role": "media", "text": "(what a picture shows)" },
         { "role": "link", "text": "(a link)" } ] },

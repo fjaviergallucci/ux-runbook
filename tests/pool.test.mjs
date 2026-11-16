@@ -11,7 +11,7 @@ import {
 } from '../scripts/lib/card.mjs';
 import { parse } from '../scripts/lib/frontmatter.mjs';
 import { SIZES, STAGES } from '../scripts/lib/state.mjs';
-import { CONTAINERS, KEYS, ROLES } from '../scripts/lib/walkthrough.mjs';
+import { CONTAINERS, KEYS, PLACES, ROLES } from '../scripts/lib/walkthrough.mjs';
 
 const root = new URL('../', import.meta.url);
 const at = path => new URL(path, root);
@@ -1063,8 +1063,8 @@ const summaryOf = text => {
   return rest.slice(0, end === -1 ? undefined : end).join('\n');
 };
 
-test('a card that sums up the walkthrough format names every key, role and container of it, and no other', () => {
-  const format = new Set([...KEYS.proposal, ...KEYS.screen, ...KEYS.role, ...KEYS.container, ...ROLES, ...CONTAINERS, 'screen', 'dialog']);
+test('a card that sums up the walkthrough format names every key, role, container and area of it, and no other', () => {
+  const format = new Set([...KEYS.proposal, ...KEYS.screen, ...KEYS.role, ...KEYS.container, ...ROLES, ...CONTAINERS, ...PLACES, 'screen', 'dialog']);
   const summaries = cards.map(card => [card.data.id, summaryOf(card.text)]).filter(([, summary]) => summary !== null);
   assert.deepEqual(summaries.map(([id]) => id).sort(), ['maker.structure-describer', 'maker.transcriber']);
   for (const [id, summary] of summaries) {
@@ -1074,7 +1074,18 @@ test('a card that sums up the walkthrough format names every key, role and conta
     // An expansion is the one container that must have a label.
     assert.match(summary, /An expansion always has a\s+`label`/, id);
     assert.match(summary, /A region or a group may have a\s+`label`/, id);
+    // R194 of the board change: the one key that says where a region is, its four words in the format's order, and
+    // where it may be written.
+    const flat = summary.replace(/\s+/g, ' ');
+    assert.match(flat, /A region that is a direct item of a screen may say in `place` which area of the page it is: `navigation`, `bar`, `main` or `beside`\./, id);
+    assert.deepEqual(spans(summary).filter(word => PLACES.includes(word)), PLACES, id);
   }
+  // M4 of the board change's review: the transcriber is told, in the sentence both briefs give with the format, which
+  // place of a nav the board marks; the describer's card says it in its method.
+  const sentence = 'In a `nav` on a `screen`, the place whose words open that screen\'s `title` is drawn as the place she is at, as "Today" opens "Today, at 9:40".';
+  for (const brief of ['templates/package/04-structure/BRIEF.md', 'templates/package/04-structure/BRIEF-fresh.md']) assert.ok(read(brief).replace(/\s+/g, ' ').includes(sentence), brief);
+  assert.ok(summaries.find(([id]) => id === 'maker.transcriber')[1].replace(/\s+/g, ' ').includes(`- ${sentence}`), 'the transcriber\'s summary of the format');
+  assert.match(cards.find(card => card.data.id === 'maker.structure-describer').text.replace(/\s+/g, ' '), /The place of a navigation whose words open the screen's title is marked as where she is/);
 });
 
 // The one command a card gives in a fence, by the words it starts with: the script between its double

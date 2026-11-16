@@ -1,0 +1,205 @@
+{
+  "name": "The whole day in one list",
+  "bet": "Every booking of the day in one list she never leaves, with the rooms and the waiting list one place away, lets her move a booking the moment a practitioner calls in sick.",
+  "cost": "The list is long on a full day: fifteen rows before she sees the end of the morning, and a free room is found by reading, not at a glance.",
+  "absent": [
+    "A plan of the building",
+    "Any day but today",
+    "The practitioners' holiday calendar, which the Physiotherapeutengemeinschaftspraxis keeps on paper"
+  ],
+  "hardest": "When a practitioner is off sick with nine bookings left, she ticks them in the list and moves them in one go; a booking that fits no other room stays ticked, with the reason beside it.",
+  "firstIdea": "A grid of rooms against hours; set aside because the question on a sick day is which bookings, not which rooms.",
+  "screens": [
+    {
+      "id": "today",
+      "title": "Today, at 9:40",
+      "container": "screen",
+      "note": "Open all day on the desk monitor; it is where she lands.",
+      "items": [
+        {
+          "container": "region",
+          "place": "navigation",
+          "items": [
+            { "role": "heading", "text": "Physiotherapeutengemeinschaftspraxis Santa Hermenegilda" },
+            {
+              "role": "nav",
+              "id": "places",
+              "text": "Places",
+              "options": ["Today", "Rooms", "Waiting list", "Practitioners and their substitutes", "Day sheet"]
+            },
+            { "role": "link", "text": "Opening hours and public holidays" }
+          ]
+        },
+        {
+          "container": "region",
+          "place": "bar",
+          "items": [
+            { "role": "input", "id": "find", "text": "Find a patient, a practitioner, a room or a booking reference" },
+            { "role": "status", "id": "waiting", "text": "3 people waiting" },
+            { "role": "action", "id": "book-walk-in", "text": "Book a walk-in", "primary": true }
+          ]
+        },
+        {
+          "container": "region",
+          "place": "main",
+          "items": [
+            { "role": "heading", "text": "Bookings still to come today" },
+            { "role": "text", "text": "Fifteen bookings are left. Tick the ones to move: Leila is off sick from 10:00." },
+            {
+              "role": "list",
+              "id": "to-come",
+              "text": "Soonest first",
+              "options": [
+                "9:50 — Ana García-Fernández de la Torre, with Leila, Room 3 (Sala de Rehabilitación Cardiopulmonar)",
+                "10:00 — Luis M., with Tomás, Room 1",
+                "10:00 — Booking REF-20261115-1000-ROOM2-WALKIN-000123456789-UNCONFIRMED, no name taken",
+                "10:15 — Ruth B., with Dan, Room 2",
+                "10:30 — Maximiliane Brandstätter-Oosterhuis, with Leila, Sala Jardín 🌿",
+                "10:45 — Joe P., with Leila, Room 3",
+                "11:00 — Maria K., with Dan, Room 1",
+                "11:15 — Krankengymnastikverordnungsverlängerung for Hr. Zieliński, with Leila, Room 3",
+                "11:30 — Sam O., with Tomás, Room 2",
+                "11:45 — a child and one parent, with Leila, Sala Jardín 🌿",
+                "12:00 — Dana W., with Dan, Room 1",
+                "12:15 — Yusuf A., with Tomás, Room 2",
+                "12:30 — Mei L., with Leila, Room 3",
+                "12:45 — Olu N., with Dan, Room 1",
+                "13:00 — the last before lunch: Ines R., with Tomás, Room 2"
+              ],
+              "note": "The worst day: every row she might have to move."
+            },
+            { "role": "action", "id": "move-ticked", "text": "Move the ticked bookings" },
+            { "role": "action", "id": "cancel-ticked", "text": "Cancel them", "note": "Asks once, for all of them." }
+          ]
+        },
+        {
+          "container": "region",
+          "place": "beside",
+          "label": "Who to tell",
+          "items": [
+            { "role": "status", "id": "to-tell", "text": "6 patients to tell" },
+            {
+              "role": "list",
+              "id": "contacts",
+              "text": "By e-mail or by phone",
+              "options": [
+                "Ana — ana.garcia-fernandez.delatorre@fisioterapia-santa-hermenegilda.example",
+                "Maximiliane — +00 000 555 0142",
+                "Joe — no contact on file"
+              ]
+            },
+            { "role": "link", "text": "Everyone booked with Leila today" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "move",
+      "title": "Moving the ticked bookings",
+      "container": "dialog",
+      "over": "today",
+      "items": [
+        { "role": "heading", "text": "Move 6 bookings from Leila" },
+        { "role": "status", "id": "fit", "text": "5 fit another practitioner; 1 fits nobody today" },
+        { "role": "choice", "text": "Move them to", "options": ["Tomás", "Dan", "Whoever is free"] },
+        { "role": "input", "id": "reason", "text": "What to tell the patients" },
+        { "role": "action", "id": "confirm", "text": "Move the five that fit", "primary": true },
+        { "role": "action", "text": "Not now" }
+      ]
+    },
+    {
+      "id": "rooms",
+      "title": "Rooms",
+      "container": "screen",
+      "items": [
+        {
+          "container": "region",
+          "place": "navigation",
+          "items": [
+            { "role": "heading", "text": "Physiotherapeutengemeinschaftspraxis Santa Hermenegilda" },
+            {
+              "role": "nav",
+              "id": "places",
+              "text": "Places",
+              "options": ["Today", "Rooms", "Waiting list", "Practitioners and their substitutes", "Day sheet"]
+            }
+          ]
+        },
+        {
+          "container": "region",
+          "place": "main",
+          "items": [
+            { "role": "heading", "text": "Every room, right now" },
+            { "role": "choice", "id": "show", "text": "Show", "options": ["All of them", "Free now", "Free within the hour"] },
+            {
+              "container": "group",
+              "label": "Room 2",
+              "items": [
+                { "role": "text", "text": "Free until 10:15" },
+                { "role": "action", "id": "book-room-2", "text": "Book it", "primary": true },
+                { "role": "action", "text": "Hold it for ten minutes" }
+              ]
+            },
+            {
+              "container": "group",
+              "label": "Sala de Rehabilitación Cardiopulmonar",
+              "items": [
+                { "role": "text", "text": "Busy until 10:45, then being cleaned" },
+                { "role": "action", "text": "Book it from 11:00" }
+              ]
+            },
+            {
+              "container": "group",
+              "label": "Sala Jardín 🌿",
+              "items": [{ "role": "text", "text": "Out of service today: the floor is being relaid" }]
+            },
+            {
+              "container": "expansion",
+              "label": "Rooms closed for the season (2)",
+              "items": [{ "role": "text", "text": "The hydrotherapy pool and the gym reopen in March." }]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "waiting-list",
+      "title": "Waiting list",
+      "container": "screen",
+      "note": "The nearly empty screen: most days nobody is on it.",
+      "items": [
+        {
+          "container": "region",
+          "place": "navigation",
+          "items": [
+            {
+              "role": "nav",
+              "id": "places",
+              "text": "Places",
+              "options": ["Today", "Rooms", "Waiting list", "Practitioners and their substitutes", "Day sheet"]
+            }
+          ]
+        },
+        {
+          "container": "region",
+          "place": "main",
+          "items": [{ "role": "text", "id": "nobody", "text": "Nobody is waiting for a room." }]
+        }
+      ]
+    },
+    {
+      "id": "day-sheet",
+      "title": "Printing the day sheet",
+      "container": "screen",
+      "note": "A step she goes through once in the evening, so it places nothing.",
+      "items": [
+        { "role": "heading", "text": "The day sheet for Sunday 15 November" },
+        { "role": "media", "text": "The sheet as it will print: one line a booking, the moved ones marked" },
+        { "role": "choice", "text": "Send it", "options": ["Print it", "E-mail it to the practitioners", "Both"] },
+        { "role": "action", "id": "print", "text": "Print the day sheet", "primary": true },
+        { "role": "action", "text": "Not today" },
+        { "role": "link", "text": "Back to today" }
+      ]
+    }
+  ]
+}

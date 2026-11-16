@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
-import { CONTAINERS, KEYS, ORDER, ROLES, SOURCE_ONLY as STRIPPED, validate } from '../scripts/lib/walkthrough.mjs';
+import { CONTAINERS, KEYS, MAX_SCREENS, ORDER, PLACES, ROLES, SOURCE_ONLY as STRIPPED, validate } from '../scripts/lib/walkthrough.mjs';
 
 const read = p => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
 const FIXTURES = ['unified-list', 'free-first', 'calendar'];
@@ -44,9 +44,12 @@ function refuses(proposal, path, pattern) {
   assert.match(errors[0], pattern);
 }
 
-test('the vocabulary is ten roles and three containers', () => {
+test('the vocabulary is ten roles, three containers and the four areas a region may be', () => {
   assert.deepEqual(ROLES, ['heading', 'text', 'choice', 'input', 'action', 'list', 'status', 'media', 'link', 'nav']);
   assert.deepEqual(CONTAINERS, ['region', 'group', 'expansion']);
+  assert.deepEqual(PLACES, ['navigation', 'bar', 'main', 'beside']);
+  assert.equal(MAX_SCREENS, 5);
+  for (const list of [ROLES, CONTAINERS, PLACES]) assert.ok(Object.isFrozen(list));
 });
 
 test('each fixture validates: two screens, the system track, and real words', () => {
@@ -224,13 +227,15 @@ test('a dialog names the screen it opens over, and only a dialog does', () => {
 });
 
 test('primary belongs to an action, and is true or false', () => {
+  refuses(changed(p => { p.screens[1].items[0].primary = true; }), 'screens[1].items[0]', /"primary" belongs to an action, not to an "input"$/);
   refuses(changed(p => { p.screens[0].items[0].primary = false; }), 'screens[0].items[0]', /"primary" belongs to an action/);
   refuses(changed(p => { p.screens[0].items[1].primary = 'yes'; }), 'screens[0].items[1]', /"primary" must be true or false/);
   assert.deepEqual(validate(changed(p => { p.screens[0].items[1].primary = false; })), []);
 });
 
 test('open belongs to an expansion, and is true or false', () => {
-  refuses(changed(p => { p.screens[0].items.push(group([line], { open: true })); }), 'screens[0].items[2]', /"open" belongs to an expansion, not to a "group"/);
+  refuses(changed(p => { p.screens[0].items.push(group([line], { open: true })); }), 'screens[0].items[2]', /"open" belongs to an expansion, not to a "group"$/);
+  refuses(changed(p => { p.screens[1].items = [{ container: 'expansion', label: 'Later', place: 'main', items: [line] }]; }), 'screens[1].items[0]', /"place" belongs to a region, not to an "expansion"$/);
   refuses(changed(p => { p.screens[0].items.push({ container: 'expansion', label: 'Later today', open: 'yes', items: [line] }); }), 'screens[0].items[2]', /"open" must be true or false/);
   assert.deepEqual(validate(changed(p => { p.screens[0].items.push({ container: 'expansion', label: 'Later today', open: false, items: [line] }); })), []);
 });
@@ -264,7 +269,8 @@ test('an expansion carries a label; a region or a group may go without one', () 
 test('options belong to a choice, a list or a nav, and those three need them', () => {
   const withItem = item => changed(p => { p.screens[1].items.push(item); });
   for (const role of ['heading', 'text', 'input', 'action', 'status', 'media', 'link']) {
-    refuses(withItem({ role, text: 'Room 2', options: ['Free until 10:30'] }), 'screens[1].items[1]', new RegExp(`"options" belong to a choice, a list or a nav, not to a "${role}"`));
+    // M9 of the board change's review: the article is the word's own, "an input" and "an action".
+    refuses(withItem({ role, text: 'Room 2', options: ['Free until 10:30'] }), 'screens[1].items[1]', new RegExp(`"options" belong to a choice, a list or a nav, not to ${/^[aeiou]/.test(role) ? 'an' : 'a'} "${role}"$`));
   }
   for (const role of ['choice', 'list', 'nav']) {
     refuses(withItem({ role, text: 'Rooms' }), 'screens[1].items[1]', /"options" is missing/);
@@ -289,6 +295,129 @@ test('an unknown key is refused at every level; the provenance keys are allowed 
   const provenance = { author: 'describer-2', engine: 'claude', track: 'system', model: 'opus', source: 'proposals/b.json' };
   assert.deepEqual(validate(changed(p => Object.assign(p, provenance))), []);
   refuses(changed(p => { p.screens[0].track = 'system'; }), 'screens[0]', /unknown key "track"/);
+});
+
+// R194 of the board change: a region may say which area of the page it is, and nothing else may say where anything goes.
+const region = (place, extra = {}) => ({ container: 'region', ...(place ? { place } : {}), ...extra, items: [line] });
+// The first screen holding one region for each place given, in that order; null is a region with no place.
+const placing = (...places) => changed(p => { p.screens[0].items = places.map(place => region(place)); });
+
+test('a region that is a direct item of a screen may say which of four areas it is; a screen with no placed region stays valid', () => {
+  assert.deepEqual(validate(placing('main')), [], 'main alone');
+  assert.deepEqual(validate(placing(...PLACES)), [], 'all four');
+  assert.deepEqual(validate(placing('beside', 'main', 'bar', 'navigation')), [], 'in any order');
+  for (const place of PLACES.filter(place => place !== 'main')) assert.deepEqual(validate(placing(place, 'main')), [], place);
+  assert.deepEqual(validate(placing(null, null)), [], 'regions with no place, as before');
+  assert.deepEqual(validate(minimal()), [], 'no region at all, as before');
+  // A placed region is a region still: it may have a label, and holds anything a region holds.
+  const full = placing('navigation', 'main');
+  full.screens[0].items[1] = region('main', { label: 'Rooms right now', items: [group([{ container: 'region', label: 'Ground floor', items: [line] }]), { role: 'action', text: 'Book Room 2', primary: true }] });
+  assert.deepEqual(validate(full), []);
+  // A letter copy carries it as its source does.
+  const { firstIdea, ...copy } = full;
+  assert.deepEqual(validate(copy, { sealed: true }), []);
+});
+
+test('place is one of four words, and belongs to a region', () => {
+  for (const bad of ['sidebar', 'Main', 'main ', 'header', 'footer', 'left', '', 3, true, null, ['main']]) {
+    refuses(changed(p => { p.screens[0].items = [region('main'), { ...region(), place: bad }]; }), 'screens[0].items[1]', /^screens\[0\]\.items\[1\]: "place" must be "navigation", "bar", "main" or "beside"; it is /);
+  }
+  refuses(placing('mian'), 'screens[0].items[0]', /"place" must be "navigation", "bar", "main" or "beside"; it is "mian"$/);
+  for (const container of ['group', 'expansion']) {
+    refuses(
+      changed(p => { p.screens[0].items = [region('main'), { container, label: 'Room 2', place: 'beside', items: [line] }]; }),
+      'screens[0].items[1]',
+      new RegExp(`"place" belongs to a region, not to ${container === 'expansion' ? 'an' : 'a'} "${container}"$`),
+    );
+  }
+  // A role has no such key, and neither has a screen or the proposal.
+  refuses(changed(p => { p.screens[0].items = [region('main'), { role: 'nav', text: 'Places', options: ['Today'], place: 'navigation' }]; }), 'screens[0].items[1]', /unknown key "place"$/);
+  refuses(changed(p => { p.screens[0].place = 'main'; }), 'screens[0]', /unknown key "place"$/);
+  refuses(changed(p => { p.place = 'main'; }), 'proposal', /unknown key "place"$/);
+});
+
+test('place is only on a direct item of a screen: never inside another container, never in a dialog', () => {
+  for (const holder of ['region', 'group', 'expansion']) {
+    refuses(
+      changed(p => { p.screens[0].items = [{ container: holder, label: 'Rooms', ...(holder === 'region' ? { place: 'main' } : {}), items: [region(holder === 'region' ? 'beside' : 'main')] }]; }),
+      'screens[0].items[0].items[0]',
+      /"place" belongs to a region that is a direct item of its screen; this one is inside another container$/,
+    );
+  }
+  refuses(changed(p => { p.screens[1].items = [region('main')]; }), 'screens[1].items[0]', /"place" belongs to a region of a screen; a dialog has no areas$/);
+  refuses(changed(p => { p.screens[1].items.push(group([region('beside')])); }), 'screens[1].items[1].items[0]', /a dialog has no areas$/);
+  // And that is all that is said of it: a dialog is never a screen that places its regions.
+  refuses(changed(p => { p.screens[1].items = [region('bar'), line]; }), 'screens[1].items[0]', /a dialog has no areas$/);
+  // A dialog over a screen that places its regions is a dialog like any other.
+  const p = placing('navigation', 'main');
+  assert.deepEqual(validate(p), []);
+  assert.equal(p.screens[1].container, 'dialog');
+});
+
+test('each area is on a screen once at most; another screen has its own', () => {
+  for (const place of PLACES) {
+    const places = place === 'main' ? ['main', 'bar', 'main'] : ['main', place, place];
+    const second = places.lastIndexOf(place);
+    refuses(placing(...places), `screens[0].items[${second}]`, new RegExp(`a second "${place}" on this screen; the first is screens\\[0\\]\\.items\\[${places.indexOf(place)}\\]$`));
+  }
+  // A third is told of the first too.
+  assert.deepEqual(validate(placing('main', 'main', 'main')), [
+    'screens[0].items[1]: a second "main" on this screen; the first is screens[0].items[0]',
+    'screens[0].items[2]: a second "main" on this screen; the first is screens[0].items[0]',
+  ]);
+  const two = placing('navigation', 'main');
+  two.screens.push({ id: 'rooms', title: 'Rooms', container: 'screen', items: [region('navigation'), region('main')] });
+  assert.deepEqual(validate(two), [], 'the same areas on two screens');
+});
+
+test('a screen that places any region has a main', () => {
+  for (const places of [['navigation'], ['bar'], ['beside'], ['navigation', 'bar', 'beside']]) {
+    refuses(placing(...places), 'screens[0]', /^screens\[0\]: a screen that places a region has a "main"; this one has none$/);
+  }
+  // It is said at the screen, before what is said of its items.
+  const p = placing('navigation', 'bar');
+  p.screens[0].items[1].items = [];
+  assert.deepEqual(validate(p).map(error => error.split(': ')[0]), ['screens[0]', 'screens[0].items[1]']);
+});
+
+test('on a screen that places a region, every direct item is a placed region: nothing floats outside the areas', () => {
+  const floating = /on a screen that places a region, every direct item is a placed region; this /;
+  refuses(changed(p => { p.screens[0].items = [region('main'), line]; }), 'screens[0].items[1]', new RegExp(`${floating.source}"text" is outside the areas$`));
+  refuses(changed(p => { p.screens[0].items = [{ role: 'heading', text: 'Rooms' }, region('main')]; }), 'screens[0].items[0]', new RegExp(`${floating.source}"heading" is outside the areas$`));
+  refuses(changed(p => { p.screens[0].items = [region('main'), group([line])]; }), 'screens[0].items[1]', new RegExp(`${floating.source}"group" is outside the areas$`));
+  refuses(placing('main', null), 'screens[0].items[1]', new RegExp(`${floating.source}"region" has no "place"$`));
+  assert.deepEqual(validate(placing(null, 'navigation', 'main', null)).map(error => error.split(': ')[0]), ['screens[0].items[0]', 'screens[0].items[3]']);
+  // Inside an area, anything goes as before: a region with no place, a group, a role.
+  assert.deepEqual(validate(changed(p => { p.screens[0].items = [region('main', { items: [line, region(), group([line])] })]; })), []);
+});
+
+test('a faulty place is one fault: it is not said again by the rules that count the areas', () => {
+  // A mistyped main is not also a screen without a main, and a mistyped value is not a region outside the areas.
+  refuses(placing('navigation', 'mian'), 'screens[0].items[1]', /"place" must be /);
+  refuses(changed(p => { p.screens[0].items = [region('navigation'), { container: 'group', place: 'main', items: [line] }]; }), 'screens[0].items[1]', /"place" belongs to a region, not to a "group"$/);
+  // A mistyped container that carries a place is one fault too.
+  refuses(changed(p => { p.screens[0].items = [region('navigation'), { container: 'regoin', place: 'main', items: [line] }]; }), 'screens[0].items[1]', /: unknown container "regoin"$/);
+  // So is an item that is a role and a container at once, whatever place it carries.
+  refuses(changed(p => { p.screens[0].items = [{ role: 'text', text: 'Rooms', container: 'region', place: 'main', items: [line] }, line]; }), 'screens[0].items[0]', /has a "role" and a "container"/);
+  // A place on something that places nothing does not make the screen one that places its regions.
+  refuses(changed(p => { p.screens[0].items.push({ container: 'group', place: 'main', items: [line] }); }), 'screens[0].items[2]', /"place" belongs to a region, not to a "group"$/);
+  refuses(changed(p => { p.screens[0].items.push(region('sidebar')); }), 'screens[0].items[2]', /"place" must be /);
+});
+
+// R195 of the board change: a structure that needs more than five screens is more than one design.
+test('a proposal holds five screens at most, dialogs counted', () => {
+  const extra = n => Array.from({ length: n }, (_, i) => ({ id: `step-${i + 1}`, title: `Step ${i + 1}`, container: i % 2 ? 'dialog' : 'screen', ...(i % 2 ? { over: 'today' } : {}), items: [line] }));
+  assert.deepEqual(validate(changed(p => { p.screens.push(...extra(3)); })), [], 'five: two screens, a dialog and two more');
+  assert.deepEqual(validate(changed(p => { p.screens.push(...extra(4)); })), [
+    'proposal: "screens" holds 6 entries; a proposal holds 5 at most, dialogs counted: a structure that needs more is more than one design',
+  ]);
+  refuses(changed(p => { p.screens.push(...extra(9)); }), 'proposal', /"screens" holds 11 entries; a proposal holds 5 at most/);
+  // The sixth is still read: what is wrong in it is said too.
+  const p = changed(p => { p.screens.push(...extra(4)); });
+  p.screens[5].items[0] = { role: 'card', text: 'Room 2' };
+  assert.deepEqual(validate(p).map(error => error.split(': ')[0]), ['proposal', 'screens[5].items[0]']);
+  const { firstIdea, ...copy } = changed(p => { p.screens.push(...extra(4)); });
+  assert.equal(validate(copy, { sealed: true }).length, 1, 'a letter copy too');
 });
 
 // The sealed form: a letter copy, as the merge writes it. These six stay in the source file.
@@ -351,7 +480,7 @@ test('the letter order is the proposal\'s keys minus the six that stay in the so
   assert.deepEqual(ORDER.letter, ['name', 'bet', 'cost', 'absent', 'hardest', 'screens']);
   assert.deepEqual(ORDER.screen, ['id', 'title', 'container', 'over', 'note', 'items']);
   assert.deepEqual(ORDER.role, ['role', 'text', 'id', 'note', 'primary', 'options']);
-  assert.deepEqual(ORDER.container, ['container', 'label', 'open', 'items']);
+  assert.deepEqual(ORDER.container, ['container', 'place', 'label', 'open', 'items']);
 });
 
 test('every error is reported at once, in the order of the proposal', () => {
@@ -369,7 +498,9 @@ test('every error is reported at once, in the order of the proposal', () => {
 
 // The grey kit. Its class names are a contract a project kit restyles; these tests pin what the brief asks of it.
 
-const CLASSES = ['ux-frame', 'ux-screen', 'ux-dialog', 'ux-over', ...CONTAINERS.map(c => `ux-${c}`), ...ROLES.map(r => `ux-${r}`), 'ux-note'];
+// The classes of the page itself and of a screen's areas came with R194 to R197 of the board change.
+const AREAS = PLACES.map(place => `ux-${place}`);
+const CLASSES = ['ux-option', 'ux-overview', 'ux-frame', 'ux-window', 'ux-screen', 'ux-dialog', 'ux-over', ...CONTAINERS.map(c => `ux-${c}`), ...AREAS, ...ROLES.map(r => `ux-${r}`), 'ux-note', 'ux-account'];
 const kit = () => ({
   css: read('kit/grey/kit.css').replace(/\/\*[\s\S]*?\*\//g, ''),
   parts: read('kit/grey/parts.html'),
@@ -388,6 +519,8 @@ function block(text, from) {
 }
 const tokens = body => new Map([...body.matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)].map(([, name, value]) => [name, value.trim()]));
 const isHex = value => /^#[0-9a-f]{6}$/i.test(value);
+const flat = text => text.replace(/\s+/g, ' ');
+const count = (text, part) => text.split(part).length - 1;
 
 test('the contract names every class, kit.css styles each, and parts.html shows each, labelled, adding none', () => {
   const { css, parts, contract } = kit();
@@ -402,6 +535,11 @@ test('the contract names every class, kit.css styles each, and parts.html shows 
   const used = [...parts.matchAll(/class="([^"]*)"/g)].map(([, value]) => value.split(/\s+/));
   assert.deepEqual([...new Set(used.flat())].sort(), [...CLASSES, 'is-primary'].sort(), 'parts.html shows every class and adds none');
   assert.ok(used.filter(names => names.includes('is-primary')).every(names => names.includes('ux-action')), 'is-primary only on an action');
+  // An area's class is on a region, after ux-region, and no other part carries two classes.
+  for (const names of used.filter(names => names.length > 1)) {
+    assert.ok(names.join(' ') === 'ux-action is-primary' || (names.length === 2 && names[0] === 'ux-region' && AREAS.includes(names[1])), `class="${names.join(' ')}"`);
+  }
+  for (const area of AREAS) assert.equal(used.filter(names => names.includes(area)).length, 1, `parts.html shows ${area} once, on one screen`);
   const visible = parts.replace(/<[^>]*>/g, ' ');
   for (const name of all) assert.match(visible, new RegExp(`(^|[^\\w.-])${name.replace('.', '\\.')}(?![\\w.-])`), `parts.html labels ${name}`);
   assert.match(parts, /<[a-z][^>]*\sdata-ux="[a-z][a-z0-9-]*"[^>]*>/, 'a part in parts.html carries a stable id');
@@ -435,8 +573,15 @@ test('every class the contract names is in kit.css and parts.html, and parts.htm
     for (const { tag } of carrying(parts, name)) assert.equal(tag, element, `parts.html draws ${name} on <${element}>`);
     assert.equal(/\boptions\b/.test(holds), name in OPTIONED, `the contract's row for ${name} speaks of options only if it has them`);
   }
-  const optionLists = [...parts.matchAll(/<[a-z]+ class="(ux-[a-z]+)"[^>]*>[^<]*<ul>((?:\s*<li>[^<]+<\/li>)+)\s*<\/ul>/g)];
-  assert.equal((parts.match(/<ul\b/g) ?? []).length, optionLists.length, 'every list in parts.html is the options of a part');
+  const optionLists = [...parts.matchAll(/<[a-z]+ class="(ux-[a-z]+)"[^>]*>[^<]*<ul>((?:\s*<li(?: aria-current="page")?>[^<]+<\/li>)+)\s*<\/ul>/g)];
+  const account = parts.match(/<section class="ux-account">\n  <h2>[^<]+<\/h2>\n  <dl>[\s\S]*?<\/dl>\n<\/section>\n\n<\/body>/)?.[0];
+  assert.ok(account, 'the account closes the specimen page, as it closes a board: a heading, then its terms');
+  assert.equal(count(account, '<ul>'), 1, 'one of its terms holds a list');
+  assert.equal((parts.match(/<ul\b/g) ?? []).length, optionLists.length + 1, 'every other list in parts.html is the options of a part');
+  // The place she is at: one place of one nav, marked as the drawing script marks it.
+  assert.deepEqual(parts.match(/<[a-z]+[^>]*\saria-current="[^"]*"[^>]*>/g), ['<li aria-current="page">']);
+  assert.match(parts, /<nav class="ux-nav"[^>]*>[^<]*<ul>(?:\s*<li>[^<]+<\/li>)*\s*<li aria-current="page">/, 'on a place of a nav');
+  assert.match(css, /\.ux-nav > ul > li\[aria-current\]/, 'and kit.css styles it there');
   for (const [, name, items] of optionLists) assert.ok(items.match(/<li>/g).length >= (OPTIONED[name] ?? Infinity), `${name} shows its options`);
   for (const name of Object.keys(OPTIONED)) {
     assert.equal(optionLists.filter(([, n]) => n === name).length, carrying(parts, name).length, `every ${name} in parts.html shows its options`);
@@ -444,15 +589,35 @@ test('every class the contract names is in kit.css and parts.html, and parts.htm
   const frames = carrying(parts, 'ux-frame');
   assert.ok(frames.every(e => /\sdata-screen="[a-z][a-z0-9-]*"/.test(e.attrs)), 'every frame names its screen in data-screen');
   assert.equal(parts.match(/<section class="ux-frame"[^>]*>\s*<header>/g).length, frames.length, 'a frame opens with its caption header');
+  // Then its window, which holds the screen or the dialog and nothing else.
+  assert.equal(parts.match(/<\/header>\n  <div class="ux-window">\n    <div class="ux-(?:screen|dialog)">\n[\s\S]*?\n    <\/div>\n  <\/div>\n<\/section>/g).length, frames.length, 'a frame closes with its window');
+  assert.equal(carrying(parts, 'ux-window').length, frames.length);
+  assert.equal(carrying(parts, 'ux-screen').length + carrying(parts, 'ux-dialog').length, frames.length);
+  // The page's own parts, where the drawing script puts them: the title first, the overview before the frames.
+  assert.match(parts, /<body>\n\n<header class="ux-option">\n  <h1>[^<]+<\/h1>\n<\/header>\n/);
+  const overview = parts.match(/\n<section class="ux-overview">\n  <ol>\n[\s\S]*?\n  <\/ol>\n<\/section>\n/)?.[0];
+  assert.ok(overview && parts.indexOf(overview) < parts.indexOf('<section class="ux-frame"'), 'the overview comes before the frames');
+  assert.doesNotMatch(overview, /data-ux|data-screen|class="(?!ux-overview")/, 'the overview carries no class but its own, and no id');
+  assert.deepEqual([...overview.matchAll(/<dt>([^<]*)<\/dt>/g)].map(([, word]) => word), [...PLACES, 'dialog', 'screen'], 'the overview shows each area by the format\'s word, a dialog under its screen, and a screen that places none');
+  assert.equal(count(overview, '<b>'), 3);
+  // The areas, on one screen: each a region that is a direct item of it.
+  for (const area of AREAS) assert.match(parts, new RegExp(`\\n    <div class="ux-screen">\\n(?:      [^\\n]*\\n|        [^\\n]*\\n)*?      <section class="ux-region ${area}">\\n`), `${area} is a direct item of its screen`);
   assert.equal(parts.match(/<details class="ux-expansion"[^>]*>\s*<summary>[^<\s][^<]*<\/summary>/g).length, carrying(parts, 'ux-expansion').length, 'an expansion opens with its labelled summary');
 
   const preludes = [...css.matchAll(/([^{}]+)\{/g)].map(([, prelude]) => prelude.trim()).filter(prelude => !prelude.startsWith('@'));
   const byName = new Set(preludes.flatMap(prelude => [...prelude.matchAll(/(?:^|[\s>+~,(])([a-z][a-z0-9]*)(?![\w-])/g)].map(([, tag]) => tag)));
-  assert.deepEqual([...byName].sort(), ['body', 'h2', 'header', 'li', 'summary', 'ul'], 'kit.css styles by class, and by name only the elements the contract places');
-  for (const prelude of preludes.filter(prelude => /(?:^|[\s>+~,(])(?:ul|li)(?![\w-])/.test(prelude))) {
-    const named = [...prelude.matchAll(/\.(ux-[a-z]+)/g)].map(([, name]) => name);
-    assert.ok(named.length > 0 && named.every(name => name in OPTIONED), `${prelude}: options are styled on a choice, a list or a nav only`);
+  assert.deepEqual([...byName].sort(), ['b', 'body', 'dd', 'dl', 'dt', 'h1', 'h2', 'header', 'li', 'ol', 'summary', 'ul'], 'kit.css styles by class, and by name only the elements the contract places');
+  const styled = flat(contract.slice(contract.indexOf('### What the stylesheet styles by name')));
+  for (const tag of byName) assert.ok(styled.includes(`\`${tag}\``), `the contract says ${tag} is styled by name`);
+  // A list is styled where the contract puts one: the options of a part, the overview, the account.
+  const LISTED = [...Object.keys(OPTIONED), 'ux-overview', 'ux-account', 'ux-navigation'];
+  // Read selector by selector: a rule may name several places at once.
+  const selectors = preludes.flatMap(prelude => prelude.split(/,(?![^(]*\))/)).map(selector => selector.trim());
+  for (const selector of selectors.filter(selector => /(?:^|[\s>+~,(])(?:ul|ol|li|dl|dt|dd|b|h1)(?![\w-])/.test(selector))) {
+    const named = [...selector.matchAll(/\.(ux-[a-z]+)/g)].map(([, name]) => name);
+    assert.ok(named.length > 0 && named.every(name => LISTED.includes(name) || name === 'ux-option'), `${selector}: a list is styled as options, in the overview or in the account only`);
   }
+  for (const selector of selectors.filter(selector => /(?:^|[\s>+~,(])(?:ol|dt|dd|dl|b)(?![\w-])/.test(selector))) assert.match(selector, /\.ux-(?:overview|account)\b/, selector);
   for (const selector of preludes.flatMap(prelude => prelude.split(/,(?![^(]*\))/)).map(selector => selector.trim())) {
     if (selector.includes('.ux-frame')) assert.ok(selector.startsWith('.ux-frame'), `${selector}: no selector depends on a frame's parent`);
   }
@@ -467,40 +632,67 @@ test('the document shell: the contract states it and parts.html follows it', () 
   assert.ok(parts.startsWith('<!doctype html>'), 'parts.html opens with its doctype');
 });
 
-test('the grey kit: greys, one font stack, one mid-grey kept for the primary action, light and dark sets, no motion, nothing loaded', () => {
+// R197 of the board change: still one neutral kit, greys and one accent for the primary action, in both themes.
+test('the grey kit: greys, one font stack, one accent kept for the primary action, light and dark sets, no motion, nothing loaded', () => {
   const { css, parts } = kit();
-  for (const [hex] of css.matchAll(/#[0-9a-f]{3,8}\b/gi)) {
-    assert.ok(isHex(hex) && hex.slice(1, 3) === hex.slice(3, 5) && hex.slice(3, 5) === hex.slice(5, 7), `${hex} is a grey written as #rrggbb`);
-  }
+  const light = tokens(block(css, css.search(/:root\s*\{/)));
+  const accent = light.get('--ux-primary');
+  const grey = v => isHex(v) && v.slice(1, 3) === v.slice(3, 5) && v.slice(3, 5) === v.slice(5, 7);
+  assert.ok(isHex(accent) && !grey(accent), 'the accent is a colour, written as #rrggbb');
+  for (const [hex] of css.matchAll(/#[0-9a-f]{3,8}\b/gi)) assert.ok(grey(hex) || hex === accent, `${hex} is a grey written as #rrggbb, or the one accent`);
+  assert.equal(count(css, accent), 1, 'the accent is written once');
   assert.doesNotMatch(css, /\b(rgba?|hsla?|hwb|lab|lch|oklab|oklch|color|color-mix)\(/i, 'colours are written as hex');
-  // Every colour a rule uses is a grey of the kit: a token whose every value is a grey, a grey hex, or a keyword.
+  // Every colour a rule uses is a colour of the kit: a token whose every value is a grey, a grey hex, a keyword,
+  // or, in the primary action alone, the accent.
   const values = new Map();
   for (const [, name, value] of css.matchAll(/(--ux-[\w-]+)\s*:\s*([^;]+);/g)) values.set(name, [...(values.get(name) ?? []), value.trim()]);
-  const grey = v => isHex(v) && v.slice(1, 3) === v.slice(3, 5) && v.slice(3, 5) === v.slice(5, 7);
   const token = v => /^var\(--ux-[\w-]+\)$/.test(v) && (values.get(v.slice(4, -1)) ?? []).length > 0 && values.get(v.slice(4, -1)).every(grey);
   const kitColour = v => grey(v) || token(v) || ['transparent', 'inherit', 'currentColor'].includes(v);
-  const notAColour = /^(0|-?\d*\.?\d+(px|rem|em|%)|none|solid|dashed|dotted|double|underline)$/;
+  const notAColour = /^(0|-?\d*\.?\d+(px|rem|em|%)|none|solid|dashed|dotted|double|underline|inset)$/;
   const coloured = /^(color|background|background-color|border|border-(top|right|bottom|left)|border(-(top|right|bottom|left))?-color|outline|outline-color|box-shadow|text-decoration|text-decoration-color|fill|stroke|caret-color|accent-color|column-rule)$/;
-  for (const [, property, value] of css.matchAll(/(?:^|[;{\s])([a-z][a-z-]*)\s*:\s*([^;{}]+);/g)) {
-    if (!coloured.test(property)) continue;
-    for (const part of value.trim().split(/\s+/)) assert.ok(kitColour(part) || notAColour.test(part), `${property}: ${value.trim()} — ${part} is not a grey of the kit`);
+  const rules = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(([, selector, body]) => [selector.trim(), body]);
+  let seen = 0;
+  for (const [selector, body] of rules) {
+    for (const [, property, value] of body.matchAll(/(?:^|[;\s])([a-z][a-z-]*)\s*:\s*([^;{}]+);/g)) {
+      if (!coloured.test(property)) continue;
+      for (const part of value.trim().split(/[\s,]+/)) {
+        seen++;
+        const primary = selector === '.ux-action.is-primary' && ['var(--ux-primary)', 'var(--ux-on-primary)'].includes(part);
+        assert.ok(kitColour(part) || notAColour.test(part) || primary, `${selector} { ${property}: ${value.trim()} } — ${part} is not a grey of the kit`);
+      }
+    }
+  }
+  assert.ok(seen > 60, `${seen} colours read`);
+  // A picture drawn by the stylesheet (the window's dots, a media's cross) is drawn in the kit's greys too.
+  for (const [, value] of css.matchAll(/background-image\s*:\s*([^;]+);/g)) {
+    for (const [colour] of value.matchAll(/var\([^)]*\)|#[0-9a-f]+/gi)) assert.ok(token(colour), `background-image: ${colour}`);
   }
 
   assert.equal((css.match(/font-family\s*:/g) ?? []).length, 1, 'one font stack');
   for (const [, value] of css.matchAll(/[\s;{]font\s*:\s*([^;}]+)/g)) assert.equal(value.trim(), 'inherit');
   assert.doesNotMatch(parts, /<(code|pre|kbd|samp|tt)\b/, 'parts.html brings in no monospace face');
 
-  const light = tokens(block(css, css.search(/:root\s*\{/)));
   const darkAt = css.search(/@media\s*\(prefers-color-scheme:\s*dark\)/);
   assert.ok(darkAt >= 0, 'a dark set under prefers-color-scheme');
   const dark = tokens(block(block(css, darkAt), 0));
   const kept = ['--ux-primary', '--ux-on-primary'];
   assert.deepEqual([...dark.keys()].sort(), [...light].filter(([name, value]) => isHex(value) && !kept.includes(name)).map(([name]) => name).sort(), 'the dark set redefines every grey but the primary');
-  const primary = parseInt(light.get('--ux-primary').slice(1, 3), 16);
-  assert.ok(primary >= 0x55 && primary <= 0xaa, 'the primary action is a mid-grey');
-  assert.equal((css.match(/--ux-primary\s*:/g) ?? []).length, 1, 'one mid-grey, the same in both sets');
-  for (const [, selector, body] of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
-    if (body.includes('var(--ux-primary)')) assert.equal(selector.trim(), '.ux-action.is-primary', 'the mid-grey is kept for the primary action');
+  // One accent, the same in both sets, and its label reads on it: 4.5 to 1 at least.
+  assert.equal((css.match(/--ux-primary\s*:/g) ?? []).length, 1, 'one accent, the same in both sets');
+  const channel = v => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+  const luminance = hex => [0.2126, 0.7152, 0.0722].reduce((sum, weight, i) => sum + weight * channel(parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16) / 255), 0);
+  const contrast = (a, b) => (Math.max(luminance(a), luminance(b)) + 0.05) / (Math.min(luminance(a), luminance(b)) + 0.05);
+  assert.ok(contrast(accent, light.get('--ux-on-primary')) >= 4.5, `the label on the accent: ${contrast(accent, light.get('--ux-on-primary')).toFixed(2)} to 1`);
+  // What she reads is readable in both sets: the ink and the muted ink on the page, the surface and the fill.
+  for (const [name, set] of [['light', light], ['dark', new Map([...light, ...dark])]]) {
+    for (const ink of ['--ux-ink', '--ux-muted']) {
+      for (const ground of ['--ux-page', '--ux-surface', '--ux-fill', '--ux-well']) {
+        assert.ok(contrast(set.get(ink), set.get(ground)) >= 4.5, `${name}: ${ink} on ${ground} is ${contrast(set.get(ink), set.get(ground)).toFixed(2)} to 1`);
+      }
+    }
+  }
+  for (const [selector, body] of rules) {
+    if (body.includes('var(--ux-primary)')) assert.equal(selector, '.ux-action.is-primary', 'the accent is kept for the primary action');
   }
 
   assert.doesNotMatch(css, /\b(transition|animation)[\w-]*\s*:|@keyframes|scroll-behavior/, 'no motion');
@@ -509,6 +701,74 @@ test('the grey kit: greys, one font stack, one mid-grey kept for the primary act
   assert.doesNotMatch(css, /@import|url\(/, 'kit.css loads nothing');
   assert.deepEqual([...parts.matchAll(/<link\b[^>]*>/g)].map(([tag]) => tag), ['<link rel="stylesheet" href="kit.css">'], 'parts.html links kit.css only');
   assert.doesNotMatch(parts, /<script|<style|\sstyle="|\ssrc=/, 'parts.html is drawn by kit.css alone');
+});
+
+// R196 and R197 of the board change: the kit lays a screen out as a page, at each width, and a screen with no area as one column.
+test('the grey kit lays a screen that has a main out as a page: narrow, one column of areas; wide, the navigation at the side and what is beside next to the main part', () => {
+  const { css, contract } = kit();
+  for (const selector of ['.ux-screen:has(> .ux-main)', '.ux-window:has(> .ux-dialog)']) {
+    assert.ok(contract.includes(`\`${selector}\``), `the contract states ${selector}`);
+    assert.ok(css.includes(`${selector} {`), `kit.css lays out by ${selector}`);
+  }
+  const areasIn = text => [...block(text, text.indexOf('.ux-screen:has(> .ux-main) {')).matchAll(/"([^"]+)"/g)].map(([, row]) => row);
+  const wideAt = css.search(/@media\s*\(min-width:\s*[\d.]+rem\)/);
+  assert.ok(wideAt > 0 && count(css, '@media') === 2, 'two sets of rules by media: the dark colours, and the wide page');
+  const [narrow, wide] = [css.slice(0, wideAt), block(css, wideAt)];
+  assert.deepEqual(areasIn(narrow), ['bar', 'navigation', 'main', 'beside'], 'narrow: the bar, the navigation as a bar, the main part, and what is beside under it');
+  assert.deepEqual(areasIn(wide), ['navigation bar bar', 'navigation main beside'], 'wide: the navigation as a column, the bar across the top of the rest, beside next to the main part');
+  for (const place of PLACES) assert.match(narrow, new RegExp(`\\.ux-${place} \\{\\s+grid-area: ${place};`), `${place} is laid in its own area`);
+  // An area the screen does not place takes no room: the side columns are as wide as what is in them.
+  assert.match(block(wide, wide.indexOf('.ux-screen:has(> .ux-main) {')), /grid-template-columns: auto minmax\(0, 1fr\) auto;/);
+  // Wide, the places of the navigation run down it; anywhere else they run across.
+  assert.match(wide, /\.ux-navigation \.ux-nav > ul \{\s+flex-direction: column;/);
+  assert.doesNotMatch(narrow, /flex-direction: column/);
+  // A screen with no area keeps one readable column, and the main part a readable width.
+  assert.match(block(narrow, narrow.search(/\n\.ux-screen \{/)), /max-width: \d+rem;\s+margin: 0 auto;/);
+  assert.match(block(wide, wide.indexOf('.ux-main {')), /padding: [\d.]+rem max\([\d.]+rem, calc\(100% - [\d.]+rem\)\) [\d.]+rem [\d.]+rem;/, 'the main part keeps a readable width by its own far padding');
+  assert.doesNotMatch(css, /\.ux-main > \*/, 'and not by a width on each part, which would let what follows a part sit beside it');
+});
+
+// The first fix round of the board change (I1, M1 to M3 of its review). What a browser shows of these is measured in
+// tests/kit.test.mjs; here, what the stylesheet and the contract say.
+test('the grey kit after its review: one rule for an action wherever it is, a region in normal flow, a narrow navigation on one row, an overview of two lines, words never broken unsigned', () => {
+  const { css, contract } = kit();
+  const preludes = [...css.matchAll(/([^{}]+)\{/g)].map(([, prelude]) => prelude.trim()).filter(prelude => !prelude.startsWith('@'));
+  const said = flat(contract);
+  // I1: a region stacks its parts as every other holder does, and no rule draws an action by where it is.
+  const stack = preludes.filter(prelude => /> \* \+ \*$/.test(prelude) && prelude.includes('.ux-dialog'));
+  assert.deepEqual(stack, [':is(.ux-screen, .ux-dialog, .ux-region, .ux-group, .ux-expansion) > * + *'], 'one rule stacks the parts of every holder, a region among them');
+  assert.doesNotMatch(block(css, css.search(/\n\.ux-region \{/)), /display:\s*(?:inline-)?(?:grid|flex)/, 'a region is no grid: its parts are in normal flow');
+  const selectors = preludes.flatMap(prelude => prelude.split(/,(?![^(]*\))/)).map(selector => selector.trim());
+  const ofAnAction = selectors.filter(selector => selector.includes('.ux-action'));
+  assert.equal(ofAnAction.length, 3, ofAnAction.join(' | '));
+  for (const selector of ofAnAction) {
+    assert.match(selector, /^(?:\.ux-action(?:\.is-primary)?|:is\((?:\.ux-[a-z]+(?:, )?)+\))$/, `${selector}: an action is styled by its own class, never by where it is`);
+  }
+  assert.match(block(css, css.search(/\n\.ux-action \{/)), /display: inline-block;/);
+  assert.match(said, /- `ux-action`: something she does\. Actions written one after another sit side by side, a gap apart, wherever they are: in a region as in a group, a dialog, a screen or the bar\./);
+  assert.match(said, /Groups written one after another in a region sit side by side where the region has room for two, and one under another where it has not\./);
+  // M2: narrow, the navigation is one row that does not wrap, cut at its edge with a fade.
+  const wideAt = css.search(/@media\s*\(min-width:/);
+  const bar = block(css, css.search(/\n\.ux-navigation \{/));
+  assert.ok(css.search(/\n\.ux-navigation \{/) < wideAt, 'the narrow navigation is the rule, the wide one its exception');
+  for (const declaration of ['display: flex;', 'flex-wrap: nowrap;', 'overflow: auto hidden;', 'white-space: nowrap;', 'scroll-snap-type: x mandatory;', 'scrollbar-width: none;']) assert.ok(bar.includes(declaration), declaration);
+  assert.match(bar, /mask-image: linear-gradient\(to right, transparent, #000000 [\d.]+rem, #000000 calc\(100% - [\d.]+rem\), transparent/);
+  assert.match(css.slice(0, wideAt), /\.ux-navigation \.ux-nav > ul > li\[aria-current\] \{\s+scroll-snap-align: end;/, 'the row stands where the marked place is in sight');
+  assert.match(block(css, wideAt), /\.ux-navigation \{[^}]*scroll-snap-type: none;/);
+  assert.match(block(css, wideAt), /\.ux-navigation \{[^}]*mask-image: none;/);
+  assert.match(said, /Narrow, the navigation is one bar: everything it holds is on one row that does not wrap, its places among them, the name above them and a nav's caption taking no row of their own; what does not fit is cut at the edge, in a way that shows the row goes on\. The row stands where the place she is at is in sight: at its start whenever that place is in sight from there\./);
+  // M1: the overview's lines, and its narrow form.
+  assert.match(block(css, css.search(/\n\.ux-overview dd \{/)), /-webkit-line-clamp: 2;/);
+  assert.match(css.slice(0, wideAt), /\.ux-overview dl \{\s+display: none;/);
+  assert.match(block(css, wideAt), /\.ux-overview dl \{\s+display: grid;/);
+  assert.match(said, /A kit draws what an area holds in two lines at most, a longer line ending with an ellipsis, never cut in the middle of what it says\. At a narrow width it draws each screen's title alone, on one line, a dialog under its screen, so that the first window is on the first screen: what the areas hold is not shown there\./);
+  // M3: no rule lets a word break in the middle without a sign.
+  assert.doesNotMatch(css, /overflow-wrap|word-break|word-wrap/, 'no rule breaks a word anywhere');
+  assert.match(block(css, css.search(/\nbody \{/)), /hyphens: auto;/);
+  const words = preludes.find(prelude => prelude.includes('.ux-heading') && prelude.includes('.ux-text') && prelude.includes('.ux-action'));
+  assert.match(block(css, css.indexOf(words)), /overflow: hidden;\s+text-overflow: ellipsis;/);
+  for (const role of ROLES.filter(role => role !== 'nav')) assert.ok(words.includes(`.ux-${role}`), `ux-${role} is cut with an ellipsis where its words do not fit`);
+  assert.match(said, /A kit never breaks a word in the middle without a sign: it hyphenates where the browser knows the page's language, lets a word it cannot break move to a line of its own, and cuts what is still wider than its part with an ellipsis\./);
 });
 
 // R161 of the dry run: the specimen is copied unchanged into every project kit, shown to the founder and read by

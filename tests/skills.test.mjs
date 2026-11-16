@@ -1621,7 +1621,8 @@ test('project-kit.md: each class of the contract is restyled on the project\'s t
   assert.match(text, /Copy `<kit root>\/kit\/grey\/kit\.css` and `<kit root>\/kit\/grey\/parts\.html` into `<packages>\/kit\/`/);
   // Every class the contract lists is named, and no other.
   const classes = [...section(read('kit/KIT-CONTRACT.md'), 'The classes').matchAll(/^- `(ux-[a-z]+(?:\.is-primary)?)`/gm)].map(([, name]) => name);
-  assert.equal(classes.length, 19);
+  // Nineteen parts, and the eight classes of the page's areas that came with the board change (R194 to R197).
+  assert.equal(classes.length, 27);
   const named = new Set(spansOf(projectKit()).filter(span => /^ux-/.test(span)));
   assert.deepEqual(classes.filter(name => !named.has(name)), [], 'a class of the contract the reference leaves out');
   assert.deepEqual([...named].filter(name => !classes.includes(name)), [], 'a class the contract does not have');
@@ -1671,7 +1672,7 @@ test('project-kit.md: its specimen proposal is valid, and its drawing command dr
   writeFileSync(join(scratch, 'kit-check.json'), blocks[0]);
   // The command, word for word, with its three placeholders filled.
   const [command] = setupRuns('render');
-  assert.equal(command, 'node <kit root>/scripts/render.mjs <scratch>/kit-check.json --kit <packages>/kit --out <scratch>/drawn/kit-check.html');
+  assert.equal(command, 'node <kit root>/scripts/render.mjs <scratch>/kit-check.json --kit <packages>/kit --out <scratch>/drawn/kit-check.html --lang en');
   const fill = word => word.replace('<kit root>/', fileURLToPath(root)).replace('<scratch>', scratch).replace('<packages>', packages);
   const run = spawnSync(process.execPath, words(command).slice(1).map(fill), { encoding: 'utf8' });
   assert.deepEqual([run.status, run.stderr], [0, '']);
@@ -2308,7 +2309,8 @@ const PRESET_ROWS = Object.freeze([
 
 test('presets.md: the default cast by size, word for word, and every seat it names is a card that sits at that stage and is preset for that size', () => {
   const text = presets();
-  assert.deepEqual(headings(text), ['By size', 'Added by rule', 'The seats', 'A seat without its engine']);
+  // R200 of the board change: the fresh pass Cast offers when a screen generator is on has a section of its own.
+  assert.deepEqual(headings(text), ['By size', 'Added by rule', 'The fresh pass, offered', 'The seats', 'A seat without its engine']);
   const bySize = section(text, 'By size');
   const [head, , ...sized] = tableRows(bySize);
   assert.deepEqual(head, ['Size', 'Structure', 'Detail', 'Look', 'Handoff', 'Acceptance']);
@@ -2727,7 +2729,8 @@ test('structure: it reads the cast sheet and what its carry list names, and writ
   assert.doesNotMatch(reads, /suggested model and effort/);
   // Each key of the project profile it reads is a key of the template, and none of them is about a key.
   const keys = spansOf(section(text, 'Reads').split('\n- ').find(bullet => bullet.startsWith('**The project profile,**'))).filter(span => !span.includes('/'));
-  assert.deepEqual(keys, ['kit', 'facts', 'engines-on', 'openai-model', 'gemini-model']);
+  // `languages`: its first is the board's language, which every render command passes as `--lang` (fix round 1 of the board change).
+  assert.deepEqual(keys, ['kit', 'languages', 'facts', 'engines-on', 'openai-model', 'gemini-model']);
   for (const key of keys) assert.ok(profileKeys().includes(key), key);
   assert.match(reads, /and nothing about a key/);
   assert.match(reads, /one card, when the cast sheet names its seat: `pool\/makers\/outside-describer\.md`, which speaks to you\. Every other card is read by its seat: a brief is filled from `references\/seats\.md`, never from a card/);
@@ -2793,7 +2796,11 @@ test('structure: a judge is handed the board folder, an audience the pictures on
   assert.match(readers, new RegExp(`Of \`<package>/04-structure/\`, ${HANDS.source}, each by its path`));
   // The four things the conductor has every reader's brief list, then what Structure adds to them.
   assert.match(flat(reference('blind.md')), /list four things under "Do not open": the package's `work\/` folder, where the makers' briefs are, the map, the pick and the proposals folder/);
-  assert.match(readers, /Every reader's brief lists under "Do not open" the map, the pick, the proposals folder and the makers' files, then `CHOSEN\.md`, the cast sheet and, where a continuity maker is cast, today's screen: the whole list, and what else each is handed from the approved stages, is in `references\/seats\.md`/);
+  // M9 of the board change's review: the whole list is the seats page's, and the skill points to it.
+  assert.match(readers, /Every reader's brief lists under "Do not open" the whole list of `references\/seats\.md`, which says what else each is handed\./);
+  const doNotOpen = flat(read('skills/structure/references/seats.md').split('Every reader\'s brief lists these under "Do not open":')[1].split('\n### ')[0]);
+  for (const listed of ['`<package>/work/`', '`<package>/04-structure/MAP.sealed.json`, the author map', '`<package>/04-structure/PICK.md`, the pick', '`<package>/04-structure/proposals/`, the makers\' own files',
+    '`<package>/04-structure/BRIEF.md`', '`<package>/03-cast.md`, the cast sheet', '`<package>/04-structure/CHOSEN.md`', 'when a continuity maker is cast, today\'s screen']) assert.ok(doNotOpen.includes(listed), listed);
   assert.ok(nevers(text).includes('Never hand a reader the folder above the board'));
   assert.ok(nevers(text).includes('Never say who made a letter'));
 
@@ -3062,8 +3069,8 @@ test('structure: every command is one its script takes, in the order of the stag
     'node <kit root>/scripts/state.mjs begin <package> structure',
     'node <kit root>/scripts/describe.mjs --provider <openai|gemini> --model <id> --brief <package>/04-structure/<brief> --out <package>/04-structure/proposals/<name>.json --profile <packages>/PROFILE.md',
     'node <kit root>/scripts/merge.mjs <package>/04-structure/proposals --out <package>/04-structure/board',
-    'node <kit root>/scripts/render.mjs <package>/04-structure/board/<letter>.json --kit <kit dir> --out <package>/04-structure/board/<letter>.html --letter <letter>',
-    'node <kit root>/scripts/render.mjs <package>/04-structure/board/<letter>.json --kit <kit dir> --out <package>/04-structure/board/<letter>-screens.html --letter <letter> --without-notes',
+    'node <kit root>/scripts/render.mjs <package>/04-structure/board/<letter>.json --kit <kit dir> --out <package>/04-structure/board/<letter>.html --lang <lang> --letter <letter>',
+    'node <kit root>/scripts/render.mjs <package>/04-structure/board/<letter>.json --kit <kit dir> --out <package>/04-structure/board/<letter>-screens.html --lang <lang> --letter <letter> --without-notes',
     'node <kit root>/scripts/shots.mjs <package>/04-structure/board --out <package>/04-structure/board --widths <primary>,<phone> --first-screen',
     'node <kit root>/scripts/page.mjs <package>/04-structure/decision.json --out <package>/04-structure/decision.html',
     'node <kit root>/scripts/state.mjs await <package> structure --question "<the one question>"',
@@ -3188,7 +3195,9 @@ test('structure: the decision is one page: every letter, one line for each seat,
   assert.match(flat(reference('blind.md')), /Your recommendation rests on the reads, by letter/);
   assert.match(page, /Every letter of the board is an option: the `name` in its file is the title, its `bet` the line, and its pictures are named from the page, the phone width first, as `board\/A-390-light\.png`/);
   assert.match(page, /A proposal left out, and a seat that did not answer or was held back, is one line under `findings`, by seat, never by letter/);
-  assert.match(page, /With a fresh pass, its `gallery` sits beneath the options, labelled as fresh and never mixed into them: the screens as they came, from `fresh\/`, none saying which letter holds its structure/);
+  // M9 of the board change's review: the gallery's rule is the fresh pass's page, and the skill points to it.
+  assert.match(page, /With a fresh pass, its `gallery` sits beneath the options, as `skills\/design\/references\/fresh-pass\.md` says\./);
+  assert.match(flat(reference('fresh-pass.md')), /On the decision page, its `gallery` sits beneath the options, labelled as fresh and never mixed into them: the screens as they came, from `fresh\/`, none saying which letter holds its structure/);
   // Each key it names is one the page takes, and the template is a Structure page: stage 5 of 9, a gallery, one question.
   const sample = JSON.parse(read('templates/outputs/decision.json'));
   for (const key of ['identity', 'options', 'gallery', 'seats', 'recommendation', 'question']) assert.ok(Object.hasOwn(sample, key), key);
@@ -3218,8 +3227,8 @@ test('rounds.md: a graft is redrawn once and read again once, a rejected round m
   assert.match(flat(graft), /Start one fresh `maker\.structure-describer`, as step 5 of the skill says\. The blind between makers ended with the pick, so this one is handed the picked letter's file and the file of each letter he named, from the board, by letter, and his words, exactly\. It is not told who made them/);
   // S2 and W2 of the fix review: the redrawn pick is drawn a second time without the proposal's own account and pictured
   // with its first screen, as the board is, so that the audience re-reading it is handed none of it (R171, R154).
-  assert.deepEqual(commandsOf(graft), ['node <kit root>/scripts/render.mjs <package>/04-structure/chosen/chosen.json --kit <kit dir> --out <package>/04-structure/chosen/chosen.html --letter <letter>',
-    'node <kit root>/scripts/render.mjs <package>/04-structure/chosen/chosen.json --kit <kit dir> --out <package>/04-structure/chosen/chosen-screens.html --letter <letter> --without-notes',
+  assert.deepEqual(commandsOf(graft), ['node <kit root>/scripts/render.mjs <package>/04-structure/chosen/chosen.json --kit <kit dir> --out <package>/04-structure/chosen/chosen.html --lang <lang> --letter <letter>',
+    'node <kit root>/scripts/render.mjs <package>/04-structure/chosen/chosen.json --kit <kit dir> --out <package>/04-structure/chosen/chosen-screens.html --lang <lang> --letter <letter> --without-notes',
     'node <kit root>/scripts/shots.mjs <package>/04-structure/chosen --out <package>/04-structure/chosen --widths <primary>,<phone> --first-screen']);
   for (const command of commandsOf(graft)) assert.ok(takenBy(/scripts\/(\w+)\.mjs/.exec(command)[1], words(command).slice(2).join(' ')), command);
   assert.match(flat(graft), /2\. \*\*Draw it and photograph it,\*\* one command after the other, under the picked letter, as step 7 of the skill does for the board: drawn twice, the second time without the proposal's own account, for the audiences, and each page pictured whole and as its first screen alone/);
@@ -3281,7 +3290,7 @@ test('Structure runs as written: its own commands on the fixture proposals, the 
   mkdirSync(join(project, 'design', 'kit'), { recursive: true });
   copyFileSync(at('kit/grey/kit.css'), join(project, 'design', 'kit', 'kit.css'));
   const FILL = {
-    '<kit root>/': fileURLToPath(root), '<packages>': 'design', '<package>': 'design/today', '<kit dir>': 'design/kit', '<primary>': '1280', '<phone>': '390', '<stage>': 'intent',
+    '<kit root>/': fileURLToPath(root), '<packages>': 'design', '<package>': 'design/today', '<kit dir>': 'design/kit', '<lang>': 'es', '<primary>': '1280', '<phone>': '390', '<stage>': 'intent',
     '<why>': 'he rejected every structure: the job was stated wrong', '<the founder\'s words>': 'la B, con el estado de la A', '<the one question>': 'Which structure goes on to Detail: A, B or C?',
   };
   // A command as the skill writes it, run from the project's root with each placeholder filled.
@@ -3477,7 +3486,7 @@ test('Structure runs as written: its own commands on the fixture proposals, the 
   mkdirSync(join(round, 'chosen'));
   writeFileSync(join(round, 'chosen', 'chosen.json'), JSON.stringify(letterFile('B')));
   const [graftWithNotes, graftWithout] = stageCommands('structure').filter(command => command.includes('render.mjs <package>/04-structure/chosen/'));
-  assert.ok(!graftWithNotes.includes('--without-notes') && graftWithout.endsWith('--out <package>/04-structure/chosen/chosen-screens.html --letter <letter> --without-notes'), 'the redrawn pick is drawn with the notes, then without');
+  assert.ok(!graftWithNotes.includes('--without-notes') && graftWithout.endsWith('--out <package>/04-structure/chosen/chosen-screens.html --lang <lang> --letter <letter> --without-notes'), 'the redrawn pick is drawn with the notes, then without');
   run(graftWithNotes, { '<letter>': 'B' });
   assert.ok(readFileSync(join(round, 'chosen', 'chosen.html'), 'utf8').includes('<h1>Option B: '));
   // S2: the page its audience is pictured from carries the letter and the screens, and nothing a maker said of the design.
@@ -3994,7 +4003,9 @@ test('look: two modes; inside a system one visual designer on the project\'s tok
     /\*\*Inside the design system,\*\* otherwise\. The palette, the typefaces and the shapes of the parts are the system's: one visual designer, and variants only on one named axis/], 'the two modes');
   assert.ok(FOUNDATIONS.includes('no-system') && SIZES.includes('system'));
   assert.match(flat(reference('routes.md')), /`no-system` \| there is no design system \| Look runs once as a direction first/);
-  assert.match(flat(reference('routes.md')), /`system` \| a new product, or a rebrand \| Everything, and Look runs as a direction first/);
+  // I2 of the board change's review: a new product is a sequence of designs (R199); `system` keeps a rebrand, or the first
+  // design of a product with no design system, and is still one surface at a time.
+  assert.match(flat(reference('routes.md')), /`system` \| a rebrand, or the first design of a product with no design system \| Everything, and Look runs as a direction first\. Still one surface at a time\./);
   assert.match(flat(read('templates/project/PROFILE.md')), /`tokens` \| The project's token file, as plain CSS\..*Empty while there is no design system/);
   // One visual designer, on what the cast sheet names, drawing static pages that link the project's token file in the project kit folder.
   const designer = stepOf(steps, 'Start the visual designer');
@@ -6341,4 +6352,92 @@ test('the dry run, Look, Handoff and Acceptance: the table is held to the run, n
   // F79: the sample of an approval names its pictures as the picture script does, with the language.
   const sample = JSON.parse(read('templates/outputs/decision-approve.json'));
   assert.deepEqual([sample.options[0].title, sample.options[0].images], ['The prototype', ['shots/today-default-en-390-light.png', 'shots/today-default-en-1280-light.png']]);
+});
+
+// ---- after the first real run: the size of a design, and the fresh pass (board-change.md, R199 and R200)
+
+test('R199: several places of a product are a sequence of designs, the places first, each design begun at its own Frame on his yes', () => {
+  const routes = reference('routes.md');
+  const NAME = 'Several places: a sequence of designs';
+  assert.ok(headings(routes).includes(NAME));
+  const sequence = section(routes, NAME);
+  // A flow is unchanged: several surfaces that form one task.
+  assert.match(flat(section(routes, 'Size')), /`flow` \| several surfaces that form one task \|/);
+  says(sequence, '`flow` stays what it is: several surfaces that form one task.', 'is not one design of any size: it is a **sequence of designs**');
+  // What tips it, with an example of each.
+  says(sequence, '**What tips it is what she does there.** One job she starts and finishes by going through the surfaces in order is a `flow`',
+    'is one task over three surfaces', 'Places she goes to each for a job of its own, in any order, and comes back from are several places',
+    'is a navigation and the pages it leads to', 'a proposal holds five at most, and a structure that needs more is more than one design.');
+  // The places first, at size surface; then one design for each place, in his order.
+  says(sequence, '**The places first.** The first design of the sequence is the places themselves: which places exist, what each is called, what each holds, and how she moves between them. It is a design of size `surface`',
+    '**Then one design for each place,** in the order the founder sets. Each starts at its own Frame, when he asks for it');
+  // Frame proposes, he sets the order, one package only; the rest are written under a heading of the frame.
+  says(sequence, '**Frame proposes the sequence, and he sets it.**', 'says that the order is his to set', 'On his yes, only the first package is made. The rest are written under "What follows this design" of its frame',
+    'Its Context carries the approved outputs of the designs before it as sources',
+    'Nobody but the founder sets the order or starts the next design. A sequence moves one design at a time, each on his yes at its own Frame, and no package is made for a design he has not asked for.');
+  // Frame says it, writes it under the frame's own heading, and never sets the order or starts the next design itself.
+  const frame = stageSkill('frame');
+  says(section(frame, 'Steps'), '**Several places are a sequence of designs,** as `skills/design/references/routes.md` says under "Several places"',
+    'the places first, at size `surface`', 'in the order his request names them, which is his to set. It asks nothing more than any frame. On his yes the first package alone is made');
+  says(section(frame, 'Reads'), '**Of every package in `<packages>`, to find a sequence that lists the request:** its `00-frame.md`\'s "What follows this design" alone and, where that heading says the package keeps a sequence, the `Sequence` entries of its `DECISIONS.md`: nothing else of them.');
+  says(section(frame, 'Gate'), 'for a sequence, the designs that would follow it, in the order his request names them. Then one question, about one thing: is this the right frame for it?',
+    '"What follows this design", under "Route": "None", or the sequence.');
+  assert.ok(nevers(frame).includes('Never set the order of a sequence, or start its next design yourself'));
+  // A heading of its own under "Route", one level down, so that a frame stamped before it keeps the template's sections.
+  assert.match(section(outputOf('frame'), 'Route'), /\n### What follows this design\n\n\{"None", or in a sequence: /);
+  assert.ok(!headings(outputOf('frame')).includes('What follows this design'));
+  // A later design's Context carries what the designs before it approved, as project sources.
+  says(section(stageSkill('context'), 'Steps'), 'In a later design of a sequence, so is each approved output of the designs before it, in the folders its frame lists: "an earlier design of this sequence".');
+});
+
+test('R200: Cast offers a fresh pass at Structure when a screen generator is on, in four plain things with the sheet, and never adds one', () => {
+  const cast = stageSkill('cast');
+  says(section(cast, 'Steps'), '**It is offered, never added:** write "does not run" unless he has asked for one. **Where `engines-on` lists a screen generator, offer one at Structure:** write "offered" on its line, with the seats it would add, and put the offer to him with the sheet');
+  // M5 of the review: the offer is answered in words of its own; a general approval is no yes.
+  says(section(cast, 'Gate'), 'A fresh pass the sheet offers is one of the changes it asks about, in that same message. It is answered in words of its own: a general approval, as "looks fine, go", is no yes to it, and with no yes it does not run.');
+  for (const rule of ['Never add a fresh pass yourself', 'Never turn an engine on']) assert.ok(nevers(cast).includes(rule), rule);
+  // The four plain things, and the engine they key on is the screen generator's own.
+  const offered = section(presets(), 'The fresh pass, offered');
+  assert.equal(kitCards()['maker.screen-generator'].engine, 'tool:stitch');
+  says(offered, 'When the project profile\'s `engines-on` lists a screen generator, as `tool:stitch`, Cast offers a fresh pass at Structure.', 'in the same message as the sheet');
+  assert.deepEqual([...offered.matchAll(/^- \*\*([^*]+):\*\*/gm)].map(([, name]) => name), ['What it is', 'What it adds', 'What it costs', 'What comes of it']);
+  // M6 of the review: the offer says one thing of the brief: the fresh pass has a brief of its own.
+  says(offered, 'the same task, in a brief of its own that says nothing of the design system, made by makers who know nothing of it, and shown as they came, beside the board',
+    'he reads that brief too before anything goes out', 'a general approval of the sheet ("looks fine, go") is not one either',
+    'something that looks like a product, this early', '**What it costs:** the seats it adds', 'nothing of it is handed off',
+    'It runs only on his yes, written under `## Reviewed by the founder`: an offer is not a yes,', 'and with no yes it does not run. On his yes its line says "runs", and its seats join the "Structure" table and "Cost".');
+  // The sheet has the word for it, and the conductor's page on the fresh pass says the same.
+  assert.match(section(read('templates/package/03-cast.md'), 'Fresh pass'), /^- \*\*Structure:\*\* \{runs · does not run · offered\}/m);
+  says(reference('fresh-pass.md'), 'When the project profile\'s `engines-on` lists a screen generator, Cast offers one at Structure, in the same message as the sheet, and it runs on his yes');
+  says(reference('fresh-pass.md'), 'You never add one yourself. It costs agents, and it is his to ask for.');
+});
+
+test('I2 and I3 of the board change\'s review: a new product is a sequence of designs, and a sequence is kept, and found, on disk', () => {
+  // I2: no size makes a new product one design; `system` keeps what is left to it.
+  const routes = reference('routes.md');
+  says(section(routes, 'Size'), '| `system` | a rebrand, or the first design of a product with no design system | Everything, and Look runs as a direction first. Still one surface at a time. |',
+    'A new product is no size of its own: it is a sequence of designs, as is any request that spans several places of a product (see "Several places", below). `system` is never the whole of a product at once.');
+  assert.doesNotMatch(flat(routes), /a new product, or a rebrand/);
+  says(section(routes, 'Several places: a sequence of designs'), 'It is a design of size `surface`, or `system` where it is the first design of a product with no design system');
+  const frame = stageSkill('frame');
+  says(section(frame, 'Steps'), 'A new product, or a request that spans several places of the product that she does not go through as one task, is a sequence of designs, never one `system` or one `flow`');
+  for (const file of ['README.md', 'skills/cast/references/presets.md', 'skills/frame/SKILL.md']) assert.doesNotMatch(flat(read(file)), /a new product, or a rebrand/, file);
+  // I3: the order is kept in the first design's DECISIONS.md, which every stamp appends to and none guards.
+  const kept = flat(routes.split('\n### Where a sequence is kept\n')[1].split('\n## ')[0]);
+  says(kept, 'the first design\'s `DECISIONS.md`, which every stamp appends to and none guards', 'is titled `Sequence`',
+    'Its **Decision** holds the designs in his order, one line each: the place it designs, in his words, and its package\'s folder once it has one',
+    'Its **Why** holds his words, as he said them, and its date line the day.',
+    '**Frame appends it, on his yes, and never by itself:**', 'whenever he sets or changes the order, and whenever a later design of it gets its package', 'Each new `Sequence` entry names the one it replaces, which is never edited.',
+    '**The first design\'s frame says where it is,** under "What follows this design"',
+    '**A later design finds it from disk.** At its Frame, list `<packages>`.', 'read its `00-frame.md` for "What follows this design" alone',
+    'read the `Sequence` entries of that package\'s `DECISIONS.md`, and nothing else of it', 'The latest is the last `Sequence` entry by its date.',
+    'its frame names the sequence\'s first package by path');
+  assert.ok(headings(read('templates/package/DECISIONS.md')).some(heading => /^D-01 · /.test(heading)), 'an entry is a decision of the template\'s shape');
+  for (const label of ['**Decision.**', '**Why.**']) assert.ok(read('templates/package/DECISIONS.md').includes(label), label);
+  // Frame reads it, writes it on his yes, and says so in its frame.
+  says(section(frame, 'Writes'), 'In a sequence of designs, a `Sequence` entry appended to the first design\'s `DECISIONS.md`, on his yes.');
+  says(section(frame, 'Steps'), 'Whether a request is one is read from disk, every time, as "Where a sequence is kept" in `routes.md` says: its frame then names the sequence\'s first package by path, and on his yes a new `Sequence` entry names its package.');
+  says(section(frame, 'Gate'), 'In a sequence, the `Sequence` entry goes to the first design\'s, on the same yes.');
+  says(section(outputOf('frame'), 'Route'), 'the first design\'s package by path, whose `DECISIONS.md` keeps the order in its `Sequence` entries');
+  assert.ok(nevers(frame).includes('Never set the order of a sequence, or start its next design yourself'));
 });

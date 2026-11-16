@@ -41,6 +41,11 @@ delete this line.}
 | handoff | {…} | {…} |
 | acceptance | {…} | {…} |
 
+### What follows this design
+
+{"None", or in a sequence: the first design's package by path, whose `DECISIONS.md` keeps the order in
+its `Sequence` entries; in the first design, the rest too, one line each, in the order he set.}
+
 ## Who it is for
 
 {One profile, several, or everyone. Name each profile by its id, as `profile.<name>`, and say which are

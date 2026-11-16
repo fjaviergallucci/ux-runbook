@@ -1,12 +1,22 @@
 // The walkthrough format: how a structure proposal is written at the Structure stage, so that one script
 // draws every proposal in one kit and the founder compares structures, not paint.
 // Arrangement is expressed only by containers — a screen or a dialog over one, and inside it a region, a
-// group or an in-place expansion. Everything she sees or does is an item with one of a few roles, never a
-// component name. A proposal differs from another in sequence, grouping, priority, what is present and
-// which container holds it; there is no key for anything else, so an unknown key is refused.
+// group or an in-place expansion — and by the one word a region may say of itself: which of four areas of
+// the page it is (`place`). Everything she sees or does is an item with one of a few roles, never a
+// component name. A proposal differs from another in sequence, grouping, priority, what is present, which
+// container holds it and which area that is; there is no key for size, colour or exact position, and how
+// an area is drawn at each width is the kit's, so an unknown key is refused.
+// A proposal holds a few screens (MAX_SCREENS, dialogs counted): a structure that needs more is more than
+// one design.
 
 export const ROLES = Object.freeze(['heading', 'text', 'choice', 'input', 'action', 'list', 'status', 'media', 'link', 'nav']);
 export const CONTAINERS = Object.freeze(['region', 'group', 'expansion']);
+// The areas of a page a region may say it is, in `place`: the places she moves between, present from
+// screen to screen; a strip across the top, with what is always at hand; what the screen is for; and what
+// sits next to the main part and supports it.
+export const PLACES = Object.freeze(['navigation', 'bar', 'main', 'beside']);
+// The most entries `screens` holds, dialogs counted.
+export const MAX_SCREENS = 5;
 
 const SCREEN_CONTAINERS = ['screen', 'dialog'];
 const TEXT_FIELDS = ['name', 'bet', 'cost', 'hardest', 'firstIdea'];
@@ -17,7 +27,7 @@ export const KEYS = Object.freeze({
   proposal: Object.freeze(['name', 'bet', 'cost', 'absent', 'hardest', 'firstIdea', 'screens', ...PROVENANCE]),
   screen: Object.freeze(['id', 'title', 'container', 'over', 'note', 'items']),
   role: Object.freeze(['role', 'text', 'id', 'note', 'primary', 'options']),
-  container: Object.freeze(['container', 'label', 'open', 'items']),
+  container: Object.freeze(['container', 'place', 'label', 'open', 'items']),
 });
 // What only the source file carries: the maker's own record of what it set aside, and who made it. A
 // letter copy (the sealed form, written by lib/merge.mjs) carries none of it.
@@ -42,6 +52,8 @@ const show = v => {
   const s = JSON.stringify(v) ?? String(v);
   return s.length > 40 ? `${s.slice(0, 37)}...` : s;
 };
+// A role or a container named in a refusal, with its own article: a "group", an "input".
+const a = word => `${/^[aeiou]/.test(word) ? 'an' : 'a'} ${show(word)}`;
 
 const TEXT = 'a line of text';
 const LINES = 'a list of at least one line of text';
@@ -52,6 +64,7 @@ const OPTIONS = new Map([
   ['nav', { least: 1, what: LINES }],
 ]);
 const KEBAB_TEXT = 'kebab-case (lower-case words joined by single hyphens)';
+const PLACES_TEXT = `${PLACES.slice(0, -1).map(place => `"${place}"`).join(', ')} or "${PLACES.at(-1)}"`;
 
 // validate(proposal, { sealed }) → every error, in the order of the proposal; [] when it is valid.
 // Each error starts with the path of the object at fault: `screens[1].items[0]: unknown role "card"`.
@@ -78,6 +91,9 @@ export function validate(proposal, { sealed = false } = {}) {
     proposal.absent.forEach((line, i) => isText(line) || fail(`absent[${i}]`, `must be ${TEXT}`));
   }
   if (need(proposal, 'screens', isList, 'a list of at least one screen', at, fail)) {
+    if (proposal.screens.length > MAX_SCREENS) {
+      fail(at, `"screens" holds ${proposal.screens.length} entries; a proposal holds ${MAX_SCREENS} at most, dialogs counted: a structure that needs more is more than one design`);
+    }
     // Every id is known before any screen is read, so a dialog may open over a screen written after it.
     const kinds = new Map();
     for (const screen of proposal.screens) {
@@ -108,8 +124,23 @@ function checkScreen(screen, at, { kinds, seen, titles, fail }) {
     checkOver(screen, at, kinds, fail);
   }
   maybe(screen, 'note', isText, TEXT, at, fail);
-  // `ids` and `primary` belong to this one screen or dialog: its item ids, and its primary action.
-  checkItems(screen, at, { ids: new Map(), primary: null, fail });
+  const dialog = screen.container === 'dialog';
+  const areas = dialog ? { placing: false } : areasOf(screen);
+  if (areas.placing && areas.sound && !areas.main) fail(at, 'a screen that places a region has a "main"; this one has none');
+  // `ids`, `primary` and `places` belong to this one screen or dialog: its item ids, its primary action,
+  // and where each area it places was first written.
+  checkItems(screen, at, { ids: new Map(), primary: null, places: new Map(), dialog, placing: areas.placing, fail }, true);
+}
+
+// What a screen's direct items say of its areas, before any of them is read: whether it places a region
+// at all (then every direct item is a placed region), whether every `place` written on them is a sound
+// one (a faulty one is refused where it is written, and may have been meant as the main), and whether
+// one of them is the main.
+function areasOf(screen) {
+  const direct = Array.isArray(screen.items) ? screen.items.filter(isObject) : [];
+  const claims = direct.filter(item => Object.hasOwn(item, 'place'));
+  const placed = claims.filter(item => item.container === 'region' && !Object.hasOwn(item, 'role') && PLACES.includes(item.place));
+  return { placing: placed.length > 0, sound: placed.length === claims.length, main: placed.some(item => item.place === 'main') };
 }
 
 // A dialog opens over a screen of this proposal, named in `over`; a screen opens over nothing.
@@ -125,20 +156,27 @@ function checkOver(screen, at, kinds, fail) {
   if (kinds.get(screen.over) === 'dialog') fail(at, `"over" names ${show(screen.over)}, which is a dialog, not a screen`);
 }
 
-function checkItems(holder, at, context) {
+// `direct` is true for the items of a screen or a dialog itself, and false inside any container.
+function checkItems(holder, at, context, direct = false) {
   if (!need(holder, 'items', isList, 'a list of at least one item', at, context.fail)) return;
-  holder.items.forEach((item, i) => checkItem(item, `${at}.items[${i}]`, context));
+  holder.items.forEach((item, i) => checkItem(item, `${at}.items[${i}]`, context, direct));
 }
 
-function checkItem(item, at, context) {
+function checkItem(item, at, context, direct) {
   const { fail } = context;
   if (!isObject(item)) return fail(at, 'must be an object');
   const hasRole = Object.hasOwn(item, 'role');
   if (hasRole === Object.hasOwn(item, 'container')) {
     return fail(at, hasRole ? 'has a "role" and a "container"; an item is one or the other' : 'needs a "role" or a "container"');
   }
+  // Nothing floats outside the areas of a screen that has them. An item that carries a `place` is read
+  // for it below, and said once.
+  if (direct && context.placing && !Object.hasOwn(item, 'place')) {
+    const what = item.container === 'region' ? '"region" has no "place"' : `${show(hasRole ? item.role : item.container)} is outside the areas`;
+    fail(at, `on a screen that places a region, every direct item is a placed region; this ${what}`);
+  }
   if (hasRole) checkRole(item, at, context);
-  else checkContainer(item, at, context);
+  else checkContainer(item, at, context, direct);
 }
 
 function checkRole(item, at, context) {
@@ -155,32 +193,46 @@ function checkRole(item, at, context) {
   // An unknown role is one fault: the keys that depend on the role are not read again against it.
   if (!known) return;
   if (Object.hasOwn(item, 'primary')) {
-    if (item.role !== 'action') fail(at, `"primary" belongs to an action, not to a ${show(item.role)}`);
+    if (item.role !== 'action') fail(at, `"primary" belongs to an action, not to ${a(item.role)}`);
     else if (!isBoolean(item.primary)) fail(at, '"primary" must be true or false');
     else if (item.primary && context.primary) fail(at, `a second primary action on this screen; the first is ${context.primary}`);
     else if (item.primary) context.primary = at;
   }
   const options = OPTIONS.get(item.role);
   if (!options) {
-    if (Object.hasOwn(item, 'options')) fail(at, `"options" belong to a choice, a list or a nav, not to a ${show(item.role)}`);
+    if (Object.hasOwn(item, 'options')) fail(at, `"options" belong to a choice, a list or a nav, not to ${a(item.role)}`);
   } else if (need(item, 'options', v => Array.isArray(v) && v.length >= options.least, options.what, at, fail)) {
     item.options.forEach((option, i) => isText(option) || fail(`${at}.options[${i}]`, `must be ${TEXT}`));
   }
 }
 
-function checkContainer(item, at, context) {
+function checkContainer(item, at, context, direct) {
   const { fail } = context;
   unknownKeys(item, KEYS.container, at, fail);
   const known = CONTAINERS.includes(item.container);
   if (!known) fail(at, `unknown container ${show(item.container)}`);
+  // As with "open" below, an unknown container is one fault: "place" is not read again against it.
+  if (known && Object.hasOwn(item, 'place')) checkPlace(item, at, context, direct);
   // An expansion shows its label before it opens, so it always has one; a region or a group may have none.
   (item.container === 'expansion' ? need : maybe)(item, 'label', isText, TEXT, at, fail);
   // As with a role, an unknown container is one fault: "open" is not read again against it.
   if (known && Object.hasOwn(item, 'open')) {
-    if (item.container !== 'expansion') fail(at, `"open" belongs to an expansion, not to a ${show(item.container)}`);
+    if (item.container !== 'expansion') fail(at, `"open" belongs to an expansion, not to ${a(item.container)}`);
     else if (!isBoolean(item.open)) fail(at, '"open" must be true or false');
   }
   checkItems(item, at, context);
+}
+
+// Which area of the page a region is: one of four words, on a region that is a direct item of a screen,
+// each area once on a screen at most. One fault is said, the first that holds.
+function checkPlace(item, at, context, direct) {
+  const { fail, places } = context;
+  if (item.container !== 'region') return fail(at, `"place" belongs to a region, not to ${a(item.container)}`);
+  if (context.dialog) return fail(at, '"place" belongs to a region of a screen; a dialog has no areas');
+  if (!direct) return fail(at, '"place" belongs to a region that is a direct item of its screen; this one is inside another container');
+  if (!PLACES.includes(item.place)) return fail(at, `"place" must be ${PLACES_TEXT}; it is ${show(item.place)}`);
+  if (places.has(item.place)) fail(at, `a second ${show(item.place)} on this screen; the first is ${places.get(item.place)}`);
+  else places.set(item.place, at);
 }
 
 function unknownKeys(object, allowed, at, fail) {

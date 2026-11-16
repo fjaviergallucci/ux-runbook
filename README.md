@@ -72,8 +72,12 @@ short form of most and skips Structure. A wrong label is a correction: one line,
 and after, and one nod.
 
 At Structure, several ways of solving the problem are written down by makers who do not see each
-other, drawn by one script in one plain grey kit, and shown to you under letters, with nothing that
-says who made which. You choose a structure before anything looks finished.
+other, drawn by one script in one plain kit, and shown to you under letters, with nothing that says
+who made which. Each option is a page: an overview of its screens, then each screen in a window of a
+web app, with its navigation, its bar, its main part and what sits beside it where the maker placed
+them, and the maker's own account last. A proposal holds five screens at most: a new product, or any
+request that spans several places of a product, is a sequence of designs, the places first. You
+choose a structure before anything looks finished.
 
 ## What it does not do by itself
 
@@ -100,7 +104,7 @@ says who made which. You choose a structure before anything looks finished.
 | `skills/` | Eleven skills. `design` conducts: the order, the routes, the loop every stage runs, the state, resuming. `setup` runs once in a project. The other nine are the stages. |
 | `pool/` | The seats, one card each: eight makers, eight judges, one audience, and five people with no profession. `INDEX.md` has them on one page, `CARD-FORMAT.md` is the contract of a card, `MODELS.md` says which model each is suggested on and why. |
 | `templates/` | Every file of a package, the project's profile and lessons, a profession's profile, a person's card, the three briefs, the ledger, the task read, the decision page's data. |
-| `kit/` | The plain grey kit every Structure proposal is drawn in, and its contract. A project with a design system gets a copy restyled on its own tokens. |
+| `kit/` | The grey kit every Structure proposal is drawn in (greys, and one accent for the primary action), and its contract. A project with a design system gets a copy restyled on its own tokens. |
 | `scripts/` | The state of a package; the blind merge and its sealed map; the renderer; the pictures; the decision page; the acceptance checks; the proof that a handoff folder stands alone; the card checker; the call to an outside model. Each prints its usage with `--help`. |
 | `reference/` | The guide a builder is handed with every handoff, and the anti-patterns: of a design, of the session that runs the process, and those this pipeline was built against. |
 | `evals/` | Nine cases that hold the plugin to its own rules: each is a prompt, a small fixture and what must be seen for it to pass. Run with `claude plugin eval . --no-publish --ablation none --runs 1 --allow-tools Bash Write Edit`: a run costs model calls, and `--no-publish` keeps its report on the machine. |

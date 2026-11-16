@@ -33,6 +33,9 @@ What kind of interface, starting from what, how big: so which stages run?
   `pool/INDEX.md`, for each seat's job in a line; `templates/package/00-frame.md`, which you fill.
 - **The first line of the project kit's `tokens.css`,** and what the project's history says of the
   file it names, as step 6 says: nothing else of the kit or of the history.
+- **Of every package in `<packages>`, to find a sequence that lists the request:** its `00-frame.md`'s
+  "What follows this design" alone and, where that heading says the package keeps a sequence, the
+  `Sequence` entries of its `DECISIONS.md`: nothing else of them.
 - **Not the project's code, its screens or its data.** Reading the world is Context's.
 
 ## Writes
@@ -42,7 +45,8 @@ What kind of interface, starting from what, how big: so which stages run?
   instruction in braces replaced, its first comment deleted. Frame is built from nothing, so
   `built-from` stays `[]`, and the rest of the header is the state script's.
 - The package's `DECISIONS.md`, started from `templates/package/DECISIONS.md` with the frame as its
-  first entry.
+  first entry. In a sequence of designs, a `Sequence` entry appended to the first design's
+  `DECISIONS.md`, on his yes.
 - In the project profile, a kind he adds at step 2, and nothing else of it but, where the tokens
   moved, the line of "Design system" that names the kit's copy, as step 6 says, with the copy itself.
 
@@ -70,6 +74,9 @@ where it is made at once. Only a kind he adds at step 2 is written before it, an
    - *Foundation:* what it starts from. It is `no-system` while the project profile says "None yet"
      under "Design system".
    - *Size:* why this size, and not the one below it. When two sizes fit, name both and what tips it.
+     A new product, or a request that spans several places of the product that she does not go
+     through as one task, is a sequence of designs, never one `system` or one `flow`: see "Several
+     places", below.
 
    Where the request and the project profile do not settle a value, say that it is your reading: he
    corrects it in his answer. As: "a screen that shows the front desk which rooms are free right now"
@@ -95,6 +102,17 @@ where it is made at once. Only a kind he adds at step 2 is written before it, an
    says under "When the tokens move", and list what it found with them. Where the tokens moved, the
    copy is made again once the frame is stamped, before any later stage begins.
 
+**Several places are a sequence of designs,** as `skills/design/references/routes.md` says under
+"Several places": what tips a request one way or the other is there, with an example of each. Then
+the frame you put to him is the first design's, the places first, at size `surface` (`system` for the
+first design of a product with no design system), and it proposes the rest: one design for each
+place, in the order his request names them, which is his to set. It asks nothing more than any frame.
+On his yes the first package alone is made, the rest go under "What follows this design", in the
+order he set, and the order into a `Sequence` entry of that package's `DECISIONS.md`. A later design
+of the sequence is a new request: it starts here when he asks for it. Whether a request is one is
+read from disk, every time, as "Where a sequence is kept" in `routes.md` says: its frame then names
+the sequence's first package by path, and on his yes a new `Sequence` entry names its package.
+
 **Sized `correction`, Frame is one line:** the request, the three values and the route. Steps 4 to 6
 are not run: a correction casts no seat. **You state the line and ask nothing:** a correction costs one
 nod, and it is asked at Detail, on the picture of before and after, beside this line. So the package is
@@ -108,8 +126,9 @@ at Detail. It is stamped in the words of that request. What follows a correction
 
 **He confirms in one message.** Put the frame to him in one message: the request as he wrote it, a
 name for the design (a word or two in lower case, as `today`: it names the package's folder), the three
-values each with its why, the route, who it is for, the provisional cast and the engines missing. Then
-one question, about one thing: is this the right frame for it?
+values each with its why, the route, who it is for, the provisional cast and the engines missing; for a
+sequence, the designs that would follow it, in the order his request names them. Then one question,
+about one thing: is this the right frame for it?
 
 - **Sized `correction`, this gate asks nothing:** the line is stated, the package is made at once and
   the frame is stamped in the words of his request, since the one nod of a correction is asked at Detail.
@@ -137,7 +156,7 @@ one question, about one thing: is this the right frame for it?
   it holds. "The request", word for word. "Kind, foundation, size", each value with its why. "Route":
   the mode of each stage as `node <kit root>/scripts/state.mjs status <package>` prints it, Frame's
   own first; the reason is "the size sets it", or why you and he changed it. "Who it is for".
-  "Provisional cast". "Engines missing".
+  "Provisional cast". "Engines missing". "What follows this design", under "Route": "None", or the sequence.
 - **Write his answer under `## Reviewed by the founder`:** what he corrected, and the words he
   confirmed it with, as he said them. Until it is there, it does not count. A fact his answer holds
   ("the Today screen stays as it is") is written there with it and, where it bears on one of the three
@@ -152,7 +171,7 @@ one question, about one thing: is this the right frame for it?
   ```
 
   Then append the decision to the package's `DECISIONS.md`, and ask the state what is next, as step 9
-  of the loop says.
+  of the loop says. In a sequence, the `Sequence` entry goes to the first design's, on the same yes.
 
 ## Never
 
@@ -163,6 +182,8 @@ one question, about one thing: is this the right frame for it?
   the one exception: its line is stated and not asked, and his nod at Detail is on it too.
 - **Never take the smaller size to save stages,** and never move a size down. A design that turns out
   bigger stops, says so, and is resized with his yes.
+- **Never set the order of a sequence, or start its next design yourself.** He sets the order, and
+  each design of it begins at its own Frame, on his yes: no package is made for one he has not asked for.
 - **Never skip a stage by leaving it out.** Only `route` changes a mode, with its reason, and Frame
   itself is never skipped.
 - **Never summarise the request.** His words, as he wrote them.

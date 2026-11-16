@@ -19,11 +19,12 @@ He picked one letter and named what to take from another, as "B, with A's status
    there as a one-letter `.json` would no longer match the map, and the map would not open.
 2. **Draw it and photograph it,** one command after the other, under the picked letter, as step 7 of the
    skill does for the board: drawn twice, the second time without the proposal's own account, for the
-   audiences, and each page pictured whole and as its first screen alone.
+   audiences, and each page pictured whole and as its first screen alone. `<lang>` is the board's, the
+   first of the project profile's `languages`.
 
    ```
-   node <kit root>/scripts/render.mjs <package>/04-structure/chosen/chosen.json --kit <kit dir> --out <package>/04-structure/chosen/chosen.html --letter <letter>
-   node <kit root>/scripts/render.mjs <package>/04-structure/chosen/chosen.json --kit <kit dir> --out <package>/04-structure/chosen/chosen-screens.html --letter <letter> --without-notes
+   node <kit root>/scripts/render.mjs <package>/04-structure/chosen/chosen.json --kit <kit dir> --out <package>/04-structure/chosen/chosen.html --lang <lang> --letter <letter>
+   node <kit root>/scripts/render.mjs <package>/04-structure/chosen/chosen.json --kit <kit dir> --out <package>/04-structure/chosen/chosen-screens.html --lang <lang> --letter <letter> --without-notes
    node <kit root>/scripts/shots.mjs <package>/04-structure/chosen --out <package>/04-structure/chosen --widths <primary>,<phone> --first-screen
    ```
 

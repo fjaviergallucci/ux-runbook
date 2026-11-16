@@ -8,134 +8,248 @@
 </head>
 <body>
 
-<h1>The grey kit</h1>
-<p>One specimen of every class in the kit contract, each in a frame captioned with the class it shows. The words name the part they stand in, and say nothing of any product: a time is written on the 24-hour clock, as 09:30.</p>
+<header class="ux-option">
+  <h1>ux-option: the grey kit</h1>
+</header>
+
+<p>One specimen of every class in the kit contract, each captioned or labelled with the class it shows. The words name the part they stand in, and say nothing of any product: a time is written on the 24-hour clock, as 09:30.</p>
+
+<section class="ux-overview">
+  <ol>
+    <li>
+      <b>ux-overview: a screen that places its regions</b>
+      <dl>
+        <dt>navigation</dt>
+        <dd>First place, Second place, Third place · Heading · Link</dd>
+        <dt>bar</dt>
+        <dd>Field label · Status, as of 09:05 · Primary action</dd>
+        <dt>main</dt>
+        <dd>Heading · A line of text · List label</dd>
+        <dt>beside</dt>
+        <dd>Region label · A line of text</dd>
+      </dl>
+      <ol>
+        <li>
+          <b>A dialog over it</b>
+          <dl>
+            <dt>dialog</dt>
+            <dd>Dialog heading · Field label · Primary action · Link</dd>
+          </dl>
+        </li>
+      </ol>
+    </li>
+    <li>
+      <b>A screen that places none</b>
+      <dl>
+        <dt>screen</dt>
+        <dd>Heading · A line of text under the heading</dd>
+      </dl>
+    </li>
+  </ol>
+</section>
 
 <section class="ux-frame" data-screen="screen">
   <header>
-    <h2>ux-frame, holding a ux-screen</h2>
-    <p class="ux-note">The frame is one screen of the walkthrough on the board, captioned with its title; the screen is what she sees.</p>
+    <h2>ux-frame, holding a ux-window, holding a ux-screen</h2>
+    <p class="ux-note">The frame is one screen of the walkthrough on the board, captioned with its title; the window is the page it is drawn in; the screen is what she sees, here one that places no region: one column.</p>
   </header>
-  <div class="ux-screen">
-    <h3 class="ux-heading">Heading</h3>
-    <p class="ux-text">A line of text under the heading.</p>
+  <div class="ux-window">
+    <div class="ux-screen">
+      <h3 class="ux-heading">Heading</h3>
+      <p class="ux-text">A line of text under the heading.</p>
+    </div>
   </div>
 </section>
 
 <section class="ux-frame" data-screen="dialog">
   <header>
     <h2>ux-dialog, captioned with ux-over</h2>
-    <p class="ux-over">opens over ux-frame, holding a ux-screen</p>
-    <p class="ux-note">A dialog, on a backdrop that stands for the screen it opens over; the ux-over line names that screen by its title.</p>
+    <p class="ux-over">opens over ux-frame, holding a ux-window, holding a ux-screen</p>
+    <p class="ux-note">A dialog, in a window whose backdrop stands for the screen it opens over; the ux-over line names that screen by its title.</p>
   </header>
-  <div class="ux-dialog">
-    <h3 class="ux-heading">Dialog heading</h3>
-    <p class="ux-input">Field label</p>
-    <button class="ux-action is-primary" type="button">Primary action</button>
-    <a class="ux-link" href="#">Link</a>
+  <div class="ux-window">
+    <div class="ux-dialog">
+      <h3 class="ux-heading">Dialog heading</h3>
+      <p class="ux-input">Field label</p>
+      <button class="ux-action is-primary" type="button">Primary action</button>
+      <a class="ux-link" href="#">Link</a>
+    </div>
+  </div>
+</section>
+
+<section class="ux-frame" data-screen="areas">
+  <header>
+    <h2>ux-navigation, ux-bar, ux-main and ux-beside</h2>
+    <p class="ux-note">A screen whose regions say which area of the page each is. Wide, the navigation is a column at the side and what is beside the main part sits next to it; narrow, the navigation is a bar and what is beside sits under. The second place of the nav is the one she is at.</p>
+  </header>
+  <div class="ux-window">
+    <div class="ux-screen">
+      <section class="ux-region ux-navigation">
+        <h3 class="ux-heading">Heading</h3>
+        <nav class="ux-nav">Navigation label
+          <ul>
+            <li>First place</li>
+            <li aria-current="page">Second place</li>
+            <li>Third place</li>
+          </ul>
+        </nav>
+        <a class="ux-link" href="#">Link</a>
+      </section>
+      <section class="ux-region ux-bar">
+        <p class="ux-input">Field label</p>
+        <p class="ux-status">Status, as of 14:05</p>
+        <button class="ux-action is-primary" type="button">Primary action</button>
+      </section>
+      <section class="ux-region ux-main">
+        <h3 class="ux-heading">Heading of the main part</h3>
+        <p class="ux-text">A line of text in the main part: what the screen is for.</p>
+        <div class="ux-list">List label
+          <ul>
+            <li>Row title — detail, 09:30</li>
+            <li>Row title — detail, 14:05</li>
+          </ul>
+        </div>
+      </section>
+      <section class="ux-region ux-beside">
+        <header>Region label</header>
+        <p class="ux-text">A line of text beside the main part, which supports it.</p>
+        <button class="ux-action" type="button">Action</button>
+        <button class="ux-action" type="button">Other action</button>
+      </section>
+    </div>
   </div>
 </section>
 
 <section class="ux-frame" data-screen="region">
-  <header><h2>ux-region</h2></header>
-  <div class="ux-screen">
-    <section class="ux-region">
-      <header>Region label</header>
-      <p class="ux-text">Row title — detail, 09:30</p>
-      <p class="ux-text">Row title — detail, 14:05</p>
-    </section>
-    <section class="ux-region">
-      <header>Second region label</header>
-      <p class="ux-text">Row title — detail, 18:00</p>
-    </section>
+  <header>
+    <h2>ux-region</h2>
+    <p class="ux-note">Its parts are one under another; groups written one after another in it sit side by side where it is wide enough for two.</p>
+  </header>
+  <div class="ux-window">
+    <div class="ux-screen">
+      <section class="ux-region">
+        <header>Region label</header>
+        <p class="ux-text">Row title — detail, 09:30</p>
+        <p class="ux-text">Row title — detail, 14:05</p>
+      </section>
+      <section class="ux-region">
+        <header>Second region label</header>
+        <div class="ux-group">
+          <header>Group label</header>
+          <p class="ux-text">Row title — detail, 18:00</p>
+        </div>
+        <div class="ux-group">
+          <header>Second group label</header>
+          <p class="ux-text">Row title — detail, 21:45</p>
+        </div>
+      </section>
+    </div>
   </div>
 </section>
 
 <section class="ux-frame" data-screen="group">
   <header><h2>ux-group</h2></header>
-  <div class="ux-screen">
-    <div class="ux-group">
-      <header>Group label</header>
-      <p class="ux-text">A line of text in the group.</p>
-      <button class="ux-action" type="button">Action</button>
+  <div class="ux-window">
+    <div class="ux-screen">
+      <div class="ux-group">
+        <header>Group label</header>
+        <p class="ux-text">A line of text in the group.</p>
+        <button class="ux-action" type="button">Action</button>
+      </div>
     </div>
   </div>
 </section>
 
 <section class="ux-frame" data-screen="expansion">
   <header><h2>ux-expansion, open and then closed</h2></header>
-  <div class="ux-screen">
-    <details class="ux-expansion" open>
-      <summary>Expansion label, open</summary>
-      <p class="ux-input">Field label</p>
-      <button class="ux-action" type="button">Action</button>
-    </details>
-    <details class="ux-expansion">
-      <summary>Expansion label, closed</summary>
-      <p class="ux-text">A line of text that shows once it is opened.</p>
-    </details>
+  <div class="ux-window">
+    <div class="ux-screen">
+      <details class="ux-expansion" open>
+        <summary>Expansion label, open</summary>
+        <p class="ux-input">Field label</p>
+        <button class="ux-action" type="button">Action</button>
+      </details>
+      <details class="ux-expansion">
+        <summary>Expansion label, closed</summary>
+        <p class="ux-text">A line of text that shows once it is opened.</p>
+      </details>
+    </div>
   </div>
 </section>
 
 <section class="ux-frame" data-screen="heading">
   <header><h2>ux-heading</h2></header>
-  <div class="ux-screen">
-    <h3 class="ux-heading">Heading</h3>
+  <div class="ux-window">
+    <div class="ux-screen">
+      <h3 class="ux-heading">Heading</h3>
+    </div>
   </div>
 </section>
 
 <section class="ux-frame" data-screen="text">
   <header><h2>ux-text</h2></header>
-  <div class="ux-screen">
-    <p class="ux-text">A sentence of text she reads, with nothing to do, long enough to show where a line ends.</p>
+  <div class="ux-window">
+    <div class="ux-screen">
+      <p class="ux-text">A sentence of text she reads, with nothing to do, long enough to show where a line ends.</p>
+    </div>
   </div>
 </section>
 
 <section class="ux-frame" data-screen="choice">
   <header><h2>ux-choice</h2></header>
-  <div class="ux-screen">
-    <div class="ux-choice">Choice label
-      <ul>
-        <li>First option</li>
-        <li>Second option</li>
-        <li>Third option</li>
-      </ul>
+  <div class="ux-window">
+    <div class="ux-screen">
+      <div class="ux-choice">Choice label
+        <ul>
+          <li>First option</li>
+          <li>Second option</li>
+          <li>Third option</li>
+        </ul>
+      </div>
     </div>
   </div>
 </section>
 
 <section class="ux-frame" data-screen="input">
   <header><h2>ux-input</h2></header>
-  <div class="ux-screen">
-    <p class="ux-input">Field label</p>
+  <div class="ux-window">
+    <div class="ux-screen">
+      <p class="ux-input">Field label</p>
+    </div>
   </div>
 </section>
 
 <section class="ux-frame" data-screen="action">
   <header><h2>ux-action</h2></header>
-  <div class="ux-screen">
-    <button class="ux-action" type="button">Action</button>
+  <div class="ux-window">
+    <div class="ux-screen">
+      <button class="ux-action" type="button">Action</button>
+    </div>
   </div>
 </section>
 
 <section class="ux-frame" data-screen="primary-action">
   <header><h2>ux-action.is-primary</h2></header>
-  <div class="ux-screen">
-    <button class="ux-action is-primary" type="button">Primary action</button>
-    <button class="ux-action" type="button">Other action</button>
+  <div class="ux-window">
+    <div class="ux-screen">
+      <button class="ux-action is-primary" type="button">Primary action</button>
+      <button class="ux-action" type="button">Other action</button>
+    </div>
   </div>
 </section>
 
 <section class="ux-frame" data-screen="list">
   <header><h2>ux-list</h2></header>
-  <div class="ux-screen">
-    <div class="ux-list">List label
-      <ul>
-        <li>Row title — detail, 09:30</li>
-        <li>Row title — detail, 10:15</li>
-        <li>Row title — detail, 14:05</li>
-        <li>Row title — detail, 18:00</li>
-      </ul>
+  <div class="ux-window">
+    <div class="ux-screen">
+      <div class="ux-list">List label
+        <ul>
+          <li>Row title — detail, 09:30</li>
+          <li>Row title — detail, 10:15</li>
+          <li>Row title — detail, 14:05</li>
+          <li>Row title — detail, 18:00</li>
+        </ul>
+      </div>
     </div>
   </div>
 </section>
@@ -145,50 +259,75 @@
     <h2>ux-status</h2>
     <p class="ux-note">It carries data-ux="status-line": the stable id a check finds the part by.</p>
   </header>
-  <div class="ux-screen">
-    <p class="ux-status" data-ux="status-line">Status, as of 09:05</p>
+  <div class="ux-window">
+    <div class="ux-screen">
+      <p class="ux-status" data-ux="status-line">Status, as of 09:05</p>
+    </div>
   </div>
 </section>
 
 <section class="ux-frame" data-screen="media">
   <header><h2>ux-media</h2></header>
-  <div class="ux-screen">
-    <div class="ux-media">Picture: what it shows, in words</div>
+  <div class="ux-window">
+    <div class="ux-screen">
+      <div class="ux-media">Picture: what it shows, in words</div>
+    </div>
   </div>
 </section>
 
 <section class="ux-frame" data-screen="link">
   <header><h2>ux-link</h2></header>
-  <div class="ux-screen">
-    <a class="ux-link" href="#">Link to another screen</a>
+  <div class="ux-window">
+    <div class="ux-screen">
+      <a class="ux-link" href="#">Link to another screen</a>
+    </div>
   </div>
 </section>
 
 <section class="ux-frame" data-screen="nav">
   <header><h2>ux-nav</h2></header>
-  <div class="ux-screen">
-    <nav class="ux-nav">Navigation label
-      <ul>
-        <li>First place</li>
-        <li>Second place</li>
-        <li>Third place</li>
-        <li>Fourth place</li>
-      </ul>
-    </nav>
+  <div class="ux-window">
+    <div class="ux-screen">
+      <nav class="ux-nav">Navigation label
+        <ul>
+          <li>First place</li>
+          <li>Second place</li>
+          <li>Third place</li>
+          <li>Fourth place</li>
+        </ul>
+      </nav>
+    </div>
   </div>
 </section>
 
 <section class="ux-frame" data-screen="note">
   <header><h2>ux-note</h2></header>
-  <div class="ux-screen">
-    <div class="ux-list">List label
-      <ul>
-        <li>Row title — detail, 09:30</li>
-        <li>Row title — detail, 14:05</li>
-      </ul>
+  <div class="ux-window">
+    <div class="ux-screen">
+      <div class="ux-list">List label
+        <ul>
+          <li>Row title — detail, 09:30</li>
+          <li>Row title — detail, 14:05</li>
+        </ul>
+      </div>
+      <p class="ux-note">A note: why the list is in this order.</p>
     </div>
-    <p class="ux-note">A note: why the list is in this order.</p>
   </div>
+</section>
+
+<section class="ux-account">
+  <h2>ux-account</h2>
+  <dl>
+    <dt>A term</dt>
+    <dd>What is said under the term, in a sentence.</dd>
+    <dt>A term with a list</dt>
+    <dd>
+      <ul>
+        <li>A first line</li>
+        <li>A second line</li>
+      </ul>
+    </dd>
+  </dl>
 </section>
 
 </body>

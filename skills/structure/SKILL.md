@@ -26,8 +26,8 @@ Which way of solving it?
   sheet itself: its "Structure" table, a line for each seat with what it is loaded with, its checks,
   its engine and its model and effort; "Blind rules", for a continuity maker; and "Fresh
   pass", for whether one runs at Structure, and with which makers.
-- **The project profile,** `<packages>/PROFILE.md`: `kit`, `facts`, `engines-on`, `openai-model` and
-  `gemini-model`, and nothing about a key.
+- **The project profile,** `<packages>/PROFILE.md`: `kit`, `languages`, `facts`, `engines-on`,
+  `openai-model` and `gemini-model`, and nothing about a key.
 - **Of the kit:** the templates named under "Writes", the three of `templates/briefs/`, and one card,
   when the cast sheet names its seat: `pool/makers/outside-describer.md`, which speaks to you. Every
   other card is read by its seat: a brief is filled from `references/seats.md`, never from a card.
@@ -106,24 +106,25 @@ is built from the cast, the intent and the context. `<version>` is the version a
 7. **Merge, draw, photograph, one command after another.** Once every proposal is in:
    ```
    node <kit root>/scripts/merge.mjs <package>/04-structure/proposals --out <package>/04-structure/board
-   node <kit root>/scripts/render.mjs <package>/04-structure/board/<letter>.json --kit <kit dir> --out <package>/04-structure/board/<letter>.html --letter <letter>
-   node <kit root>/scripts/render.mjs <package>/04-structure/board/<letter>.json --kit <kit dir> --out <package>/04-structure/board/<letter>-screens.html --letter <letter> --without-notes
+   node <kit root>/scripts/render.mjs <package>/04-structure/board/<letter>.json --kit <kit dir> --out <package>/04-structure/board/<letter>.html --lang <lang> --letter <letter>
+   node <kit root>/scripts/render.mjs <package>/04-structure/board/<letter>.json --kit <kit dir> --out <package>/04-structure/board/<letter>-screens.html --lang <lang> --letter <letter> --without-notes
    node <kit root>/scripts/shots.mjs <package>/04-structure/board --out <package>/04-structure/board --widths <primary>,<phone> --first-screen
    ```
    The merge prints the letters, and writes the map to `<package>/04-structure/MAP.sealed.json`: beside
    the board, never in it. Render twice for each letter, the second time without the proposal's own
    account, for the audiences; then the shots once, at the brief's two widths, every page pictured
-   twice, whole and as its first screen alone: `references/seats.md` says who is handed which. The board
-   holds the letters' files, the drawn pages with the kit's stylesheets, and the pictures: nothing else
-   is ever put in it. Never more than three browser-driving commands or seats at once.
+   twice, whole and as its first screen alone: `references/seats.md` says who is handed which. The
+   founder's and judges' page opens with the overview and ends with the account; the audiences' has
+   neither. `<lang>` is the first of the project profile's `languages`. A render that warns of a kit
+   made before the page's areas stops the stage (`skills/setup/references/project-kit.md`). The board
+   holds the letters' files, the drawn pages with the kit's stylesheets, and the pictures: nothing
+   else is ever put in it. Never more than three browser-driving commands or seats at once.
 8. **Start the readers, by letter.** The judges and the audiences of the cast sheet's "Structure" table,
    each a fresh sub-agent: the judges in one message, then the audiences, once every judge has written
    its ledger. Of `<package>/04-structure/`, a judge is handed the board folder and nothing else; an
    audience is handed the pictures only, each by its path, those drawn without the proposal's own
-   account. Every reader's brief lists under "Do not open" the map, the pick, the proposals folder and
-   the makers' files, then `CHOSEN.md`, the cast sheet and, where a continuity maker is cast, today's
-   screen: the whole list, and what else each is handed from the approved stages, is in
-   `references/seats.md`. Each writes one file in `<package>/04-structure/reads/`.
+   account. Every reader's brief lists under "Do not open" the whole list of `references/seats.md`,
+   which says what else each is handed. Each writes one file in `<package>/04-structure/reads/`.
 9. **Build the decision page.** Write `<package>/04-structure/decision.json` in the shape of
    `templates/outputs/decision.json`: the options by letter, one line for each seat that read them, one
    recommendation, one question. Its identity is as `status` prints it, its stage as the loop counts it.
@@ -133,8 +134,7 @@ is built from the cast, the intent and the context. `<version>` is the version a
    on: never what you think of a letter, or know of its maker. A proposal left out, and a seat that did
    not answer or was held back, is one line under `findings`, by seat, never by letter. A finding marked
    `blocks` stays in its seat's line beside its letter: at a pick nothing is mended. With a fresh pass,
-   its `gallery` sits beneath the options, labelled as fresh and never mixed into them: the screens as
-   they came, from `fresh/`, none saying which letter holds its structure.
+   its `gallery` sits beneath the options, as `skills/design/references/fresh-pass.md` says.
    ```
    node <kit root>/scripts/page.mjs <package>/04-structure/decision.json --out <package>/04-structure/decision.html
    ```

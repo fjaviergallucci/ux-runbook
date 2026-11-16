@@ -148,7 +148,8 @@ test('the fixture run returns eight results, all pass: true, in the order of the
   assert.equal(found['two-free-rooms-listed'].actual, 2);
   assert.equal(found['no-booking-when-full'].actual, 0);
   assert.equal(found['list-contrast-dark'].theme, 'dark');
-  assert.ok(found['list-contrast-dark'].actual > 6.8 && found['list-contrast-dark'].actual < 6.9, `the muted grey on the dark surface: ${found['list-contrast-dark'].actual}`);
+  // The grey kit's muted grey on its dark surface, #a6a6a6 on #1c1c1c: 7.0007 (the board change's R197 moved the kit's greys).
+  assert.ok(found['list-contrast-dark'].actual >= 7 && found['list-contrast-dark'].actual < 7.1, `the muted grey on the dark surface: ${found['list-contrast-dark'].actual}`);
   const size = found['book-target-size'].actual;
   assert.ok(size.width >= 44 && size.height === 44, JSON.stringify(size));
 });
@@ -190,11 +191,12 @@ test('contrast with min 21 on grey text fails, and reports the measured ratio in
     check({ id: 'grey-action', type: 'contrast', target: 'book-action', min: 21 }),
   ];
   const { results } = await acceptPrototype({ design: 'today', checks }, { root: prototype });
-  // #595959 on #ffffff is 7.005, and #ffffff on #767676 is 4.542: each is shown to two decimals, never
-  // rounded up past what was measured.
+  // The grey kit's own colours, as R197 of the board change left them: its muted grey #636363 on #ffffff is 6.008,
+  // and #ffffff on its accent #3b5bdb is 5.668. Each is shown to two decimals, never rounded up past what was
+  // measured: 5.66, not 5.67.
   assert.deepEqual(results.map(({ id, pass, actual, message }) => ({ id, pass, actual, message })), [
-    { id: 'grey-list', pass: false, actual: 7, message: 'the contrast is 7, less than 21' },
-    { id: 'grey-action', pass: false, actual: 4.54, message: 'the contrast is 4.54, less than 21' },
+    { id: 'grey-list', pass: false, actual: 6, message: 'the contrast is 6, less than 21' },
+    { id: 'grey-action', pass: false, actual: 5.66, message: 'the contrast is 5.66, less than 21' },
   ]);
 });
 
@@ -449,7 +451,7 @@ test('prototype exits 1 when any check failed: each failure printed, the results
   const left = await leftOf(chrome.pids());
   assert.equal(r.status, 1, r.stderr);
   assert.equal(r.stdout, `10 checks: 2 failed, 8 passed; results in ${out}\n`);
-  assert.equal(r.stderr, 'failed: gone: data-ux="next-free-time" not found\nfailed: grey: the contrast is 7, less than 21\n');
+  assert.equal(r.stderr, 'failed: gone: data-ux="next-free-time" not found\nfailed: grey: the contrast is 6, less than 21\n');
   assert.equal(JSON.parse(readFileSync(out, 'utf8')).length, 10);
   assert.equal(chrome.pids().length, 1, 'one browser for the run');
   assert.equal(left, 0, 'no process of it is left');
