@@ -1068,3 +1068,41 @@ Two things the dry run showed and this build did not decide are left for the pro
 script for the mechanical part of Handoff, and checks that test what a page does, not only what it shows;
 and one more was ruled and left for the last fix wave of the build: every file of a stamped stage, not
 only its output, is guarded against change (R184).
+
+## 26. Amendments after the first real design *(2026-11-15)*
+
+The kit's first real design reached the Structure gate, and the founder rejected every option: they read
+as old desktop applications, nothing could be understood of how they were structured or where anything
+went, and the makers had been handed a whole application at once. The findings are on the kit's issue
+for the proving run. He approved the changes below on the same day; the ruling's number is the one in
+the build's log. Where a section above disagrees with this one, this one holds.
+
+1. **A proposal says which area of the page a region is** (§ 12, "Cheap and blind"). The walkthrough
+   format had no key for position, on purpose. It still has none for size, colour or exact position, but
+   a region that is a direct item of a screen may carry `place`: `navigation`, `bar`, `main` or
+   `beside`. How an area is drawn at each width is the same for every proposal. *(R194.)*
+2. **A proposal holds at most five screens.** One that needs more is more than one design. *(R195.)*
+3. **The board is drawn as a product** (§ 12, "The shared kit"). For him and for the judges: the
+   option's title, an overview of every screen and what each of its areas holds, each screen in a frame
+   that reads as a window of a web app at the width it is pictured at, and the proposal's own account
+   last, never above the drawing. For an audience: the title and the screens, nothing else. The shared
+   kit is still one neutral kit, so that no structure looks better made than another, but it is drawn
+   as a present-day wireframe, not as an outline. *(R196, R197, R202.)*
+4. **Several places are not one design** (§ 5, the sizes). `flow` stays several surfaces that form one
+   task. A request that spans several places of a product she does not go through as one task — a new
+   product among them — is a **sequence of designs**: the places first, as one small design, then one
+   design for each place, in the order he sets. Frame proposes the sequence and makes only the first
+   package; the order is kept in that package's decisions and changed only on his word. `system` is what
+   is left of it: a rebrand, or the first design of a product with no design system, still one surface
+   at a time. *(R199.)*
+5. **Cast offers a fresh pass; it never adds one** (§ 12, "The fresh pass"). Whenever a screen generator
+   is turned on in the project profile, Cast proposes a fresh pass at Structure and asks for it in plain
+   words: what it is, what it adds — something that looks like a product, this early —, what it costs,
+   and that nothing of it is handed off. It runs on a yes of its own. *(R200.)*
+6. **Detail keeps the areas the chosen structure placed** (§ 4.5): the navigation he picked at Structure
+   is the navigation of the prototype, unless the interaction designer's rules say otherwise. *(R203.)*
+
+What the dry run could not show, and this run did: a founder who is not a designer judges what he is
+shown, so a board must look like a product before its structure can be judged; and the size of what one
+maker is asked for decides the quality of what comes back.
+
