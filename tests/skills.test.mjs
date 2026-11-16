@@ -1621,7 +1621,8 @@ test('project-kit.md: each class of the contract is restyled on the project\'s t
   assert.match(text, /Copy `<kit root>\/kit\/grey\/kit\.css` and `<kit root>\/kit\/grey\/parts\.html` into `<packages>\/kit\/`/);
   // Every class the contract lists is named, and no other.
   const classes = [...section(read('kit/KIT-CONTRACT.md'), 'The classes').matchAll(/^- `(ux-[a-z]+(?:\.is-primary)?)`/gm)].map(([, name]) => name);
-  assert.equal(classes.length, 19);
+  // Nineteen parts, and the eight classes of the page's areas that came with the board change (R194 to R197).
+  assert.equal(classes.length, 27);
   const named = new Set(spansOf(projectKit()).filter(span => /^ux-/.test(span)));
   assert.deepEqual(classes.filter(name => !named.has(name)), [], 'a class of the contract the reference leaves out');
   assert.deepEqual([...named].filter(name => !classes.includes(name)), [], 'a class the contract does not have');
@@ -3382,7 +3383,8 @@ test('Structure runs as written: its own commands on the fixture proposals, the 
       assert.match(run(withoutNotes, { '<letter>': letter }), new RegExp(`^drew option ${letter} to \\S.*${letter}-screens\\.html, without the proposal's own account, with `));
       const bare = readFileSync(join(round, 'board', `${letter}-screens.html`), 'utf8');
       assert.ok(bare.includes(`<h1>Option ${letter}</h1>`) && page.includes('class="ux-note"') && page.includes('<dt>Its bet</dt>'), letter);
-      assert.doesNotMatch(bare, /ux-note|<dl>|Its bet|Deliberately bad at/, letter);
+      // The one list of terms it keeps is the map's, which says the screens and nothing a maker said of the design (R196).
+      assert.doesNotMatch(bare, /ux-note|ux-account|Its own account|Its bet|Deliberately bad at/, letter);
       for (const words of [letterFile(letter).name, letterFile(letter).bet, letterFile(letter).cost]) assert.ok(!bare.includes(words), `${letter}: ${words}`);
       // The pictures are the picture script's to take, and its own tests drive the browser: here each is a stand-in.
       for (const name of [letter, `${letter}-screens`]) for (const width of [FILL['<phone>'], FILL['<primary>']]) for (const end of ['', '-first']) writeFileSync(join(round, 'board', `${name}-${width}-light${end}.png`), '');
@@ -3484,7 +3486,7 @@ test('Structure runs as written: its own commands on the fixture proposals, the 
   assert.match(run(graftWithout, { '<letter>': 'B' }), /^drew option B to \S.*chosen-screens\.html, without the proposal's own account, with /);
   const redrawn = readFileSync(join(round, 'chosen', 'chosen-screens.html'), 'utf8');
   assert.ok(redrawn.includes('<h1>Option B</h1>') && readFileSync(join(round, 'chosen', 'chosen.html'), 'utf8').includes('<dt>Its bet</dt>'));
-  assert.doesNotMatch(redrawn, /ux-note|<dl>|Its bet|Deliberately bad at/);
+  assert.doesNotMatch(redrawn, /ux-note|ux-account|Its own account|Its bet|Deliberately bad at/);
   for (const said of [letterFile('B').name, letterFile('B').bet, letterFile('B').cost]) assert.ok(!redrawn.includes(said), said);
   assert.ok(stageCommands('structure').includes('node <kit root>/scripts/shots.mjs <package>/04-structure/chosen --out <package>/04-structure/chosen --widths <primary>,<phone> --first-screen'));
   assert.equal(inBoard().length, LETTERS.length * 11 + 1);

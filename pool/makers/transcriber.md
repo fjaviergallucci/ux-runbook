@@ -76,7 +76,9 @@ checked with `validate` (`scripts/lib/walkthrough.mjs`).
   true on the one action a screen is plainly for. `options` belong to a choice (two or more), a list or
   a nav.
 - A container has `container` (`region`, `group` or `expansion`) and `items`. An expansion always has a
-  `label`, and may say it is `open`. A region or a group may have a `label`.
+  `label`, and may say it is `open`. A region or a group may have a `label`. A region that is a direct
+  item of a screen may say in `place` which area of the page it is: `navigation`, `bar`, `main` or
+  `beside`.
 - Who made it: `author`, `engine`, `track`, `model`, `source`. You write `source` only, as step 7 says.
   The conductor writes the rest.
 

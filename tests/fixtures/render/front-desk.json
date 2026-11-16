@@ -1,0 +1,220 @@
+{
+  "name": "The desk's three places",
+  "bet": "Three places that never move — today, the rooms, the bookings — with what is free now always in the middle, let her answer a walk-in without looking for where to go.",
+  "cost": "A week ahead is out of reach: every place shows today, and a booking for another day is taken on paper.",
+  "absent": [
+    "Any day but today",
+    "The practitioners' own schedules",
+    "A floor plan she can click"
+  ],
+  "hardest": "With every room busy, the middle of Today names the room that frees up soonest and when, and Book a walk-in books that time.",
+  "firstIdea": "One long page with every room and every booking; set aside because she would scroll past the free rooms to find them.",
+  "screens": [
+    {
+      "id": "today",
+      "title": "Today, at 9:40",
+      "container": "screen",
+      "note": "Open all day on the desk monitor; it is where she lands.",
+      "items": [
+        {
+          "container": "region",
+          "place": "navigation",
+          "items": [
+            { "role": "heading", "text": "Front desk" },
+            { "role": "nav", "id": "places", "text": "Places", "options": ["Today", "Rooms", "Bookings", "Settings"] },
+            { "role": "link", "text": "Help" }
+          ]
+        },
+        {
+          "container": "region",
+          "place": "bar",
+          "items": [
+            { "role": "input", "id": "find", "text": "Find a patient or a room" },
+            { "role": "status", "id": "updated", "text": "Updated 9:40" },
+            { "role": "action", "id": "book-walk-in", "text": "Book a walk-in", "primary": true }
+          ]
+        },
+        {
+          "container": "region",
+          "place": "main",
+          "items": [
+            { "role": "heading", "text": "Rooms right now" },
+            { "role": "status", "id": "free-count", "text": "2 rooms free now" },
+            {
+              "container": "region",
+              "label": "Free now",
+              "items": [
+                {
+                  "container": "group",
+                  "label": "Room 2",
+                  "items": [
+                    { "role": "text", "text": "Free until 10:30" },
+                    { "role": "action", "id": "book-room-2", "text": "Book Room 2", "note": "Opens the booking over this screen." }
+                  ]
+                },
+                {
+                  "container": "group",
+                  "label": "Sala Jardín 🌿",
+                  "items": [
+                    { "role": "text", "text": "Free until 11:15" },
+                    { "role": "action", "id": "book-sala-jardin", "text": "Book Sala Jardín 🌿" }
+                  ]
+                }
+              ]
+            },
+            {
+              "role": "list",
+              "id": "not-free",
+              "text": "Busy, being cleaned or closed",
+              "options": [
+                "Room 3 — being cleaned, ready at 9:50",
+                "Room 1 — Dan with Maria K., until 10:00",
+                "Gym — out of service today"
+              ],
+              "note": "Soonest free first."
+            }
+          ]
+        },
+        {
+          "container": "region",
+          "place": "beside",
+          "label": "Next to arrive",
+          "items": [
+            {
+              "role": "list",
+              "id": "arriving",
+              "text": "Booked for the next hour",
+              "options": ["9:50 — Ana G., with Leila", "10:00 — Luis M., with Tomás", "10:30 — Ruth B., with Dan"]
+            },
+            { "role": "link", "text": "See all of today's bookings" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "book",
+      "title": "Booking Room 2",
+      "container": "dialog",
+      "over": "today",
+      "items": [
+        { "role": "heading", "text": "Room 2 — free until 10:30" },
+        { "role": "input", "id": "patient-name", "text": "Patient name", "note": "The cursor is already here." },
+        { "role": "choice", "text": "How long?", "options": ["15 min", "30 min", "45 min"] },
+        { "role": "action", "id": "confirm", "text": "Book", "primary": true },
+        { "role": "action", "text": "Cancel" }
+      ]
+    },
+    {
+      "id": "rooms",
+      "title": "Rooms",
+      "container": "screen",
+      "items": [
+        {
+          "container": "region",
+          "place": "navigation",
+          "items": [
+            { "role": "heading", "text": "Front desk" },
+            { "role": "nav", "id": "places", "text": "Places", "options": ["Today", "Rooms", "Bookings", "Settings"] },
+            { "role": "link", "text": "Help" }
+          ]
+        },
+        {
+          "container": "region",
+          "place": "bar",
+          "items": [
+            { "role": "input", "id": "find", "text": "Find a patient or a room" },
+            { "role": "status", "id": "updated", "text": "Updated 9:40" },
+            { "role": "action", "id": "book-walk-in", "text": "Book a walk-in" }
+          ]
+        },
+        {
+          "container": "region",
+          "place": "main",
+          "items": [
+            { "role": "heading", "text": "Every room, by floor" },
+            { "role": "choice", "id": "show", "text": "Show", "options": ["All rooms", "Free now", "Closed"] },
+            {
+              "role": "list",
+              "id": "ground-floor",
+              "text": "Ground floor",
+              "options": ["Room 1 — busy until 10:00", "Room 2 — free until 10:30", "Room 3 — being cleaned, ready at 9:50"]
+            },
+            {
+              "role": "list",
+              "id": "upstairs",
+              "text": "Upstairs",
+              "options": ["Sala Jardín 🌿 — free until 11:15", "Gym — out of service today"]
+            },
+            {
+              "container": "expansion",
+              "label": "Why the gym is closed",
+              "items": [{ "role": "text", "text": "The floor is being relaid. It reopens tomorrow at 8:00." }]
+            }
+          ]
+        },
+        {
+          "container": "region",
+          "place": "beside",
+          "label": "The room she has picked",
+          "items": [
+            { "role": "media", "text": "Photo of Room 2: one couch, a window, a sink" },
+            { "role": "text", "text": "Room 2 holds one patient and one practitioner." },
+            { "role": "action", "id": "book-room-2", "text": "Book Room 2", "primary": true }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bookings",
+      "title": "Bookings",
+      "container": "screen",
+      "note": "No area beside the main part here: the list needs the width.",
+      "items": [
+        {
+          "container": "region",
+          "place": "navigation",
+          "items": [
+            { "role": "heading", "text": "Front desk" },
+            { "role": "nav", "id": "places", "text": "Places", "options": ["Today", "Rooms", "Bookings", "Settings"] },
+            { "role": "link", "text": "Help" }
+          ]
+        },
+        {
+          "container": "region",
+          "place": "bar",
+          "items": [
+            { "role": "input", "id": "find", "text": "Find a patient or a room" },
+            { "role": "status", "id": "updated", "text": "Updated 9:40" },
+            { "role": "action", "id": "book-walk-in", "text": "Book a walk-in" }
+          ]
+        },
+        {
+          "container": "region",
+          "place": "main",
+          "items": [
+            { "role": "heading", "text": "Today's bookings" },
+            { "role": "status", "id": "booking-count", "text": "11 bookings, 3 still to arrive" },
+            {
+              "role": "list",
+              "id": "to-arrive",
+              "text": "Still to arrive",
+              "options": [
+                "9:50 — Ana G., with Leila, Room 3",
+                "10:00 — Luis M., with Tomás, Room 1",
+                "10:30 — Ruth B., with Dan, Room 2"
+              ]
+            },
+            {
+              "container": "expansion",
+              "label": "Already here or gone (8)",
+              "items": [
+                { "role": "list", "text": "Earlier today", "options": ["8:00 — Joe P., with Leila, Room 2", "8:30 — Maria K., with Dan, Room 1"] }
+              ]
+            },
+            { "role": "action", "id": "move", "text": "Move a booking", "primary": true }
+          ]
+        }
+      ]
+    }
+  ]
+}

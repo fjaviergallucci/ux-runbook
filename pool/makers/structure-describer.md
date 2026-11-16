@@ -71,7 +71,9 @@ One file: your proposal, as JSON in the walkthrough format, at the path your bri
   `list`, `status`, `media`, `link` or `nav`) and `text`. It may have an `id` and a `note`. `primary` is
   true on the one action the screen is for. `options` belong to a choice (two or more), a list or a nav.
 - A container has `container` (`region`, `group` or `expansion`) and `items`. An expansion always has a
-  `label`, and may say it is `open`. A region or a group may have a `label`.
+  `label`, and may say it is `open`. A region or a group may have a `label`. A region that is a direct
+  item of a screen may say in `place` which area of the page it is: `navigation`, `bar`, `main` or
+  `beside`.
 - Who made it: `author`, `engine`, `track`, `model`, `source`. The conductor writes these. You do not.
 
 One screen, to show the shape:

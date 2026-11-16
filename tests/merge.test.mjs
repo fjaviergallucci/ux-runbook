@@ -22,10 +22,12 @@ const FORMAT = {
   letter: ['name', 'bet', 'cost', 'absent', 'hardest', 'screens'],
   screen: ['id', 'title', 'container', 'over', 'note', 'items'],
   role: ['role', 'text', 'id', 'note', 'primary', 'options'],
-  container: ['container', 'label', 'open', 'items'],
+  container: ['container', 'place', 'label', 'open', 'items'],
 };
 // The render fixture: every role and container, a dialog, notes, options, labels, provenance.
 const EVERY = join(here, 'fixtures', 'render', 'every-part.json');
+// The kit's sample: every screen places its regions in the page's areas.
+const PLACED = join(here, 'fixtures', 'render', 'front-desk.json');
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 const MAP = 'MAP.sealed.json';
 const PICK = 'PICK.md';
@@ -257,6 +259,25 @@ test('the same proposal written with its keys in different orders, spacing and s
   assert.equal(texts[1], texts[0], 'B is A, byte for byte');
   assert.equal(texts[2], texts[0], 'C is A, byte for byte');
   assert.equal(texts[0], pretty(letterOf(every)));
+});
+
+// R194 of the board change: which area a region is belongs to what a proposal says, so a letter copy keeps it.
+test('a letter copy keeps the place of every region, written after its container whatever order its maker wrote it in', () => {
+  const dir = fresh();
+  const placed = JSON.parse(readFileSync(PLACED, 'utf8'));
+  const places = proposal => proposal.screens.flatMap(screen => screen.items.map(item => item.place ?? null));
+  assert.ok(places(placed).filter(Boolean).length >= 11, 'the sample places its regions');
+  const src = writeProposals(join(dir, 'the proposals'), { 'one.json': placed, 'two.json': JSON.stringify(reversed(placed)) });
+  const board = join(dir, 'the board');
+  mergeProposals(src, board, { seed: 1 });
+  const texts = ['A', 'B'].map(letter => readText(board, `${letter}.json`));
+  assert.equal(texts[1], texts[0], 'B is A, byte for byte');
+  assert.equal(texts[0], pretty(letterOf(placed)));
+  const copy = JSON.parse(texts[0]);
+  assert.deepEqual(places(copy), places(placed));
+  assert.deepEqual(validate(copy, { sealed: true }), []);
+  assertFormatOrder(copy, 'letter');
+  assert.deepEqual(Object.keys(copy.screens[0].items[3]), ['container', 'place', 'label', 'items']);
 });
 
 test('the sealed map beside the board holds, per letter, the source file, its track and its engine — every source exactly once — and nothing else', () => {

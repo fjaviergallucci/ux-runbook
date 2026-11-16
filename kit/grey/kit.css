@@ -1,38 +1,46 @@
-/* The grey kit: one plain part for each role and container of the walkthrough, for a project with no
-   design system. Greys only, one system font stack, one mid-grey kept for the primary action, a light and
-   a dark set, no motion. Every part is styled once and the same wherever it appears, so nothing here can
-   make one structure look better made than another.
+/* The grey kit: a present-day wireframe of a web app, for a project with no design system. One plain part for
+   each role and container of the walkthrough, and the page's areas a region may say it is. Greys, one
+   system font stack, one accent kept for the primary action, a light and a dark set, no motion, nothing
+   loaded. Every part is styled once and the same wherever it appears, but for the way an area lays out
+   what it holds, so nothing here can make one structure look better made than another.
    The class names are a contract (../KIT-CONTRACT.md): a project kit restyles them and adds none.
    KIT-CONTRACT.md states the markup each part is drawn on; parts.html shows it. */
 
 :root {
   color-scheme: light dark;
   --ux-font: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Liberation Sans", Arial, sans-serif;
-  --ux-primary: #767676;
+  --ux-primary: #3b5bdb;
   --ux-on-primary: #ffffff;
-  --ux-page: #ededed;
+  --ux-page: #f0f0f0;
   --ux-surface: #ffffff;
-  --ux-fill: #f4f4f4;
-  --ux-backdrop: #bbbbbb;
-  --ux-ink: #1f1f1f;
-  --ux-muted: #595959;
-  --ux-line: #c6c6c6;
-  --ux-line-strong: #8c8c8c;
+  --ux-fill: #f6f6f6;
+  --ux-well: #e8e8e8;
+  --ux-backdrop: #9c9c9c;
+  --ux-ink: #1a1a1a;
+  --ux-muted: #636363;
+  --ux-line: #e0e0e0;
+  --ux-line-strong: #bdbdbd;
+  --ux-shadow: #c9c9c9;
   --ux-gap: 0.75rem;
   --ux-pad: 1rem;
-  --ux-radius: 4px;
+  --ux-radius: 0.5rem;
+  --ux-radius-large: 0.75rem;
+  --ux-small: 0.8125rem;
+  --ux-smaller: 0.75rem;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --ux-page: #121212;
-    --ux-surface: #1e1e1e;
-    --ux-fill: #262626;
-    --ux-backdrop: #050505;
-    --ux-ink: #ececec;
+    --ux-page: #111111;
+    --ux-surface: #1c1c1c;
+    --ux-fill: #242424;
+    --ux-well: #303030;
+    --ux-backdrop: #060606;
+    --ux-ink: #ededed;
     --ux-muted: #a6a6a6;
-    --ux-line: #3d3d3d;
-    --ux-line-strong: #737373;
+    --ux-line: #323232;
+    --ux-line-strong: #5c5c5c;
+    --ux-shadow: #000000;
   }
 }
 
@@ -44,163 +52,509 @@
 
 body {
   margin: 0;
-  padding: 1.5rem 1rem;
+  padding: 1.25rem 1rem 2.5rem;
   background: var(--ux-page);
   color: var(--ux-ink);
   font-family: var(--ux-font);
-  font-size: 1rem;
+  font-size: 0.9375rem;
   line-height: 1.45;
   overflow-wrap: anywhere;
 }
 
-/* A frame: one screen of the walkthrough on the board, captioned with its title. */
+/* ---- The page: which option this is, the map of its screens, and last its own account. */
+
+.ux-option {
+  margin: 0 0 1rem;
+}
+
+.ux-option > h1 {
+  margin: 0;
+  font-size: 1.375rem;
+  font-weight: 650;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+}
+
+/* The map: every screen at a glance, side by side in the walkthrough's order, quieter than the screens
+   themselves. An area is a row: its name, then what it holds, in one line. A dialog hangs under the
+   screen it opens over. */
+.ux-map {
+  margin: 0 0 1.75rem;
+}
+
+.ux-map ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ux-map > ol {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(17rem, 100%), 1fr));
+  align-items: start;
+  gap: 0.625rem 1.5rem;
+}
+
+.ux-map > ol > li {
+  padding-top: 0.4375rem;
+  border-top: 2px solid var(--ux-line-strong);
+}
+
+.ux-map b {
+  display: block;
+  font-size: var(--ux-small);
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+.ux-map dl {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.0625rem 0.5rem;
+  margin: 0.25rem 0 0;
+  color: var(--ux-muted);
+  font-size: var(--ux-smaller);
+  line-height: 1.4;
+}
+
+.ux-map dt {
+  font-size: 0.625rem;
+  font-weight: 650;
+  letter-spacing: 0.05em;
+  line-height: 1.68;
+  text-transform: uppercase;
+}
+
+.ux-map dd {
+  margin: 0;
+  overflow: hidden;
+  color: var(--ux-ink);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ux-map li > ol {
+  margin-top: 0.3125rem;
+  padding-left: 0.5rem;
+  border-left: 2px solid var(--ux-line-strong);
+}
+
+.ux-map li > ol > li + li {
+  margin-top: 0.25rem;
+}
+
+/* The proposal's own account: quiet, after the drawing. */
+.ux-account {
+  max-width: 60rem;
+  margin: 3rem 0 0;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--ux-line-strong);
+  font-size: 0.875rem;
+}
+
+.ux-account > h2 {
+  margin: 0 0 0.75rem;
+  color: var(--ux-muted);
+  font-size: var(--ux-smaller);
+  font-weight: 650;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.ux-account dl {
+  margin: 0;
+}
+
+.ux-account dt {
+  margin-top: 0.75rem;
+  font-weight: 650;
+}
+
+.ux-account dd {
+  margin: 0.125rem 0 0;
+  color: var(--ux-muted);
+}
+
+.ux-account ul {
+  margin: 0;
+  padding-left: 1.125rem;
+}
+
+/* ---- A frame: one screen of the walkthrough on the board, captioned with its title, in a window. */
+
 .ux-frame {
-  margin: 0 0 2rem;
+  margin: 0 0 2.25rem;
 }
 
 .ux-frame > header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.625rem;
   margin: 0 0 0.5rem;
-  color: var(--ux-muted);
-  font-size: 0.875rem;
 }
 
 .ux-frame > header > h2 {
   margin: 0;
-  font-size: inherit;
-  font-weight: 600;
+  font-size: 0.9375rem;
+  font-weight: 650;
+  line-height: 1.3;
 }
 
-.ux-frame > header > * + * {
-  margin-top: 0.25rem;
-}
-
-/* A dialog's caption names the screen it opens over: the board's words, plain and muted. */
+/* A dialog's caption names the screen it opens over: the board's words, as a quiet tag. */
 .ux-over {
   margin: 0;
+  padding: 0.0625rem 0.5rem;
+  background: var(--ux-surface);
   color: var(--ux-muted);
+  border: 1px solid var(--ux-line);
+  border-radius: 999px;
+  font-size: var(--ux-smaller);
 }
 
-/* A screen fills its frame; a dialog sits on a backdrop that stands for the screen it opens over. */
-.ux-screen,
-.ux-dialog {
-  padding: var(--ux-pad);
+.ux-frame > header > .ux-note {
+  flex: 0 0 100%;
+}
+
+/* The window a screen is drawn in: a thin strip with three dots and an address pill, then the page. */
+.ux-window {
+  position: relative;
+  overflow: hidden;
+  background: var(--ux-surface);
+  border: 1px solid var(--ux-line-strong);
+  border-radius: var(--ux-radius-large);
+  box-shadow: 0 1px 2px var(--ux-line), 0 1rem 2rem -1.25rem var(--ux-shadow);
+}
+
+.ux-window::before {
+  content: "";
+  display: block;
+  height: 1.875rem;
+  background-color: var(--ux-fill);
+  background-image:
+    radial-gradient(circle, var(--ux-line-strong) 0.25rem, transparent 0.3125rem),
+    radial-gradient(circle, var(--ux-line-strong) 0.25rem, transparent 0.3125rem),
+    radial-gradient(circle, var(--ux-line-strong) 0.25rem, transparent 0.3125rem);
+  background-position: 0.75rem 50%, 1.625rem 50%, 2.5rem 50%;
+  background-repeat: no-repeat;
+  background-size: 0.625rem 0.625rem;
+  border-bottom: 1px solid var(--ux-line);
+}
+
+.ux-window::after {
+  content: "";
+  position: absolute;
+  top: 0.4375rem;
+  left: 50%;
+  width: min(22rem, 46%);
+  height: 1rem;
+  margin-left: max(-11rem, -23%);
   background: var(--ux-surface);
   border: 1px solid var(--ux-line);
+  border-radius: 999px;
 }
 
-.ux-frame:has(> .ux-dialog) {
-  padding-bottom: 2rem;
+/* A screen that places no region is one readable column in the window. */
+.ux-screen {
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: 1.5rem var(--ux-pad);
+  background: var(--ux-surface);
+}
+
+/* A dialog sits on a backdrop that stands for the screen it opens over, and for nothing of it. */
+.ux-window:has(> .ux-dialog) {
   background: var(--ux-backdrop);
 }
 
-.ux-frame:has(> .ux-dialog) > header {
-  margin: 0 0 2rem;
-  padding-bottom: 0.5rem;
-  background: var(--ux-page);
-}
-
 .ux-dialog {
-  width: min(30rem, calc(100% - 2rem));
-  margin: 0 auto;
-  border: 2px solid var(--ux-line-strong);
+  width: min(27rem, calc(100% - 2rem));
+  margin: 2.5rem auto;
+  padding: 1.25rem;
+  background: var(--ux-surface);
+  border: 1px solid var(--ux-line);
+  border-radius: var(--ux-radius-large);
+  box-shadow: 0 1.25rem 2.5rem -1rem var(--ux-shadow);
 }
 
-/* Inside a screen, a dialog and every container, parts stack in the order written. */
+/* Inside a screen, a dialog, a group and an expansion, parts stack in the order written. */
 :is(.ux-screen, .ux-dialog, .ux-region, .ux-group, .ux-expansion) > * {
   margin: 0;
 }
 
-:is(.ux-screen, .ux-dialog, .ux-region, .ux-group, .ux-expansion) > * + * {
+:is(.ux-screen, .ux-dialog, .ux-group, .ux-expansion) > * + * {
   margin-top: var(--ux-gap);
 }
 
-/* Containers. A label is the container's first child: a header, or the summary of an expansion. */
+/* ---- Containers. A label is the container's first child: a header, or the summary of an expansion. */
+
+/* A region is a panel: its parts one under another, and its groups side by side where there is room. */
 .ux-region {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(13rem, 100%), 1fr));
+  align-content: start;
+  align-items: start;
+  gap: var(--ux-gap);
   padding: var(--ux-pad);
   background: var(--ux-fill);
-  border: 1px solid var(--ux-line);
+  border-radius: var(--ux-radius-large);
+}
+
+.ux-region > * {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
+
+.ux-region > :is(.ux-region, .ux-group, .ux-expansion, .ux-list, .ux-input, .ux-media, .ux-choice, .ux-nav, .ux-text, .ux-heading) {
+  justify-self: stretch;
+}
+
+.ux-region > .ux-group {
+  grid-column: auto;
 }
 
 .ux-group {
-  padding: 0.75rem;
+  padding: 0.875rem var(--ux-pad);
   background: var(--ux-surface);
   border: 1px solid var(--ux-line);
-  border-radius: var(--ux-radius);
+  border-radius: var(--ux-radius-large);
 }
 
 .ux-region > header,
 .ux-group > header {
+  font-size: var(--ux-small);
+  font-weight: 650;
+}
+
+.ux-region > header {
   color: var(--ux-muted);
-  font-size: 0.8125rem;
-  font-weight: 600;
 }
 
 .ux-expansion {
-  padding: 0.5rem 0;
-  border-top: 1px solid var(--ux-line);
-  border-bottom: 1px solid var(--ux-line);
+  padding: 0.625rem 0.875rem;
+  background: var(--ux-surface);
+  border: 1px solid var(--ux-line);
+  border-radius: var(--ux-radius);
 }
 
 .ux-expansion > summary {
   font-weight: 600;
 }
 
-/* Roles. Each part holds its item's words; a choice, a list and a nav also hold their options, as a list. */
+/* ---- The page's areas. A screen that has a main is laid out as a page: narrow, the bar, then the
+   navigation as a bar of its own, the main part, and what is beside it under it. */
+
+.ux-screen:has(> .ux-main) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "bar" "navigation" "main" "beside";
+  max-width: none;
+  padding: 0;
+}
+
+.ux-screen:has(> .ux-main) > * {
+  margin-top: 0;
+}
+
+:is(.ux-navigation, .ux-bar, .ux-main, .ux-beside) {
+  border-radius: 0;
+}
+
+.ux-navigation {
+  grid-area: navigation;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem var(--ux-gap);
+  padding: 0.625rem var(--ux-pad);
+  border-bottom: 1px solid var(--ux-line);
+}
+
+.ux-bar {
+  grid-area: bar;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem var(--ux-gap);
+  padding: 0.625rem var(--ux-pad);
+  background: var(--ux-surface);
+  border-bottom: 1px solid var(--ux-line);
+}
+
+.ux-bar > .ux-input {
+  flex: 1 1 100%;
+}
+
+:is(.ux-bar, .ux-navigation) > .ux-note {
+  flex: 0 0 100%;
+}
+
+.ux-main {
+  grid-area: main;
+  padding: 1.25rem var(--ux-pad) 1.75rem;
+  background: var(--ux-surface);
+}
+
+.ux-beside {
+  grid-area: beside;
+  padding: 1.25rem var(--ux-pad);
+  border-top: 1px solid var(--ux-line);
+}
+
+/* Wide, the navigation is a column at the side, the bar runs across the top of the rest, and what is
+   beside the main part sits next to it. An area the screen does not place takes no room. */
+@media (min-width: 56rem) {
+  body {
+    padding: 2rem 2rem 3rem;
+  }
+
+  .ux-screen {
+    padding: 2rem;
+  }
+
+  .ux-screen:has(> .ux-main) {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+      "navigation bar bar"
+      "navigation main beside";
+    min-height: 30rem;
+    padding: 0;
+  }
+
+  .ux-navigation {
+    display: grid;
+    align-content: start;
+    width: 13.5rem;
+    padding: 1.125rem 0.75rem;
+    border-right: 1px solid var(--ux-line);
+    border-bottom: 0;
+  }
+
+  .ux-navigation > * {
+    padding-left: 0.625rem;
+    padding-right: 0.625rem;
+  }
+
+  .ux-navigation .ux-nav > ul {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    margin-left: -0.625rem;
+    margin-right: -0.625rem;
+  }
+
+  .ux-bar {
+    padding: 0.625rem 1.75rem;
+  }
+
+  .ux-bar > .ux-input {
+    flex: 1 1 12rem;
+    max-width: 24rem;
+    margin-right: auto;
+  }
+
+  .ux-main {
+    padding: 1.5rem 1.75rem 2.25rem;
+  }
+
+  .ux-main > * {
+    max-width: 46rem;
+  }
+
+  .ux-beside {
+    width: 17.5rem;
+    padding: 1.5rem 1.25rem;
+    border-top: 0;
+    border-left: 1px solid var(--ux-line);
+  }
+
+  .ux-account dl {
+    display: grid;
+    grid-template-columns: 11rem minmax(0, 1fr);
+    gap: 0.75rem 1.5rem;
+  }
+
+  .ux-account dt,
+  .ux-account dd {
+    margin-top: 0;
+  }
+}
+
+/* ---- Roles. Each part holds its item's words; a choice, a list and a nav also hold their options, as a list. */
+
 .ux-heading {
   font-size: 1.25rem;
-  font-weight: 600;
+  font-weight: 650;
   line-height: 1.25;
+  letter-spacing: -0.01em;
 }
 
 .ux-text {
-  font-size: 1rem;
+  max-width: 44rem;
 }
 
 :is(.ux-choice, .ux-list, .ux-nav) > ul {
   margin: 0.375rem 0 0;
   padding: 0;
+  color: var(--ux-ink);
+  font-size: 0.9375rem;
+  font-weight: 400;
+  letter-spacing: 0;
   list-style: none;
+  text-transform: none;
+}
+
+/* A choice: its question, then every answer as a pill. */
+.ux-choice {
+  font-size: var(--ux-small);
+  font-weight: 600;
 }
 
 .ux-choice > ul {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 0.375rem;
+  font-size: 0.875rem;
 }
 
 .ux-choice > ul > li {
-  padding: 0.375rem 0.75rem;
-  border: 1px solid var(--ux-line-strong);
-  border-radius: var(--ux-radius);
-}
-
-.ux-input {
-  font-size: 0.875rem;
-  font-weight: 600;
-}
-
-.ux-input::after {
-  content: "";
-  display: block;
-  height: 2.25rem;
-  margin-top: 0.25rem;
+  padding: 0.3125rem 0.75rem;
   background: var(--ux-surface);
   border: 1px solid var(--ux-line-strong);
-  border-radius: var(--ux-radius);
+  border-radius: 999px;
 }
 
+/* An input: the field itself, with its label in it as the words a field shows before she types. */
+.ux-input {
+  min-height: 2.375rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--ux-surface);
+  color: var(--ux-muted);
+  border: 1px solid var(--ux-line-strong);
+  border-radius: var(--ux-radius);
+  box-shadow: inset 0 1px 2px var(--ux-line);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Actions sit side by side when written one after another. The primary one is filled; the others outlined. */
 .ux-action {
-  display: block;
-  width: fit-content;
+  display: inline-block;
   max-width: 100%;
-  padding: 0.5rem 1rem;
+  min-height: 2.375rem;
+  margin-right: 0.375rem;
+  padding: 0.4375rem 0.875rem;
   background: var(--ux-surface);
   color: var(--ux-ink);
   border: 1px solid var(--ux-line-strong);
   border-radius: var(--ux-radius);
   font: inherit;
   font-weight: 600;
+  line-height: 1.3;
   text-align: center;
+  vertical-align: bottom;
 }
 
 .ux-action.is-primary {
@@ -209,47 +563,67 @@ body {
   border-color: var(--ux-primary);
 }
 
+/* A list: its caption, then a card of rows. */
 .ux-list {
   color: var(--ux-muted);
-  font-size: 0.875rem;
+  font-size: var(--ux-small);
+  font-weight: 600;
 }
 
 .ux-list > ul {
-  color: var(--ux-ink);
-  font-size: 1rem;
-  border-top: 1px solid var(--ux-line);
+  margin-top: 0.4375rem;
+  overflow: hidden;
+  background: var(--ux-surface);
+  border: 1px solid var(--ux-line);
+  border-radius: var(--ux-radius-large);
 }
 
 .ux-list > ul > li {
-  padding: 0.5rem 0;
-  border-bottom: 1px solid var(--ux-line);
+  padding: 0.625rem 0.875rem;
 }
 
+.ux-list > ul > li + li {
+  border-top: 1px solid var(--ux-line);
+}
+
+/* A status: a small pill with a dot. */
 .ux-status {
+  width: fit-content;
+  max-width: 100%;
+  padding: 0.125rem 0.625rem 0.125rem 0.5rem;
+  background: var(--ux-well);
+  border-radius: 999px;
+  font-size: var(--ux-small);
   font-weight: 600;
 }
 
 .ux-status::before {
   content: "";
   display: inline-block;
-  width: 0.5em;
-  height: 0.5em;
-  margin-right: 0.5em;
+  width: 0.4375rem;
+  height: 0.4375rem;
+  margin-right: 0.4375rem;
   background: currentColor;
   border-radius: 50%;
-  vertical-align: 0.1em;
+  vertical-align: 0.0625rem;
 }
 
+/* Media: a placeholder box, crossed, that says what it shows. */
 .ux-media {
   display: grid;
   place-items: center;
   aspect-ratio: 16 / 9;
-  max-height: 16rem;
+  max-width: 32rem;
+  max-height: 15rem;
   padding: var(--ux-pad);
-  background: var(--ux-fill);
-  color: var(--ux-muted);
-  border: 1px dashed var(--ux-line-strong);
-  font-size: 0.875rem;
+  background-color: var(--ux-well);
+  background-image:
+    linear-gradient(to top right, transparent calc(50% - 1px), var(--ux-line-strong) calc(50% - 0.5px), var(--ux-line-strong) calc(50% + 0.5px), transparent calc(50% + 1px)),
+    linear-gradient(to bottom right, transparent calc(50% - 1px), var(--ux-line-strong) calc(50% - 0.5px), var(--ux-line-strong) calc(50% + 0.5px), transparent calc(50% + 1px));
+  color: var(--ux-ink);
+  border-radius: var(--ux-radius);
+  font-size: var(--ux-small);
+  font-weight: 600;
   text-align: center;
 }
 
@@ -257,37 +631,59 @@ body {
   display: block;
   width: fit-content;
   color: inherit;
+  font-weight: 500;
   text-decoration: underline;
-  text-underline-offset: 0.15em;
+  text-decoration-color: var(--ux-line-strong);
+  text-underline-offset: 0.2em;
 }
 
+/* A nav: its caption, then its places in a row; in the navigation, wide, as rows down the column. The
+   place she is at is marked. */
 .ux-nav {
-  padding-bottom: 0.5rem;
   color: var(--ux-muted);
-  font-size: 0.8125rem;
-  border-bottom: 1px solid var(--ux-line);
+  font-size: var(--ux-smaller);
+  font-weight: 650;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.ux-navigation > .ux-nav {
+  flex: 1 1 auto;
 }
 
 .ux-nav > ul {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 1.25rem;
-  color: var(--ux-ink);
-  font-size: 1rem;
-  font-weight: 600;
+  gap: 0.125rem;
+  font-weight: 500;
 }
 
-/* A designer's note: said about the interface, never part of it. It keeps no browser margin, so a
-   frame's caption with a note sits like one without. */
+.ux-nav > ul > li {
+  padding: 0.375rem 0.625rem;
+  border-radius: var(--ux-radius);
+}
+
+.ux-nav > ul > li[aria-current] {
+  background: var(--ux-well);
+  font-weight: 650;
+}
+
+/* A designer's note: said about the interface, never part of it, and quiet. It keeps no browser margin,
+   so a frame's caption with a note sits like one without. */
 .ux-note {
   margin: 0;
   padding-left: 0.5rem;
   color: var(--ux-muted);
-  border-left: 2px dashed var(--ux-line-strong);
-  font-size: 0.8125rem;
+  border-left: 2px solid var(--ux-line-strong);
+  font-size: var(--ux-smaller);
   font-style: italic;
+  font-weight: 400;
 }
 
-:is(.ux-screen, .ux-dialog, .ux-region, .ux-group, .ux-expansion) > * + .ux-note {
+:is(.ux-screen, .ux-dialog, .ux-group, .ux-expansion) > * + .ux-note {
   margin-top: 0.25rem;
+}
+
+.ux-region > .ux-note {
+  margin-top: -0.5rem;
 }
